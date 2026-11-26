@@ -164,7 +164,7 @@ func (w *Workspace) StopRun(slug, ref string) error {
 func (w *Workspace) endRun(r runs.Run) error {
 	err := w.runStore().End(r)
 	if len(r.Needs) > 0 {
-		w.runStore().Sweep(nil, time.Now())
+		logFailed(w.runStore().Sweep(nil, time.Now()))
 	}
 	return err
 }

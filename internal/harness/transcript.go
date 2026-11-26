@@ -319,7 +319,7 @@ func (t *transcript) claudeLine(line string) {
 		Content json.RawMessage `json:"content"`
 		IsError bool            `json:"is_error"`
 	}
-	json.Unmarshal(e.Message.Content, &blocks)
+	_ = json.Unmarshal(e.Message.Content, &blocks) // content that isn't blocks has no text to take
 	for _, b := range blocks {
 		switch b.Type {
 		case "text":
@@ -374,7 +374,7 @@ func (t *transcript) piLine(line string) {
 			Arguments json.RawMessage `json:"arguments"`
 		}{Type: "text", Text: text})
 	} else {
-		json.Unmarshal(e.Message.Content, &blocks)
+		_ = json.Unmarshal(e.Message.Content, &blocks) // content that isn't blocks has no text to take
 	}
 	switch e.Message.Role {
 	case "user":

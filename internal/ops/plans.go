@@ -149,7 +149,7 @@ func (w *Workspace) setPlan(slug, text string, by Actor, was *string) (PlanSet, 
 	if err != nil {
 		return PlanSet{}, err
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: by.By(), Text: logged})
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: by.By(), Text: logged})
 	w.youActed(m.Slug, by)
 	return PlanSet{Slug: m.Slug, Plan: p, Warnings: w.PlanWarnings(m, p), Revised: revised, Revision: rev}, nil
 }

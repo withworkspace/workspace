@@ -88,7 +88,7 @@ func (w *Workspace) acceptStage(slug string, by Actor, why string) (Accepted, er
 	}
 	w.youActed(m.Slug, by)
 	// The step's done: what ws asked you about it is answered.
-	w.Missions.CloseStepTasks(m.Slug, acc.N)
+	w.closeStepTasks(m.Slug, acc.N)
 	out := Accepted{Slug: m.Slug, Stage: acc, Of: len(states), Implicit: acc.Implicit}
 	if !acc.Implicit {
 		out.Next = w.afterAccept(m.Slug, acc, states)
@@ -380,7 +380,7 @@ func (w *Workspace) startFresh(m *mission.Mission, st mission.StageState, capsul
 	case errors.As(err, &r) && r.Code == "dispatch-limit":
 		Noun := strings.ToUpper(noun[:1]) + noun[1:]
 		text := fmt.Sprintf("%s %d is next, but ws has started as many crew without you as it may. Go on to %s %d: %s?", Noun, st.N, noun, st.N, st.Short())
-		w.Missions.AskAtStep(m.Slug, mission.TaskApprove, text, st.N)
+		logFailed(w.Missions.AskAtStep(m.Slug, mission.TaskApprove, text, st.N))
 		return fmt.Sprintf("the dispatch limit is reached, so the user is asked before %s %d starts", noun, st.N)
 	case err != nil:
 		return fmt.Sprintf("couldn't start %s %d: %v", noun, st.N, err)
@@ -560,10 +560,12 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 		// An answer is a decision whoever comes next should know: going on,
 		// or not yet, at a step of yours isn't. It's recorded first, so the
 		// answer is the log's latest, with the question it answers.
-		w.Missions.Decide(m.Slug, mission.Decision{
+		if _, err := w.Missions.Decide(m.Slug, mission.Decision{
 			What: text, By: by.By(),
 			Asked: &mission.Asked{By: firstNonEmpty(t.By, mission.RoleOrchestrator), Text: oneLine(t.Text)},
-		})
+		}); err != nil {
+			return Answered{}, wrap(err)
+		}
 	}
 	// A step of yours stays yours unless you go on (or decide); a stage
 	// ws asked to start is put aside by not yet.
@@ -573,7 +575,7 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 	}
 	if by.Kind == Crew {
 		// Answering was its whole job: it has handed back.
-		w.Missions.SetCrewStatus(m.Slug, by.ID, mission.CrewDone, "answered: "+text)
+		logFailed(w.Missions.SetCrewStatus(m.Slug, by.ID, mission.CrewDone, "answered: "+text))
 	}
 	out := Answered{Slug: m.Slug}
 	switch {
@@ -735,7 +737,7 @@ func (w *Workspace) Dismiss(slug string, by Actor) (Dismissed, error) {
 		if err := w.Missions.SetConclude(m.Slug, nil); err != nil {
 			return Dismissed{}, wrap(err)
 		}
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "the ending suggested is put aside: it doesn't end yet"})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "the ending suggested is put aside: it doesn't end yet"})
 		w.youActed(m.Slug, by)
 		return Dismissed{Slug: m.Slug, What: "suggested ending"}, nil
 	case len(m.Tasks) > 0:

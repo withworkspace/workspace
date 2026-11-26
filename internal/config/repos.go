@@ -105,7 +105,7 @@ func AddTeamRepo(root, name string, rc RepoConfig) error {
 		}
 	}
 	if err != nil {
-		os.WriteFile(path, data, 0o644)
+		_ = os.WriteFile(path, data, 0o644) // put back as it was: the error says what went wrong
 		return fmt.Errorf("writing %s: %w", FileName, err)
 	}
 	return nil
@@ -175,7 +175,7 @@ func AddLocalRepo(root, name string, rc RepoConfig) error {
 			return err
 		}
 		if again, err := ReadLocal(root); err != nil || !hasRepo(again.Repos, name) {
-			os.WriteFile(path, data, 0o644)
+			_ = os.WriteFile(path, data, 0o644) // put back as it was: the error says what went wrong
 			return fmt.Errorf("writing %s: [repos.%s] didn't read back (%v)", LocalFileName, name, err)
 		}
 		return nil

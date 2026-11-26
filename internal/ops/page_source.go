@@ -172,7 +172,7 @@ func (w *Workspace) bringIn(id string, at time.Time) (*PageBroughtIn, error) {
 		if _, err := ps.Write(id, doc.Version(text), merged); err != nil {
 			return nil, err
 		}
-		store.KeepVersion(now)
+		logFailed(store.KeepVersion(now))
 		out.Clashes, out.Changed = clashes, true
 	}
 	meta := ps.Meta(id)

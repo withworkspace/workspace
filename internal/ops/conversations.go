@@ -359,7 +359,7 @@ func (w *Workspace) sendToCrew(m *mission.Mission, ids []string) (string, error)
 			}
 			l, err := w.Launch(m.Slug, Dispatch{Resume: c.ID}, AsYou)
 			if err != nil {
-				mstore.SetResumeWith(m.Slug, c.ID, "")
+				logFailed(mstore.SetResumeWith(m.Slug, c.ID, ""))
 				return "", err
 			}
 			return w.startedFor(m, ids, fmt.Sprintf("Resumed %s, which wrote %s.", l.ID, path), l.ID)

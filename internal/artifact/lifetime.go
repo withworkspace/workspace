@@ -117,7 +117,7 @@ func (s Store) rewrite(ctx context.Context, id string, change func(*kept, *Artif
 		}
 		k.Artifact = *a
 		if err := saveIn(tx, k, info); err != nil {
-			os.WriteFile(filepath.Join(dir, RecordFile), data, 0o644) // its row still says what it was
+			_ = os.WriteFile(filepath.Join(dir, RecordFile), data, 0o644) // its row still says what it was
 			return err
 		}
 		out = k.Entry
@@ -177,7 +177,7 @@ func (s Store) Restore(ctx context.Context, id string, r Restoration) (Entry, er
 		if _, err := writeRecord(from, a); err != nil {
 			return err
 		}
-		undo := func() { os.WriteFile(filepath.Join(from, RecordFile), was, 0o644) }
+		undo := func() { _ = os.WriteFile(filepath.Join(from, RecordFile), was, 0o644) } // undoing: the error that called for it is the one returned
 		if err := os.MkdirAll(s.Dir(), 0o755); err != nil {
 			undo()
 			return err
@@ -192,7 +192,7 @@ func (s Store) Restore(ctx context.Context, id string, r Restoration) (Entry, er
 			err = saveIn(tx, k, info)
 		}
 		if err != nil {
-			os.Rename(to, from) // its row still says it's discarded
+			_ = os.Rename(to, from) // its row still says it's discarded
 			undo()
 			return err
 		}

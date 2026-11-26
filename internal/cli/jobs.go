@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/execlog"
@@ -53,8 +54,10 @@ func spawnPRWriter(root, slug, capsule string) {
 	if err := startJob(root, job.Job{Kind: job.PR, Mission: slug, ID: capsule}); err != nil {
 		execlog.Note(root, "pr-writer "+slug, "couldn't start for %s: %v", capsule, err)
 		store := mission.Store{Root: root}
-		store.EndWritingPR(slug, capsule)
-		store.AppendLog(slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("couldn't have %s's pull request written (%v): open it again", capsule, err)})
+		if err := store.EndWritingPR(slug, capsule); err != nil {
+			log.Printf("mission %s: still says its pull request is being written: %v", slug, err)
+		}
+		store.AppendLogAfter(slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("couldn't have %s's pull request written (%v): open it again", capsule, err)})
 	}
 }
 

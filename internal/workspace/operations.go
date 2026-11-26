@@ -31,7 +31,9 @@ func (w *Workspace) SetupRepo(name string) SetupResult {
 		return SetupResult{Repo: name, Skipped: true}
 	}
 
-	os.MkdirAll(repoDir, 0755)
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		return SetupResult{Repo: name, Err: err}
+	}
 
 	r := w.RemoteOf(name)
 	url := RepoCloneURL(r.Owner, r.Name, w.GitProtocol)
@@ -86,7 +88,7 @@ func (w *Workspace) FetchAll() []FetchResult {
 // Returns the capsule directory name used for the worktree.
 func (w *Workspace) CreateLiftWorktree(repo, branch, base string) (string, error) {
 	bareDir := w.BareDir(repo)
-	git.Run(bareDir, "config", "push.autoSetupRemote", "true") // idempotent
+	_ = git.Run(bareDir, "config", "push.autoSetupRemote", "true") // idempotent
 
 	capsule := UniqueCapsuleName(w.RepoDir(repo), branch)
 	wtPath := filepath.Join(w.RepoDir(repo), capsule)
@@ -117,14 +119,14 @@ func (w *Workspace) CreateDockWorktree(repo, branch string) (string, error) {
 // LiftWorktree fetches and creates a new branch worktree.
 // Returns the capsule directory name used for the worktree.
 func (w *Workspace) LiftWorktree(repo, branch, base string) (string, error) {
-	GitFetch(w.BareDir(repo)) // best-effort fetch
+	_ = GitFetch(w.BareDir(repo)) // best-effort fetch
 	return w.CreateLiftWorktree(repo, branch, base)
 }
 
 // DockWorktree fetches and checks out an existing branch into a new worktree.
 // Returns the capsule directory name used for the worktree.
 func (w *Workspace) DockWorktree(repo, branch string) (string, error) {
-	GitFetch(w.BareDir(repo)) // best-effort fetch
+	_ = GitFetch(w.BareDir(repo)) // best-effort fetch
 	return w.CreateDockWorktree(repo, branch)
 }
 

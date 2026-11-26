@@ -66,9 +66,11 @@ func (w *Workspace) Around(ctx context.Context, keys []store.Key, limit int, fre
 		return nil, err
 	}
 	if fresh {
-		w.Missions.Reread(ctx)
-		w.pages().Reread(ctx)
-		w.spacesKept() // read again behind it: a ground's documents take a while
+		// Read again behind them (a ground's documents take a while): what
+		// reads them next says if they can't be.
+		_, _ = w.Missions.Reread(ctx)
+		_, _ = w.pages().Reread(ctx)
+		_, _ = w.spacesKept()
 	}
 	asked := map[store.Key]bool{}
 	for _, k := range keys {

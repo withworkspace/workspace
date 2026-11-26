@@ -155,7 +155,7 @@ func (r Repo) CommitVersion(ctx context.Context, n, on int, files Files, message
 // Drop takes version n's tag away: a version whose record was never
 // written.
 func (r Repo) Drop(ctx context.Context, n int) {
-	r.out(ctx, nil, "update-ref", "-d", tag(n))
+	_, _ = r.out(ctx, nil, "update-ref", "-d", tag(n)) // a tag left keeps only what it tags
 }
 
 // entry is one file of a tree as git lists it.
@@ -296,7 +296,7 @@ func (r Repo) blobs(ctx context.Context, names []string) ([]blob, error) {
 		if _, err := io.ReadFull(rd, data); err != nil {
 			return nil, err
 		}
-		rd.ReadByte() // the newline after it
+		_, _ = rd.ReadByte() // the newline after it
 		if f[1] != "blob" {
 			blobs = append(blobs, blob{missing: true}) // a folder, not a file
 			continue

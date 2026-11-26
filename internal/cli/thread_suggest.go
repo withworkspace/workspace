@@ -79,7 +79,9 @@ Give the two as flags, or on stdin between conflict markers:
 			if _, err := store.Suggest(c.ID, conversation.Suggestion{From: from, To: to, By: by, At: time.Now()}, text); err != nil {
 				return err
 			}
-			store.KeepVersion(text)
+			if _, err := store.KeepVersion(text); err != nil {
+				fmt.Fprintf(ui.Stderr, "  %s couldn't keep the version suggested on, to merge with: %v\n", ui.Orange.Render("⚠"), err)
+			}
 			fmt.Fprintf(ui.Stderr, "  %s suggested in %s: the user accepts or declines it\n", ui.Green.Render("✓"), c.ID)
 			return nil
 		},

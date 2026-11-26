@@ -69,7 +69,7 @@ func Own(root string) (*DB, error) {
 	}
 	o := &owner{root: root, lock: lock, sem: make(chan struct{}, 1), conns: map[net.Conn]bool{}, watchers: map[chan struct{}]bool{}}
 	fail := func(err error) (*DB, error) {
-		o.shut()
+		_ = o.shut() // the failure is the error to say
 		return nil, err
 	}
 	// One connection writes, taking SQLite's write lock as it begins, so
@@ -118,8 +118,9 @@ func takeLock(root string) (*os.File, error) {
 		}
 		return nil, err
 	}
-	f.Truncate(0)
-	f.WriteAt([]byte(strconv.Itoa(os.Getpid())+"\n"), 0)
+	// The pid only names who has it.
+	_ = f.Truncate(0)
+	_, _ = f.WriteAt([]byte(strconv.Itoa(os.Getpid())+"\n"), 0)
 	return f, nil
 }
 
@@ -130,7 +131,11 @@ func (o *owner) listen() error {
 	if err != nil {
 		return err
 	}
-	os.Chmod(path, 0o600)
+	// Only you reach it: the folder it's in may be others' to read.
+	if err := os.Chmod(path, 0o600); err != nil {
+		_ = ln.Close()
+		return err
+	}
 	o.ln = ln
 	return nil
 }
@@ -259,7 +264,7 @@ func (o *owner) handle(nc net.Conn) {
 	}
 	mine := layouts()
 	if err := differ(mine, hello.Layouts); err != nil {
-		enc.Encode(reply{Error: err.Error(), Layouts: mine, Pid: os.Getpid()})
+		_ = enc.Encode(reply{Error: err.Error(), Layouts: mine, Pid: os.Getpid()}) // a client that's gone isn't told
 		return
 	}
 	if enc.Encode(reply{Layouts: mine, Pid: os.Getpid()}) != nil {
@@ -473,7 +478,7 @@ func (o *owner) shut() error {
 		os.Remove(SocketPath(o.root))
 	}
 	if o.lock != nil {
-		syscall.Flock(int(o.lock.Fd()), syscall.LOCK_UN)
+		_ = syscall.Flock(int(o.lock.Fd()), syscall.LOCK_UN) // closing it lets go of the lock too
 		o.lock.Close()
 	}
 	return err

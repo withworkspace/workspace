@@ -228,7 +228,7 @@ func (w *Workspace) SetBrief(slug, text string, by Actor) (BriefSet, error) {
 	if err := w.Missions.WriteBrief(m.Slug, text); err != nil {
 		return BriefSet{}, err
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "brief written"})
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "brief written"})
 	w.youActed(m.Slug, by)
 	return BriefSet{Slug: m.Slug, Warnings: w.StageWarnings(m, text)}, nil
 }
@@ -310,7 +310,7 @@ func (w *Workspace) Attach(slug, repo, capsule string, move bool, by Actor) (Att
 		}); err != nil {
 			return Attached{}, wrap(err)
 		}
-		w.Missions.AppendLog(owner.Slug, mission.Event{Kind: mission.EventCapsuleRemove, Repo: repo, Capsule: capsule, Text: "moved to " + m.Slug})
+		w.Missions.AppendLogAfter(owner.Slug, mission.Event{Kind: mission.EventCapsuleRemove, Repo: repo, Capsule: capsule, Text: "moved to " + m.Slug})
 		out.From = owner.Slug
 	}
 	branch := workspace.GitCurrentBranch(filepath.Join(w.WS().RepoDir(repo), capsule))

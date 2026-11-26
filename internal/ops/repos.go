@@ -3,6 +3,7 @@ package ops
 import (
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 
@@ -78,8 +79,15 @@ func (w *Workspace) teamRepo(ctx context.Context, repo string, rc config.RepoCon
 	if hidden {
 		// Its git is put away between syncs, so nothing in the workspace
 		// mistakes the root for a repo of its own: out for this, and back.
-		workspace.EnableWorkspaceGit(root)
-		defer workspace.DisableWorkspaceGit(root)
+		if err := workspace.EnableWorkspaceGit(root); err != nil {
+			return "", "", err
+		}
+		defer func() {
+			// What's given to the team stands if it can't be put away again.
+			if err := workspace.DisableWorkspaceGit(root); err != nil {
+				log.Printf("%v", err)
+			}
+		}()
 	}
 
 	branch, err = git.ReadLine(ctx, root, "symbolic-ref", "--quiet", "--short", "HEAD")

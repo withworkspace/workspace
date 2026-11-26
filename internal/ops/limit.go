@@ -52,7 +52,7 @@ func (w *Workspace) MoreTime(slug string, n int, d time.Duration, by Actor) (str
 	}
 	// What ws asked about the step's time is answered.
 	if t, ok := m.StepTask(st.N); ok && t.Verb == mission.TaskTime {
-		w.Missions.CloseTask(m.Slug, t.N, by.By(), "")
+		logFailed(w.Missions.CloseTask(m.Slug, t.N, by.By(), ""))
 	}
 	w.youActed(m.Slug, by)
 	left := time.Until(deadline).Round(time.Minute)

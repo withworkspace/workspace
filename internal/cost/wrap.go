@@ -76,7 +76,7 @@ func write(v any) {
 	if err != nil {
 		return
 	}
-	out.Write(append(b, '\n'))
+	_, _ = out.Write(append(b, '\n')) // a cost line not written is only not counted
 }
 
 // observer, if set, is told each request's line (Observe).

@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1262,7 +1263,7 @@ func (s Store) SetSummary(id, title, summary string, at time.Time) error {
 func (s Store) RunFile(id string) string { return filepath.Join(s.dir(), id+".run") }
 
 func (s Store) RunPath(id string) string {
-	os.MkdirAll(s.dir(), 0o755)
+	_ = os.MkdirAll(s.dir(), 0o755) // writing the run says if its folder can't be made
 	return filepath.Join(s.dir(), id+".run")
 }
 
@@ -1285,7 +1286,9 @@ func (s Store) SetGuideGiven(id string, g GuideGiven) error {
 	if err != nil {
 		return err
 	}
-	os.MkdirAll(s.dir(), 0o755)
+	if err := os.MkdirAll(s.dir(), 0o755); err != nil {
+		return err
+	}
 	return os.WriteFile(s.givenPath(id), data, 0o644)
 }
 
@@ -1474,7 +1477,9 @@ func (s Store) StartAnswering(id string, pid int) (bool, error) {
 
 // EndAnswering marks the agent done answering.
 func (s Store) EndAnswering(id string) {
-	s.write(func(tx *store.Tx) error { return s.setAnswering(tx, id, 0) })
+	if err := s.write(func(tx *store.Tx) error { return s.setAnswering(tx, id, 0) }); err != nil {
+		log.Printf("conversation %s: still says it's being answered: %v", id, err)
+	}
 }
 
 // EndAnsweringBy ends every answering mark process pid holds, in any

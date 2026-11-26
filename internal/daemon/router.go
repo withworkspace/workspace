@@ -31,7 +31,9 @@ func routerLoop(root string, web int, logf func(string, ...any), stop <-chan str
 			stopRouter = nil
 			logf("router: names off")
 		}
-		router.Remove(dir, root)
+		if err := router.Remove(dir, root); err != nil {
+			logf("router: couldn't take this workspace's names away: %v", err)
+		}
 	}
 	defer off()
 	t := time.NewTicker(publishEvery)

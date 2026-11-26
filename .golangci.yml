@@ -1,8 +1,9 @@
 version: "2"
 
-# `just lint` runs these on all of ws. errcheck is set up here but not on:
-# `just lint` runs it only on what's changed since main (see the justfile),
-# since main has hundreds from before it was checked.
+# `just lint` runs these on all of ws.
+#
+# errcheck: an error let go on purpose is `_ = … // why`; one that can't
+# be returned, as it comes after what was done, is logged.
 #
 # noctx: a command, request or query with no context to end it is marked
 # `//nolint:noctx // why`, where it outlives its caller on purpose or
@@ -19,12 +20,28 @@ linters:
     - unconvert
     - copyloopvar
     - noctx
+    - errcheck
   settings:
     staticcheck:
       # Bugs and simplifications; not style (ST) or quick fixes (QF).
       checks: ["all", "-ST*", "-QF*"]
     errcheck:
-      exclude-functions: [fmt.Fprintf, fmt.Fprintln, fmt.Fprint]
+      exclude-functions:
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
+        # Rolling back after a failure: the failure is the error to say.
+        - (*database/sql.Tx).Rollback
+        # Writing a response: a client that's gone has nothing to be told.
+        - (net/http.ResponseWriter).Write
+        - (net.Conn).SetDeadline
+        - (net.Conn).SetWriteDeadline
+        # Signalling a process group that may have ended already.
+        - syscall.Kill
+        # Fails only on a flag that isn't there: a mistake a test finds.
+        - (*github.com/spf13/cobra.Command).RegisterFlagCompletionFunc
+        - (*github.com/spf13/cobra.Command).MarkFlagRequired
+        - (*github.com/spf13/pflag.FlagSet).MarkHidden
   exclusions:
     presets: [std-error-handling, common-false-positives]
     rules:

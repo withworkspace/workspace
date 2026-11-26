@@ -420,7 +420,7 @@ func blobs(ctx context.Context, dir string, es []entry) ([][]byte, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	defer cmd.Wait()
+	defer func() { _ = cmd.Wait() }() // what it printed is what counts
 	r := bufio.NewReaderSize(stdout, 64<<10)
 	out := make([][]byte, len(es))
 	for i := range es {
@@ -495,7 +495,7 @@ func lastChanged(ctx context.Context, dir, head, folder string, es []entry) (map
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	defer cmd.Wait()
+	defer func() { _ = cmd.Wait() }() // what it printed is what counts
 	sc := bufio.NewScanner(stdout)
 	sc.Buffer(make([]byte, 64<<10), 1<<20)
 	var c change

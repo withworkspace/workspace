@@ -278,11 +278,13 @@ func noteOrigin(store mission.Store, slug, text string) {
 	if crew != "" {
 		from += "/" + crew
 	}
-	store.Update(slug, func(m *mission.Mission) error {
+	if _, err := store.Update(slug, func(m *mission.Mission) error {
 		m.From = from
 		return nil
-	})
-	store.AppendLog(parent, mission.Event{Kind: mission.EventNote, Text: "raised mission " + slug + ": " + text})
+	}); err != nil {
+		fmt.Fprintf(ui.Stderr, "  %s couldn't note where %s came from: %v\n", ui.Orange.Render("⚠"), slug, err)
+	}
+	store.AppendLogAfter(parent, mission.Event{Kind: mission.EventNote, Text: "raised mission " + slug + ": " + text})
 }
 
 func openEditor(path string) error {

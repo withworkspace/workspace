@@ -298,7 +298,7 @@ func (w *Workspace) followedUp(repo string, number int, thread string, resolved 
 	}
 	for _, f := range c.Written().Findings {
 		if f.Thread == thread && c.FindingState(f.Key) != state {
-			w.cells().SettleFinding(c.ID, f.Key, state, "", w.now())
+			logFailed(w.cells().SettleFinding(c.ID, f.Key, state, "", w.now()))
 		}
 	}
 }
@@ -492,7 +492,7 @@ func reviewPassReady(a *answering) (bool, error) {
 		// While the guide's written, its view says what it was given, and
 		// reads what it's written so far against the files it may place.
 		if def.Name == page.Guide {
-			a.store.SetGuideGiven(a.c.ID, given)
+			logFailed(a.store.SetGuideGiven(a.c.ID, given))
 		}
 		if of.PR != 0 {
 			if svc, err := a.w.reviews(); err == nil {

@@ -75,7 +75,9 @@ it was for. It's yours to do: crew and agents are refused.`,
 			}
 			by := ops.ActorFromEnv()
 			if by.IsYou() {
-				ensureRunsWatched(w.WS().Root)
+				if err := ensureRunsWatched(w.WS().Root); err != nil {
+					fmt.Fprintf(os.Stderr, "%v\n\n", err)
+				}
 			}
 			for _, a := range args[1:] {
 				need, at, ok := strings.Cut(a, "=")

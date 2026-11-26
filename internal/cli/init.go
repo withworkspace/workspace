@@ -77,7 +77,9 @@ func newInitCmd() *cobra.Command {
 				return err
 			}
 
-			workspace.DisableWorkspaceGit(ctx.WS().Root)
+			if err := workspace.DisableWorkspaceGit(ctx.WS().Root); err != nil {
+				return err
+			}
 			runAfterCreateHooks(ctx.WS(), clonedRepos, os.Stderr, os.Stderr)
 
 			fmt.Fprintf(ui.Stderr, "\nWorkspace ready. %d repos cloned.\n", len(clonedRepos))

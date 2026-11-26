@@ -35,7 +35,9 @@ are skipped (they clone on first use); pass --group to clone a group.`,
 				return err
 			}
 
-			workspace.DisableWorkspaceGit(ctx.WS().Root)
+			if err := workspace.DisableWorkspaceGit(ctx.WS().Root); err != nil {
+				return err
+			}
 			runAfterCreateHooks(ctx.WS(), clonedRepos, os.Stderr, os.Stderr)
 
 			fmt.Fprintln(ui.Stderr, "\nSetup complete. Run 'ws open' to open in your editor.")

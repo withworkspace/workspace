@@ -78,7 +78,7 @@ func (w *Workspace) AskPlanner(slug, why string, by Actor) (AskedPlanner, error)
 	if err != nil {
 		return AskedPlanner{}, err
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: by.By(), Text: fmt.Sprintf("asked the planner at step %d, in %s: %s", at, c.ID, oneLine(why))})
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: by.By(), Text: fmt.Sprintf("asked the planner at step %d, in %s: %s", at, c.ID, oneLine(why))})
 	w.youActed(m.Slug, by)
 	return AskedPlanner{Slug: m.Slug, Conversation: c.ID}, nil
 }
@@ -160,7 +160,7 @@ func (w *Workspace) plannerAtStep(m *mission.Mission, done string, st mission.St
 	if err != nil {
 		return "", err
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("asked the planner at step %d, in %s: write the steps after it", st.N, c.ID)})
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("asked the planner at step %d, in %s: write the steps after it", st.N, c.ID)})
 	return fmt.Sprintf("step %d is the planner's: it's asked, in %s, to write the steps after it, and ws moves on once it has", st.N, c.ID), nil
 }
 
@@ -255,13 +255,13 @@ func (w *Workspace) RevisePlan(slug, id, text string) (Revised, error) {
 			return Revised{}, err
 		}
 		out.Proposed = len(c.Proposals)
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "planner", Text: fmt.Sprintf("proposed a revision of the plan, in %s: %s (%s)", id, strings.TrimSuffix(rev.Why(), "."), rev.Summary())})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "planner", Text: fmt.Sprintf("proposed a revision of the plan, in %s: %s (%s)", id, strings.TrimSuffix(rev.Why(), "."), rev.Summary())})
 		return out, nil
 	}
 	if err := w.Missions.WritePlan(m.Slug, p.Text); err != nil {
 		return Revised{}, err
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "planner", Text: "revised the plan, in " + id + ": " + rev.Summary()})
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "planner", Text: "revised the plan, in " + id + ": " + rev.Summary()})
 	out.Lifted = w.liftForPlan(m.Slug, p, rev.Fixed)
 	if m, err := w.Missions.Load(m.Slug); err == nil {
 		out.Warnings = w.PlanWarnings(m, p)

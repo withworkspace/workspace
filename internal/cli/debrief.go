@@ -97,7 +97,7 @@ func runDebrief(ctx *ops.Workspace, days int, repoFilter string, burnDirtyLanded
 		wg.Wait()
 		for i, repo := range repos {
 			if fetchResults[i].Err == nil {
-				workspace.GitFFMerge(ctx.WS().MainWorktree(repo), "origin/"+ctx.WS().DefaultBranch)
+				_ = workspace.GitFFMerge(ctx.WS().MainWorktree(repo), "origin/"+ctx.WS().DefaultBranch) // a ground that can't be fast-forwarded is read as it is
 			}
 		}
 		capsules = ctx.WS().FindAllCapsules(days, repoFilter)
@@ -320,7 +320,7 @@ func (m debriefModel) Init() tea.Cmd {
 		cmds = append(cmds, func() tea.Msg {
 			err := workspace.GitFetch(ctx.WS().BareDir(name))
 			if err == nil {
-				workspace.GitFFMerge(ctx.WS().MainWorktree(name), "origin/"+ctx.WS().DefaultBranch)
+				_ = workspace.GitFFMerge(ctx.WS().MainWorktree(name), "origin/"+ctx.WS().DefaultBranch) // a ground that can't be fast-forwarded is read as it is
 			}
 			return debriefAlignMsg{name: name, err: err}
 		})

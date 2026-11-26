@@ -205,7 +205,7 @@ func (w *Workspace) restartRun(old runs.Run, wait time.Duration) (RunUp, error) 
 		}
 	}
 	if !old.Looked.IsZero() {
-		store.LookedRun(r, old.Looked)
+		logFailed(store.LookedRun(r, old.Looked))
 	}
 	up.Run = r
 	if r.IsTask() {

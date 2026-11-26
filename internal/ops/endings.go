@@ -464,11 +464,11 @@ func (w *Workspace) HandOnCapsule(slug, capsule, what, to string, by Actor) (Cap
 		if err != nil {
 			return CapsuleEnded{}, wrap(err)
 		}
-		w.Missions.Update(n.Slug, func(x *mission.Mission) error {
+		logFailed(w.Missions.Update(n.Slug, func(x *mission.Mission) error {
 			x.From = m.Slug
 			return nil
-		})
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "raised mission " + n.Slug + ": " + what})
+		}))
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "raised mission " + n.Slug + ": " + what})
 		out.To, out.Raised = n.Slug, true
 	}
 	if err := w.Missions.EndCapsule(m.Slug, mission.EndedCapsule{Repo: c.Repo, Name: c.Name, Branch: c.Branch, Ending: mission.EndHandedOn, To: out.To, Why: what, By: by.By()}); err != nil {
@@ -480,7 +480,7 @@ func (w *Workspace) HandOnCapsule(slug, capsule, what, to string, by Actor) (Cap
 	}); err != nil {
 		return CapsuleEnded{}, wrap(err)
 	}
-	w.Missions.AppendLog(out.To, mission.Event{Kind: mission.EventCapsuleAdded, Repo: c.Repo, Capsule: c.Name, Text: "handed on from " + m.Slug})
+	w.Missions.AppendLogAfter(out.To, mission.Event{Kind: mission.EventCapsuleAdded, Repo: c.Repo, Capsule: c.Name, Text: "handed on from " + m.Slug})
 	w.youActed(m.Slug, by)
 	return out, nil
 }

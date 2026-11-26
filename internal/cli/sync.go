@@ -37,17 +37,21 @@ func newSyncCmd() *cobra.Command {
 			}
 
 			// Enable workspace git, pull, then disable
-			workspace.EnableWorkspaceGit(root)
+			if err := workspace.EnableWorkspaceGit(root); err != nil {
+				return err
+			}
 
 			oldHead := workspace.GitRevParse(root, "HEAD")
 			newCfg, pullErr := pullAndParse(root, configPath)
 			if pullErr != nil {
-				workspace.DisableWorkspaceGit(root)
+				_ = workspace.DisableWorkspaceGit(root) // the pull's error is the one to say
 				return pullErr
 			}
 			files := changedFiles(root, oldHead)
 
-			workspace.DisableWorkspaceGit(root)
+			if err := workspace.DisableWorkspaceGit(root); err != nil {
+				return err
+			}
 
 			// Diff configs
 			diff := config.Diff(oldCfg, newCfg)

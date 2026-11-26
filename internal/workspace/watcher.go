@@ -345,12 +345,12 @@ func (sw *SiloWatcher) removeWatch(repo string) {
 	}
 	for gitdir, r := range sw.gitdirToRepo {
 		if r == repo {
-			sw.watcher.Remove(gitdir)
+			_ = sw.watcher.Remove(gitdir) // it may not have been watched
 			delete(sw.gitdirToRepo, gitdir)
 		}
 	}
 	for dir := range sw.watched[repo] {
-		sw.watcher.Remove(dir)
+		_ = sw.watcher.Remove(dir) // it may not have been watched
 	}
 	delete(sw.watched, repo)
 }
@@ -536,7 +536,9 @@ func (sw *SiloWatcher) flushPending(repo string) {
 	}
 	// The manifest has what the silo was given, so a file that came this
 	// way goes when it's pointed at a capsule without it.
-	noteSynced(siloDir, added, removed)
+	if err := noteSynced(siloDir, added, removed); err != nil {
+		sw.log.Printf("silos: %s: noting what was synced: %v", repo, err)
+	}
 	var err error
 	if len(failed) > 0 {
 		sort.Strings(failed)

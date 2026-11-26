@@ -530,7 +530,7 @@ func answeringNow(pid int, since string) bool {
 // ids is the conversations' ids, in order.
 func (s Store) ids() []string {
 	var out []string
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		out = s.idsIn(tx)
 		return nil
 	})
@@ -559,7 +559,7 @@ func (s Store) idsIn(tx *store.Tx) []string {
 // latest is the latest a matching conversation changed, or zero.
 func (s Store) latest(where string, args ...any) time.Time {
 	var at sql.NullString
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		return tx.QueryRow(`SELECT max(changed) FROM conversations WHERE scope = ? AND `+where, append([]any{s.Slug}, args...)...).Scan(&at)
 	})
 	return timeOf(at.String)

@@ -198,7 +198,7 @@ briefing crew's WS_MISSION pointing nowhere).`,
 			}
 			if len(warnings) > 0 {
 				printWarnings(warnings)
-				store.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "at ready: " + strings.Join(warnings, "; ")})
+				store.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "at ready: " + strings.Join(warnings, "; ")})
 			}
 
 			// Record this briefing crew's end before it is hung up, so the
@@ -207,7 +207,9 @@ briefing crew's WS_MISSION pointing nowhere).`,
 			pid := 0
 			if c, ok := m.CrewByID(crewID); ok && c.Role == mission.RoleBriefing {
 				pid = c.PID
-				store.EndCrew(m.Slug, crewID, "briefed")
+				if err := store.EndCrew(m.Slug, crewID, "briefed"); err != nil {
+					fmt.Fprintf(ui.Stderr, "  %s couldn't end %s as briefed: %v\n", ui.Orange.Render("⚠"), crewID, err)
+				}
 			}
 			final := m.Slug
 			if newSlug != "" && newSlug != m.Slug {
@@ -267,6 +269,6 @@ func hangUpLater(pid int) {
 	c := exec.Command("/bin/sh", "-c", script) //nolint:noctx // it's to outlive ws: it hangs up later
 	c.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if c.Start() == nil {
-		c.Process.Release()
+		_ = c.Process.Release() // it's let go: what it does next isn't ws's
 	}
 }

@@ -326,7 +326,7 @@ func followTask(store runs.Store, run runs.Run, limit time.Duration) error {
 	}
 	done := make(chan end, 1)
 	go func() {
-		now, ended, err := store.WaitEnd(run, limit, func(s string) { io.WriteString(os.Stdout, s) })
+		now, ended, err := store.WaitEnd(run, limit, func(s string) { _, _ = io.WriteString(os.Stdout, s) })
 		done <- end{now, ended, err}
 	}()
 	var e end
@@ -334,7 +334,9 @@ func followTask(store runs.Store, run runs.Run, limit time.Duration) error {
 	case e = <-done:
 	case <-stop:
 		if now, err := store.Find(run.Ref(), run.Repo, run.Worktree); err == nil && now.State == runs.Running {
-			store.End(now)
+			if err := store.End(now); err != nil {
+				fmt.Fprintf(os.Stderr, "\nCouldn't stop %s: %v\n", run.NRef(), err)
+			}
 		}
 		fmt.Fprintf(os.Stderr, "\nStopped %s.\n", run.NRef())
 		return &ExitCodeError{Code: 130}
@@ -1096,7 +1098,7 @@ func newRunLogsCmd() *cobra.Command {
 				}
 				now, err := store.Find(r.Ref(), r.Repo, r.Worktree)
 				if err != nil || now.State != runs.Running {
-					io.Copy(os.Stdout, f)
+					_, _ = io.Copy(os.Stdout, f) // to a terminal: one that's gone has nothing to be shown
 					return nil
 				}
 				time.Sleep(250 * time.Millisecond)

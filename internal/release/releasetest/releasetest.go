@@ -89,8 +89,9 @@ func Archive(ws []byte) []byte {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
-	tw.WriteHeader(&tar.Header{Name: "workspace", Mode: 0o755, Size: int64(len(ws)), Typeflag: tar.TypeReg})
-	tw.Write(ws)
+	// To memory: nothing to fail.
+	_ = tw.WriteHeader(&tar.Header{Name: "workspace", Mode: 0o755, Size: int64(len(ws)), Typeflag: tar.TypeReg})
+	_, _ = tw.Write(ws)
 	tw.Close()
 	gz.Close()
 	return buf.Bytes()
