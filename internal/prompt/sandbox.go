@@ -22,8 +22,9 @@ type Sandbox struct {
 	NoLift string
 	// Confined is a shell in its harness's own sandbox, which stops a
 	// write outside where it may; one that isn't (a trusted harness's)
-	// is only told where to keep to.
-	Confined bool
+	// is only told where to keep to. Asks is a sandbox with no network,
+	// that a command leaves, whole, when the agent asks (Codex's).
+	Confined, Asks bool
 }
 
 // SandboxCapsule is a capsule a conversation's agent lifted.
@@ -53,19 +54,27 @@ func Sandboxed(c *conversation.Conversation) bool {
 func sandboxReading(h Here) string {
 	s := h.Sandbox
 	var b strings.Builder
-	if s.Confined {
+	switch {
+	case s.Confined && s.Asks:
+		b.WriteString("You can read anything here, and run what you like: your shell is in a sandbox, and what needs more you ask for. So where running something would answer the question (the tests and how long they take, a build, a script that measures), run it, and say what you found rather than what you'd expect.\n\n")
+		fmt.Fprintf(&b, "- The shell runs any command, piped and chained as you like, and reads everything. In its sandbox it writes in a folder of your own, %s (scripts, notes, what a command prints), in the system's temp folder, and in the capsules you'd lifted when this turn began, and it has no network.\n", s.Own)
+		b.WriteString("- A command that needs more (the network: installing packages, fetching, `git push`; or writing in a capsule you've lifted since) runs outside the sandbox: request escalated permissions for it as you run it, not after it's failed. ws grants them, but for a `ws` or `gh` command you may not run. Outside, keep to the same places: never write in a repo's .ground, a mission's capsule or the workspace's own files. Your tools for editing files write where the shell does, and in the capsules you lift as you go.\n")
+	case s.Confined:
 		b.WriteString("You can read anything here, and run what you like: your shell is in a sandbox. So where running something would answer the question (the tests and how long they take, a build, a script that measures), run it, and say what you found rather than what you'd expect.\n\n")
 		b.WriteString("- The shell runs any command, piped and chained as you like, reads everything, and reaches the network.\n")
 		fmt.Fprintf(&b, "- It writes in a folder of your own, %s (scripts, notes, what a command prints), in the system's temp folder, and in the capsules you lift (below). Nowhere else in the workspace: writing into a repo's .ground, a mission's capsule or the workspace's own files fails with \"operation not permitted\", which is the sandbox and not a fault. Your tools for writing and editing files write in the same places.\n", s.Own)
-	} else {
+	default:
 		b.WriteString("You can read anything here, and run what you like. So where running something would answer the question (the tests and how long they take, a build, a script that measures), run it, and say what you found rather than what you'd expect.\n\n")
 		b.WriteString("- The shell runs any command, piped and chained as you like, reads everything, and reaches the network.\n")
 		fmt.Fprintf(&b, "- Write in a folder of your own, %s (scripts, notes, what a command prints), in the system's temp folder, and in the capsules you lift (below), and nowhere else in the workspace: not in a repo's .ground, a mission's capsule or the workspace's own files. Your tools for writing and editing files are refused anywhere else; your shell isn't stopped, so keep to these places yourself.\n", s.Own)
 	}
 	b.WriteString("- The repos' default branches are at repos/<repo>/.ground; missions' capsules (worktrees on their branches) are at repos/<repo>/<capsule>. Run things in them as they stand where that writes nothing into them; where it would, lift a capsule of your own.\n")
-	if s.Confined {
+	switch {
+	case s.Confined && s.Asks:
+		b.WriteString("- `ws` and `gh` run outside the sandbox, always with escalated permissions, each on its own, as one command (not piped, chained or redirected to a file), and only these.")
+	case s.Confined:
 		b.WriteString("- `ws` and `gh` run outside the sandbox, so each runs on its own, as one command (not piped, chained or redirected to a file), and only these.")
-	} else {
+	default:
 		b.WriteString("- `ws` and `gh` each run on their own, as one command (not piped, chained or redirected to a file), and only these.")
 	}
 	b.WriteString(" `ws status -f llm` lists the repos and capsules; `ws mission list` the missions. `ws show -m <slug> -f llm` shows a mission, and `ws show -m <slug> -f llm <ref>` anything in it (stages s1, crew c1, capsules repo/name, documents by their ref, threads t3, decisions d1), each with what it links to. `ws find -f llm <words>` finds what's been said by what it says, in any mission and in the workspace's conversations, reviews and documents, each with the command that shows it. Of gh, reading: `gh pr view|list|checks|diff`, `gh issue view|list`, `gh run list|view`, `gh workflow list|view`, `gh release list|view`, `gh repo view`, `gh search`.\n\n")
@@ -140,9 +149,12 @@ func shellNext(h Here) string {
 		return "(The shell works for the commands your first message listed: if one was refused, that was it alone.) "
 	}
 	var b strings.Builder
-	if s.Confined {
+	switch {
+	case s.Confined && s.Asks:
+		fmt.Fprintf(&b, "(Your shell is in a sandbox: it runs any command, piped and chained as you like, and reads everything; it writes in %s, the system's temp folder and the capsules you'd lifted when this turn began, and has no network. What needs more (the network, a capsule lifted since) you run with escalated permissions, which ws grants but for a `ws` or `gh` command you may not run; `ws` and `gh` always need them, each on its own as one command, and only those your first message listed", s.Own)
+	case s.Confined:
 		fmt.Fprintf(&b, "(Your shell is in a sandbox: it runs any command, piped and chained as you like, reads everything and reaches the network, and writes in %s, the system's temp folder and the capsules you've lifted, nowhere else in the workspace. `ws` and `gh` run outside it, each on its own as one command, and only those your first message listed", s.Own)
-	} else {
+	default:
 		fmt.Fprintf(&b, "(Your shell runs any command, piped and chained as you like, reads everything and reaches the network. Write in %s, the system's temp folder and the capsules you've lifted, nowhere else in the workspace. `ws` and `gh` each run on their own as one command, and only those your first message listed", s.Own)
 	}
 	if s.NoLift == "" {

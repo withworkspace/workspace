@@ -257,6 +257,12 @@ type trusting struct{ fakeConverser }
 
 func (*trusting) Trusted() bool { return true }
 
+// escalating is a harness whose sandbox a command leaves when its agent
+// asks (Codex).
+type escalating struct{ sandboxing }
+
+func (*escalating) Escalates() bool { return true }
+
 // "Look at capsule x, bump this, fix the conflicts and push" is a
 // conversation's to do, not a mission's: its agent joins a capsule that's
 // there already (lifted by hand, no mission's), or docks one on a pull
@@ -330,8 +336,11 @@ func TestConversationJoinsAndDocksCapsules(t *testing.T) {
 	if len(said.Capsules) != 2 || !said.Capsules[0].Joined {
 		t.Errorf("told of %+v", said.Capsules)
 	}
-	if boxed := w.sandboxFor(store, c, &sandboxing{}, &harness.ConverseRun{Dir: root, Talk: true}); boxed == nil || !boxed.Confined {
+	if boxed := w.sandboxFor(store, c, &sandboxing{}, &harness.ConverseRun{Dir: root, Talk: true}); boxed == nil || !boxed.Confined || boxed.Asks {
 		t.Errorf("a sandboxed harness's run isn't confined: %+v", boxed)
+	}
+	if asks := w.sandboxFor(store, c, &escalating{}, &harness.ConverseRun{Dir: root, Talk: true}); asks == nil || !asks.Confined || !asks.Asks {
+		t.Errorf("an escalating harness's run: %+v", asks)
 	}
 
 	// Not a mission's, a .ground, or another conversation's.

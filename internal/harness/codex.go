@@ -126,7 +126,8 @@ func (c *Codex) ConverseModel() string     { return CodexConverseModel }
 func (c *Codex) OrchestratorModel() string { return CodexOrchestratorModel }
 
 // Converse runs one turn of a conversation: read-only, its commands those
-// a conversation may run (converseCommands), going on with its session.
+// a conversation may run (converseCommands), going on with its session;
+// or, for one that runs things (r.Sandbox), in workspace-write.
 func (c *Codex) Converse(r ConverseRun) (Launch, error) {
 	agent, err := c.agent()
 	if err != nil {
@@ -141,10 +142,38 @@ func (c *Codex) Converse(r ConverseRun) (Launch, error) {
 	run := ACPRun{Agent: agent, Dir: r.Dir, Load: r.Session, Mode: codexReadOnly, Prompt: r.Prompt + codexSandboxNote, Allow: converseCommands(r)}
 	if r.Alone {
 		run.Allow, run.Prompt = nil, r.Prompt // nothing leaves the sandbox
+	} else if r.Sandbox && len(r.Write) > 0 {
+		// One that runs things: workspace-write, from its own folder (the
+		// session's, which the sandbox lets it write), the capsules it's
+		// lifted and git's folders for them its others. Not from the
+		// workspace, which would open it all. What needs more it asks
+		// for, and ConversePolicy answers; its prompt says how
+		// (prompt.Sandbox.Asks).
+		run.Mode, run.Dir = codexWorkspaceWrite, r.Write[0]
+		run.Dirs = append(append([]string{}, r.Write[1:]...), r.Beside...)
+		run.Runs, run.Folders = true, r.Folders
+		run.Prompt = runsFrom(r.Write[0], r.Dir) + r.Prompt
 	}
 	run.Model, run.Settings = codexModel(r.Model)
 	return acpLaunch(run, r.Scratch)
 }
+
+// Codex runs a conversation's shell in its own sandbox, in workspace-write
+// (Converse), which keeps the network closed, and lets out whatever the
+// agent asks to run outside it, as ws answers (ConversePolicy): so it's
+// an Escalator. VERIFIED (codex-acp 2.6.0, Codex 0.170, workspace-write
+// with a folder given as additionalDirectories): apply_patch and the
+// shell write in the session's folder and that one without asking;
+// apply_patch elsewhere is asked of the client, its path in locations,
+// and refused by ConversePolicy (the agent's told why); a shell write
+// elsewhere fails "operation not permitted", and curl "Could not resolve
+// host"; asked with escalated permissions, each comes to the client as a
+// command (rawInput: command and cwd), and allowed, runs outside the
+// sandbox. There's no asking for the network alone: the mode's own
+// policy says networkAccess false, over Codex's config. The system's temp
+// folders are writable too (/tmp, $TMPDIR).
+func (c *Codex) Sandboxes() bool { return true }
+func (c *Codex) Escalates() bool { return true }
 
 // Orchestrate runs the orchestrator: read-only, its commands those it may
 // run (orchestratorCommands), which the sandbox would otherwise stop (ws

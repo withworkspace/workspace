@@ -174,7 +174,7 @@ func (w *Workspace) sandboxFor(store conversation.Store, c *conversation.Convers
 	if err != nil {
 		return nil // nowhere of its own to write: it reads, as before
 	}
-	out := &prompt.Sandbox{Own: own, NoLift: c.CanLift(), Confined: harness.Sandboxes(h)}
+	out := &prompt.Sandbox{Own: own, NoLift: c.CanLift(), Confined: harness.Sandboxes(h), Asks: harness.Escalates(h)}
 	r.Sandbox, r.Lift = true, out.NoLift == ""
 	r.Folders = func() []string { return w.ConversationFolders(store.Slug, c.ID) }
 	r.Write = []string{own}

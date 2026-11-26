@@ -71,6 +71,19 @@ func converseCommands(r ConverseRun) []string {
 	return out
 }
 
+// runsFrom tells a conversation's agent that runs things, run from ran
+// (a folder of ws's own, or of its own) that the folder it works on is
+// dir, and that it writes only where it's told: as cursorWorksIn, for one
+// that writes.
+func runsFrom(ran, dir string) string {
+	if dir == "" || dir == ran {
+		return ""
+	}
+	return "(ws runs you from " + ran + ", but the folder you work on is " + dir +
+		": where your instructions say \"here\" or \"you're in\", or name a path that isn't in full (repos/<repo>/…), they mean " + dir +
+		". Give paths in full when you read or write a file, and as the folder to run a shell command in. Write files only where your instructions say you may.)\n\n"
+}
+
 // talkGH is the gh a conversation's agent may run: reading GitHub, as you.
 // (Not gh api, which writes as readily as it reads.)
 var talkGH = []string{"gh pr view", "gh pr list", "gh pr checks", "gh pr diff", "gh issue view", "gh issue list",
@@ -217,6 +230,85 @@ func (p *Pi) ConverseModel() string { return "" }
 // the shell, which ws's extension limits to converseCommands.
 const piConverseTools = "read,bash,grep,find,ls"
 
+// piRunsTools are those of a conversation that runs things: writing and
+// editing files too, where ws's guard allows (piAskGuardSource).
+const piRunsTools = "read,bash,grep,find,ls,write,edit"
+
+// Trusted: a conversation's agent on pi runs things, with no sandbox (pi
+// has none), ws's guard deciding each command and write as it does
+// Claude Code's (GuardAnswer, by `ws conversation allowed`): any command
+// but a ws or gh one that isn't allowed, and writes in its folders.
+func (p *Pi) Trusted() bool { return true }
+
+// writePiAskGuard writes the extension that has pi ask ws's guard (guard:
+// the command, then its list's file) before each shell command, write and
+// edit, named by what it runs.
+func writePiAskGuard(dir string, guard []string) (string, error) {
+	cmd, _ := json.Marshal(guard)
+	src := strings.Replace(piAskGuardSource, "$GUARD", string(cmd), 1)
+	sum := sha256.Sum256([]byte(src))
+	path := filepath.Join(dir, "ws-converse-ask-"+hex.EncodeToString(sum[:])[:12]+".ts")
+	if _, err := os.Stat(path); err == nil {
+		return path, nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	return path, writeAtomically(path, []byte(src))
+}
+
+// piAskGuardSource asks ws's guard as Claude Code's hook does: the event
+// as Claude Code would send it (Bash's command; Write's and Edit's
+// file_path, in full), and its answer's permissionDecision. Anything but
+// allow is blocked, with ws's reason, which the agent's told. Reading is
+// allowed; any other tool, refused.
+const piAskGuardSource = `// Written by ws: a conversation's agent runs things, ws's guard deciding
+// each command and each file written.
+import { execFileSync } from "node:child_process";
+import { homedir } from "node:os";
+import { isAbsolute, resolve } from "node:path";
+
+const guard: string[] = $GUARD;
+const reading = ["read", "grep", "find", "ls"];
+
+function ask(tool: string, input: Record<string, string>): { allowed: boolean; reason: string } {
+  try {
+    const out = execFileSync(guard[0], guard.slice(1), {
+      input: JSON.stringify({ tool_name: tool, tool_input: input }),
+      encoding: "utf8",
+      timeout: 30000,
+    });
+    const said = out.trim() ? JSON.parse(out).hookSpecificOutput ?? {} : {};
+    return { allowed: said.permissionDecision === "allow", reason: said.permissionDecisionReason ?? "" };
+  } catch (e) {
+    return { allowed: false, reason: "ws couldn't say whether it may: " + String(e) };
+  }
+}
+
+function full(path: string): string {
+  if (path === "~" || path.startsWith("~/")) path = homedir() + path.slice(1);
+  return isAbsolute(path) ? path : resolve(process.cwd(), path);
+}
+
+export default function (pi: any) {
+  pi.on("tool_call", async (event: any) => {
+    const name = event.toolName;
+    if (reading.includes(name)) return;
+    let said;
+    if (name === "bash") {
+      said = ask("Bash", { command: String(event.input?.command ?? "") });
+    } else if (name === "write" || name === "edit") {
+      said = ask(name === "write" ? "Write" : "Edit", { file_path: full(String(event.input?.path ?? "")) });
+    } else {
+      return { block: true, reason: "Refused: that tool isn't one a conversation uses here." };
+    }
+    if (!said.allowed) {
+      return { block: true, reason: said.reason || "Refused: ws doesn't allow that here." };
+    }
+  });
+}
+`
+
 // Converse runs one turn of a conversation headless, read-only.
 //
 // VERIFIED (pi 1.5.0): -p --mode json prints the session header (its id),
@@ -236,8 +328,20 @@ func (p *Pi) Converse(r ConverseRun) (Launch, error) {
 	if r.Scratch == "" {
 		return Launch{}, fmt.Errorf("pi: no folder to keep ws's extension in")
 	}
-	guard, err := writePiGuard(filepath.Join(r.Scratch, "pi"), converseCommands(r))
-	if err != nil {
+	tools := piConverseTools
+	var guard string
+	if r.Sandbox && !r.Alone && len(r.Guard) > 0 {
+		// One that runs things: ws's guard decides each command and write
+		// (piAskGuard), as it does Claude Code's.
+		list, err := writeGuardList(filepath.Join(r.Scratch, "pi"), converseCommands(r), true)
+		if err != nil {
+			return Launch{}, err
+		}
+		if guard, err = writePiAskGuard(filepath.Join(r.Scratch, "pi"), append(append([]string{}, r.Guard...), list)); err != nil {
+			return Launch{}, err
+		}
+		tools = piRunsTools
+	} else if guard, err = writePiGuard(filepath.Join(r.Scratch, "pi"), converseCommands(r)); err != nil {
 		return Launch{}, err
 	}
 	session, flag := r.Session, "--session"
@@ -247,7 +351,7 @@ func (p *Pi) Converse(r ConverseRun) (Launch, error) {
 		}
 		flag = "--session-id"
 	}
-	args := []string{bin, "-p", "--mode", "json", flag, session, "--no-extensions", "--no-mcp", "-e", guard, "--tools", piConverseTools}
+	args := []string{bin, "-p", "--mode", "json", flag, session, "--no-extensions", "--no-mcp", "-e", guard, "--tools", tools}
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}

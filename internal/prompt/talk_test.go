@@ -144,6 +144,24 @@ func TestTalk_Sandboxed(t *testing.T) {
 	if next := TalkNext(h, talk); strings.Contains(next, "sandbox") || !strings.Contains(next, "Your shell runs any command") {
 		t.Errorf("an unsandboxed agent's later turn: %s", next)
 	}
+
+	// A sandbox with no network, that a command leaves when the agent asks
+	// (Codex's): told to ask, as it runs it, for what needs more.
+	h.Sandbox = &Sandbox{Own: "/tmp/ws-1/workspace/w3", Confined: true, Asks: true}
+	p = TalkFirst(h, talk)
+	for _, want := range []string{"your shell is in a sandbox, and what needs more you ask for", "has no network",
+		"the capsules you'd lifted when this turn began", "request escalated permissions for it as you run it", "always with escalated permissions",
+		"`ws dock <repo> <PR number or branch>`", "Push when the user asks you to"} {
+		if !strings.Contains(p, want) {
+			t.Errorf("an agent whose sandbox asks isn't told %q:\n%s", want, p)
+		}
+	}
+	if strings.Contains(p, "reaches the network") || strings.Contains(p, "operation not permitted") {
+		t.Errorf("an agent whose sandbox asks is told it reaches the network, or that writing fails:\n%s", p)
+	}
+	if next := TalkNext(h, talk); !strings.Contains(next, "has no network") || !strings.Contains(next, "escalated permissions") {
+		t.Errorf("its later turn: %s", next)
+	}
 	h.Sandbox = &Sandbox{Own: "/tmp/x", NoLift: "this is an ask nobody's kept"}
 	if p := TalkFirst(h, talk); !strings.Contains(p, "You can't lift a capsule here: this is an ask nobody's kept.") || strings.Contains(p, "`ws lift <repo> <name>` makes") {
 		t.Errorf("one that can't lift:\n%s", p)

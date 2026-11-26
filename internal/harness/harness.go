@@ -280,8 +280,8 @@ type ConverseRun struct {
 	// asked (a capsule lifted a moment ago is there): a trusted harness's
 	// writes are judged by them (ConversePolicy).
 	Folders func() []string
-	// Write are the folders it works in: one of its own, and the capsules
-	// its conversation lifted. Beside are what its shell writes besides:
+	// Write are the folders it works in: one of its own (first), and the
+	// capsules its conversation lifted. Beside are what its shell writes besides:
 	// git's own folders for the repos' capsules, and where tools keep
 	// what they've built or fetched. Room are folders that what's made
 	// after the run starts may be written in, though what's in them now
@@ -316,6 +316,22 @@ func Sandboxes(h Harness) bool {
 type Truster interface {
 	// Trusted is whether its conversations run things unsandboxed.
 	Trusted() bool
+}
+
+// Escalator is a Sandboxer whose sandbox keeps the network closed and
+// lets a command out of it, whole, when the agent asks (Codex's escalated
+// permissions), ws answering (ConversePolicy): what needs the network
+// (installing a package, git push) runs that way.
+type Escalator interface {
+	Sandboxer
+	// Escalates is whether its conversations ask to leave the sandbox.
+	Escalates() bool
+}
+
+// Escalates is whether h's sandbox is one its agent asks to leave.
+func Escalates(h Harness) bool {
+	e, ok := h.(Escalator)
+	return ok && e.Sandboxes() && e.Escalates()
 }
 
 // RunsThings is whether h's conversations that talk run things (any

@@ -392,6 +392,26 @@ func TestCodexLaunches(t *testing.T) {
 		t.Errorf("a talk allows %q", r.Allow)
 	}
 
+	if r.Runs || r.Dirs != nil {
+		t.Errorf("a talk that only reads runs things: %+v", r)
+	}
+	// One that runs things: workspace-write, from its own folder, not the
+	// workspace (which the sandbox would open); its capsules and git's
+	// folders the session's others; what it asks to run outside, answered
+	// by ConversePolicy. Told where it works, not the read-only note.
+	l, err = c.Converse(ConverseRun{Prompt: "bump it", Dir: "/w", Scratch: scratch, Talk: true, Sandbox: true, Lift: true,
+		Write: []string{"/tmp/ws-1/w3", "/w/repos/a/bump"}, Beside: []string{"/w/repos/a/.bare/objects"}, Folders: func() []string { return []string{"/tmp/ws-1/w3"} }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := *l.ACP; r.Mode != codexWorkspaceWrite || r.Dir != "/tmp/ws-1/w3" || strings.Join(r.Dirs, ",") != "/w/repos/a/bump,/w/repos/a/.bare/objects" ||
+		!r.Runs || r.Folders == nil || strings.Contains(r.Prompt, codexSandboxNote) || !strings.Contains(r.Prompt, "the folder you work on is /w") || !strings.HasSuffix(r.Prompt, "bump it") {
+		t.Errorf("a run that runs things = %+v", r)
+	}
+	if !RunsThings(c) || !Sandboxes(c) || !Escalates(c) || Escalates(&Claude{}) {
+		t.Errorf("Codex: runs things %v, sandboxes %v, escalates %v", RunsThings(c), Sandboxes(c), Escalates(c))
+	}
+
 	if _, err := c.Converse(ConverseRun{Prompt: "hi", Dir: "/w", Session: "gone-1", Scratch: scratch}); !errors.Is(err, ErrSessionGone) {
 		t.Errorf("a session Codex hasn't = %v", err)
 	}

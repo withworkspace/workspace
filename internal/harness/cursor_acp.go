@@ -203,7 +203,7 @@ func (c *CursorACP) Converse(r ConverseRun) (Launch, error) {
 	works := cursorWorksIn(dir, r.Dir)
 	runs := r.Sandbox && !r.Alone
 	if runs {
-		works = cursorRunsIn(dir, r.Dir)
+		works = runsFrom(dir, r.Dir)
 	}
 	run := ACPRun{Agent: agent, Dir: dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: works + r.Prompt,
 		Allow: converseCommands(r), Auth: cursorLogin, Answers: cursorHeadlessAnswers}
@@ -221,16 +221,6 @@ func (c *CursorACP) Converse(r ConverseRun) (Launch, error) {
 // call (2026-11-26): "I trust cursor", as crew run there.
 func (c *CursorACP) Trusted() bool { return true }
 
-// cursorRunsIn is cursorWorksIn for a conversation that runs things: it
-// writes where its instructions say, not nowhere.
-func cursorRunsIn(ran, dir string) string {
-	if dir == "" || dir == ran {
-		return ""
-	}
-	return "(ws runs you from " + ran + ", a folder of its own, but the folder you work on is " + dir +
-		": where your instructions say \"here\" or \"you're in\", they mean " + dir +
-		". Give it in full when you read a file, and as the folder to run a shell command in. Write files only where your instructions say you may.)\n\n"
-}
 
 // Orchestrate runs the orchestrator in agent mode, from a folder of ws's
 // own, its commands those it may run.
