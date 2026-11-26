@@ -2,11 +2,16 @@ package testutil
 
 import (
 	"errors"
+	"io"
+	"log"
+	"path/filepath"
 	"slices"
+	"testing"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/cli"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/nav"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/web"
@@ -261,4 +266,23 @@ func SaveFileDoc(root string) func(d web.DocSave) (*web.DocSaved, error) {
 		saved, err := daemonOps(root, nil).SaveWorkspaceDoc(d.Ref, d.Base, d.Text, d.Message, "Edited in ws's web UI.")
 		return web.DocSavedOf(saved), err
 	}
+}
+
+// WebServer is the web UI as the daemon serves it of the workspace at
+// root (as daemon.newWeb makes it, but for plugins, silos and the
+// router), started on a port of its own and closed when t ends. GitHub is
+// a stub with nothing on it, where the workspace names none.
+func WebServer(t testing.TB, root string) *web.Server {
+	t.Helper()
+	app := daemonOps(root, ops.NewPRCache())
+	s := &web.Server{
+		Root: root, App: app, Log: log.New(io.Discard, "", 0), Version: "test",
+		Reviews: app.PRService(), Team: app.Team(), Find: app.FindIndex(),
+		Nav: nav.New(filepath.Join(root, ".ws", "cache", "nav")),
+	}
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	return s
 }

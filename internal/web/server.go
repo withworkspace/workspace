@@ -30,6 +30,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -171,6 +172,8 @@ type Server struct {
 	// followedFiles are the files the followed topics show, watched
 	// (filewatch.go).
 	followedFiles *fileWatch
+	// routes are the patterns Handler served (Routes).
+	routes []string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -464,9 +467,30 @@ func (s *Server) cookieName() string {
 	return fmt.Sprintf("ws_%08x", h.Sum32())
 }
 
+// routes is a mux that keeps the patterns it's given.
+type routes struct {
+	*http.ServeMux
+	patterns []string
+}
+
+func (m *routes) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) {
+	m.patterns = append(m.patterns, pattern)
+	m.ServeMux.HandleFunc(pattern, h)
+}
+
+func (m *routes) Handle(pattern string, h http.Handler) {
+	m.patterns = append(m.patterns, pattern)
+	m.ServeMux.Handle(pattern, h)
+}
+
+// Routes are the patterns the web UI serves (as "GET /api/…"), once it's
+// started: what a test asks every one of.
+func (s *Server) Routes() []string { return slices.Clone(s.routes) }
+
 // Handler is the whole web UI behind its guard.
 func (s *Server) Handler() http.Handler {
-	mux := http.NewServeMux()
+	mux := &routes{ServeMux: http.NewServeMux()}
+	defer func() { s.routes = mux.patterns }()
 	mux.HandleFunc("GET /auth", s.auth)
 	mux.HandleFunc("GET /api/workspace", s.workspace)
 	mux.HandleFunc("POST /api/shutdown", s.shutdown)
@@ -701,7 +725,7 @@ func (s *Server) Handler() http.Handler {
 	})
 	mux.HandleFunc("/", s.app)
 	cost.Start(s.Root)
-	return s.guard(s.forgetsOnWrite(cost.Wrap(mux)))
+	return s.guard(s.forgetsOnWrite(cost.Wrap(mux.ServeMux)))
 }
 
 // forgetsOnWrite has the workspace's view built afresh after a write a
