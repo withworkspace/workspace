@@ -256,7 +256,7 @@ func TestWebSettingsAccent(t *testing.T) {
 	if s := setting(t, info, "ui", "accent"); s.Kind != "color" || s.Value != nil || s.Source != "default" || s.Default != nil || s.Team != nil || s.Yours != nil {
 		t.Errorf("unset: %+v", s)
 	}
-	if g := group(t, info, "ui"); g.Title == "" || len(g.Settings) != 3 {
+	if g := group(t, info, "ui"); g.Title == "" || len(g.Settings) != 4 {
 		t.Errorf("the group: %+v", g)
 	}
 
@@ -305,6 +305,51 @@ func TestWebSettingsAccent(t *testing.T) {
 	}
 	if s := setting(t, info, "ui", "accent"); s.Value != nil || s.Source != "default" {
 		t.Errorf("none set: %+v", s)
+	}
+}
+
+// The tint is a whole number from 0 to 100: unset it's 0, yours wins over
+// the team's, 0 set is kept as 0, and what's out of range is refused.
+func TestWebSettingsTint(t *testing.T) {
+	root := settingsWorkspace(t, settingsLocal)
+	info, err := testutil.WebSettings(root)()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "tint"); s.Kind != "tint" || s.Value != 0 || s.Source != "default" || s.Team != nil || s.Yours != nil {
+		t.Errorf("unset: %+v", s)
+	}
+
+	team, _ := os.ReadFile(filepath.Join(root, "ws.toml"))
+	os.WriteFile(filepath.Join(root, "ws.toml"), append(team, "\n[ui]\ntint = 30\n"...), 0o644)
+	if info, err = testutil.WebSettings(root)(); err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "tint"); s.Value != 30 || s.Source != "team" {
+		t.Errorf("the team's: %+v", s)
+	}
+
+	if info, err = testutil.WebSetSettings(root)([]web.SettingChange{{Section: "ui", Key: "tint", Value: float64(0)}}); err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "tint"); s.Value != 0 || s.Source != "yours" || s.Team != 30 {
+		t.Errorf("yours at 0, over the team's: %+v", s)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal+"\n[ui]\ntint = 0\n" {
+		t.Errorf("ws.local.toml:\n%s", data)
+	}
+
+	for _, bad := range []any{float64(101), float64(-1), 2.5, "40"} {
+		if _, err := testutil.WebSetSettings(root)([]web.SettingChange{{Section: "ui", Key: "tint", Value: bad}}); err == nil {
+			t.Errorf("%v: taken", bad)
+		}
+	}
+
+	if info, err = testutil.WebSetSettings(root)([]web.SettingChange{{Section: "ui", Key: "tint", Clear: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "tint"); s.Value != 30 || s.Source != "team" || s.Yours != nil {
+		t.Errorf("cleared: %+v", s)
 	}
 }
 

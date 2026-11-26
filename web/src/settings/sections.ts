@@ -143,7 +143,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const others: Section[] = [];
 
   const rows = (settings: Setting[], crumb?: string): Row[] => settings.map((s) => ({ kind: "setting", s, crumb }));
-  const ui: Row[] = [{ kind: "theme" }, { kind: "depth" }];
+  const ui: Row[] = [{ kind: "theme" }];
   const roles: Block = { id: "roles", rows: [], roles: groups.filter((g) => g.runs) };
   agents.blocks.push(roles);
 
@@ -165,7 +165,8 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
     switch (g.id) {
       case "ui": {
         const places = g.settings.filter((s) => s.kind === "places");
-        ui.push(...rows(g.settings.filter((s) => s.kind !== "places")));
+        // The look (accent, tint), then how deep the dark theme goes.
+        ui.push(...rows(g.settings.filter((s) => s.kind !== "places")), { kind: "depth" });
         if (places.length > 0) ui.push({ kind: "places", settings: places });
         break;
       }
