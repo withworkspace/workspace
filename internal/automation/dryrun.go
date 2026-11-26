@@ -87,7 +87,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			did.did = append(did.did, "notify: "+text)
 			return nil
 		},
-		Converse: func(_ *Automation, text string, _ []string) (string, error) {
+		Converse: func(_ *Automation, text string, _, _ []string) (string, error) {
 			did.did = append(did.did, "converse: "+text)
 			return "", nil
 		},
@@ -203,6 +203,11 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			continue
 		}
 		out.Matched++
+		if why := LoopOf(a.Name, ev.Chain); why != "" {
+			out.Held++
+			lines = append(lines, DryLine{Event: ev.Ref(), At: ev.At, Says: ev.Says(), Held: why})
+			continue
+		}
 		if pace.Settle == 0 {
 			runOne(ev, pace, nil)
 			continue
@@ -268,4 +273,41 @@ type Proposed struct {
 	Replaces bool `json:"replaces,omitempty"`
 	// Outline is its script, drawn: its dry run's Steps counted on it.
 	Outline *Outline `json:"outline,omitempty"`
+	// SetsOff are your automations that what it does would set off (the
+	// conversations it starts answering), and SetOffBy those whose doings
+	// would set it off: where a chain can start, which MaxChain stops.
+	SetsOff  []string `json:"setsOff,omitempty"`
+	SetOffBy []string `json:"setOffBy,omitempty"`
+}
+
+// Linked is which of others what a does would set off, and which of
+// them would set a off by what they do (others by the same name aside).
+func Linked(a *Automation, others []*Automation) (setsOff, setOffBy []string) {
+	for _, b := range others {
+		if b.Name == a.Name {
+			continue
+		}
+		if causesFor(a, b) {
+			setsOff = append(setsOff, b.Name)
+		}
+		if causesFor(b, a) {
+			setOffBy = append(setOffBy, b.Name)
+		}
+	}
+	return setsOff, setOffBy
+}
+
+// causesFor is whether what a does could set b off: the events a
+// conversation it starts has (its agent answering, proposing).
+func causesFor(a, b *Automation) bool {
+	if !a.Allows(MayConverse) {
+		return false // a notification is no event
+	}
+	for _, kind := range []string{events.ConversationAnswered, events.ProposalMade} {
+		ev := events.Event{Kind: kind, By: "ws", Conversation: "w0", Chain: []string{a.Name}}
+		if b.Matches(ev) {
+			return true
+		}
+	}
+	return false
 }

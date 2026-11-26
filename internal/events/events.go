@@ -145,6 +145,11 @@ type Event struct {
 	// Cause is what caused it, where something did: the orchestrator's
 	// run whose agent did it, or (later) a workflow's run.
 	Cause string `json:"cause,omitempty"`
+	// Chain is the automations that led to it, first first: one that
+	// started the conversation it's from, and any that set that one off.
+	// An automation doesn't run on what it's in the chain of, or on what's
+	// MaxChain deep (internal/automation).
+	Chain []string `json:"chain,omitempty"`
 	// What it's about, as ws names them.
 	Repo     string `json:"repo,omitempty"`
 	Capsule  string `json:"capsule,omitempty"` // its name, in Repo

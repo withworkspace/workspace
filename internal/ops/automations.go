@@ -38,11 +38,11 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 			})
 			return err
 		},
-		Converse: func(a *automation.Automation, text string, about []string) (string, error) {
+		Converse: func(a *automation.Automation, text string, about, chain []string) (string, error) {
 			if len(about) > 0 {
 				text += "\n\n(About " + strings.Join(about, ", ") + ".)"
 			}
-			c, err := w.StartTalkVia("automation:"+a.Name, text)
+			c, err := w.StartTalkChained("automation:"+a.Name, text, chain)
 			if err != nil {
 				return "", err
 			}

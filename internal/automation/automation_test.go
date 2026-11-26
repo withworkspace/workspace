@@ -60,7 +60,7 @@ func engine(t *testing.T) (*Engine, *told) {
 			got.notified = append(got.notified, a.Name+": "+text+" "+strings.Join(refs, ","))
 			return nil
 		},
-		Converse: func(a *Automation, text string, about []string) (string, error) {
+		Converse: func(a *Automation, text string, about, chain []string) (string, error) {
 			got.conversed = append(got.conversed, text)
 			return "w9", nil
 		},

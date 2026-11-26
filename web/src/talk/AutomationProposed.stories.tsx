@@ -98,3 +98,12 @@ export const Failing: Story = {
 export const NothingYet: Story = {
   args: { script: drawing, a: base({ replaces: true, dryRun: { since: "2026-10-27T10:00:00Z", events: 412, matched: 0, ran: 0, lines: [] } }) },
 };
+
+// One whose conversations would set off one you have, and that one of
+// yours sets off: where a chain could start.
+export const SetsOthersOff: Story = {
+  args: {
+    script: drawing,
+    a: base({ setsOff: ["triage"], setOffBy: ["ci-red"], dryRun: { since: "2026-10-27T10:00:00Z", events: 412, matched: 3, ran: 2, held: 1, lines: [{ event: "e40", at: "2026-11-20T10:00:00Z", says: "triage answered in w14", held: "it'd loop: ci-red → triage → ci-red" }] } }),
+  },
+};

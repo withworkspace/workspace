@@ -434,8 +434,12 @@ type Conversation struct {
 	At      time.Time `json:"at"`
 	// Via is the plugin a talk was started from, for you: it worded the
 	// first message. "" for one you started yourself.
-	Via    string `json:"via,omitempty"`
-	Status string `json:"status"`
+	Via string `json:"via,omitempty"`
+	// Chain is the automations that led to it being started (an
+	// automation's converse, and any that set that one off): what it does
+	// says so in its events, so what it sets off can't loop.
+	Chain  []string `json:"chain,omitempty"`
+	Status string   `json:"status"`
 	// StatusBy and StatusAt are who resolved or reopened it, and when.
 	StatusBy string     `json:"statusBy,omitempty"`
 	StatusAt *time.Time `json:"statusAt,omitempty"`
@@ -1091,11 +1095,17 @@ func (s Store) OpenTalk(by, body string, at time.Time) (*Conversation, error) {
 // conversation mentions it from the start). It's yours all the same, and
 // says where it came from.
 func (s Store) OpenTalkVia(via string, first Turn) (*Conversation, error) {
+	return s.OpenTalkChained(via, nil, first)
+}
+
+// OpenTalkChained is OpenTalkVia for one an automation starts: chain is
+// the automations that led to it, which its events carry.
+func (s Store) OpenTalkChained(via string, chain []string, first Turn) (*Conversation, error) {
 	first.Body = strings.TrimSpace(first.Body)
 	if first.Body == "" {
 		return nil, errors.New("say something")
 	}
-	c, err := s.open(&Conversation{Kind: Talk, By: first.By, Via: via, At: first.At, Status: Open}, first)
+	c, err := s.open(&Conversation{Kind: Talk, By: first.By, Via: via, Chain: chain, At: first.At, Status: Open}, first)
 	if err != nil {
 		return nil, err
 	}
@@ -1661,6 +1671,9 @@ func (s Store) event(tx *store.Tx, c *Conversation, e events.Event) error {
 		return nil
 	}
 	e.Conversation, e.Mission = c.ID, s.Slug
+	if len(c.Chain) > 0 {
+		e.Chain = append([]string{}, c.Chain...)
+	}
 	if e.Title == "" {
 		e.Title = c.Title
 	}

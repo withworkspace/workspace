@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -27,8 +28,9 @@ type Hooks struct {
 	// what's said, where it's unset).
 	Failed func(a *Automation, why string) error
 	// Converse starts a conversation of the workspace's with a first
-	// message, about refs, and says its id.
-	Converse func(a *Automation, text string, about []string) (string, error)
+	// message, about refs, and says its id; chain is the automations that
+	// led to it, a last, which its events carry.
+	Converse func(a *Automation, text string, about, chain []string) (string, error)
 	// Show is a ref as ws show has it, as JSON's types (nil where it
 	// can't be said).
 	Show func(ref string) (map[string]any, error)
@@ -165,6 +167,10 @@ func (e *Engine) RunDue() []string {
 			for _, ev := range list {
 				pace, ok := a.PaceOf(ev)
 				if !ok || ours(ev) {
+					continue
+				}
+				if why := LoopOf(name, ev.Chain); why != "" {
+					said = append(said, e.hold(a, &st, ev, why))
 					continue
 				}
 				if pace.Settle > 0 {
@@ -332,6 +338,49 @@ func (e *Engine) runOn(a *Automation, st *State, ev events.Event, pace Pace, bat
 		line += ": " + why
 	}
 	return line
+}
+
+// MaxChain is how many automations deep what one causes can go: an
+// event that MaxChain of them led to sets off none, though none of them
+// is twice in it.
+const MaxChain = 3
+
+// LoopOf is why name doesn't run on an event chain led to: it's in it
+// (it'd set itself off again), or the chain's MaxChain deep. "" when it
+// runs.
+func LoopOf(name string, chain []string) string {
+	said := strings.Join(append(append([]string{}, chain...), name), " → ")
+	if slices.Contains(chain, name) {
+		return "it'd loop: " + said
+	}
+	if len(chain) >= MaxChain {
+		return fmt.Sprintf("it'd be more than %d automations deep: %s", MaxChain, said)
+	}
+	return ""
+}
+
+// ChainOf is what a run of name on ev (with batch, what settled with it)
+// causes is led to by: the automations that led to them, then name.
+func ChainOf(name string, ev events.Event, batch []events.Event) []string {
+	var out []string
+	for _, e := range append(append([]events.Event{}, batch...), ev) {
+		for _, n := range e.Chain {
+			if !slices.Contains(out, n) {
+				out = append(out, n)
+			}
+		}
+	}
+	return append(out, name)
+}
+
+// hold keeps a's run on ev as held, for why (a loop), and tells you, once
+// for each why.
+func (e *Engine) hold(a *Automation, st *State, ev events.Event, why string) string {
+	if err := startRun(e.Root, a.Name, ev.N, "", e.now()); err == nil {
+		_ = endRun(e.Root, a.Name, ev.N, Held, why, "")
+	}
+	e.failed(a.Name, st, why)
+	return fmt.Sprintf("%s on %s: %s", a.Name, ev.Ref(), why)
 }
 
 // failed tells you an automation failed, once for what it failed with.
@@ -520,7 +569,9 @@ func (r *run) converse(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	if r.e.Hooks.Converse == nil {
 		return nil, fmt.Errorf("converse: there's no conversation to start here")
 	}
-	id, err := r.step("converse", func() (string, error) { return r.e.Hooks.Converse(r.a, text, stringsOf(about)) })
+	id, err := r.step("converse", func() (string, error) {
+		return r.e.Hooks.Converse(r.a, text, stringsOf(about), ChainOf(r.a.Name, r.ev, r.batch))
+	})
 	return starlark.String(id), err
 }
 

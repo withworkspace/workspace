@@ -742,6 +742,13 @@ export interface AutomationProposed {
      * Outline is its script, drawn: its dry run's Steps counted on it.
      */
     outline?: AutomationOutline;
+    /**
+     * SetsOff are your automations that what it does would set off (the
+     * conversations it starts answering), and SetOffBy those whose doings
+     * would set it off: where a chain can start, which MaxChain stops.
+     */
+    setsOff?: string[];
+    setOffBy?: string[];
 }
 
 // From automation/store.go
@@ -1216,6 +1223,12 @@ export interface ConversationConversation {
      * first message. "" for one you started yourself.
      */
     via?: string;
+    /**
+     * Chain is the automations that led to it being started (an
+     * automation's converse, and any that set that one off): what it does
+     * says so in its events, so what it sets off can't loop.
+     */
+    chain?: string[];
     status: string;
     /**
      * StatusBy and StatusAt are who resolved or reopened it, and when.

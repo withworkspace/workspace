@@ -37,7 +37,7 @@ export function AutomationRunItem({ r }: { r: AutomationRun }) {
             ))}
           </ul>
         )}
-        {r.error && <div className={css.error}>{r.error}</div>}
+        {r.error && <div className={r.state === "held" ? css.why : css.error}>{r.error}</div>}
         {r.log && r.log.length > 0 && <pre className={css.log}>{r.log.join("\n")}</pre>}
       </div>
     </li>

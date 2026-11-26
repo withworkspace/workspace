@@ -176,8 +176,18 @@ func proposeAutomation(w *ops.Workspace, name string, src []byte) error {
 	if o, err := automation.OutlineOf(a); err == nil {
 		outline = &o
 	}
+	mine, _ := automation.List(w.Root())
+	states, _ := automation.States(w.Root())
+	var on []*automation.Automation
+	for _, b := range mine {
+		if states[b.Name].On {
+			on = append(on, b)
+		}
+	}
+	setsOff, setOffBy := automation.Linked(a, on)
 	p := conversation.Proposal{Kind: conversation.ProposeAutomation, Title: name, Text: string(src), Note: a.About,
-		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil, Outline: outline}}
+		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil, Outline: outline,
+			SetsOff: setsOff, SetOffBy: setOffBy}}
 	if err := propose(w, p); err != nil {
 		return err
 	}
@@ -192,6 +202,12 @@ func proposeAutomation(w *ops.Workspace, name string, src []byte) error {
 		said += fmt.Sprintf(", %d settling still", dr.Settling)
 	}
 	fmt.Fprintf(ui.Stderr, "  %s %s: the user reads it on the card\n", ui.Dim.Render("·"), said)
+	if len(setsOff) > 0 {
+		fmt.Fprintf(ui.Stderr, "  %s the conversations it starts would set off %s (a chain stops %d deep, and at a loop)\n", ui.Orange.Render("⚠"), strings.Join(setsOff, ", "), automation.MaxChain)
+	}
+	if len(setOffBy) > 0 {
+		fmt.Fprintf(ui.Stderr, "  %s it'd be set off by the conversations %s starts\n", ui.Orange.Render("⚠"), strings.Join(setOffBy, ", "))
+	}
 	for _, l := range dr.Lines {
 		if l.Error != "" {
 			fmt.Fprintf(ui.Stderr, "  %s %s failed: %s\n", ui.Orange.Render("⚠"), l.Event, firstLineOf(l.Error))
