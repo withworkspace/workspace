@@ -119,9 +119,9 @@ func (r TermRun) Say(text string) (string, error) {
 	return "Sent to " + r.S.CrewID + ".", nil
 }
 
-// SwitchModel types its harness's command for another model into its
-// terminal, key by key (a paste of it would be text to send, not a
-// command), and submits it.
+// SwitchModel types its harness's commands for another model into its
+// terminal, each key by key (a paste of one would be text to send, not a
+// command) and submitted, one after another.
 func (r TermRun) SwitchModel(model string) (string, error) {
 	h, err := harness.Get(r.S.Harness)
 	if err != nil {
@@ -131,20 +131,28 @@ func (r TermRun) SwitchModel(model string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("%s's model can't be changed while it runs", r.S.Harness)
 	}
-	line := sw.SwitchModel(model)
-	for _, ch := range line {
-		ev := uv.KeyPressEvent{Code: unicode.ToLower(ch), Text: string(ch)}
-		if ch == ' ' {
-			ev.Code = uv.KeySpace
-		}
-		if unicode.ToLower(ch) != ch {
-			ev.ShiftedCode = ch
-		}
-		r.T.SendKey(ev)
+	lines, err := sw.SwitchModel(model)
+	if err != nil {
+		return "", err
 	}
-	time.Sleep(settle)
-	r.T.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
-	execlog.Note(r.Root, "crew "+r.S.Key(), "typed in: %s", line)
+	for i, line := range lines {
+		if i > 0 {
+			time.Sleep(settle) // the last one taken before the next is typed
+		}
+		for _, ch := range line {
+			ev := uv.KeyPressEvent{Code: unicode.ToLower(ch), Text: string(ch)}
+			if ch == ' ' {
+				ev.Code = uv.KeySpace
+			}
+			if unicode.ToLower(ch) != ch {
+				ev.ShiftedCode = ch
+			}
+			r.T.SendKey(ev)
+		}
+		time.Sleep(settle)
+		r.T.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
+		execlog.Note(r.Root, "crew "+r.S.Key(), "typed in: %s", line)
+	}
 	return "Switched " + r.S.CrewID + " to " + model + ".", nil
 }
 

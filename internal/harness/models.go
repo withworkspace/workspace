@@ -114,14 +114,29 @@ func (c *CursorACP) Models(ctx context.Context) ([]Model, error) {
 	return models, nil
 }
 
-// Models are Claude Code's aliases, each for its latest model; it takes a
-// model's full name too, and has no command to list them.
+// Models are Claude Code's aliases, each for its latest model, then each
+// at each effort it takes (ClaudeEfforts), as ws names them
+// ("haiku[high]"): one model in a picker, its efforts chosen under it. It
+// takes a model's full name too, and has no command to list them.
+//
+// VERIFIED (claude 2.1.332): opus, sonnet and haiku each run at every
+// effort, xhigh and max too.
 func (c *Claude) Models(ctx context.Context) ([]Model, error) {
-	return []Model{
+	var models []Model
+	for _, m := range []Model{
 		{ID: "opus", Name: "Opus", About: "the latest Opus: the most capable"},
 		{ID: "sonnet", Name: "Sonnet", About: "the latest Sonnet: capable and quicker"},
 		{ID: "haiku", Name: "Haiku", About: "the latest Haiku: small and quick"},
-	}, nil
+	} {
+		m.Label = m.Name
+		models = append(models, m)
+		for _, e := range ClaudeEfforts {
+			one := m
+			one.ID, one.Name, one.Effort = m.ID+"["+e+"]", m.Name+", "+e, e
+			models = append(models, one)
+		}
+	}
+	return models, nil
 }
 
 // Models are pi's, by `pi --list-models`: provider/model, from whichever

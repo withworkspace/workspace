@@ -807,7 +807,7 @@ func TestRoles_ForConversation(t *testing.T) {
 func TestRoles_ForJudge(t *testing.T) {
 	t.Setenv(EnvDefault, "")
 	p, _, err := Roles{Crew: Pick{Harness: "cursor"}, Briefing: Pick{Harness: "claude", Model: "opus"}}.ForJudge()
-	if err != nil || p.Harness != "claude" || p.Model != ClaudeOrchestratorModel {
+	if err != nil || p.Harness != "claude" || p.Model != ClaudeSmallModel {
 		t.Errorf("the planner's agent, its small model: %+v, %v", p, err)
 	}
 	p, _, _ = Roles{Crew: Pick{Harness: "claude"}, Judge: Pick{Model: "sonnet"}}.ForJudge()
@@ -824,12 +824,12 @@ func TestRoles_ForJudge(t *testing.T) {
 }
 
 // The PR writer is on conversations' agent unless [pr_writer] says, on
-// that agent's small model unless [pr_writer] names one.
+// the model that agent orchestrates on unless [pr_writer] names one.
 func TestRoles_ForPRWriter(t *testing.T) {
 	t.Setenv(EnvDefault, "")
 	p, _, err := Roles{Conversation: Pick{Harness: "claude", Model: "opus"}}.ForPRWriter()
 	if err != nil || p.Harness != "claude" || p.Model != ClaudeOrchestratorModel {
-		t.Errorf("conversations' agent, its small model: %+v, %v", p, err)
+		t.Errorf("conversations' agent, the model it orchestrates on: %+v, %v", p, err)
 	}
 	p, _, _ = Roles{Conversation: Pick{Harness: "claude"}, PRWriter: Pick{Model: "sonnet"}}.ForPRWriter()
 	if p.Harness != "claude" || p.Model != "sonnet" {
@@ -979,5 +979,44 @@ func TestPi_Converse(t *testing.T) {
 	l, _ = p.Converse(ConverseRun{Prompt: "And?", Dir: "/root", Session: "sess-9", Scratch: scratch, Model: "openrouter/x"})
 	if args := strings.Join(l.Args, " "); !strings.Contains(args, "--session sess-9") || strings.Contains(args, "--session-id") || !strings.Contains(args, "--model openrouter/x") || l.Conversation != "sess-9" {
 		t.Errorf("resumed: %s", args)
+	}
+}
+
+// A model's effort in brackets is Claude Code's --effort, the model its
+// --model; an effort it doesn't take is refused, not passed on.
+func TestClaudeModelArgs(t *testing.T) {
+	for in, want := range map[string]string{
+		"":                       "",
+		"haiku":                  "--model haiku",
+		"haiku[high]":            "--model haiku --effort high",
+		" claude-opus-5-5[max] ": "--model claude-opus-5-5 --effort max",
+	} {
+		got, err := claudeModelArgs(in)
+		if err != nil || strings.Join(got, " ") != want {
+			t.Errorf("%q = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	for _, bad := range []string{"haiku[loud]", "haiku[high", "haiku[]"} {
+		if got, err := claudeModelArgs(bad); err == nil {
+			t.Errorf("%q = %q, want an error", bad, got)
+		}
+	}
+	c := fakeClaude(map[string]string{"claude": "/bin/claude"})
+	for _, l := range []func() (Launch, error){
+		func() (Launch, error) {
+			return c.Orchestrate(OrchestratorRun{Prompt: "p", Dir: "/w", Model: "haiku[high]"})
+		},
+		func() (Launch, error) {
+			return c.Converse(ConverseRun{Prompt: "p", Dir: "/w", Model: "haiku[high]", Once: true})
+		},
+		func() (Launch, error) { return c.Start(Brief{Slug: "m", Dir: "/w", Model: "haiku[high]", Prompt: "p"}) },
+	} {
+		launch, err := l()
+		if args := strings.Join(launch.Args, " "); err != nil || !strings.Contains(args, " --model haiku --effort high ") {
+			t.Errorf("launch = %q, %v", args, err)
+		}
+	}
+	if _, err := c.Orchestrate(OrchestratorRun{Prompt: "p", Dir: "/w", Model: "haiku[loud]"}); err == nil {
+		t.Error("ran on an effort Claude Code doesn't take")
 	}
 }

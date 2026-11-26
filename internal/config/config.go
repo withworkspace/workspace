@@ -32,7 +32,7 @@ type Config struct {
 	Judge AgentConfig `toml:"judge"`
 	// PRWriter is the agent that writes the title and description of a
 	// pull request ws opens, from the step it's for and PR.md: unset,
-	// conversations' agent, on its small model.
+	// conversations' agent, on the model it orchestrates on.
 	PRWriter PRWriterConfig `toml:"pr_writer"`
 	Missions MissionsConfig `toml:"missions"`
 	Agents   AgentsConfig   `toml:"agents"`
