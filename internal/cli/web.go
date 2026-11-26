@@ -143,14 +143,3 @@ func openBrowser(url string) error {
 		return exec.Command("xdg-open", url).Run()
 	}
 }
-
-// reviewPath is where the web UI reviews a mission's capsule.
-func reviewPath(slug, capsule string) string {
-	return "/missions/" + slug + "/review/" + capsule
-}
-
-// docPath is where the web UI shows a mission's document (an artifact, by
-// its ref), to read and comment on.
-func docPath(slug, ref string) string {
-	return "/missions/" + slug + "/artifact?" + url.Values{"ref": {ref}}.Encode()
-}

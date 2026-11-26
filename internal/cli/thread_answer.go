@@ -24,14 +24,6 @@ var threadSpawner = spawnAnswer(job.Thread)
 // thread you've resolved; tests replace it.
 var draftSpawner = spawnAnswer(job.Draft)
 
-// afterResolve has the thread's agent draft what was decided in a thread
-// you've just resolved, if anything was said in it worth drafting from.
-func afterResolve(root, slug string, c *conversation.Conversation) {
-	if c != nil && c.ShouldDraft() {
-		draftSpawner(root, slug, c.ID)
-	}
-}
-
 func newThreadAnswerCmd() *cobra.Command {
 	var slug string
 	var draft bool

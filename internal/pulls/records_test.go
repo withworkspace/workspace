@@ -9,20 +9,6 @@ import (
 	"github.com/withworkspace/workspace/internal/store/storetest"
 )
 
-// thingOf is what the graph says a pull request is: its kind and title.
-func thingOf(t *testing.T, root, key string) (kind, title string) {
-	t.Helper()
-	db, err := store.Open(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	db.Read(context.Background(), func(tx *store.Tx) error {
-		tx.QueryRow(`SELECT kind, title FROM things WHERE scope = '' AND name = ?`, key).Scan(&kind, &title)
-		return nil
-	})
-	return kind, title
-}
-
 // found is the things a search of the records finds, best first.
 func found(t *testing.T, root, words string) []string {
 	t.Helper()

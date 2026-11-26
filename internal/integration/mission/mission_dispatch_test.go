@@ -19,7 +19,7 @@ import (
 
 // handoffHarness starts crew that write the first line they're sent to a
 // file, so a test can see the opening prompt (with the handoff) arrive.
-type handoffHarness struct{ out string }
+type handoffHarness struct{}
 
 func (handoffHarness) Name() string     { return "handoff" }
 func (handoffHarness) Available() error { return nil }

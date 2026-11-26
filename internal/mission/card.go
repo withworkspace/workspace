@@ -344,10 +344,6 @@ func (b cardBuilder) words(c *Card, h Headline, text string) {
 	}
 }
 
-func crewAct(do, who string) *Act {
-	return &Act{Do: do, Label: "Open " + who, Icon: "message", Target: who}
-}
-
 // lookAct is opening one thing a step looks at.
 func lookAct(l Look) Act {
 	switch {

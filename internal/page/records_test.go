@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"slices"
-	"sort"
 	"testing"
 	"time"
 
@@ -30,15 +29,6 @@ func found(t *testing.T, root, words string) (names, headings []string) {
 		names, headings = append(names, f.Thing.Key.Name), append(headings, f.Heading)
 	}
 	return names, headings
-}
-
-func ids(list []Page) []string {
-	var out []string
-	for _, p := range list {
-		out = append(out, p.ID)
-	}
-	sort.Strings(out)
-	return out
 }
 
 // A page says what it reads as, a place for each section: its cells'

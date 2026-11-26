@@ -618,13 +618,6 @@ func (s Store) Confirm(slug, by string) error {
 	return s.AppendLog(slug, Event{Kind: EventState, Crew: by, Text: "brief confirmed: under way"})
 }
 
-func stateOrDerived(s State) string {
-	if s == "" {
-		return "ready"
-	}
-	return string(s)
-}
-
 // Rename moves a mission to a new slug: its folder, then its record, its
 // log and its decisions. Crew running with WS_MISSION set to the old slug
 // lose track of it, so the deck only renames at the end of briefing. Its
