@@ -96,13 +96,13 @@ function Window({ on, beside, floats = false, closed = false, below, children }:
             start={
               <>
                 <FootSidebar shown={narrow ? drawer : !hidden} count={needs.length} onPress={() => (narrow ? setDrawer((d) => !d) : setHidden((h) => !h))} />
+                {below && <FootBelow open={low.open} onPress={() => change(toggleBelow)} />}
                 <FootSep />
                 <FootCrew id="c1" mission="Dark mode for the dashboard" to="/missions/dark-mode-for-the-dashboard/crew/c1" />
               </>
             }
             end={
               <>
-                {below && <FootBelow open={low.open} onPress={() => change(toggleBelow)} />}
                 {beside.length > 0 && <FootBeside open={open} waiting={beside.length} onPress={() => setOpen((o) => !o)} over={over} onOver={narrow ? undefined : setOver} />}
               </>
             }
