@@ -221,7 +221,6 @@ func (c *CursorACP) Converse(r ConverseRun) (Launch, error) {
 // call (2026-11-26): "I trust cursor", as crew run there.
 func (c *CursorACP) Trusted() bool { return true }
 
-
 // Orchestrate runs the orchestrator in agent mode, from a folder of ws's
 // own, its commands those it may run.
 func (c *CursorACP) Orchestrate(r OrchestratorRun) (Launch, error) {
