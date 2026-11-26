@@ -21,7 +21,7 @@ const openPRsQuery = `query($owner: String!, $repo: String!, $after: String) {
     pullRequests(states: OPEN, first: 50, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
       pageInfo { hasNextPage endCursor }
       nodes {
-        number title url state isDraft reviewDecision mergeable
+        number title url state isDraft reviewDecision mergeable mergeStateStatus
         headRefName headRefOid baseRefName isCrossRepository
         additions deletions changedFiles createdAt updatedAt
         author { __typename login }

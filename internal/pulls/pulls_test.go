@@ -268,6 +268,18 @@ func TestClassify(t *testing.T) {
 			p.ReviewDecision, p.Mergeable = "APPROVED", "MERGEABLE"
 		}, false, Ready},
 		{"yours, no review needed", func(p *github.PR) { p.Author = "me" }, false, Ready},
+		{"yours, no review decision, but its rules block it (an admin could bypass)", func(p *github.PR) {
+			p.Author = "me"
+			p.StatusRollup, p.Mergeable, p.MergeState = "success", "MERGEABLE", "BLOCKED"
+		}, false, WaitingReview},
+		{"yours, approved, but its rules still block it", func(p *github.PR) {
+			p.Author = "me"
+			p.ReviewDecision, p.Mergeable, p.MergeState = "APPROVED", "MERGEABLE", "BLOCKED"
+		}, false, WaitingReview},
+		{"yours, approved, GitHub says it's clean", func(p *github.PR) {
+			p.Author = "me"
+			p.ReviewDecision, p.Mergeable, p.MergeState = "APPROVED", "MERGEABLE", "CLEAN"
+		}, false, Ready},
 		{"yours, reviewers asked", func(p *github.PR) { p.Author = "me"; p.Requested = []github.ReviewRequest{{Login: "alice"}} }, false, WaitingReview},
 		{"yours, review required", func(p *github.PR) { p.Author = "me"; p.ReviewDecision = "REVIEW_REQUIRED" }, false, WaitingReview},
 		{"yours, checks running", func(p *github.PR) { p.Author = "me"; p.ReviewDecision = "APPROVED"; p.StatusRollup = "pending" }, false, WaitingReview},

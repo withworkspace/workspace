@@ -323,6 +323,13 @@ func classifyMine(gp github.PR) (state, words string) {
 		return WaitingReview, "draft"
 	case gp.StatusRollup == "pending":
 		return WaitingReview, "its checks are running"
+	case gp.MergeState == "BLOCKED" && gp.ReviewDecision != "APPROVED":
+		// Its base branch's rules want a review (GitHub's review decision
+		// can be empty while a ruleset does). That you could merge it
+		// anyway, as an admin, doesn't make it ready.
+		return WaitingReview, "waiting for review"
+	case gp.MergeState == "BLOCKED":
+		return WaitingReview, "approved, but its base branch's rules still hold it"
 	case gp.ReviewDecision == "APPROVED":
 		return ifMerges(gp, "approved")
 	case gp.ReviewDecision == "" && len(gp.Requested) == 0:
