@@ -41,7 +41,7 @@ type probeHost struct{ at func(when string) }
 
 func (h *probeHost) Launch(crew.Spec) (int, error) {
 	h.at("recorded, their session starting")
-	return 4242, nil
+	return deadPID, nil
 }
 func (h *probeHost) Stop(string) error                  { return crew.ErrNotRunning }
 func (h *probeHost) Say(string, string) (string, error) { return "", crew.ErrNotRunning }
