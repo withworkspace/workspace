@@ -7,6 +7,7 @@ import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import { came, runStatus, type ServiceRow, startedBy } from "./runRows";
 import css from "./RunItem.module.css";
+import { Text, textClass } from "../ui/Text";
 
 // A place's runs, a row each in its list of them: a service (TaskItem's
 // sibling, ServiceItem), running or not, or one run of a task. Each goes
@@ -59,8 +60,8 @@ function Item({ to, picked, over, status, title, name, n, sub, when }: { to: To;
         <Status s={status} iconOnly className={rowStatusClass()} />
         <RowMain>
           <RowLine>
-            <RowTitle className={cx(!name && "mono", css.title)}>{title}</RowTitle>
-            {name && <span className={cx("mono", css.aside)}>{name}</span>}
+            <RowTitle className={cx(!name && textClass("mono"), css.title)}>{title}</RowTitle>
+            {name && <Text mono className={css.aside}>{name}</Text>}
             {!!n && <span className={css.aside}>#{n}</span>}
           </RowLine>
           <RowSub className={css.sub}>{sub}</RowSub>

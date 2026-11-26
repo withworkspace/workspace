@@ -1,8 +1,11 @@
+import { cx } from "../ui/cx";
 import type { ReactNode } from "react";
 import type { Repo } from "../api";
 import { Chip } from "../ui/Chip";
-import { cx } from "../ui/cx";
 import css from "./SettingsRepoRow.module.css";
+import { Text } from "../ui/Text";
+import { settingsTableQuietClass } from "./SettingsTable";
+import { RepoDot } from "../ui/RepoDot";
 
 type SettingsRepoRowProps = {
   repo: Repo;
@@ -22,7 +25,7 @@ type SettingsRepoRowProps = {
 export function SettingsRepoRow({ repo: r, lands, group, acts, children }: SettingsRepoRowProps) {
   return (
     <tr>
-      <td className="mono">
+      <Text as="td" mono>
         <span className={css.name}>
           <span className={css.key}>{r.name}</span>
           {r.yours && <Chip title="In ws.local.toml alone">yours</Chip>}
@@ -33,14 +36,14 @@ export function SettingsRepoRow({ repo: r, lands, group, acts, children }: Setti
             </Chip>
           )}
         </span>
-      </td>
+      </Text>
       <td>
         <span className={css.called}>
-          <span className="repo-dot" style={{ background: r.color }} />
+          <RepoDot color={r.color} />
           {r.label}
         </span>
       </td>
-      <td className={cx("mono", "dim", css.github)}>
+      <Text as="td" mono dim className={cx(css.github, settingsTableQuietClass)}>
         {r.github ? (
           <a href={`https://github.com/${r.github}`} target="_blank" rel="noreferrer">
             {r.github}
@@ -48,10 +51,10 @@ export function SettingsRepoRow({ repo: r, lands, group, acts, children }: Setti
         ) : (
           "—"
         )}
-      </td>
-      <td className="mono dim">{r.aliases?.join(", ") || "—"}</td>
+      </Text>
+      <Text as="td" mono dim className={settingsTableQuietClass}>{r.aliases?.join(", ") || "—"}</Text>
       <td>{group}</td>
-      <td className="dim">{lands}</td>
+      <Text as="td" dim className={settingsTableQuietClass}>{lands}</Text>
       {acts && <td className={css.acts}>{children}</td>}
     </tr>
   );

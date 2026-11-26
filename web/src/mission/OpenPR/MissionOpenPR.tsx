@@ -6,7 +6,7 @@ import { Dialog, DialogActions } from "../../ui/Dialog";
 import { Icon } from "../../ui/Icon";
 import { Input } from "../../ui/Input";
 import { Spinner } from "../../ui/Spinner";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { TextArea } from "../../ui/TextArea";
 import css from "./MissionOpenPR.module.css";
 

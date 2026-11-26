@@ -2,7 +2,7 @@ import { Banner } from "../../ui/Banner";
 import { Button } from "../../ui/Button";
 import { Dialog, DialogActions } from "../../ui/Dialog";
 import { Input } from "../../ui/Input";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { TextArea } from "../../ui/TextArea";
 import css from "./MissionEndingDialog.module.css";
 

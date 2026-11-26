@@ -4,7 +4,7 @@ import type { Reload } from "../../load";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { MoreLink } from "../../ui/MoreLink";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { MissionLeadAnswer, MissionLeadAnswerForm } from "./MissionLeadAnswer";
 

@@ -39,6 +39,7 @@ import { FilesTreeTools } from "./FilesTreeTools";
 import { FilesView } from "./FilesView";
 import { paneChoices, type Panes } from "./panes";
 import { changedIn, filesTree } from "./tree";
+import { Text } from "../../ui/Text";
 
 // The file explorer, from its parts: a mission's capsule's files with one
 // open (its bar, its tree, the file with its changed lines marked and a
@@ -346,7 +347,7 @@ export const NotHere: StoryObj = {
   render: () => (
     <FilesOverview>
       <Empty icon="file" title="Not here" action={<Button onClick={none}>Pick another file</Button>}>
-        There's no <span className="mono">src/old.ts</span> in web/late-invoices.
+        There's no <Text mono>src/old.ts</Text> in web/late-invoices.
       </Empty>
     </FilesOverview>
   ),

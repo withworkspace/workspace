@@ -1,3 +1,4 @@
+import { Text } from "../../ui/Text";
 // MissionCheckingLine is what ws is running while it checks a step, in a
 // line, for a list's row: what it is, the command, how long it's been
 // going, and the last line it printed (judge: the judge's turn, reading
@@ -12,7 +13,7 @@ export function MissionCheckingLine({ title, judge, command, elapsed, line }: { 
         </>
       ) : null}{" "}
       · {elapsed}
-      {!judge && line ? <span className="dim"> · {line}</span> : null}
+      {!judge && line ? <Text dim> · {line}</Text> : null}
     </>
   );
 }

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { Call } from "./Calls";
 import { Doing } from "./Doing";
+import { Text } from "./Text";
 
 // A run going now, as one line: before its first step (thinking, or what
 // the page says it's at), at a step, and at one of many, whose count
@@ -24,7 +25,7 @@ export const Lines: StoryObj = {
       <Doing calls={steps.slice(0, 1)} root={root} />
       <Doing calls={steps} root={root} />
       <div style={{ maxWidth: 240 }}>
-        <div className="dim">In a narrow place</div>
+        <Text as="div" dim>In a narrow place</Text>
         <Doing calls={steps} root={root} />
       </div>
     </div>

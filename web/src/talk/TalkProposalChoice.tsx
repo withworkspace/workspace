@@ -1,7 +1,7 @@
 import { Button } from "../ui/Button";
-import { cx } from "../ui/cx";
 import { Spinner } from "../ui/Spinner";
 import css from "./TalkProposalChoice.module.css";
+import { Text } from "../ui/Text";
 
 // TalkProposalChoice is what you can do with a proposal that's open:
 // decline it, or accept it (accept says what accepting does). busy is
@@ -30,9 +30,9 @@ export function TalkProposalChoice({
   return (
     <>
       {busy && (
-        <span className={cx("dim", css.busy)}>
+        <Text dim className={css.busy}>
           <Spinner /> {busy}
-        </span>
+        </Text>
       )}
       <span className={css.spacer} />
       <Button variant="ghost" disabled={!!busy} onClick={onDecline} title={declineTitle}>

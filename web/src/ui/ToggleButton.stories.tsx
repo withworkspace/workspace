@@ -4,6 +4,7 @@ import { Count } from "./Count";
 import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import { ToggleButton, type ToggleLook } from "./ToggleButton";
+import { Text } from "./Text";
 
 // Toggle buttons: off and on, plain and ghost, small, square (an icon
 // alone), disabled either way, and one whose page gives it a variant
@@ -33,9 +34,9 @@ export const Looks: StoryObj = {
     <div className="page" style={{ display: "grid", gap: 16 }}>
       {looks.map(({ name, look }) => (
         <div key={name} style={row}>
-          <span className="dim" style={{ width: 80 }}>
+          <Text dim style={{ width: 80 }}>
             {name}
-          </span>
+          </Text>
           <Toggle {...look}>
             <Icon name="panel" size={12} /> Details
           </Toggle>

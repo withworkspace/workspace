@@ -12,6 +12,7 @@ import { MissionLogDay, MissionLogEvent, MissionLogEvents } from "./MissionLogEv
 import { MissionLogMoved } from "./MissionLogMoved";
 import { MissionLogTools } from "./MissionLogTools";
 import { logFilters } from "./words";
+import { Text } from "../../ui/Text";
 
 // A mission's Log tab: as missions ws gave (mission/fixtures) have it, and
 // its parts' states drawn from props.
@@ -25,7 +26,7 @@ const column = (children: ReactNode) => <div style={{ maxWidth: 916, padding: "1
 function Taken({ name }: { name: string }) {
   storyWorkspace();
   const m = takenMissions.find((x) => x.name === name);
-  if (!m) return <p className="dim">No mission {name} among the fixtures.</p>;
+  if (!m) return <Text as="p" dim>No mission {name} among the fixtures.</Text>;
   return (
     <RefsProvider>
       <MissionData.Provider value={m.d}>{column(<Log d={m.d} selected={(k) => k === "h:c1"} openArtifact={none} toWork={none} />)}</MissionData.Provider>

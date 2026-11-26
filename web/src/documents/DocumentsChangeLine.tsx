@@ -5,6 +5,7 @@ import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import { mark } from "./space";
 import css from "./DocumentsChangeLine.module.css";
+import { Text } from "../ui/Text";
 
 type DocumentsChangeLineProps = {
   how: SpaceDocChange["how"]; // what was done to the first document it changed
@@ -32,7 +33,7 @@ export function DocumentsChangeLine({ how, name, path, to, more, subject, space,
           {name}
         </TLink>
       ) : (
-        <span className={cx(css.title, "dim")}>{name}</span>
+        <Text dim className={css.title}>{name}</Text>
       )}
       {more && (
         <span className={css.more} title={more.title}>

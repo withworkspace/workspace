@@ -12,6 +12,7 @@ import { docLines, type DocLine } from "../briefpage";
 import { BriefYourWords } from "./BriefYourWords";
 import { missionBriefCallsClass, MissionBriefPlanner } from "./MissionBriefPlanner";
 import { MissionBriefProposed } from "./MissionBriefProposed";
+import { textClass } from "../../ui/Text";
 
 // The planner, beside a mission's brief and plan (Brief.tsx): its
 // conversation as it's been said, where the brief's page used to keep it
@@ -108,7 +109,7 @@ export function BriefPlanner({
       {following && (
         <Turn by="agent" dense running>
           {t.run?.said && (
-            <TurnSaid className="dim">
+            <TurnSaid className={textClass("dim")}>
               <Markdown text={t.run.said} />
             </TurnSaid>
           )}

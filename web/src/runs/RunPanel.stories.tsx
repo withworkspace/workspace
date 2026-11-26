@@ -12,6 +12,7 @@ import { RunPanelIdle } from "./RunPanelIdle";
 import { RunPanelNeed, RunPanelNeeds } from "./RunPanelNeeds";
 import { RunPanelViews } from "./RunPanelViews";
 import type { RunView } from "./runView";
+import { Text, textClass } from "../ui/Text";
 
 // One run as a worktree's Runs tab shows the one picked, from its parts:
 // a service that's up (its address, what it needs, Preview and Output),
@@ -60,20 +61,20 @@ function Service({ up = true }: { up?: boolean }) {
             <RunPanelAside>so it ends when crew c2 is done</RunPanelAside>
           </RunPanelFact>
           <RunPanelFact label="Recipe">
-            <span className="mono">[run.service.web]</span>
+            <Text mono>[run.service.web]</Text>
             <RunPanelAside>An app, framed here</RunPanelAside>
           </RunPanelFact>
           <RunPanelFact label="Needs" wide>
             <RunPanelNeeds>
               <RunPanelNeed name="api">
-                <a href="#" className="mono">
+                <a href="#" className={textClass("mono")}>
                   api.ground.records
                 </a>
                 <RunPanelAside>as $API_URL</RunPanelAside>
                 <RunPanelAside>at /api</RunPanelAside>
               </RunPanelNeed>
               <RunPanelNeed name="docs">
-                <a href="#" className="mono">
+                <a href="#" className={textClass("mono")}>
                   records / ground
                 </a>
               </RunPanelNeed>
@@ -123,11 +124,11 @@ function Task({ passed = true }: { passed?: boolean }) {
           </RunPanelFact>
           <RunPanelFact label="Ended">4 minutes ago</RunPanelFact>
           <RunPanelFact label="Commit">
-            <span className="mono">3f2a91c0b</span>
+            <Text mono>3f2a91c0b</Text>
             <RunPanelAside>with changes not committed</RunPanelAside>
           </RunPanelFact>
           <RunPanelFact label="Recipe">
-            <span className="mono">[run.task.test]</span>
+            <Text mono>[run.task.test]</Text>
           </RunPanelFact>
           <RunPanelFact label="Reports">
             <RunPanelReports>
@@ -160,7 +161,7 @@ function Recipe({ inTab }: { inTab?: boolean }) {
         </RunPanelHead>
         <RunPanelFacts>
           <RunPanelFact label="Recipe">
-            <span className="mono">[run.service.serve]</span>
+            <Text mono>[run.service.serve]</Text>
             <RunPanelAside>{inTab ? "A tool, opened in a tab of its own" : "An app, framed here"}</RunPanelAside>
           </RunPanelFact>
           <RunPanelFact label="Command" wide>

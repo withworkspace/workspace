@@ -5,7 +5,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 import { Time } from "../ui/Time";
 import { checkSaid, shownAs, standing } from "./panelWords";
 import { RunOutput } from "./RunOutput";
@@ -19,6 +19,7 @@ import { RunPreview } from "./RunPreview";
 import { bare, forWhom, listed, nameOfRef, runId, runStatus, startedBy } from "./runRows";
 import type { RunView } from "./runView";
 import { SaidTo } from "./SaidTo";
+import { Text, textClass } from "../ui/Text";
 
 // RunPanel is one run of a place's, as its Runs tab shows the one picked:
 // where it stands and what's done to it, then how and why it was run
@@ -137,18 +138,18 @@ export function RunPanel({
         )}
         {task && r.commit && (
           <RunPanelFact label="Commit">
-            <span className="mono" title={r.commit}>
+            <Text mono title={r.commit}>
               {r.commit.slice(0, 9)}
-            </span>
+            </Text>
             {r.dirty && <RunPanelAside>with changes not committed</RunPanelAside>}
           </RunPanelFact>
         )}
         <RunPanelFact label="Recipe">
           {r.recipe ? (
             <>
-              <span className="mono" title="Its ws.repo.toml's recipe">
+              <Text mono title="Its ws.repo.toml's recipe">
                 [run.{task ? "task" : "service"}.{r.recipe}]
-              </span>
+              </Text>
               {recipe && !task && <RunPanelAside>{shownAs(recipe)}</RunPanelAside>}
             </>
           ) : (
@@ -163,11 +164,11 @@ export function RunPanel({
               {r.needs?.map((n) => (
                 <RunPanelNeed key={n.name} name={n.name}>
                   {n.folder ? (
-                    <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.dir}` : n.dir}>
+                    <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className={textClass("mono")} title={n.env ? `Handed to it as $${n.env}: ${n.dir}` : n.dir}>
                       {n.repo} / {n.worktree}
                     </Link>
                   ) : (
-                    <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
+                    <a href={n.address} target="_blank" rel="noopener noreferrer" className={textClass("mono")} title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
                       {n.run ?? bare(n.address)}
                     </a>
                   )}

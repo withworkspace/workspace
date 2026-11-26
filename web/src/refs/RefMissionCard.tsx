@@ -5,6 +5,7 @@ import { headlineStatus } from "../ui/statusOf";
 import { type PageRef, refHref } from "./refs";
 import { RefCardHead } from "./RefCardHead";
 import { RefGo } from "./RefGo";
+import { Text } from "../ui/Text";
 
 // RefMissionCard is a mission's card: its title, and its headline.
 export function RefMissionCard({ r, mission: m }: { r: Extract<PageRef, { kind: "mission" }>; mission?: Mission }) {
@@ -15,9 +16,9 @@ export function RefMissionCard({ r, mission: m }: { r: Extract<PageRef, { kind: 
         <>
           <Status s={headlineStatus(m.headline)} />
           {m.headline.text && (
-            <span className="dim">
+            <Text dim>
               <Inline text={m.headline.text} lines={3} />
-            </span>
+            </Text>
           )}
         </>
       )}

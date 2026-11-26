@@ -1,6 +1,6 @@
 import type { Crew, Headline, MissionState } from "../api";
 import type { StatusInfo } from "./Status";
-import { capital } from "./text";
+import { capital } from "./strings";
 import type { Tone } from "./tone";
 
 // Where something stands, worked out of what ws says of it, for Status

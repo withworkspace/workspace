@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "./Button";
 import { Spinner } from "./Spinner";
+import { Text } from "./Text";
 
 // A spinner: at an icon's sizes, beside the words that say what's going
 // on, and in a button that's at it.
@@ -16,9 +17,9 @@ export const Sizes: StoryObj = {
           <Spinner key={s} size={s} />
         ))}
       </div>
-      <div className="dim">
+      <Text as="div" dim>
         <Spinner size={12} /> Asking GitHub…
-      </div>
+      </Text>
       <div style={{ display: "flex", gap: 8 }}>
         <Button size="small" disabled>
           <Spinner size={12} /> Upgrading…

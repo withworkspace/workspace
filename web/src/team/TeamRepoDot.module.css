@@ -1,5 +1,4 @@
-/* A repo's colour (TeamRepoDot.tsx): as styles.css's .repo-dot, which
-   other pages still draw by hand. */
+/* A repo's colour (TeamRepoDot.tsx): as ui/RepoDot's. */
 
 .dot {
   flex: none;

@@ -9,6 +9,7 @@ import { filterItems, holds, type Shelf, type ShelfItem, type Shelves } from "..
 import css from "./ReaderFolder.module.css";
 import { useClickAway } from "./useClickAway";
 import { usePlaceUnder } from "./usePlaceUnder";
+import { textClass } from "../../ui/Text";
 
 type ReaderFolderProps = {
   shelves: Shelves;
@@ -75,7 +76,7 @@ export function ReaderFolder({ shelves, id, here, on, anchor, column, openIn, go
             <Icon name="arrow-up" size={12} />
           </button>
         )}
-        <Icon name={shelf.kind ? "list" : "folder"} size={12} className="dim" />
+        <Icon name={shelf.kind ? "list" : "folder"} size={12} className={textClass("dim")} />
         <b>{shelf.name}</b>
         <Link to={where.to} onClick={close}>
           {where.label} <Icon name="arrow-right" size={12} />

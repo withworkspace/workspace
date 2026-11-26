@@ -2,6 +2,7 @@ import { Link, type To } from "react-router";
 import { cx } from "../../ui/cx";
 import css from "./MissionWorkFile.module.css";
 import { MissionWorkLines } from "./MissionWorkLines";
+import { Text } from "../../ui/Text";
 
 const letters: Record<string, string> = { added: "A", deleted: "D", modified: "M", renamed: "R", copied: "C", type: "T" };
 const statuses: Record<string, string> = { added: css.added, deleted: css.deleted };
@@ -33,7 +34,7 @@ export function MissionWorkFile({ to, status, dir, name, additions, deletions, l
       <span className={cx(css.st, statuses[status])}>{letters[status] ?? "M"}</span>
       <span className={css.path}>
         <bdi>
-          <span className="dim">{dir}</span>
+          <Text dim>{dir}</Text>
           <span className={css.name}>{name}</span>
         </bdi>
       </span>

@@ -4,6 +4,7 @@ import { SettingsBlock } from "./SettingsBlock";
 import { SettingsKey } from "./SettingsKey";
 import { SettingsMine, SettingsMineRow, SettingsMineValue, SettingsMineWhat } from "./SettingsMine";
 import { SettingsUnknown } from "./SettingsUnknown";
+import { Text, textClass } from "../ui/Text";
 
 // Set by you: the keys ws doesn't read, said first; what your file sets,
 // each with what it would be otherwise and Reset (a long value is cut
@@ -17,7 +18,7 @@ const mine = (section: string, what: string, key: string, value: string, otherwi
   <SettingsMineRow key={key}>
     <SettingsMineWhat>
       <span>
-        <a href="#section" className="link">
+        <a href="#section" className={textClass("link")}>
           {section}
         </a>{" "}
         · {what}
@@ -25,8 +26,8 @@ const mine = (section: string, what: string, key: string, value: string, otherwi
       <SettingsKey>{key}</SettingsKey>
     </SettingsMineWhat>
     <SettingsMineValue>
-      <span className={mono ? "mono" : undefined}>{value}</span>
-      <span className="dim">otherwise {otherwise}</span>
+      <span className={mono ? textClass("mono") : undefined}>{value}</span>
+      <Text dim>otherwise {otherwise}</Text>
     </SettingsMineValue>
     <Button variant="ghost" size="small">
       Reset
@@ -50,7 +51,7 @@ function Yours() {
         <SettingsMine>
           <SettingsMineRow>
             <span>
-              <a href="#appearance" className="link">
+              <a href="#appearance" className={textClass("link")}>
                 Appearance
               </a>{" "}
               · Theme
@@ -59,7 +60,7 @@ function Yours() {
           </SettingsMineRow>
           <SettingsMineRow>
             <span>
-              <a href="#notifications" className="link">
+              <a href="#notifications" className={textClass("link")}>
                 Notifications
               </a>{" "}
               · Desktop notifications

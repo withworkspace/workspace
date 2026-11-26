@@ -4,6 +4,7 @@ import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import css from "./TalkProposal.module.css";
+import { textClass } from "../ui/Text";
 
 // TalkProposal is a card under the reply it came with: its head (the
 // kind's icon and label, its title, the proposal it revises, Edit when
@@ -43,7 +44,7 @@ export function TalkProposal({
         {title && <span className={css.title}>{title}</span>}
         <span className={css.spacer} />
         {!!revises && (
-          <a className={cx(css.revises, "dim")} href={`#proposal-${revises}`} title={`It takes the place of proposal ${revises}`}>
+          <a className={cx(textClass("dim"), css.revises)} href={`#proposal-${revises}`} title={`It takes the place of proposal ${revises}`}>
             Revises {revises}
           </a>
         )}

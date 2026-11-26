@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Summary, SummaryRow } from "../ui/Summary";
 import css from "./OrchestratorFacts.module.css";
+import { Text } from "../ui/Text";
 
 type OrchestratorFactsProps = {
   // The agent it runs on: its harness and model.
@@ -17,7 +18,7 @@ export function OrchestratorFacts({ agent, auto, most }: OrchestratorFactsProps)
   return (
     <Summary className={css.facts}>
       <SummaryRow label="Agent">
-        <span className="mono">{agent}</span>
+        <Text mono>{agent}</Text>
       </SummaryRow>
       <SummaryRow label="Crew it starts">
         {auto ? "Start at once" : "Wait for you to launch them"}; up to {most} in a row, then it asks you

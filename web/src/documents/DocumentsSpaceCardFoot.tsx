@@ -2,6 +2,7 @@ import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { Time } from "../ui/Time";
 import css from "./DocumentsSpaceCardFoot.module.css";
+import { Text } from "../ui/Text";
 
 // How a space stands with its remote, as its card says it: not cloned
 // here, behind, up to date (fetched when, if ever), or not read yet.
@@ -15,7 +16,7 @@ export function DocumentsSpaceCardFoot({ stands, inFlight, drafts }: { stands: S
       <span>
         {stands && "cloned" in stands ? (
           <>
-            <Icon name="box" size={12} /> <span className="mono">ws setup {stands.repo}</span> clones it
+            <Icon name="box" size={12} /> <Text mono>ws setup {stands.repo}</Text> clones it
           </>
         ) : stands && "behind" in stands ? (
           <span className={css.behind}>

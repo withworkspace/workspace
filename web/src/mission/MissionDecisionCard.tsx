@@ -3,6 +3,7 @@ import { Chip } from "../ui/Chip";
 import { Link } from "react-router";
 import { HoverCardHead, HoverCardLine, hoverCardLinkClass, HoverCardStrong, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
+import { Text, textClass } from "../ui/Text";
 
 // MissionDecisionCard is what a hover card says of a decision of a
 // mission's: which it is, whether it still stands, what was decided and
@@ -12,12 +13,12 @@ export function MissionDecisionCard({ id, stands, what, why, by, at, to }: { id:
   return (
     <>
       <HoverCardHead>
-        <Icon name="gavel" size={13} className="dim" />
+        <Icon name="gavel" size={13} className={textClass("dim")} />
         <HoverCardTitle>Decision {id}</HoverCardTitle>
         {stands && <Chip tone="quiet">{stands}</Chip>}
       </HoverCardHead>
       <HoverCardStrong>{what}</HoverCardStrong>
-      {why && <span className="dim">{why}</span>}
+      {why && <Text dim>{why}</Text>}
       <HoverCardLine dim>
         {by}, {at}
       </HoverCardLine>

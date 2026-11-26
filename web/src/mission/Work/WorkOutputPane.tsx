@@ -16,6 +16,7 @@ import { MissionWorkBody } from "./MissionWorkBody";
 import { MissionWorkEmpty } from "./MissionWorkEmpty";
 import { MissionWorkHead } from "./MissionWorkHead";
 import { MissionWorkProse } from "./MissionWorkProse";
+import { Text } from "../../ui/Text";
 
 // The open output: what it is and where it came from, and its text to
 // read. Its own page (⏎) is where it's commented on and edited.
@@ -52,7 +53,7 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
             {home.capsule && (
               <Button variant="link" onClick={() => select(home.capsule!.key)} title={home.capsule.id}>
                 <Icon name="box" size={12} /> {label(home.capsule.c.repo)}
-                {home.capsule.c.name !== d.slug && <span className="mono"> {home.capsule.c.name}</span>}
+                {home.capsule.c.name !== d.slug && <Text mono> {home.capsule.c.name}</Text>}
               </Button>
             )}
             <MissionOutputState state={a.state} />

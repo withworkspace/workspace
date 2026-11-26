@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
 import css from "./MissionCrewRow.module.css";
+import { Text } from "../ui/Text";
 
 // MissionCrewRow is one of a mission's crew in a line: its badge, where it
 // stands, and what it is (its harness and model) and where (its capsule),
@@ -44,7 +45,7 @@ export function MissionCrewRow({
       {status}
       <span className={css.what}>
         {what}
-        {where && <span className="dim"> in {where}</span>}
+        {where && <Text dim> in {where}</Text>}
       </span>
     </>
   );
@@ -66,7 +67,7 @@ export function MissionCrewRow({
       {times && <div className={css.times}>{times}</div>}
       {dispatch && (
         <div className={css.dispatch}>
-          <span className="dim">Dispatched to </span>
+          <Text dim>Dispatched to </Text>
           {dispatch}
         </div>
       )}

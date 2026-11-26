@@ -15,6 +15,7 @@ import { Side } from "../Side/Side";
 import { Summary } from "../Summary/Summary";
 import { useTimeline } from "../timeline";
 import { MissionFrame, MissionFrameBody, MissionFrameMain, MissionFramePanel, missionFrameBarClass } from "./MissionFrame";
+import { Text } from "../../ui/Text";
 
 // A mission's page as its frame draws it: the timeline and the bar, then
 // the tab under them, in a column with the details beside it or alone,
@@ -56,7 +57,7 @@ function Taken({ name, side, over }: { name: string; side?: boolean; over?: bool
   storyWorkspace();
   const m = takenMissions.find((x) => x.name === name);
   const strip = useTimeline(m?.d);
-  if (!m) return <p className="dim">No mission {name} among the fixtures.</p>;
+  if (!m) return <Text as="p" dim>No mission {name} among the fixtures.</Text>;
   const d = m.d;
   const details = (overTab?: boolean) => <Side d={d} selected={() => false} openArtifact={none} review={none} toWork={none} reload={async () => {}} over={overTab} open={overTab} />;
   return (

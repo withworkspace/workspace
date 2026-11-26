@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { capital, clip, humanError } from "./text";
+import { capital, clip, humanError } from "./strings";
 
 describe("clip", () => {
   it("leaves text that fits", () => {

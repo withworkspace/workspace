@@ -1,5 +1,6 @@
 import type { TeamItem } from "../api";
 import { TeamKnowLine } from "./TeamKnowLine";
+import { Text } from "../ui/Text";
 
 type Near = NonNullable<TeamItem["near"]>[number];
 
@@ -17,13 +18,13 @@ export function TeamNear({ near }: { near: Near[] }) {
   if (near.length > nearSaid) {
     return (
       <TeamKnowLine kind={kind} title={near.map((n) => n.capsule).join("\n")}>
-        Also changed in {near.length} of your capsules: <span className="mono">{near[0].capsule}</span>, <span className="mono">{near[1].capsule}</span> and {near.length - 2} more
+        Also changed in {near.length} of your capsules: <Text mono>{near[0].capsule}</Text>, <Text mono>{near[1].capsule}</Text> and {near.length - 2} more
       </TeamKnowLine>
     );
   }
   return near.map((n) => (
     <TeamKnowLine key={n.capsule} kind={kind} title={n.files.join("\n")}>
-      Also changed in your <span className="mono">{n.capsule}</span>: {n.files.slice(0, 2).map((f) => f.split("/").pop()).join(", ")}
+      Also changed in your <Text mono>{n.capsule}</Text>: {n.files.slice(0, 2).map((f) => f.split("/").pop()).join(", ")}
       {n.files.length > 2 ? `, and ${n.files.length - 2} more` : ""}
     </TeamKnowLine>
   ));

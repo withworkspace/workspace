@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { type CodeEnd, type CodeHit, codeNote, codeRematch, codeStream } from "../shell/find";
 import { FindCodeHit, findCodeHitClass } from "../shell/Palette/FindCodeHit";
 import { FindNote } from "../shell/Palette/FindNote";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Finder, FinderNone, FinderRow } from "../ui/Finder";
 import css from "./CodeFinder.module.css";
 

@@ -11,6 +11,7 @@ import { Chip } from "../ui/Chip";
 import { cx } from "../ui/cx";
 import { RefChip } from "./RefChip";
 import css from "./ThingView.module.css";
+import { textClass } from "../ui/Text";
 
 // A plugin's thing, drawn from its fields as its plugin declared for where
 // it's shown: the card under its name, the pane beside the list in Find.
@@ -70,7 +71,7 @@ export function ThingView({ named, record, surface, pointer }: { named?: Named; 
           case "title":
             return (
               <HoverCardHead key={i} top={pane}>
-                {d.icon && <Icon name={thingIcon(named)} size={13} className="dim" />}
+                {d.icon && <Icon name={thingIcon(named)} size={13} className={textClass("dim")} />}
                 <HoverCardTitle wrap={pane}>{said(d)}</HoverCardTitle>
                 {badged(false)}
               </HoverCardHead>

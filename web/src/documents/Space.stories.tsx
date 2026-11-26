@@ -36,6 +36,7 @@ import { SpacePreviewSections } from "./SpacePreviewSections";
 import { SpacePreviewSkeleton } from "./SpacePreviewSkeleton";
 import { SpaceSplit } from "./SpaceSplit";
 import { SpaceTabs } from "./SpaceTabs";
+import { Text } from "../ui/Text";
 
 // A space's page, from its parts: its head (up to date, behind and
 // pulled, behind with changes of its own, being fetched); its list (a
@@ -210,7 +211,7 @@ const lists = (
     <SpaceOtherHead id="list-other" />
     <section aria-label="Top">
       <GroupHead count={1}>
-        <span className="mono">(top)</span>
+        <Text mono>(top)</Text>
       </GroupHead>
       <Rows role="listbox" aria-label="Top">
         <SpaceDocRow id="doc-readme" to="#" title="records" selected={false} file="README.md" />
@@ -247,7 +248,7 @@ export const NothingSearched: StoryObj = {
       list={<DocumentsEmpty>Nothing in Records says that.</DocumentsEmpty>}
       side={
         <SpacePreview none>
-          <p className="dim">Nothing found to show.</p>
+          <Text as="p" dim>Nothing found to show.</Text>
         </SpacePreview>
       }
     />
@@ -313,7 +314,7 @@ export const OfFolders: StoryObj = {
             ).map(([folder, docs]) => (
               <section key={folder} aria-label={folder}>
                 <GroupHead count={docs.length}>
-                  <span className="mono">{folder}</span>
+                  <Text mono>{folder}</Text>
                 </GroupHead>
                 <Rows role="listbox" aria-label={folder}>
                   {docs.map(([title, file]) => (
@@ -325,7 +326,7 @@ export const OfFolders: StoryObj = {
           </SpaceList>
           <SpaceEdge setWidth={() => {}} />
           <SpacePreview none>
-            <p className="dim">Nothing to show.</p>
+            <Text as="p" dim>Nothing to show.</Text>
           </SpacePreview>
         </SpaceSplit>
       </SpaceFrame>

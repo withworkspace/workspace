@@ -1,10 +1,10 @@
 import { Button } from "../../ui/Button";
 import { Chip } from "../../ui/Chip";
-import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import { Spinner } from "../../ui/Spinner";
 import { Time } from "../../ui/Time";
 import css from "./PluginsUpdates.module.css";
+import { Text } from "../../ui/Text";
 
 type PluginsUpdatesProps = {
   // How many have a later release out.
@@ -26,7 +26,7 @@ export function PluginsUpdates({ out, checked, looking, onLook }: PluginsUpdates
           {out} {out === 1 ? "update" : "updates"}
         </Chip>
       )}
-      <span className={cx("dim", css.looked)}>
+      <Text dim className={css.looked}>
         {checked ? (
           <>
             Looked for updates <Time iso={checked} as="relative" />
@@ -34,7 +34,7 @@ export function PluginsUpdates({ out, checked, looking, onLook }: PluginsUpdates
         ) : (
           "Not looked for updates yet"
         )}
-      </span>
+      </Text>
       <Button size="small" onClick={onLook} disabled={looking} title="Ask each plugin's repo for its latest release now">
         {looking ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {looking ? "Looking…" : "Check for updates"}
       </Button>

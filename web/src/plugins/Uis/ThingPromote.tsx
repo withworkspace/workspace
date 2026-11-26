@@ -5,6 +5,7 @@ import css from "./ThingPromote.module.css";
 import { ThingPromoteFolder } from "./ThingPromoteFolder";
 import { ThingPromotePlaces } from "./ThingPromotePlaces";
 import { ThingUi, ThingUiButtons, ThingUiFailed, ThingUiTitle } from "./ThingUi";
+import { Text, textClass } from "../../ui/Text";
 
 // ThingPromotePlace is a place a thing could live.
 export type ThingPromotePlace = {
@@ -68,12 +69,12 @@ export function ThingPromote({ what, places, pick, onPick, under, group, onUnder
       {place?.folders && <ThingPromoteFolder label={place.label} under={under} group={group} onUnder={onUnder} folders={place.folders} busy={busy} />}
       {places && pick === "else" && (
         <label className={css.where}>
-          {!several && <span className="dim">It'll live at</span>}
+          {!several && <Text dim>It'll live at</Text>}
           {/* biome-ignore lint/a11y/noAutofocus: the field is what was asked for */}
-          <Input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => onElsewhere(e.currentTarget.value)} />
+          <Input type="text" className={textClass("mono")} value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => onElsewhere(e.currentTarget.value)} />
         </label>
       )}
-      {place && !place.direct && <p className="dim">{place.label} takes pull requests: it'll be left in a capsule, for you to open one from.</p>}
+      {place && !place.direct && <Text as="p" dim>{place.label} takes pull requests: it'll be left in a capsule, for you to open one from.</Text>}
       {failed && <ThingUiFailed>{failed}</ThingUiFailed>}
       <ThingUiButtons>
         <Button variant="primary" size="small" type="submit" ref={go} disabled={busy || !ready}>

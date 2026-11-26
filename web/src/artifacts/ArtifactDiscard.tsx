@@ -4,6 +4,7 @@ import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Keys } from "../ui/Keys";
 import { TextArea } from "../ui/TextArea";
 import css from "./ArtifactDiscard.module.css";
+import { Text } from "../ui/Text";
 
 type ArtifactDiscardProps = {
   // The artifact's title, and its id.
@@ -28,10 +29,10 @@ export function ArtifactDiscard({ title, id, home, branch, why, onWhy, error, bu
   return (
     <Dialog title={`Discard “${title}”`} onClose={onClose}>
       <DialogText>
-        It's taken off the list, with its versions. Its folder moves to <span className="mono">.ws/artifacts/.discarded</span>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
+        It's taken off the list, with its versions. Its folder moves to <Text mono>.ws/artifacts/.discarded</Text>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
         {home && (
           <>
-            Its folder in {home.repo} (<span className="mono">{home.where}</span>) is taken away too, in one commit straight to {home.repo}'s {branch ?? "default branch"}.{" "}
+            Its folder in {home.repo} (<Text mono>{home.where}</Text>) is taken away too, in one commit straight to {home.repo}'s {branch ?? "default branch"}.{" "}
           </>
         )}
         {id} still says what it was.

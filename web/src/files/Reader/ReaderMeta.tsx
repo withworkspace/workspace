@@ -7,6 +7,7 @@ import { Icon } from "../../ui/Icon";
 import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import css from "./ReaderMeta.module.css";
+import { textClass } from "../../ui/Text";
 
 type ReaderMetaProps = {
   // What kind of document it is (an ADR, a proposal), and what that
@@ -46,7 +47,7 @@ export function ReaderMeta({ kind, repo, worktree, ground, page, flights, docRef
         <Icon name={ground ? "layers" : "box"} size={11} /> {ground ? "On the default branch" : `In ${worktree}`}
       </Chip>
       {page && (
-        <Link to={page.to} className="dim" title="It's edited in this page, which keeps its cells and passes">
+        <Link to={page.to} className={textClass("dim")} title="It's edited in this page, which keeps its cells and passes">
           Edited in {page.name}
         </Link>
       )}

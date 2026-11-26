@@ -9,6 +9,8 @@ import { TalkProposalPlan } from "./TalkProposalPlan";
 import { TalkProposalWhat } from "./TalkProposalWhat";
 import { TalkProposalWhere } from "./TalkProposalWhere";
 import { TalkProposalWhole } from "./TalkProposalWhole";
+import { Text } from "../ui/Text";
+import { Prose } from "../ui/Prose";
 
 // ProposalShown is what a card of ws's own proposes, as it was proposed
 // (not being edited), by its kind. briefing: a brief that starts its
@@ -26,7 +28,7 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
     case "mission":
       return (
         <>
-          {p.brief ? <TalkProposalWhole text={p.brief} /> : <div className="dim">An idea, to brief later: a briefing agent starts from this conversation.</div>}
+          {p.brief ? <TalkProposalWhole text={p.brief} /> : <Text as="div" dim>An idea, to brief later: a briefing agent starts from this conversation.</Text>}
           <TalkProposalMeta items={[p.about?.length ? `About ${p.about.join(", ")}` : undefined, p.capsules?.length ? `Lifts ${p.capsules.join(", ")}` : undefined]} />
         </>
       );
@@ -35,7 +37,7 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
         return (
           <>
             <TalkProposalWhole text={p.brief ?? ""} />
-            {p.plan ? <TalkProposalPlan text={p.plan} /> : <div className="dim">No plan: crew work from the brief.</div>}
+            {p.plan ? <TalkProposalPlan text={p.plan} /> : <Text as="div" dim>No plan: crew work from the brief.</Text>}
             <TalkProposalMeta items={[p.capsules?.length ? `Lifts ${p.capsules.join(", ")}` : undefined, p.docks?.length ? `Builds on ${p.docks.join(", ")}` : undefined, p.slug && `Renamed ${p.slug}`]} />
           </>
         );
@@ -47,9 +49,9 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
           {p.was ? (
             <BriefDiff was={p.was} now={p.plan ?? ""} />
           ) : (
-            <div className="prose">
+            <Prose>
               <Markdown text={p.plan ?? ""} />
-            </div>
+            </Prose>
           )}
           {p.step ? <TalkProposalMeta items={[`Written at step ${p.step}, the planner's: accepting it passes that step`]} /> : null}
         </>
@@ -65,7 +67,7 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
       return (
         <>
           <TalkProposalWhat said>{p.text}</TalkProposalWhat>
-          {p.state === "open" && <div className="dim">Confirming asks the mission's planner this, as you: it revises the plan in its own conversation, or says why not.</div>}
+          {p.state === "open" && <Text as="div" dim>Confirming asks the mission's planner this, as you: it revises the plan in its own conversation, or says why not.</Text>}
         </>
       );
     case "comment":

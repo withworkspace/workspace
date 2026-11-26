@@ -4,6 +4,7 @@ import { Chip } from "./Chip";
 import { Icon } from "./Icon";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "./Rows";
 import { Status } from "./Status";
+import { Text, textClass } from "./Text";
 
 // A list of rows: each a link with its status, its title and what's beside
 // it, a quieter line under it, and facts at its end; one picked, one still
@@ -34,7 +35,7 @@ export const List: StoryObj = {
               <Icon name="box" size={13} />
               workspace/css-modules
             </RowMeta>
-            <span className="age dim">2h</span>
+            <Text dim className="age">2h</Text>
           </Link>
         </Row>
         <Row picked role="option" aria-selected>
@@ -46,11 +47,11 @@ export const List: StoryObj = {
               </RowLine>
               <RowSub>Shown whether or not keys are moving.</RowSub>
             </RowMain>
-            <span className="age dim">5m</span>
+            <Text dim className="age">5m</Text>
           </Link>
         </Row>
         <Row still>
-          <Icon name="box" size={16} className={rowStatusClass("dim")} />
+          <Icon name="box" size={16} className={rowStatusClass(textClass("dim"))} />
           <RowMain>
             <RowLine>
               <RowTitle>A still row, with no link</RowTitle>
@@ -65,7 +66,7 @@ export const List: StoryObj = {
                 <RowTitle>A title long enough that it runs out of room before the end of the row and is cut short with an ellipsis</RowTitle>
               </RowLine>
             </RowMain>
-            <span className="age dim">3d</span>
+            <Text dim className="age">3d</Text>
           </Link>
         </Row>
       </Rows>

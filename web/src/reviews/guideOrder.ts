@@ -1,6 +1,6 @@
 import type { ReviewGuide } from "../api";
 import type { Order } from "../review/files";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 
 // guideOrder is a guide's groups as an order for the list of files.
 export function guideOrder(g: ReviewGuide): Order | undefined {

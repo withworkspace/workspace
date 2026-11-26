@@ -6,6 +6,7 @@ import { Icon } from "../../ui/Icon";
 import { Menu, MenuItem } from "../../ui/Menu";
 import { pickName } from "./words";
 import css from "./MissionLeadLaunch.module.css";
+import { Text } from "../../ui/Text";
 
 // MissionLeadLaunch is the Launch crew button: it starts crew on crew's
 // default agent and model. Where [crew] allows others, it's a split
@@ -48,11 +49,11 @@ export function MissionLeadLaunch({
       >
         {all.map((p, i) => (
           <MenuItem key={pickName(p)} id={String(i)} textValue={pickName(p)}>
-            <span className={cx(css.pick, "mono")}>
+            <Text mono className={css.pick}>
               {p.harness}
               {p.model ? ` · ${p.model}` : ""}
-            </span>
-            {!p.model && <span className="dim">its own model</span>}
+            </Text>
+            {!p.model && <Text dim>its own model</Text>}
             {i === 0 && <Chip>default</Chip>}
           </MenuItem>
         ))}

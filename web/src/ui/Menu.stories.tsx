@@ -5,6 +5,7 @@ import { Count } from "./Count";
 import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "./Menu";
+import { Text } from "./Text";
 
 // Menus: press each to open it. Things to do, with icons, a count, a key
 // and a danger one; sections with titles; and a foot that isn't an item.
@@ -17,7 +18,7 @@ function Said({ children }: { children: (say: (what: string) => void) => React.R
   return (
     <div className="page" style={{ display: "flex", gap: 16, alignItems: "center" }}>
       {children(say)}
-      <span className="dim">{said}</span>
+      <Text dim>{said}</Text>
     </div>
   );
 }
@@ -109,9 +110,9 @@ export const WithAFoot: StoryObj = {
             </Button>
           }
           foot={
-            <div className="dim" style={{ padding: "6px 10px 8px", borderTop: "1px solid var(--line)", fontSize: "var(--text-xs)" }}>
+            <Text as="div" dim style={{ padding: "6px 10px 8px", borderTop: "1px solid var(--line)", fontSize: "var(--text-xs)" }}>
               Switch with <Keys k="p" />
-            </div>
+            </Text>
           }
         >
           {["3", "2", "1"].map((n) => (

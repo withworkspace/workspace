@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import css from "./MissionPlanCheckList.module.css";
+import { Text } from "../ui/Text";
 
 // A check of a step's: what it asks, how it last came out (or nothing,
 // where it hasn't been run), and who said so. Then, where they're given:
@@ -32,11 +33,11 @@ export function MissionPlanCheckList({ checks, said }: { checks: StepCheck[]; sa
             <span className={css.text}>
               <Inline text={c.text} />
               {said && c.result && c.result !== "met" && (
-                <span className="dim">
+                <Text dim>
                   {" "}
                   ({c.result}
                   {c.by ? `: ${c.by}` : ""})
-                </span>
+                </Text>
               )}
             </span>
             {((c.why && c.result && c.result !== "met") || c.kept) && (

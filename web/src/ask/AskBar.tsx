@@ -4,7 +4,7 @@ import { paneAt, talkAt } from "../chrome/panes";
 import { useBeside, useChromeStore, useGive } from "../chrome/store";
 import { useTalk, useTalks } from "../conversation/talks";
 import { toast } from "../ui/toast";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import type { AskAbout } from "./ask";
 import { AskField, type AskPlace } from "./AskField";
 

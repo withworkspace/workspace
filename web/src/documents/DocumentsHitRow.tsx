@@ -1,10 +1,10 @@
 import type { DocHit } from "../api";
 import { Chip } from "../ui/Chip";
-import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { TLink } from "../ui/TLink";
 import css from "./DocumentsHitRow.module.css";
+import { Text } from "../ui/Text";
 
 type DocumentsHitRowProps = {
   id: string;
@@ -33,7 +33,7 @@ export function DocumentsHitRow({ id, to, selected, onHover, onOpen, onContextMe
           <RowLine>
             <RowTitle>
               {title}
-              {heading && <span className="dim"> › {heading}</span>}
+              {heading && <Text dim> › {heading}</Text>}
             </RowTitle>
             {state && <Chip tone="quiet">{state}</Chip>}
             {!every && (
@@ -48,7 +48,7 @@ export function DocumentsHitRow({ id, to, selected, onHover, onOpen, onContextMe
             </RowLine>
           )}
         </RowMain>
-        <span className={cx("dim", css.where)}>{where}</span>
+        <Text dim className={css.where}>{where}</Text>
       </TLink>
     </Row>
   );

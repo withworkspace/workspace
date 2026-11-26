@@ -16,6 +16,7 @@ import { TweaksBody } from "./TweaksBody";
 import { TweaksHead } from "./TweaksHead";
 import { TweaksToggle } from "./TweaksToggle";
 import { TweaksTray } from "./TweaksTray";
+import { textClass } from "../ui/Text";
 
 // An artifact's tweaks, from their parts: each control, as it opens and
 // changed (which is marked, and says how it opens); the tray beside the
@@ -97,7 +98,7 @@ function Tray({ first, compare }: { first: Told; compare?: boolean }) {
         shown && (
           <TweaksTray told={said} set={set} onClose={() => setShown(false)}>
             {compare && (
-              <a className="link" href="#compare" title="The same version twice, side by side: as it opens, and as it's set here">
+              <a className={textClass("link")} href="#compare" title="The same version twice, side by side: as it opens, and as it's set here">
                 <Icon name="split" size={12} /> Compare with how it opens
               </a>
             )}

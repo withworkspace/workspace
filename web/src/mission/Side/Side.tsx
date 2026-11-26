@@ -20,6 +20,7 @@ import { MissionSideMore } from "./MissionSideMore";
 import { MissionSideRun } from "./MissionSideRun";
 import { ParkButton } from "./ParkButton";
 import { SideAbout } from "./SideAbout";
+import { Text } from "../../ui/Text";
 
 // How many of its outputs the details list: the rest are on Work.
 export const sideArtifacts = 6;
@@ -134,7 +135,7 @@ export function Side({
             />
           );
         })}
-        {!d.capsules.length && !d.endedCapsules?.length && <div className="dim">None yet: crew lift one when they start.</div>}
+        {!d.capsules.length && !d.endedCapsules?.length && <Text as="div" dim>None yet: crew lift one when they start.</Text>}
         <EndedCapsules list={d.endedCapsules} />
       </MissionSideSection>
       {d.runs.length > 0 && (
@@ -169,7 +170,7 @@ export function Side({
             {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
           </MissionSideMore>
         )}
-        {!d.crew.length && <div className="dim">Nobody yet.</div>}
+        {!d.crew.length && <Text as="div" dim>Nobody yet.</Text>}
       </MissionSideSection>
     </MissionSide>
   );

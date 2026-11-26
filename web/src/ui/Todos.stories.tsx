@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Todos } from "./Todos";
+import { Text } from "./Text";
 
 // An agent's todo list: partway, with the agent running (what's in hand
 // turns, and reads as what it's doing) and stopped; nothing begun; all
@@ -19,19 +20,19 @@ export const Lists: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 20, maxWidth: 420 }}>
       <div>
-        <div className="dim">The agent's running</div>
+        <Text as="div" dim>The agent's running</Text>
         <Todos todos={partway} live />
       </div>
       <div>
-        <div className="dim">Stopped partway</div>
+        <Text as="div" dim>Stopped partway</Text>
         <Todos todos={partway} />
       </div>
       <div>
-        <div className="dim">Nothing begun</div>
+        <Text as="div" dim>Nothing begun</Text>
         <Todos todos={partway.map((t) => ({ ...t, status: "pending" }))} />
       </div>
       <div>
-        <div className="dim">All done</div>
+        <Text as="div" dim>All done</Text>
         <Todos todos={partway.map((t) => ({ ...t, status: "completed" }))} />
       </div>
     </div>

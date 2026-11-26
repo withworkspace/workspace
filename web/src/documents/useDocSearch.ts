@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { type DocHit, docAddress, searchDocuments } from "../api";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 
 // Search over the spaces' documents: ranked, each led to the section
 // that says it best; kept to a kind, and where one stands, once a kind's

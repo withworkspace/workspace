@@ -1,7 +1,8 @@
 import type { Stage, TalkProposal } from "../../api";
 import { Time } from "../../ui/Time";
-import { MissionBriefWhat } from "./MissionBriefWhat";
+import { MissionBriefWhat, missionBriefWhatQuietClass } from "./MissionBriefWhat";
 import { proposedName, proposedTitle } from "./words";
+import { Text } from "../../ui/Text";
 
 type BriefWhatProps = {
   // It's ended: as it was written.
@@ -29,9 +30,9 @@ export function BriefWhat({ ended, briefing, proposal: p, draft, changed, confir
     return (
       <MissionBriefWhat icon={p.kind === "plan" ? "list-ordered" : "pencil"} tone="attention" title={proposedTitle(said)}>
         {proposedName(said)}{" "}
-        <span className="dim">
+        <Text dim className={missionBriefWhatQuietClass}>
           · <Time iso={p.at} as="relative" />
-        </span>
+        </Text>
       </MissionBriefWhat>
     );
   }
@@ -51,9 +52,9 @@ export function BriefWhat({ ended, briefing, proposal: p, draft, changed, confir
     return (
       <MissionBriefWhat icon="circle-dot">
         As written{" "}
-        <span className="dim">
+        <Text dim className={missionBriefWhatQuietClass}>
           · at step {now.n} of {steps}
-        </span>
+        </Text>
       </MissionBriefWhat>
     );
   return <MissionBriefWhat icon="file">{briefing ? "To brief" : "As written"}</MissionBriefWhat>;

@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from "react";
-import { cx } from "../../ui/cx";
 import css from "./MissionBriefToolbar.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionBriefToolbarProps = {
   ref?: Ref<HTMLDivElement>;
@@ -29,7 +29,7 @@ export function MissionBriefToolbar({ ref, slot, inset, of, ofTitle, none }: Mis
         </span>
       )}
       <div className={css.slot} ref={slot} />
-      {none !== undefined && <span className={cx(css.none, "dim")}>{none}</span>}
+      {none !== undefined && <Text dim className={css.none}>{none}</Text>}
     </div>
   );
 }

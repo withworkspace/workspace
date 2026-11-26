@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import css from "./MissionCrewPlan.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionCrewPlanProps = {
   // How many of its items are done, of how many.
@@ -26,9 +26,9 @@ export function MissionCrewPlan({ done, of, now, folded, children }: MissionCrew
         <span className={css.progress} aria-hidden>
           <span style={{ width: `${(100 * done) / of}%` }} />
         </span>
-        <span className={cx("dim", css.count)}>
+        <Text dim className={css.count}>
           {done} of {of}
-        </span>
+        </Text>
         {now && <span className={css.now}>{now}</span>}
       </summary>
       {children}

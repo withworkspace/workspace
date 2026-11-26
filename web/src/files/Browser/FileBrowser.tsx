@@ -29,6 +29,7 @@ import { FilesOverview } from "./FilesOverview";
 import { otherWords, paneChoices, paneWords, type Panes, setPanes, usePanes } from "./panes";
 import { ancestors, baseName, changedIn, filesTree } from "./tree";
 import { branchName, isMarkdown } from "./words";
+import { Text } from "../../ui/Text";
 
 // The file explorer: a worktree's files as they are now, without an
 // editor open. A tree on the left (everything, or only what's changed
@@ -389,7 +390,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
               {missing ? (
                 <FilesOverview>
                   <Empty icon="file" title="Not here" action={<Button onClick={unpick}>Pick another file</Button>}>
-                    There's no <span className="mono">{path}</span> in {label}.
+                    There's no <Text mono>{path}</Text> in {label}.
                   </Empty>
                 </FilesOverview>
               ) : path && !folder ? (

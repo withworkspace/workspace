@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { threadKinds, type ThreadKind } from "../api";
 import { useKeys } from "../keys";
 import { sendKeys, sent, useSendKey } from "../ui/sendKey";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 import { useAutosize } from "../ui/useAutosize";
 import { AnnotateComposer } from "./AnnotateComposer";
 import type { Pick } from "./geometry";

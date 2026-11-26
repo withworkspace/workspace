@@ -1,6 +1,7 @@
 import { chipClass } from "../../ui/Chip";
 import { Input } from "../../ui/Input";
 import css from "./ThingPromoteFolder.module.css";
+import { Text, textClass } from "../../ui/Text";
 
 type ThingPromoteFolderProps = {
   // The place's name, as the field says it.
@@ -20,8 +21,8 @@ export function ThingPromoteFolder({ label, under, group, onUnder, folders, busy
   return (
     <div className={css.field}>
       <label>
-        <span className="dim">In a folder there, if you like</span>
-        <Input type="text" className="mono" value={under} placeholder="cross-stack" aria-label={`A folder of ${label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => onUnder(e.currentTarget.value)} />
+        <Text dim>In a folder there, if you like</Text>
+        <Input type="text" className={textClass("mono")} value={under} placeholder="cross-stack" aria-label={`A folder of ${label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => onUnder(e.currentTarget.value)} />
       </label>
       <datalist id="thing-ui-groups">
         {folders.map((g) => (

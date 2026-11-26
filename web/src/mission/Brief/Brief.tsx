@@ -12,7 +12,7 @@ import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
 import { Spinner } from "../../ui/Spinner";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { useMedia } from "../../ui/useMedia";
 import { type Doc, planAsk, planSteps, shown } from "../briefpage";

@@ -1,7 +1,7 @@
 import { Chip } from "../ui/Chip";
-import { cx } from "../ui/cx";
 import css from "./TeamRepoChip.module.css";
 import { TeamRepoDot } from "./TeamRepoDot";
+import { Text } from "../ui/Text";
 
 type TeamRepoChipProps = {
   // Its repos' colours: one, or a few of a change made in several.
@@ -22,7 +22,7 @@ export function TeamRepoChip({ colors, label, pr, title }: TeamRepoChipProps) {
         <TeamRepoDot key={i} color={c} className={css.dot} />
       ))}
       {label}
-      {pr ? <span className={cx("mono", css.pr)}> #{pr}</span> : null}
+      {pr ? <Text mono className={css.pr}> #{pr}</Text> : null}
     </Chip>
   );
 }

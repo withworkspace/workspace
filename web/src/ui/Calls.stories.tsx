@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type Call, Calls } from "./Calls";
+import { Text } from "./Text";
 
 // An agent's steps: folded under their count, with what's worth knowing
 // before they're opened (edits, a refusal, a failure); open, as a run's
@@ -59,7 +60,7 @@ export const Running: StoryObj = {
     <div className="page" style={{ display: "grid", gap: 24, maxWidth: 560 }}>
       <Calls calls={[read, grep, { tool: "Bash", input: "go test ./api/...", pending: true }]} root={root} open live />
       <div>
-        <div className="dim">Its last three, the rest asked for</div>
+        <Text as="div" dim>Its last three, the rest asked for</Text>
         <Calls calls={[...all, { tool: "Bash", input: "go test ./api/...", pending: true }]} root={root} open live tail={3} />
       </div>
     </div>

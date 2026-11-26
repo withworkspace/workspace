@@ -16,3 +16,7 @@ export function CodeNavList({ rows, inline, maybes }: { rows: { key: string; pic
     </ul>
   );
 }
+
+// codeNavListWhereClass is where a row's name is (as Text mono): a size
+// smaller.
+export const codeNavListWhereClass: string = css.where;

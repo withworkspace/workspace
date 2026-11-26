@@ -34,6 +34,7 @@ import { MissionVerifySummary } from "./MissionVerifySummary";
 import { MissionVerifyTally } from "./MissionVerifyTally";
 import { MissionVerifyYours } from "./MissionVerifyYours";
 import { MissionVerifyYourself } from "./MissionVerifyYourself";
+import { Text } from "../../ui/Text";
 
 // A mission's Verify tab, from its parts: a bundle that's yours to
 // approve, with a check open and what's yours of it; one you sent back,
@@ -103,7 +104,7 @@ function Check({ open }: { open?: boolean }) {
             <MissionVerifyCommand text="make dev" /> then ask for more than 120 a minute
           </>,
           <span>
-            <span className="dim">Look for</span> the 429, and its header
+            <Text dim>Look for</Text> the 429, and its header
           </span>,
         ]}
       />
@@ -129,7 +130,7 @@ export const Tab: StoryObj = {
                 current
                 meta={
                   <>
-                    From c3, a verifier who didn't do the work, of <span className="mono">api/rate-limit</span> at 3f9c2ab, 4 minutes ago
+                    From c3, a verifier who didn't do the work, of <Text mono>api/rate-limit</Text> at 3f9c2ab, 4 minutes ago
                   </>
                 }
               >
@@ -198,7 +199,7 @@ export const SentBack: StoryObj = {
                   You approved it 2 hours ago.
                 </MissionVerifyNote>
                 <MissionVerifyNote tone="attention" title="Stale">
-                  Its capsule has moved on to <span className="mono">3f9c2ab</span> since. What this shows is of <span className="mono">a81b07c</span>.
+                  Its capsule has moved on to <Text mono>3f9c2ab</Text> since. What this shows is of <Text mono>a81b07c</Text>.
                 </MissionVerifyNote>
                 <MissionVerifySummary text="Check 2 is unmet, so this goes back." />
                 <MissionVerifyTally>
@@ -302,7 +303,7 @@ export const Start: StoryObj = {
         items={[
           <MissionVerifyStart recipe="web" state="idle" where="demo/refunds" start={none} />,
           <span>
-            <span className="dim">Look for</span> the Refunds tab, on the order page
+            <Text dim>Look for</Text> the Refunds tab, on the order page
           </span>,
         ]}
       />

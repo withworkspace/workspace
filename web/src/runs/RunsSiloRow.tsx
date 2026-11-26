@@ -6,13 +6,14 @@ import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { Printed } from "../ui/Printed";
 import { Spinner } from "../ui/Spinner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Time } from "../ui/Time";
 import { toast } from "../ui/toast";
 import { RunMark } from "./RunMark";
 import { RunsPageMore, runsPageLogClass } from "./RunsPageMore";
 import { RunsPageRow } from "./RunsPageRow";
 import { RunsPageSub } from "./RunsPageSub";
+import { Text } from "../ui/Text";
 
 // RunsSiloRow is one of the repos' silos, as the daemon keeping it has
 // it: what it's pointed at, its last sync, and its last hook, opened
@@ -40,8 +41,8 @@ export function RunsSiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
       name={st.repo}
       top={
         <>
-          <span className="dim">on</span>
-          <span className="mono">{st.target}</span>
+          <Text dim>on</Text>
+          <Text mono>{st.target}</Text>
           {trouble && <Chip tone="waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</Chip>}
         </>
       }
@@ -84,9 +85,9 @@ export function RunsSiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
           {last?.error && <p>{last.error}</p>}
           {hook && (
             <>
-              <p className="dim">
+              <Text as="p" dim>
                 Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
-              </p>
+              </Text>
               <Printed className={runsPageLogClass}>{hook.output || "It said nothing."}</Printed>
             </>
           )}

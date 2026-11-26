@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import css from "./SettingsProcess.module.css";
+import { Text } from "../ui/Text";
+import { Prose } from "../ui/Prose";
 
 type SettingsProcessProps = {
   // The file's name, and the commit it's as (or changed since), if any.
@@ -18,15 +20,15 @@ export function SettingsProcess({ name, commit, uncommitted, children }: Setting
       <div className={css.bar}>
         <span className={css.where}>
           <code>{name}</code>
-          <span className="dim">
+          <Text dim>
             {commit && !uncommitted && <> · as committed in {commit}</>}
             {commit && uncommitted && <> · changed since {commit}, not committed</>}
             {!commit && <> · not committed</>}
-          </span>
+          </Text>
         </span>
       </div>
       <div className={css.file}>
-        <div className="prose">{children}</div>
+        <Prose className={css.prose}>{children}</Prose>
       </div>
     </>
   );

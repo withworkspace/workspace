@@ -3,7 +3,7 @@ import { act, type MissionDetail } from "../../api";
 import type { Reload } from "../../load";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 
 // ParkButton puts a mission aside, out of what needs you and out of the

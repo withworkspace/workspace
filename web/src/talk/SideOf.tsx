@@ -12,6 +12,7 @@ import { TalkSideNamed } from "./TalkSideNamed";
 import { TalkSideSection } from "./TalkSideSection";
 import { TalkSideSummary } from "./TalkSideSummary";
 import { proposalIcons } from "./words";
+import { Text } from "../ui/Text";
 
 // SideOf is what's come of a conversation, beside it: what's waiting to
 // be confirmed, what it's made (each where it is now), the capsules it
@@ -69,7 +70,7 @@ export function SideOf({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug:
                 <code>
                   {c.repo}/{c.name}
                 </code>
-                {c.away && <span className="dim"> put away</span>}
+                {c.away && <Text dim> put away</Text>}
               </li>
             ))}
           </TalkSideNamed>

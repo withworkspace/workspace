@@ -3,7 +3,7 @@ import type { CellState } from "../editor/cells";
 import { Chip } from "../ui/Chip";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 import { sourceHref, sourceName } from "./cell";
 import type { MapData } from "./map";
 import { PageMap } from "./PageMap";
@@ -11,6 +11,7 @@ import { PageMapEmpty } from "./PageMapEmpty";
 import { PageMapItem } from "./PageMapItem";
 import { PageMapSection } from "./PageMapSection";
 import { PageMapSum } from "./PageMapSum";
+import { Text } from "../ui/Text";
 
 const stateIcon: Record<CellState["status"], IconName> = { starting: "spinner", filling: "spinner", filled: "check", stale: "alert", failed: "alert" };
 
@@ -105,7 +106,7 @@ export function MapView({ map, passes, toPass, goTo, openCell }: { map: MapData;
                 <PageMapItem to={sourceHref(src)} look={src.state ? "moved" : undefined} title={title}>
                   <Icon name={src.state ? "alert" : "file"} size={11} />
                   <span>{name}</span>
-                  {cells > 1 && <span className="dim">×{cells}</span>}
+                  {cells > 1 && <Text dim>×{cells}</Text>}
                 </PageMapItem>
               </li>
             );

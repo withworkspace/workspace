@@ -21,6 +21,7 @@ import { stepLine } from "./stepLine";
 import { SummaryLead } from "./SummaryLead";
 import { SummaryNotices } from "./SummaryNotices";
 import { isNotice, saidLately, summaryRecent, summaryRecentWithSide } from "./words";
+import { Text } from "../../ui/Text";
 
 type Go = "brief" | "work" | "log" | "decisions";
 
@@ -135,7 +136,7 @@ export function Summary({
         )}
         {d.from && (
           <SummaryRow label="Raised from">
-            <span className="dim">{d.from}</span>
+            <Text dim>{d.from}</Text>
           </SummaryRow>
         )}
       </SummaryList>

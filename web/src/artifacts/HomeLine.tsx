@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { type ArtifactDetail, promoteArtifact } from "../api";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { ArtifactHome } from "./ArtifactHome";
 

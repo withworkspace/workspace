@@ -4,7 +4,7 @@ import { Decoration, DecorationSet, type EditorView, type NodeView } from "prose
 import { parseMarkdown, saveMarkdown } from "./markdown";
 import { schema } from "./schema";
 import { cx } from "../ui/cx";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 import css from "./MarkdownEditor.module.css";
 
 // Cells: places in a page where you asked for something and wrote on.

@@ -4,6 +4,8 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import css from "./TalkPluginItem.module.css";
+import { Text, textClass } from "../ui/Text";
+import { Prose } from "../ui/Prose";
 
 // TalkPluginItem is an item of what a plugin proposed: its number (n),
 // ticked to accept (pick) while there's a choice; its title, unless it's
@@ -45,16 +47,16 @@ export function TalkPluginItem({
         <div className={css.head}>
           {pick ? (
             <Checkbox className={css.pick} checked={pick.picked} onChange={pick.onPick} aria-label={`Accept item ${n}`}>
-              <span className={cx(css.n, "dim")}>{n}</span>
+              <Text dim className={css.n}>{n}</Text>
             </Checkbox>
           ) : (
-            <span className={cx(css.n, "dim")}>{n}</span>
+            <Text dim className={css.n}>{n}</Text>
           )}
           {title !== undefined && <span className={css.title}>{title}</span>}
           {on && (
-            <span className={cx(css.on, "dim")}>
+            <Text dim className={css.on}>
               on <Inline text={on} />
-            </span>
+            </Text>
           )}
           <span className={css.spacer} />
           {made && (
@@ -62,7 +64,7 @@ export function TalkPluginItem({
               <Icon name="check" size={12} /> {made !== true ? <Inline text={made} /> : "Done"}
             </span>
           )}
-          {left && <span className="dim">Not accepted</span>}
+          {left && <Text dim>Not accepted</Text>}
         </div>
       )}
       {!!rows?.length && (
@@ -73,7 +75,7 @@ export function TalkPluginItem({
               <dd>
                 {r.was !== undefined && (
                   <>
-                    <del className="dim">{r.was || "none"}</del> →{" "}
+                    <del className={textClass("dim")}>{r.was || "none"}</del> →{" "}
                   </>
                 )}
                 <Inline text={r.value} />
@@ -85,22 +87,22 @@ export function TalkPluginItem({
       {markdown?.trim() &&
         (long ? (
           <details className={css.text}>
-            <summary className="dim">What it says</summary>
-            <div className="prose">
+            <summary className={textClass("dim")}>What it says</summary>
+            <Prose>
               <Markdown text={markdown} />
-            </div>
+            </Prose>
           </details>
         ) : (
-          <div className={cx(css.text, "prose")}>
+          <Prose className={css.text}>
             <Markdown text={markdown} />
-          </div>
+          </Prose>
         ))}
       {problem && (
         <div className={css.problem}>
           <Icon name="alert" size={13} /> Not done: {problem}
         </div>
       )}
-      {say && <div className={cx("dim", css.say)}>{say}</div>}
+      {say && <Text as="div" dim className={css.say}>{say}</Text>}
     </li>
   );
 }

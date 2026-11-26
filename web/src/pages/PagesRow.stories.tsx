@@ -1,3 +1,4 @@
+import { cx } from "../ui/cx";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
@@ -7,13 +8,14 @@ import { Input } from "../ui/Input";
 import { Keys } from "../ui/Keys";
 import { Rows } from "../ui/Rows";
 import { Option, Select } from "../ui/Select";
-import { PageField } from "./PageField";
+import { PageField, pageFieldCodeClass } from "./PageField";
 import { PageFields } from "./PageFields";
 import { PageFileWhat } from "./PageFileWhat";
 import { PageFileWhere } from "./PageFileWhere";
 import { PageKindPick } from "./PageKindPick";
 import { PageKindPicks } from "./PageKindPicks";
 import { PagesRow } from "./PagesRow";
+import { Text, textClass } from "../ui/Text";
 
 // Pages in a list (a kind's, one tied to a file, one filling its cells,
 // one with cells out of date, one filed); and the dialogs that start a
@@ -57,7 +59,7 @@ export const StartAsAKind: StoryObj = {
         </PageField>
       </PageFields>
       <PageFileWhat>
-        Its agents are told how one's written (<span className="mono">docs/guides/adr.md</span>), and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <span className="mono">records · adr/NNNN-keep-rate-limits-in-redis.md</span>.
+        Its agents are told how one's written (<Text mono>docs/guides/adr.md</Text>), and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <Text mono>records · adr/NNNN-keep-rate-limits-in-redis.md</Text>.
       </PageFileWhat>
       <DialogActions>
         <Button variant="ghost">Cancel</Button>
@@ -80,13 +82,13 @@ export const FileAs: StoryObj = {
           </Select>
         </PageField>
         <PageField label="Folder">
-          <Input className="mono" value="records:notes/" onChange={noop} aria-label="The folder it's filed in, as repo:folder/" />
+          <Input className={cx(textClass("mono"), pageFieldCodeClass)} value="records:notes/" onChange={noop} aria-label="The folder it's filed in, as repo:folder/" />
         </PageField>
         <PageField label="Title">
           <Input value="Rate limits for the public API" onChange={noop} aria-label="Title" />
         </PageField>
         <PageField label="Commit">
-          <Input className="mono" value="Add the note rate-limits-for-the-public-api" onChange={noop} aria-label="The commit's message" />
+          <Input className={cx(textClass("mono"), pageFieldCodeClass)} value="Add the note rate-limits-for-the-public-api" onChange={noop} aria-label="The commit's message" />
         </PageField>
       </PageFields>
       <PageFileWhere at="records:notes/rate-limits-for-the-public-api.md" taken>
@@ -112,7 +114,7 @@ export const SaveToFile: StoryObj = {
       <PageFileWhere at="records:adr/0001-money-is-whole-minor-units.md" />
       <PageFields>
         <PageField label="Commit">
-          <Input className="mono" value="Amend the ADR money-is-whole-minor-units" onChange={noop} aria-label="The commit's message" />
+          <Input className={cx(textClass("mono"), pageFieldCodeClass)} value="Amend the ADR money-is-whole-minor-units" onChange={noop} aria-label="The commit's message" />
         </PageField>
       </PageFields>
       <PageFileWhat>What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</PageFileWhat>

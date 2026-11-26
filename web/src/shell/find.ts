@@ -11,7 +11,7 @@ import { type IconName, icons } from "../ui/Icon";
 import type { StatusInfo } from "../ui/Status";
 import { crewStatus, headlineStatus } from "../ui/statusOf";
 import { type Tone } from "../ui/tone";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 
 // Find, apart from how it's drawn: what there is to find in what the page
 // holds of the workspace, what the server's asked for the rest (files,

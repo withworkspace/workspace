@@ -2,6 +2,7 @@ import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { Spinner } from "../../ui/Spinner";
 import css from "./MissionBriefStart.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionBriefStartProps = {
   // What was asked for, as it was said.
@@ -23,7 +24,7 @@ export function MissionBriefStart({ request, busy, onBrief, onOwn }: MissionBrie
       </span>
       <h2>Waiting to be briefed</h2>
       {request && <blockquote className={css.request}>{request}</blockquote>}
-      <p className="dim">Its planner reads round what you asked for, asks what it needs to, and writes the brief and a plan with you. They're here to read, change and confirm.</p>
+      <Text as="p" dim>Its planner reads round what you asked for, asks what it needs to, and writes the brief and a plan with you. They're here to read, change and confirm.</Text>
       <div className={css.act}>
         <Button variant="primary" type="button" onClick={onBrief} disabled={busy} aria-busy={busy}>
           {busy ? <Spinner /> : <Icon name="pencil" />} Brief it

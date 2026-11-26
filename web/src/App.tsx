@@ -27,7 +27,7 @@ import { setTitleContext } from "./ui/useTitle";
 import { toast } from "./ui/toast";
 import { Toasts } from "./ui/Toasts";
 import { Loading } from "./ui/Loading";
-import { humanError } from "./ui/text";
+import { humanError } from "./ui/strings";
 import { Confirmer } from "./ui/Confirm";
 import { Below } from "./chrome/Below";
 import { useBelowViews } from "./chrome/belowViews";

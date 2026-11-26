@@ -3,6 +3,7 @@ import { Icon } from "../../ui/Icon";
 import { Status, type StatusInfo } from "../../ui/Status";
 import { cx } from "../../ui/cx";
 import css from "./MissionCrewHead.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionCrewHeadProps = {
   // Who it is: its badge, or a briefing agent's name.
@@ -32,13 +33,13 @@ export function MissionCrewHead({ name, status, runs, acp, capsule, termTitle, a
         </h1>
         <div className={css.sub}>
           {runs && <span>{runs}</span>}
-          {acp && <span className="dim">over ACP, no terminal</span>}
+          {acp && <Text dim>over ACP, no terminal</Text>}
           {capsule && (
-            <span className={cx("mono", css.fact)}>
+            <Text mono className={css.fact}>
               <Icon name="box" size={12} /> {capsule}
-            </span>
+            </Text>
           )}
-          {termTitle && <span className={cx("mono", css.fact, css.termTitle)} title="What its terminal calls itself">{termTitle}</span>}
+          {termTitle && <Text mono className={cx(css.fact, css.termTitle)} title="What its terminal calls itself">{termTitle}</Text>}
         </div>
       </div>
       {actions}

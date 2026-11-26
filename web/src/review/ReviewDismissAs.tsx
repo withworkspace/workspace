@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { reviewDismissWhys } from "./findings";
 import css from "./ReviewDismissAs.module.css";
+import { Text } from "../ui/Text";
 
 // ReviewDismissAs asks why a finding is dismissed: 1, 2 or 3, or a click;
 // esc doesn't dismiss it. While it asks, the page's keys are its own.
@@ -20,7 +21,7 @@ export function ReviewDismissAs({ onDismiss, onCancel }: { onDismiss: (why: Dism
   );
   return (
     <span className={css.as} role="group" aria-label="Dismiss it as" onClick={(e) => e.stopPropagation()}>
-      <span className="dim">Dismiss as</span>
+      <Text dim>Dismiss as</Text>
       {reviewDismissWhys.map(([why, label, title], i) => (
         <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)} keys={`${i + 1}`}>
           {label} <Keys k={`${i + 1}`} />

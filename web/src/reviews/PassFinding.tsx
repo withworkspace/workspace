@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
 import { Inline } from "../ui/Inline";
 import css from "./PassFinding.module.css";
+import { textClass } from "../ui/Text";
 
 // PassFinding is one thing a pass found, in the Passes view: its kind,
 // where it is (go, a link to it), what's said of it and what's done with
@@ -19,7 +20,7 @@ export function PassFinding({ kind, where, said, end, lines, text, blocks, settl
         {end}
       </div>
       {lines}
-      <div className={cx(css.text, settled && "dim")}>
+      <div className={cx(css.text, settled && textClass("dim"))}>
         <Inline text={text} />
       </div>
     </li>

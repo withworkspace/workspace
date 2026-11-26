@@ -1,7 +1,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { cx } from "../../ui/cx";
 import { Input } from "../../ui/Input";
 import css from "./MissionArtifactEditBar.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionArtifactEditBarProps = {
   // Edit or suggest, where it's a document to comment on.
@@ -31,7 +31,7 @@ export function MissionArtifactEditBar({ mode, message, kept, actions }: Mission
           onKeyDown={message.onKeyDown}
         />
       )}
-      <span className={cx("dim", css.kept)}>{kept}</span>
+      <Text dim className={css.kept}>{kept}</Text>
       <span className={css.spacer} />
       {actions}
     </div>

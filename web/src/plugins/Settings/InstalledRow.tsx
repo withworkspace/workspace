@@ -5,13 +5,14 @@ import { Button } from "../../ui/Button";
 import { Copyable } from "../../ui/Copyable";
 import { Icon } from "../../ui/Icon";
 import { Spinner } from "../../ui/Spinner";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { addsOf, changedSaid, fromOf, repoLink, stateOf, updateOf } from "../installed";
 import { pluginIcon } from "../pluginIcon";
 import { type Failed, failed } from "./failed";
 import { PluginsRemove } from "./PluginsRemove";
 import { PluginsRow, PluginsRowNote } from "./PluginsRow";
+import { Text } from "../../ui/Text";
 
 // InstalledRow is an installed plugin, with updating and removing it.
 // icon is its first view's, as the sidebar draws it.
@@ -67,7 +68,7 @@ export function InstalledRow({ p, icon, reload, onFailed }: { p: InstalledPlugin
         <>
           {p.state === "setup" && (
             <PluginsRowNote tone="attention">
-              It can't be used until {p.missing?.length === 1 ? "this is" : "these are"} set: <span className="mono">{(p.missing ?? []).join(", ")}</span>. In a terminal:{" "}
+              It can't be used until {p.missing?.length === 1 ? "this is" : "these are"} set: <Text mono>{(p.missing ?? []).join(", ")}</Text>. In a terminal:{" "}
               <Copyable text={`ws plugin config ${p.name} --ask`}>ws plugin config {p.name} --ask</Copyable>
             </PluginsRowNote>
           )}

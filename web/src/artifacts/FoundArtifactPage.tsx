@@ -23,6 +23,7 @@ import { ArtifactTitleLine, ArtifactTitleRef } from "./ArtifactTitleLine";
 import { ArtifactTools, ArtifactToolsEnd } from "./ArtifactTools";
 import { ArtifactView } from "./ArtifactView";
 import { filesWords, widths } from "./shown";
+import { Text } from "../ui/Text";
 
 // FoundArtifactPage is an artifact ws found in a repo (FoundArtifacts.tsx),
 // running in a frame that fills the page, from the repo's files:
@@ -71,7 +72,7 @@ export function FoundArtifactPage() {
           <ArtifactTitleRef text={d.where} title="Copy where it lives" />
         </ArtifactTitleLine>
         <ArtifactNote dim>
-          <Icon name="branch" size={12} /> It lives in {d.label}, at <span className="mono">{d.where}</span>
+          <Icon name="branch" size={12} /> It lives in {d.label}, at <Text mono>{d.where}</Text>
           {d.promoted ? (
             <>
               : v{d.promoted.version}, promoted <Time iso={d.promoted.at} as="relative" /> by {d.promoted.by}

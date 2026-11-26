@@ -1,7 +1,7 @@
 import type { Talk } from "../../api";
 import { useThingMenu } from "../../shell/ThingMenu";
 import { talkHref, talkStatus } from "../../talk/words";
-import { clip } from "../../ui/text";
+import { clip } from "../../ui/strings";
 import { ReaderTalks } from "./ReaderTalks";
 
 // DocTalks is the conversations about a document as ReaderTalks: each by

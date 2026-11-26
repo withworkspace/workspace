@@ -4,11 +4,12 @@ import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { Rows } from "../ui/Rows";
 import { ArtifactFrom } from "./ArtifactFrom";
-import { ArtifactRow } from "./ArtifactRow";
+import { ArtifactRow, artifactRowCodeClass } from "./ArtifactRow";
 import { ArtifactsHead } from "./ArtifactsHead";
 import { ArtifactsNone } from "./ArtifactsNone";
 import { ago, days, discarded, gone, live, promoted } from "./samples";
 import { ANYWHERE, type Shown } from "./shown";
+import { Text } from "../ui/Text";
 
 // The Artifacts page's list, from its parts: with none yet, with some
 // (one from a mission, one from a conversation another machine had, one
@@ -45,7 +46,7 @@ const here = (id: string) => (
     <span title="On this machine only: .ws/artifacts/">
       <Icon name="monitor" size={11} /> This machine
     </span>
-    <span className="mono">{id}</span>
+    <Text mono className={artifactRowCodeClass}>{id}</Text>
   </>
 );
 
@@ -99,9 +100,9 @@ const kept = (
   >
     <span title="v1 lives in records:artifacts/2026-11-20-where-export-goes/, for everyone with records.">
       <Icon name="branch" size={11} /> records · v1
-      <span className="dim">, v2 here</span>
+      <Text dim>, v2 here</Text>
     </span>
-    <span className="mono">a1</span>
+    <Text mono className={artifactRowCodeClass}>a1</Text>
   </ArtifactRow>
 );
 

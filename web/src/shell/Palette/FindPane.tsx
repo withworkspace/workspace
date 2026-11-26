@@ -16,3 +16,7 @@ export function FindPane({ scrolls, children }: { scrolls?: boolean; children: R
     </aside>
   );
 }
+
+// findPaneCodeClass is a path or a branch in a card the pane holds (given
+// with textClass("mono")): smaller, as a ref's card has them.
+export const findPaneCodeClass: string = css.code;

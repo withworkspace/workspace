@@ -4,6 +4,8 @@ import { Icon } from "../ui/Icon";
 import { keyProps } from "../ui/keyHint";
 import { PageHead } from "../ui/PageHead";
 import css from "./SpaceHead.module.css";
+import { Text } from "../ui/Text";
+import { RepoDot } from "../ui/RepoDot";
 
 type SpaceHeadProps = {
   label: string;
@@ -32,8 +34,8 @@ export function SpaceHead({ label, color, folder, count, fresh, actions }: Space
       }
       title={
         <>
-          <span className="repo-dot" style={{ background: color }} /> {label}
-          {folder && <span className="mono dim"> {folder}</span>}
+          <RepoDot color={color} className={css.dot} /> {label}
+          {folder && <Text mono dim> {folder}</Text>}
         </>
       }
       actions={actions}

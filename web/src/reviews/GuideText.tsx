@@ -1,13 +1,13 @@
-import type { GuideText as Text } from "../api";
-import { cx } from "../ui/cx";
+import type { GuideText as Guide } from "../api";
 import { Inline } from "../ui/Inline";
 import css from "./GuideText.module.css";
+import { Text } from "../ui/Text";
 
 // GuideText is a guide: what the change does, where that differs from its
 // description, and its groups. One being written (writing) is as far as
 // it's got: nothing's said of what differs until it is, and it ends on a
 // caret.
-export function GuideText({ g, writing }: { g: Text; writing?: boolean }) {
+export function GuideText({ g, writing }: { g: Guide; writing?: boolean }) {
   const caret = writing ? <span className={css.caret} aria-hidden /> : null;
   const groups = g.groups.length > 0;
   return (
@@ -32,18 +32,18 @@ export function GuideText({ g, writing }: { g: Text; writing?: boolean }) {
         </div>
       ) : (
         // Being written, it's said nothing differs once it's on to the files.
-        (!writing || groups) && <p className={cx("dim", css.same)}>It does what its description says.</p>
+        (!writing || groups) && <Text as="p" dim className={css.same}>It does what its description says.</Text>
       )}
       {groups && (
         <ol className={css.groups}>
           {g.groups.map((x, i) => (
             <li key={i} className={x.skim ? css.skim : ""}>
               <strong>{x.name}</strong>{" "}
-              <span className="dim">
+              <Text dim>
                 · {x.files.length} {x.files.length === 1 ? "file" : "files"}
                 {writing && i === g.groups.length - 1 ? " so far" : ""}
                 {x.skim ? " · to skim" : ""}
-              </span>
+              </Text>
               {x.why && (
                 <span className={css.why}>
                   <Inline text={x.why} />

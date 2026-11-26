@@ -5,8 +5,9 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import { keyProps } from "../ui/keyHint";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 import css from "./ReviewFile.module.css";
+import { Text } from "../ui/Text";
 
 // How a file's changed, in its colour: modified is the chip's own.
 const statusClass: Record<string, string | undefined> = { added: css.added, deleted: css.deleted, renamed: css.renamed, copied: css.copied };
@@ -55,10 +56,10 @@ export function ReviewFile({
     <section id={`file-${index}`} className={cx(css.file, viewed && css.viewed, folded && !viewed && css.folded)}>
       <div id={`row-${index}`} className={cx(css.head, cursor && css.cursor)} onClick={onHead}>
         <span className={cx(css.status, statusClass[status])}>{capital(status)}</span>
-        <span className="mono">
-          {oldPath && <span className="dim">{oldPath} → </span>}
+        <Text mono>
+          {oldPath && <Text dim>{oldPath} → </Text>}
           {path}
-        </span>
+        </Text>
         <span className={css.counts}>
           {additions > 0 && <span className={css.plus}>+{additions}</span>}{" "}
           {deletions > 0 && <span className={css.minus}>−{deletions}</span>}

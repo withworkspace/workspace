@@ -6,6 +6,7 @@ import { Dialog, DialogActions, DialogText } from "./Dialog";
 import { Option, Select } from "./Select";
 import { Input } from "./Input";
 import { TextArea } from "./TextArea";
+import { Text } from "./Text";
 
 // Dialogs: press a button to open one. As it is, wide with fields (the
 // focus starts in the first), bare, and what confirm asks: one that does
@@ -70,7 +71,7 @@ export const Kinds: StoryObj = {
           <Dialog title="What's new" onClose={close} bare className="story-bare">
             <div style={{ padding: "8px 28px 8px 0" }}>
               <h2>A head of its own</h2>
-              <p className="dim">The close button sits over its corner.</p>
+              <Text as="p" dim>The close button sits over its corner.</Text>
             </div>
           </Dialog>
         )}

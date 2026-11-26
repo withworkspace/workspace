@@ -5,6 +5,7 @@ import { Keys } from "../../ui/Keys";
 import { Menu, MenuItem } from "../../ui/Menu";
 import css from "./FilesPanes.module.css";
 import type { PaneChoice, Panes } from "./panes";
+import { Text } from "../../ui/Text";
 
 // FilesPanes picks how many panes show, from the worktree's row: at its
 // start, before where it is. Each choice is drawn as the window it makes,
@@ -22,9 +23,9 @@ export function FilesPanes({ now, choices, onPick }: { now: PaneChoice; choices:
         </Button>
       }
       foot={
-        <div className={cx("dim", css.keys)}>
+        <Text as="div" dim className={css.keys}>
           Switch with <Keys k="p" />
-        </div>
+        </Text>
       }
     >
       {choices.map((c) => (
@@ -32,7 +33,7 @@ export function FilesPanes({ now, choices, onPick }: { now: PaneChoice; choices:
           <FilesPanesGlyph n={c.n} className={css.glyph} />
           <span className={css.words}>
             <span>{c.label}</span>
-            <span className="dim">{c.sub}</span>
+            <Text dim className={css.sub}>{c.sub}</Text>
           </span>
           {c.n === now.n && <Icon name="check" size={13} className={css.check} />}
         </MenuItem>

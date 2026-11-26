@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
 import css from "./SettingsFacts.module.css";
+import { textClass } from "../ui/Text";
 
 // SettingsFacts is a list of things to know, each named: which ws this
 // is, where the workspace keeps its files. A SettingsFact each.
@@ -24,7 +25,7 @@ export function SettingsFact({ term, id, mono, className, children }: SettingsFa
   return (
     <>
       <dt id={id}>{term}</dt>
-      <dd className={cx(mono && "mono", className) || undefined}>{children}</dd>
+      <dd className={cx(mono && textClass("mono"), className) || undefined}>{children}</dd>
     </>
   );
 }

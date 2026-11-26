@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import css from "./MissionPlanStep.module.css";
+import { SrOnly } from "../ui/SrOnly";
 
 type MissionPlanStepProps = Omit<ComponentProps<"li">, "title" | "children"> & {
   n: number;
@@ -54,7 +55,7 @@ export function MissionPlanStep({ n, title, state, hint, children, why, under, r
       <span className={css.body}>
         <span className={css.title}>
           <span className={css.n}>{n}</span> {title}
-          <span className="sr-only">{skipped ? " (skipped)" : state === "accepted" ? " (done)" : state === "current" ? " (now)" : ""}</span>
+          <SrOnly>{skipped ? " (skipped)" : state === "accepted" ? " (done)" : state === "current" ? " (now)" : ""}</SrOnly>
         </span>
         {children && <span className={css.notes}>{children}</span>}
         {why && <span className={css.why}>{why}</span>}

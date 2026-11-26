@@ -7,6 +7,7 @@ import { PageBar, pageBarTabsClass } from "./PageBar";
 import { Status } from "./Status";
 import { Tab, Tabs } from "./Tabs";
 import { ToggleButton } from "./ToggleButton";
+import { Text } from "./Text";
 
 // Page bars: over a page with views of it (their tabs on the bar's rule,
 // its name renamed in place), over one with none (what's done to it at
@@ -69,9 +70,9 @@ function Stub({ title }: { title?: string }) {
       }
     >
       {title && (
-        <span className="dim" style={{ flex: "none", whiteSpace: "nowrap" }}>
+        <Text dim style={{ flex: "none", whiteSpace: "nowrap" }}>
           2h ago
-        </span>
+        </Text>
       )}
     </PageBar>
   );

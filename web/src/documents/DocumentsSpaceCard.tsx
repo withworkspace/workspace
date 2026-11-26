@@ -3,6 +3,8 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { TLink } from "../ui/TLink";
 import css from "./DocumentsSpaceCard.module.css";
+import { Text, textClass } from "../ui/Text";
+import { RepoDot } from "../ui/RepoDot";
 
 type DocumentsSpaceCardProps = {
   id: string;
@@ -24,12 +26,12 @@ export function DocumentsSpaceCard({ id, to, label, color, folder, repo, count, 
   return (
     <article id={id} className={cx(css.card, selected && css.selected)} onMouseMove={onHover}>
       <TLink to={to} className={css.head}>
-        <span className="repo-dot" style={{ background: color }} />
+        <RepoDot color={color} className={css.dot} />
         <span className={css.title}>{label}</span>
-        {folder && <span className="mono dim">{folder}</span>}
-        {repo && <span className="mono dim">{repo}</span>}
+        {folder && <Text mono dim className={css.where}>{folder}</Text>}
+        {repo && <Text mono dim className={css.where}>{repo}</Text>}
         <span className={css.count}>{count}</span>
-        <Icon name="chevron-right" size={14} className="dim" />
+        <Icon name="chevron-right" size={14} className={textClass("dim")} />
       </TLink>
       {children}
       {foot}

@@ -10,6 +10,7 @@ import { ArtifactPromote } from "./ArtifactPromote";
 import { ArtifactRow } from "./ArtifactRow";
 import { days, discarded, expired, live, none, Page } from "./samples";
 import { type IntoKind, type Lives, promoteBlocked } from "./shown";
+import { Text } from "../ui/Text";
 
 // An artifact's lifetime, from its parts: a live one in its last week, in
 // the list (when it expires, with Promote beside it) and on its page; one
@@ -32,7 +33,7 @@ const here = (id: string) => (
     <span title="On this machine only">
       <Icon name="monitor" size={11} /> This machine
     </span>
-    <span className="mono">{id}</span>
+    <Text mono>{id}</Text>
   </>
 );
 

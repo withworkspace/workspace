@@ -8,12 +8,13 @@ import { Callout } from "../ui/Callout";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { Spinner } from "../ui/Spinner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { TextArea } from "../ui/TextArea";
 import { standingWords } from "./passWords";
 import { PullRequestPosting } from "./PullRequestPosting";
 import { PullRequestSubmit } from "./PullRequestSubmit";
 import { pullRequestLeftAloneClass, PullRequestSubmitLayer } from "./PullRequestSubmitLayer";
+import { Text } from "../ui/Text";
 
 // Posted is a review that's gone to GitHub: the pull request it's of, and
 // where it is there.
@@ -177,9 +178,9 @@ export function PRSubmitDialog({
             <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval. Nothing's posted until you submit." keys="A">
               <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
             </Button>
-            <span className="dim">
+            <Text dim>
               <Keys k="[" /> <Keys k="]" /> pick a layer; <Keys k="a" /> <Keys k="c" /> <Keys k="m" /> its verdict
-            </span>
+            </Text>
           </>
         )
       }
@@ -225,9 +226,9 @@ export function PRSubmitDialog({
                   <Icon name="check-circle" size={13} /> Posted
                 </span>
               ) : l.state === "posting" ? (
-                <span className="dim">
+                <Text dim>
                   <Spinner size={12} /> Posting…
-                </span>
+                </Text>
               ) : undefined
             }
             focus={i === focus}
@@ -241,7 +242,7 @@ export function PRSubmitDialog({
                 keyed={i === focus}
                 unavailable={(v) => (l.pr.mine && v !== "comment" ? "It's your own pull request: GitHub takes comments on it, not a verdict" : undefined)}
                 onPick={(v) => pick(i, v)}
-                after={stack && !l.verdict && <span className={`dim ${pullRequestLeftAloneClass}`}>Left alone</span>}
+                after={stack && !l.verdict && <Text dim className={pullRequestLeftAloneClass}>Left alone</Text>}
               />
             )}
             {l.verdict && !l.state && (

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
 import css from "./DocumentsSpaceCardKinds.module.css";
+import { Text } from "../ui/Text";
 
 // DocumentsSpaceCardKinds is a space's card's list: a
 // DocumentsSpaceCardKind for each of its kinds, or its folders; while
@@ -9,7 +9,7 @@ export function DocumentsSpaceCardKinds({ reading, children }: { reading?: strin
   return (
     <ul className={css.kinds}>
       {children}
-      {reading !== undefined && <li className={cx("dim", css.reading)}>{reading}</li>}
+      {reading !== undefined && <Text as="li" dim className={css.reading}>{reading}</Text>}
     </ul>
   );
 }

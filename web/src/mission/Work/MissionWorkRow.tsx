@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cx } from "../../ui/cx";
 import { Time } from "../../ui/Time";
 import css from "./MissionWorkRow.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionWorkRowProps = {
   id?: string;
@@ -48,7 +49,7 @@ export function MissionWorkRow({ id, icon, name, slug, stat, end, when, selected
       {icon}
       <span className={css.title}>
         <span className={css.name}>{name}</span>
-        {slug && <span className={cx("mono", css.slug)}>{slug}</span>}
+        {slug && <Text mono className={css.slug}>{slug}</Text>}
         {stat && <span className={css.stat}>{stat}</span>}
       </span>
       <span className={css.end}>

@@ -20,6 +20,7 @@ import { notesPlugin } from "./notes";
 import { placed } from "./placed";
 import { refsPlugin } from "./refs";
 import { highlighting, nodeViews, placeholder, quoteMarks } from "./views";
+import { Prose } from "../ui/Prose";
 
 export interface RichHandle {
   markdown(): string;
@@ -130,10 +131,10 @@ export const EditorRich = forwardRef<RichHandle, RichProps>(function EditorRich(
       )}
       {/* Drawn as the reader draws a document (.prose), so nothing moves
           when you start editing. */}
-      <div className={cx(css.body, "prose")}>
+      <Prose className={css.body}>
         <div ref={host} />
         {view && link && <EditorLinkBox href={link.href} top={link.top} left={link.left} onDone={linked} onClose={() => setLinkEdit(undefined)} />}
-      </div>
+      </Prose>
     </>
   );
 });

@@ -9,6 +9,7 @@ import { RunPanelAside, RunPanelCommand, RunPanelFact, RunPanelFacts } from "./R
 import { RunPanelFrame } from "./RunPanelFrame";
 import { RunPanelHead } from "./RunPanelHead";
 import { RunPanelIdle } from "./RunPanelIdle";
+import { Text } from "../ui/Text";
 
 // RecipePanel is a service of a place's that isn't running, as its Runs
 // tab shows it picked: what it's called, what it's for and how it's
@@ -28,7 +29,7 @@ export function RecipePanel({ rc, busy, onStart, pageTo, back }: { rc: RecipeInf
       </RunPanelHead>
       <RunPanelFacts>
         <RunPanelFact label="Recipe">
-          <span className="mono">[run.service.{rc.name}]</span>
+          <Text mono>[run.service.{rc.name}]</Text>
           <RunPanelAside>{shownAs(rc)}</RunPanelAside>
         </RunPanelFact>
         <RunPanelFact label="Command" wide>

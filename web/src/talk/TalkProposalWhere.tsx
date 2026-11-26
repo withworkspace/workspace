@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
 import css from "./TalkProposalWhere.module.css";
+import { Text, textClass } from "../ui/Text";
 
 const tones: Record<string, string> = { blocking: css.blocking, suggestion: css.suggestion, question: css.question, ask: css.question, nit: css.nit, note: css.nit, change: css.change };
 
@@ -11,13 +12,13 @@ export function TalkProposalWhere({ kind, pr, href, path, lines, removed }: { ki
   return (
     <div className={css.where}>
       <span className={cx(css.kind, kind && tones[kind])}>{kind}</span>
-      <Link to={href} className="link mono">
+      <Link to={href} className={textClass("link", "mono")}>
         {pr}
       </Link>
-      <span className="mono dim">
+      <Text mono dim>
         {path}:{lines}
         {removed ? " (removed)" : ""}
-      </span>
+      </Text>
     </div>
   );
 }

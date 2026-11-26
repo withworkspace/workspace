@@ -28,7 +28,7 @@
   background: var(--selected);
 }
 
-.list :global(.mono) {
+.list .where {
   font-size: var(--text-xs);
 }
 

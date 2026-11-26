@@ -1,6 +1,7 @@
 import { cx } from "../../ui/cx";
 import { Spinner } from "../../ui/Spinner";
 import css from "./MissionCheckingNow.module.css";
+import { Text } from "../../ui/Text";
 
 type MissionCheckingNowProps = {
   // The judge's turn: it's reading checks, not running one.
@@ -35,14 +36,14 @@ export function MissionCheckingNow({ judge, command, elapsed, since, stops, line
         <span className={css.elapsed} title={`Since ${since}`}>
           {elapsed}
         </span>
-        <span className="dim">so far · stopped at {stops}</span>
+        <Text dim>so far · stopped at {stops}</Text>
       </div>
       {!judge ? (
         <div className={line ? css.line : cx(css.line, css.quiet)} title={line ? "The last line it printed" : undefined}>
           {line || "Nothing printed yet"}
         </div>
       ) : null}
-      {after ? <div className={cx("dim", css.after)}>Then the judge reads {after}.</div> : null}
+      {after ? <Text as="div" dim className={css.after}>Then the judge reads {after}.</Text> : null}
     </div>
   );
 }

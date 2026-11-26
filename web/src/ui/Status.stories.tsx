@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Status, type StatusInfo } from "./Status";
 import { StatusIcon } from "./StatusIcon";
+import { Text } from "./Text";
 
 // A status: where something stands, in each tone, with the ones going on
 // now (their icon pulses, or turns); the icon alone, as a list's row has
@@ -49,7 +50,7 @@ export const IconOnly: StoryObj = {
         <StatusIcon icon="message" tone="quiet" />
         <StatusIcon icon="reply" tone="attention" title="Waiting on you" />
         <StatusIcon icon="circle-dot" tone="progress" live size={20} />
-        <span className="dim">StatusIcon: a tone's icon that says nothing</span>
+        <Text dim>StatusIcon: a tone's icon that says nothing</Text>
       </div>
     </div>
   ),

@@ -5,7 +5,7 @@ import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import type { StatusInfo } from "../ui/Status";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { TeamEventLine, TeamEvents, TeamEventSubject } from "./TeamEvents";
 import { TeamGist } from "./TeamGist";
 import { TeamKnow } from "./TeamKnow";
@@ -15,6 +15,7 @@ import { TeamRepoChip } from "./TeamRepoChip";
 import { TeamRow } from "./TeamRow";
 import { TeamState } from "./TeamState";
 import { eventIcon, eventWords, stateInfo } from "./words";
+import { Text } from "../ui/Text";
 
 interface TeamChangeProps {
   id: string;
@@ -119,7 +120,7 @@ export function TeamChange({ id, item: it, names, repoOf, selected, open, fresh,
           <TeamEventLine key={e.id} at={e.at} icon={eventIcon(e)} commit={e.commit} paths={e.paths} files={e.files}>
             {e.kind !== "closed" && <strong>{who(e) ?? e.login ?? e.name ?? "Someone"} </strong>}
             {eventWords(e)}
-            {several && <span className="dim"> in {repoOf(e.repo).label}</span>}
+            {several && <Text dim> in {repoOf(e.repo).label}</Text>}
             {e.kind === "landed" && <TeamEventSubject>{e.title}</TeamEventSubject>}
           </TeamEventLine>
         ))}

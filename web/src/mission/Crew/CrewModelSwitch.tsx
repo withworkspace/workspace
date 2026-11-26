@@ -3,7 +3,7 @@ import { type Crew, switchCrewModel } from "../../api";
 import { useLoaded } from "../../load";
 import { modelsOf } from "../../models/models";
 import { ModelSwitch } from "../../models/ModelSwitch";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 
 // CrewModelSwitch is running crew's model, switched without ending them:

@@ -5,7 +5,7 @@ import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Keys } from "../ui/Keys";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { TextArea } from "../ui/TextArea";
 import css from "./ReviewSubmit.module.css";
 import { ReviewVerdicts } from "./ReviewVerdicts";

@@ -72,3 +72,7 @@ export function ArtifactRow({ to, onContextMenu, id, option, selected, onHover, 
     </Row>
   );
 }
+
+// artifactRowCodeClass is an id or a path in the row's last line (as Text
+// mono): smaller and fainter than the words beside it.
+export const artifactRowCodeClass: string = css.code;

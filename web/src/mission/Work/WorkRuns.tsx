@@ -4,7 +4,7 @@ import type { Reload } from "../../load";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { Spinner } from "../../ui/Spinner";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { MissionWorkHeading } from "./MissionWorkHeading";
 import { MissionWorkRecipes } from "./MissionWorkRecipes";

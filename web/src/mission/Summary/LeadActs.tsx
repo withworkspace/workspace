@@ -7,7 +7,7 @@ import { hintOnClick } from "../../ui/keyHint";
 import { Icon, type IconName } from "../../ui/Icon";
 import { Input } from "../../ui/Input";
 import { Keys } from "../../ui/Keys";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { archiveMission } from "../archive";
 import { ended } from "../Ending/ended";
@@ -18,6 +18,7 @@ import { LeadReply } from "./LeadReply";
 import { MissionLeadAnswer, MissionLeadAnswerForm, MissionLeadButtons } from "./MissionLeadAnswer";
 import { MissionLeadLaunch } from "./MissionLeadLaunch";
 import { actsOf, actsShape } from "./words";
+import { Text } from "../../ui/Text";
 
 // LeadActs is what a card offers, in the order it's given: the one meant
 // to move it first, accented, then the rest, the quiet ones quiet. An act
@@ -111,9 +112,9 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
       // GitHub hasn't said where it is yet: its words, with nothing to open.
       if (!a.url) {
         return (
-          <span key={i} className="dim">
+          <Text dim key={i}>
             {a.label}
-          </span>
+          </Text>
         );
       }
       return (

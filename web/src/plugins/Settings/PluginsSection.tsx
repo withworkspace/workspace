@@ -6,7 +6,7 @@ import { Empty } from "../../ui/Empty";
 import { ErrorCard } from "../../ui/ErrorCard";
 import { GroupHead } from "../../ui/GroupHead";
 import { Skeleton } from "../../ui/Skeleton";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { usePlugins } from "../../workspace/store";
 import { outCount } from "../installed";

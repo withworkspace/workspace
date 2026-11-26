@@ -10,6 +10,9 @@
      base   the elements (button, a, h1, input…), by their names alone:
             what anything is before it says what it is;
      ui     the library's parts (ui/*.module.css): Button, Chip, Count…;
+     text   a look words take (ui/Text.module.css: dim, mono, plus,
+            minus, link), over a part they're given to (an Icon that's
+            dim, an Input that's mono);
      (none) the pages: the rest of this file, and a part's own module.
 
    So a part of the library is drawn over the elements, and a page that
@@ -17,7 +20,7 @@
    few the class's selectors. The order is set here, and in index.html
    before any stylesheet: the build may load a part's styles ahead of
    this file, and the first to name a layer sets its place. */
-@layer base, ui;
+@layer base, ui, text;
 @import "./foundations.css";
 
 @layer base {
@@ -156,36 +159,8 @@
    The raw buttons' states leave a library Button ([data-ui]) to its own
    module; :where() keeps them at the weight they had. */
 
-a.link,
-.prose a {
-  color: var(--accent);
-}
-
-a.link:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.mono {
-  font-family: var(--mono);
-  font-size: 0.92em;
-}
-
-.dim {
-  color: var(--dim);
-}
-
 .age {
   font-variant-numeric: tabular-nums;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 :focus:not(:focus-visible) {
@@ -377,10 +352,6 @@ main {
   max-width: 820px;
 }
 
-.spacer {
-  flex: 1;
-}
-
 .age {
   min-width: 2.5em;
   text-align: right;
@@ -544,14 +515,6 @@ main {
   --hl-title: #82aaff;
   --hl-type: #f48fb1;
   --hl-attr: #e6c07b;
-}
-
-.plus {
-  color: var(--green);
-}
-
-.minus {
-  color: var(--red);
 }
 
 .progress {
@@ -745,10 +708,9 @@ button.on {
   margin-bottom: 4px;
 }
 
-/* A document to read (a brief, a proposal): larger, with a reading
-   measure. Markdown's own look is its module (markdown/Markdown.module.css);
-   these are the places it's in. */
-.prose .markdown,
+/* A document to read in an artifact's body: larger, with a reading
+   measure, as in Prose (ui/Prose.module.css). Markdown's own look is its
+   module (markdown/Markdown.module.css). */
 .artifact-body .markdown {
   font-size: var(--text-lg);
   line-height: 1.65;
@@ -837,16 +799,6 @@ button.on {
   }
 }
 
-/* A repo's colour beside its name (Settings, Team, Documents; the Files
-   page draws ui/RepoDot). */
-.repo-dot {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
-}
-
 /* A file's icon: its language, or its kind (ui/FileIcon.tsx). */
 .file-icon {
   flex: none;
@@ -898,20 +850,9 @@ button.on {
   min-width: 0;
 }
 
-.file-as-fields input.mono {
-  font: var(--text-sm) / 1.5 var(--mono);
-}
-
 .file-as-what {
   margin: 12px 0;
   font-size: var(--text-sm);
-}
-
-/* What's in Find's pane is laid out as a ref's card is (FindPane.tsx):
-   a path in it, in the code's type, small. */
-.ref-card .mono {
-  font-family: var(--mono);
-  font-size: var(--text-xs);
 }
 
 /* Code navigation (web/src/review/CodeNav.tsx): ⌘ over a name lights it as

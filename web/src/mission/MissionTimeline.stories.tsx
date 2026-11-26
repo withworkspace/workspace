@@ -3,6 +3,7 @@ import type { MissionDetail } from "../api";
 import { MissionMomentCard } from "./MissionMomentCard";
 import { MissionTimeline, type TimelineBar, type TimelineTick } from "./MissionTimeline";
 import { timelineOf } from "./timeline";
+import { Text } from "../ui/Text";
 
 // A mission's timeline: the strip alone (a page that's loading), one crew
 // at work, crew in lanes with one running now, and ticks of each kind
@@ -35,19 +36,19 @@ export const Strips: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 28 }}>
       <div style={row}>
-        <span className="dim">Nothing yet</span>
+        <Text dim>Nothing yet</Text>
         <MissionTimeline />
       </div>
       <div style={row}>
-        <span className="dim">One crew, done</span>
+        <Text dim>One crew, done</Text>
         <MissionTimeline bars={[bar("c1", 228, 4, 38)]} />
       </div>
       <div style={row}>
-        <span className="dim">Crew in lanes, one running now</span>
+        <Text dim>Crew in lanes, one running now</Text>
         <MissionTimeline lanes={3} bars={[bar("c1", 228, 2, 40), bar("c2", 152, 20, 35, 1), bar("c3", 32, 48, 52, 2, true), bar("c1 again", 228, 62, 20)]} />
       </div>
       <div style={row}>
-        <span className="dim">With what mattered</span>
+        <Text dim>With what mattered</Text>
         <MissionTimeline lanes={2} bars={[bar("c1", 228, 2, 55), bar("c2", 152, 40, 60, 1, true)]} ticks={ticks} />
       </div>
     </div>
@@ -76,7 +77,7 @@ export const OfMissions: StoryObj = {
         const last = d.events.at(-1)?.time ?? d.created;
         return (
           <div key={path} style={row}>
-            <span className="dim">{d.title}</span>
+            <Text dim>{d.title}</Text>
             <MissionTimeline {...timelineOf(d, new Date(last).getTime() + 90_000)} />
           </div>
         );

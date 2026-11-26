@@ -29,6 +29,7 @@ import { AnnotateSheet } from "./AnnotateSheet";
 import { AnnotateSuggestion, AnnotateSuggestionBusy } from "./AnnotateSuggestion";
 import { AnnotateThreadMarker } from "./AnnotateThreadMarker";
 import { AnnotateTyping } from "./AnnotateTyping";
+import { Text, textClass } from "../ui/Text";
 
 // A document being commented on, from its parts: the bar over it, the
 // column with what's drawn over the document (the cursor, a commented
@@ -49,9 +50,9 @@ const label = { marginBottom: 4 } as const;
 function Labelled({ said, children }: { said: string; children: ReactNode }) {
   return (
     <div>
-      <div className="dim" style={label}>
+      <Text as="div" dim style={label}>
         {said}
-      </div>
+      </Text>
       {children}
     </div>
   );
@@ -96,7 +97,7 @@ function Thread({ kind, state, children }: { kind: ThreadKind; state?: "active" 
         ) : null}
       </NoteHead>
       {folded ? (
-        <NoteBody oneLine className="dim">
+        <NoteBody oneLine className={textClass("dim")}>
           Should this say what happens to amounts already stored as floats?
         </NoteBody>
       ) : (
@@ -278,8 +279,8 @@ export const Threads: StoryObj = {
             <NoteBody>The ledger's export is the other place this bites.</NoteBody>
             <NoteThread>
               <NoteTurn who="Agent" said="It reads amounts as integers already.">
-                <span className="dim">changed it</span>
-                <span className="mono dim">3f9c2ab</span>
+                <Text dim>changed it</Text>
+                <Text mono dim>3f9c2ab</Text>
               </NoteTurn>
             </NoteThread>
           </Thread>
@@ -343,7 +344,7 @@ export const Pieces: StoryObj = {
         <AnnotateSuggestion kind="edit" icon="pencil" title="Suggested edit" by="by the agent" actions={<AnnotateSuggestionBusy>Writing it in…</AnnotateSuggestionBusy>}>
           <div style={{ padding: "0 8px" }}>What's suggested</div>
         </AnnotateSuggestion>
-        <AnnotateActions start={<span className="dim">At the start</span>}>
+        <AnnotateActions start={<Text dim>At the start</Text>}>
           <Button variant="ghost" size="small">
             Cancel
           </Button>

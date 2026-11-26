@@ -14,6 +14,7 @@ import { PageFoundOut } from "./PageFoundOut";
 import { PageTurn } from "./PageTurn";
 import { PageTurns } from "./PageTurns";
 import { PageVersion } from "./PageVersion";
+import { Text } from "../ui/Text";
 
 // FoundOut is what an agent found out about a finding, under it on the
 // pass's tab: its answers, what you asked after, and a box to ask more, or
@@ -79,7 +80,7 @@ export function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell;
         )}
         {!cell.answering && last?.by === "you" && (
           <PageTurn kind="failed">
-            <span className="dim">Its agent hasn't started.</span>
+            <Text dim>Its agent hasn't started.</Text>
           </PageTurn>
         )}
       </PageTurns>

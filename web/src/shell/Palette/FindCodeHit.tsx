@@ -3,6 +3,7 @@ import { FileIcon } from "../../ui/FileIcon";
 import { useMedia } from "../../ui/useMedia";
 import { type CodeHit, codeLead, codeLeadNarrow, codeRuns } from "../find";
 import css from "./FindCodeHit.module.css";
+import { Text } from "../../ui/Text";
 
 // FindCodeHit is a line a file says, as a code search found it: the
 // file's icon beside two lines, where it is (the path cut from its start,
@@ -24,16 +25,16 @@ export function FindCodeHit({ h, repo, capsule }: { h: CodeHit; repo?: boolean; 
         <span className={css.path}>
           <span className={css.file}>
             <bdi>
-              {repo && <span className="dim">{h.repo}/</span>}
+              {repo && <Text dim>{h.repo}/</Text>}
               {h.path}
             </bdi>
           </span>
-          <span className={`${css.line} dim`}>:{h.line}</span>
+          <Text dim className={css.line}>:{h.line}</Text>
         </span>
         {capsule && h.worktree !== ".ground" && <Chip>in {h.worktree}</Chip>}
       </span>
       <code className={css.text}>
-        {(clipped || h.cut) && <span className="dim">…</span>}
+        {(clipped || h.cut) && <Text dim>…</Text>}
         {runs.map((r, i) => (r.hit ? <mark key={i}>{r.text}</mark> : <span key={i}>{r.text}</span>))}
       </code>
     </>

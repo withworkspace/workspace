@@ -6,11 +6,12 @@ import { hintOnClick } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { SendKeys } from "../ui/SendKeys";
 import { sendKeys, sent, useSendKey } from "../ui/sendKey";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 import { TextArea } from "../ui/TextArea";
 import { linesWord } from "./findings";
 import { joinSuggestion, splitSuggestion, suggestionBlock } from "./words";
 import css from "./ReviewNoteEditor.module.css";
+import { Text } from "../ui/Text";
 
 // ReviewNoteEditor writes a comment on a review's lines (target), or
 // rewrites a draft's (note): its kind (tab goes round them), what it
@@ -57,10 +58,10 @@ export function ReviewNoteEditor({
             {capital(k)}
           </button>
         ))}
-        <span className="dim">
+        <Text dim>
           {target.side === "old" ? "removed " : ""}
           {linesWord(target)} · <Keys k="tab" /> kind
-        </span>
+        </Text>
       </div>
       <TextArea
         ref={area}

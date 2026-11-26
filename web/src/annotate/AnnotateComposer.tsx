@@ -7,10 +7,11 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { Segment, Segmented } from "../ui/Segmented";
 import { TextArea } from "../ui/TextArea";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { AnnotateActions } from "./AnnotateActions";
 import { kindHints, kindIcon, kindWords } from "./words";
 import css from "./AnnotateComposer.module.css";
+import { Text } from "../ui/Text";
 
 const kinds: Record<ThreadKind, string> = { ask: css.ask, change: css.change, note: css.note };
 
@@ -71,7 +72,7 @@ export function AnnotateComposer({
       <TextArea ref={textRef} value={text} rows={2} placeholder={kindHints[kind]} aria-label={kindHints[kind]} onChange={(e) => onText(e.target.value)} onKeyDown={onKeys} />
       {edit !== undefined && (
         <>
-          <div className="dim">It should read:</div>
+          <Text as="div" dim>It should read:</Text>
           <TextArea
             className={css.editTo}
             value={edit}
@@ -89,9 +90,9 @@ export function AnnotateComposer({
       )}
       <AnnotateActions
         start={
-          <span className={cx("dim", css.tip)}>
+          <Text dim className={css.tip}>
             <Keys k="tab" /> kind
-          </span>
+          </Text>
         }
       >
         <Button variant="ghost" size="small" onClick={onCancel} title="Cancel" keys="esc">

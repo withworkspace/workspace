@@ -18,6 +18,6 @@ label.field > span,
   min-width: 0;
 }
 
-.field input:global(.mono) {
+.field input.code {
   font: var(--text-sm) / 1.5 var(--mono);
 }

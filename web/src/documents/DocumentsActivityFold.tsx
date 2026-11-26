@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Time } from "../ui/Time";
 import css from "./DocumentsActivityFold.module.css";
+import { textClass } from "../ui/Text";
 
 type DocumentsActivityFoldProps = {
   inFlight: number; // capsules with changes to its documents
@@ -20,7 +21,7 @@ export function DocumentsActivityFold({ inFlight, week, latest, open, setOpen, c
   return (
     <details className={css.fold} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>
-        <Icon name="clock" size={14} className="dim" />
+        <Icon name="clock" size={14} className={textClass("dim")} />
         <span>
           {inFlight > 0 && (
             <>
@@ -40,7 +41,7 @@ export function DocumentsActivityFold({ inFlight, week, latest, open, setOpen, c
             · latest: {latest.title}, {latest.by.split(" ")[0]} <Time iso={latest.at} as="age" /> ago
           </span>
         )}
-        <Icon name="chevron-down" size={14} className={cx("dim", css.caret)} />
+        <Icon name="chevron-down" size={14} className={cx(textClass("dim"), css.caret)} />
       </summary>
       <div className={css.body}>{children}</div>
     </details>

@@ -1,7 +1,8 @@
 import { Button } from "../ui/Button";
-import { CodeNavList } from "./CodeNavList";
+import { CodeNavList, codeNavListWhereClass } from "./CodeNavList";
 import { CodeNavSig } from "./CodeNavSig";
 import css from "./CodeNavUses.module.css";
+import { Text } from "../ui/Text";
 
 // CodeNavUse is one place a name's used: where, whether the change
 // touches that line, and the line.
@@ -36,10 +37,10 @@ export function CodeNavUses({
       onClick: u.onGo,
       children: (
         <>
-          <span className="mono dim">
+          <Text mono dim className={codeNavListWhereClass}>
             {u.path}:{u.line}
             {u.changed && <span className={css.changed}> changed</span>}
-          </span>
+          </Text>
           <CodeNavSig>{u.text}</CodeNavSig>
         </>
       ),
@@ -49,12 +50,12 @@ export function CodeNavUses({
       {def && (
         <div className={css.def}>
           <CodeNavSig>{def.signature}</CodeNavSig>
-          <span className="mono dim">
+          <Text mono dim>
             {def.path}:{def.line}
-          </span>
+          </Text>
         </div>
       )}
-      {!groups.length && <div className={`dim ${css.none}`}>Nothing else uses it.</div>}
+      {!groups.length && <Text as="div" dim className={css.none}>Nothing else uses it.</Text>}
       {groups.map((g) => (
         <section key={g.title}>
           {g.named && <h3 className={css.title}>{g.title}</h3>}

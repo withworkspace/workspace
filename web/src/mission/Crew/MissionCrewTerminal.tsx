@@ -3,6 +3,7 @@ import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
 import { cx } from "../../ui/cx";
 import css from "./MissionCrewTerminal.module.css";
+import { Text } from "../../ui/Text";
 
 // MissionCrewTerminal is the frame round a crew's terminal, dark in either
 // theme, and the bar under it: while it's live, that typing goes to crew
@@ -16,9 +17,9 @@ export function MissionCrewTerminal({ id, state, children }: { id: string; state
           <span className={css.focus}>
             <Icon name="keyboard" size={12} /> Typing goes to {id} while the terminal has focus, <Keys k="esc" /> included. Click outside to stop.
           </span>
-          <span className="dim">
+          <Text dim>
             <Keys k="mod+C" /> copies, <Keys k="mod+V" /> pastes
-          </span>
+          </Text>
         </div>
       )}
       {state === "ended" && (

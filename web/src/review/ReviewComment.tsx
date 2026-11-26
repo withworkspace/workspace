@@ -7,11 +7,12 @@ import { Inline } from "../ui/Inline";
 import { Keys } from "../ui/Keys";
 import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 import { followWords, linesWord } from "./findings";
 import { statusWords } from "./words";
 import css from "./ReviewComment.module.css";
 import { Suggestion } from "./Suggestion";
+import { Text } from "../ui/Text";
 
 // ReviewComment is a comment in a review: a draft's (yours to edit, ⏎;
 // D deletes it), or a submitted one, with what crew and you have said
@@ -62,9 +63,9 @@ export function ReviewComment({
                 <NoteId>{note.id}</NoteId>
               ))}
             {cursor && draft && (
-              <span className={`dim ${css.keys}`}>
+              <Text dim className={css.keys}>
                 <Keys k="⏎" /> edit <Keys k="D" /> delete
-              </span>
+              </Text>
             )}
             {!draft && (
               <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onToggle())} title={resolved ? "Reopen" : "Resolve"} keys="x">
@@ -82,15 +83,15 @@ export function ReviewComment({
         )}
         {draft ? <NoteStatus>Draft</NoteStatus> : <NoteStatus status={note.status}>{statusWords[note.status] ?? note.status}</NoteStatus>}
         {note.sending && (
-          <span className="dim" title="GitHub's being told">
+          <Text dim title="GitHub's being told">
             Sending…
-          </span>
+          </Text>
         )}
-        <span className={`dim ${css.where}`}>
+        <Text dim className={css.where}>
           {note.side === "old" ? "removed " : ""}
           {linesWord(note)}
           {elsewhere && ` · made on ${note.commit.slice(0, 7)}, not in this diff`}
-        </span>
+        </Text>
       </NoteHead>
       {apart && note.excerpt?.length > 0 && !(resolved && !cursor) && <Excerpt lines={note.excerpt} from={note.line} title="The lines it's on, not showing above" />}
       {followup && !resolved && (
@@ -111,12 +112,12 @@ export function ReviewComment({
               {note.thread.map((t, i) => (
                 <NoteTurn key={i} who={t.by === "you" ? "You" : t.by} said={t.body}>
                   {t.sending && (
-                    <span className="dim" title="It's on its way to GitHub">
+                    <Text dim title="It's on its way to GitHub">
                       Sending…
-                    </span>
+                    </Text>
                   )}
                   {t.status && <NoteStatus status={t.status === "open" ? "reopened" : t.status}>{t.status === "open" ? "Reopened" : statusWords[t.status]}</NoteStatus>}
-                  {t.commit && <span className="mono dim">{t.commit.slice(0, 7)}</span>}
+                  {t.commit && <Text mono dim>{t.commit.slice(0, 7)}</Text>}
                 </NoteTurn>
               ))}
             </NoteThread>

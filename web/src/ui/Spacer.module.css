@@ -1,0 +1,7 @@
+/* Spacer (Spacer.tsx): what's after it in a row goes to the row's end. */
+
+@layer ui {
+  .spacer {
+    flex: 1;
+  }
+}

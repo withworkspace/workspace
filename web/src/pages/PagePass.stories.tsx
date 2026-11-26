@@ -29,6 +29,7 @@ import { PagePassShown } from "./PagePassShown";
 import { PagePassSummary } from "./PagePassSummary";
 import { PageTurn } from "./PageTurn";
 import { PageTurns } from "./PageTurns";
+import { Text } from "../ui/Text";
 
 // A pass over a page, on its tab: never run; reading the page; and what
 // it found (one to go to, one whose words have gone from the page, one
@@ -62,7 +63,7 @@ export const CantBeRun: StoryObj = {
         about="Whether the page follows the workspace's guide to an ADR."
         how={
           <>
-            Its agent follows the workspace's skill <span className="mono">adr-guide</span>, and reads what it needs of the workspace. What it says is kept here, beside the page: none of it is written into the page.
+            Its agent follows the workspace's skill <Text mono>adr-guide</Text>, and reads what it needs of the workspace. What it says is kept here, beside the page: none of it is written into the page.
           </>
         }
         unavailable="the skill adr-guide isn't in the workspace"
@@ -171,7 +172,7 @@ export const Found: StoryObj = {
             <Button variant="ghost" size="small">
               Dismiss
             </Button>
-            <span className="dim">Its words aren't on the page any more.</span>
+            <Text dim>Its words aren't on the page any more.</Text>
           </PageFindingActs>
         </PageFinding>
         <PageFinding>
@@ -220,7 +221,7 @@ export const Found: StoryObj = {
             <Markdown text="Is the dashboard a key like any other?" />
           </PageFindingText>
           <PageFindingActs>
-            <span className="dim">Done</span>
+            <Text dim>Done</Text>
             <Button variant="ghost" size="small">
               Open it again
             </Button>
@@ -234,7 +235,7 @@ export const Found: StoryObj = {
             <Markdown text="Which headers?" />
           </PageFindingText>
           <PageFindingActs>
-            <span className="dim">Dismissed: it's wrong</span>
+            <Text dim>Dismissed: it's wrong</Text>
             <Button variant="ghost" size="small">
               Open it again
             </Button>

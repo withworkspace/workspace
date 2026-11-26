@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { HoverCardHead, HoverCardLine, hoverCardLinkClass, HoverCardLinks, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
+import { textClass } from "../ui/Text";
 
 // MissionCapsuleCard is what a hover card says of a capsule of a
 // mission's: its name, its branch, where it stands (its badges), and,
@@ -10,8 +11,8 @@ export function MissionCapsuleCard({ name, branch, badges, review, files }: { na
   return (
     <>
       <HoverCardHead>
-        <Icon name="box" size={13} className="dim" />
-        <HoverCardTitle className="mono">{name}</HoverCardTitle>
+        <Icon name="box" size={13} className={textClass("dim")} />
+        <HoverCardTitle className={textClass("mono")}>{name}</HoverCardTitle>
       </HoverCardHead>
       {branch && (
         <HoverCardLine dim>

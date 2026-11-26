@@ -33,6 +33,8 @@ import { ReviewVerdicts } from "./ReviewVerdicts";
 import { ReviewViewBody } from "./ReviewViewBody";
 import { ReviewViewRow } from "./ReviewViewRow";
 import { ReviewViews } from "./ReviewViews";
+import { Text } from "../ui/Text";
+import { proseClass } from "../ui/Prose";
 
 // A review's page from its parts: the list down the side (its views, the
 // Changes view and how much of it's viewed), the head and what the diff is
@@ -133,7 +135,7 @@ function Page() {
       <ReviewLayout side={<Side />} onResize={none} onResetWidth={none}>
         <ReviewHead
           back={{ to: "/missions/names", label: "Find the names a file declares" }}
-          name={<span className="mono">api/names</span>}
+          name={<Text mono>api/names</Text>}
           scope={<ReviewScope since={{ name: "r1", title: "What's changed since r1" }} commits={3} additions={42} deletions={7} />}
           actions={
             <Button variant="primary">
@@ -189,7 +191,7 @@ function Read() {
         <ReviewHead back={{ to: "/reviews", label: "Reviews" }} name="Add idempotency keys" actions={<Button variant="primary">Submit review</Button>} />
         <ReviewViewBody label="Overview" hidden={false} read>
           <h2>What it's for</h2>
-          <p className="prose">Requests that repeat with the same key get the first answer again.</p>
+          <p className={proseClass()}>Requests that repeat with the same key get the first answer again.</p>
           <h2>Its mission</h2>
           <p>Make retries safe.</p>
         </ReviewViewBody>
@@ -233,7 +235,7 @@ function Cards() {
           <ReviewSelectBar label="Lines 12–14" onComment={none} onAsk={none} />
         </div>
       </div>
-      <ReviewVerdicts label="Verdict" value="approve" keyed onPick={none} after={<span className="dim">Left alone</span>} />
+      <ReviewVerdicts label="Verdict" value="approve" keyed onPick={none} after={<Text dim>Left alone</Text>} />
       <ReviewVerdicts label="Verdict" value="comment" keyed={false} unavailable={(v) => (v === "comment" ? undefined : "It's your own")} onPick={none} />
     </div>
   );

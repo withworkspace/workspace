@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Button } from "../../ui/Button";
-import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import css from "./FilesFileHead.module.css";
+import { Text } from "../../ui/Text";
 
 // FilesFileHead is the open file's head, stuck to the top as it scrolls:
 // the way back to the files (narrow), where it is, how much there is of
@@ -16,7 +16,7 @@ export function FilesFileHead({ onBack, path, size, tools }: { onBack?: () => vo
         </Button>
       )}
       {path}
-      {size && <span className={cx("dim", css.size)}>{size}</span>}
+      {size && <Text dim className={css.size}>{size}</Text>}
       <div className={css.tools}>{tools}</div>
     </header>
   );

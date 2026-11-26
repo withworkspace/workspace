@@ -15,6 +15,7 @@ import { PageSaveState, type Saving } from "./PageSaveState";
 import { PageSelectPop } from "./PageSelectPop";
 import { PageTabFailed } from "./PageTabFailed";
 import { PageTabs } from "./PageTabs";
+import { Spacer } from "../ui/Spacer";
 
 // The top of a page: back to Documents, its name and kind, planning (or
 // not), what's done with it, and where saving stands, in each of its
@@ -30,7 +31,7 @@ function Head({ saving, planning }: { saving: Saving; planning?: "on" | "failed"
   return (
     <PageHeader back={{ to: "/documents", label: "Documents" }} id="p2">
       <Chip tone="quiet">ADR</Chip>
-      <span className="spacer" />
+      <Spacer />
       {planning === "on" && (
         <Chip tone="progress">
           <Spinner size={11} /> Planning: reading api/cmd/api/main.go

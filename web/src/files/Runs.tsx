@@ -10,7 +10,7 @@ import { Button } from "../ui/Button";
 import { Empty } from "../ui/Empty";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useMedia } from "../ui/useMedia";
 import { useWorkspace } from "../workspace/store";

@@ -1,6 +1,6 @@
 import { type ArtifactDone, type ArtifactInfo, restoreArtifact } from "../api";
 import { confirm } from "../ui/Confirm";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { doneWords } from "./doneWords";
 

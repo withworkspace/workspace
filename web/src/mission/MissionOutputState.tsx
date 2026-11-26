@@ -1,6 +1,6 @@
 import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 import { type Tone } from "../ui/tone";
 
 const stateTone: Record<string, Tone> = {

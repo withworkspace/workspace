@@ -4,6 +4,7 @@ import { Spinner } from "../ui/Spinner";
 import { duration } from "../ui/when";
 import { leftWords } from "./guideWords";
 import css from "./GuideWriting.module.css";
+import { Text } from "../ui/Text";
 
 // GuideWriting says the guide's being written (again): for how long, on a
 // clock of its own that ticks each second, whether its agent's thinking it
@@ -18,16 +19,16 @@ export function GuideWriting({ since, thinking, given, again }: { since?: string
   const left = given?.left ?? [];
   return (
     <div className={css.writing}>
-      <p className="dim">
+      <Text as="p" dim>
         <Spinner size={12} /> {!since ? "Waiting to start…" : again ? "Writing it again" : "Writing the guide"}
         {since && <span title="Since it started"> · {duration(since, now)}</span>}
         {thinking && <span title="Its agent thinks before it writes: what it thinks isn't shown"> · thinking it over</span>}
-      </p>
+      </Text>
       {given && (
-        <p className={`dim ${css.given}`} title={left.length ? `Not shown to it:\n${left.map((l) => `${l.path} (${l.why})`).join("\n")}` : undefined}>
+        <Text as="p" dim className={css.given} title={left.length ? `Not shown to it:\n${left.map((l) => `${l.path} (${l.why})`).join("\n")}` : undefined}>
           From the description and the changes to {given.files.length - left.length} of {given.files.length} {given.files.length === 1 ? "file" : "files"}
           {left.length ? ` · not shown: ${leftWords(left)}` : ""}
-        </p>
+        </Text>
       )}
     </div>
   );

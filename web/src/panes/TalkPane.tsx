@@ -14,12 +14,13 @@ import { Doing } from "../ui/Doing";
 import { Icon } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { ErrorCard } from "../ui/ErrorCard";
 import { useScroller } from "../ui/scroller";
 import { Composer } from "./Composer";
 import { Turn, TurnSaid } from "../ui/Turn";
 import css from "./TalkPane.module.css";
+import { textClass } from "../ui/Text";
 
 type TalkPaneProps = {
   // Its tab's address, which is its own page's.
@@ -211,7 +212,7 @@ function Turns({ talk, root, following, settle }: { talk: TalkDetail; root?: str
       {following && (
         <Turn by="agent" dense running className={css.answering}>
           {talk.run?.said && (
-            <TurnSaid className="dim">
+            <TurnSaid className={textClass("dim")}>
               <Markdown text={talk.run.said} />
             </TurnSaid>
           )}

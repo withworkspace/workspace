@@ -2,6 +2,7 @@ import { Button } from "../ui/Button";
 import { Time } from "../ui/Time";
 import css from "./GuideFoot.module.css";
 import { PassShow } from "./PassShow";
+import { textClass } from "../ui/Text";
 
 // GuideFoot is under a guide: whether the files are read in its order,
 // when it was written, and writing it again.
@@ -12,7 +13,7 @@ export function GuideFoot({ guided, at, running, onGuided, onRun }: { guided: bo
         Read the files in this order
       </PassShow>
       <span className={css.spacer} />
-      {at && <Time iso={at} as="relative" className="dim" />}
+      {at && <Time iso={at} as="relative" className={textClass("dim")} />}
       <Button variant="ghost" size="small" onClick={onRun} disabled={running}>
         Write it again
       </Button>

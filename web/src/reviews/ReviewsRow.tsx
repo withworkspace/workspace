@@ -8,6 +8,7 @@ import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import { PullRequestCheckMark } from "./PullRequestCheckMark";
 import css from "./ReviewsRow.module.css";
+import { Text } from "../ui/Text";
 
 // ReviewsRow is a pull request, or a stack of them, on the Reviews page:
 // where it stands with you, its title and chips, who and where it's from,
@@ -66,9 +67,9 @@ export function ReviewsRow({
       <RowMeta className={css.size} title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
         <span className={css.plus}>+{additions}</span> <span className={css.minus}>−{deletions}</span>
         {files !== undefined && (
-          <span className={`dim ${css.files}`}>
+          <Text dim className={css.files}>
             {files} {files === 1 ? "file" : "files"}
-          </span>
+          </Text>
         )}
       </RowMeta>
       <PullRequestCheckMark checks={checks} />

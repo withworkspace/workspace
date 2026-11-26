@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useState } from "react";
 import { getPR, type PR } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Text } from "../ui/Text";
+import { Prose } from "../ui/Prose";
 
 // StackDescriptions is a whole stack's overview: each layer's
 // description, bottom first, which is the order to read them in.
@@ -26,18 +28,18 @@ export function StackDescriptions({ layers }: { layers: PR[] }) {
         return (
           <Fragment key={l.number}>
             <h2>
-              {i + 1}. {l.title} <span className="mono">#{l.number}</span>
+              {i + 1}. {l.title} <Text mono>#{l.number}</Text>
             </h2>
             {body === undefined ? (
-              <p className="dim">Reading it…</p>
+              <Text as="p" dim>Reading it…</Text>
             ) : body === null ? (
-              <p className="dim">Its description couldn't be read.</p>
+              <Text as="p" dim>Its description couldn't be read.</Text>
             ) : body.trim() ? (
-              <div className="prose">
+              <Prose>
                 <Markdown text={body} />
-              </div>
+              </Prose>
             ) : (
-              <p className="dim">It has no description.</p>
+              <Text as="p" dim>It has no description.</Text>
             )}
           </Fragment>
         );

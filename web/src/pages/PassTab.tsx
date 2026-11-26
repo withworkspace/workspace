@@ -23,6 +23,7 @@ import { PagePassPanel } from "./PagePassPanel";
 import { PagePassRunning } from "./PagePassRunning";
 import { PagePassShown } from "./PagePassShown";
 import { PagePassSummary } from "./PagePassSummary";
+import { Text } from "../ui/Text";
 
 // PassTab is a pass over the page, on its tab: what it is, when it ran and
 // what it said, and what it found, each to deal with. Run again, it reads
@@ -82,7 +83,7 @@ export function PassTab({
           <>
             {pass.skill ? (
               <>
-                Its agent follows the workspace's skill <span className="mono">{pass.skill}</span>
+                Its agent follows the workspace's skill <Text mono>{pass.skill}</Text>
                 {pass.args ? <>, asked “{pass.args}”</> : null}, and reads what it needs of the workspace.{" "}
               </>
             ) : pass.cold ? (
@@ -149,7 +150,7 @@ export function PassTab({
               <Markdown text={pass.summary} />
             </PagePassSummary>
           )}
-          {open.length === 0 && put.length === 0 && <p className="dim">It found nothing to raise.</p>}
+          {open.length === 0 && put.length === 0 && <Text as="p" dim>It found nothing to raise.</Text>}
           <PageFindings>
             {open.map((f) => {
               const q = asked(f);
@@ -171,7 +172,7 @@ export function PassTab({
                       </Button>
                     )}
                     <PageDismissAs whys={dismissWhys} onDismiss={(why) => onSettle(f, "dismissed", why)} />
-                    {lost.has(f.key) && <span className="dim">Its words aren't on the page any more.</span>}
+                    {lost.has(f.key) && <Text dim>Its words aren't on the page any more.</Text>}
                   </PageFindingActs>
                   {q && <FoundOut cell={q} root={root} onAsk={(body) => onAsk(q, body)} onPut={(body) => onPut(f, q, body)} onCell={() => onCell(q)} />}
                 </PageFinding>
@@ -189,7 +190,7 @@ export function PassTab({
                     <PageFinding key={f.key} look="settled">
                       <FindingBody f={f} />
                       <PageFindingActs>
-                        <span className="dim">{f.state === "done" ? "Done" : `Dismissed${f.why ? `: ${dismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}</span>
+                        <Text dim>{f.state === "done" ? "Done" : `Dismissed${f.why ? `: ${dismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}</Text>
                         <Button variant="ghost" size="small" onClick={() => onSettle(f, "open")}>
                           Open it again
                         </Button>

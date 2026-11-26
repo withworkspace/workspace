@@ -1,4 +1,6 @@
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Text } from "../ui/Text";
+import { Prose } from "../ui/Prose";
 
 // PRDescription is a pull request's overview: what it says it does.
 export function PRDescription({ body }: { body?: string }) {
@@ -6,11 +8,11 @@ export function PRDescription({ body }: { body?: string }) {
     <>
       <h2>What it says it does</h2>
       {body?.trim() ? (
-        <div className="prose">
+        <Prose>
           <Markdown text={body} />
-        </div>
+        </Prose>
       ) : (
-        <p className="dim">It has no description.</p>
+        <Text as="p" dim>It has no description.</Text>
       )}
     </>
   );

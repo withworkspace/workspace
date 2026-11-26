@@ -4,6 +4,7 @@ import { Icon } from "../ui/Icon";
 import { Row, RowLine, RowMain, RowTitle, rowStatusClass } from "../ui/Rows";
 import { TLink } from "../ui/TLink";
 import css from "./DocumentsFlightRow.module.css";
+import { textClass } from "../ui/Text";
 
 type DocumentsFlightRowProps = {
   capsule: string;
@@ -18,10 +19,10 @@ type DocumentsFlightRowProps = {
 export function DocumentsFlightRow({ capsule, mission, pr, space, children }: DocumentsFlightRowProps) {
   return (
     <Row still className={css.row}>
-      <Icon name="box" size={16} className={rowStatusClass("dim")} />
+      <Icon name="box" size={16} className={rowStatusClass(textClass("dim"))} />
       <RowMain className={css.main}>
         <RowLine>
-          <RowTitle className="mono">{capsule}</RowTitle>
+          <RowTitle className={textClass("mono")}>{capsule}</RowTitle>
           {mission && <Chip tone="quiet">{mission}</Chip>}
           {pr && (
             <TLink to={pr.to} className={chipClass("progress")} title={pr.title}>

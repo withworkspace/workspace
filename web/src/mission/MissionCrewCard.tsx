@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { HoverCardHead, HoverCardLine, hoverCardLinkClass, HoverCardSaid } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
+import { Text } from "../ui/Text";
 
 type MissionCrewCardProps = {
   // Its badge, and where it stands (a Status).
@@ -32,7 +33,7 @@ export function MissionCrewCard({ badge, status, what, capsule, started, ended, 
       </HoverCardHead>
       <HoverCardLine>
         {what}
-        {capsule && <span className="dim"> in {capsule}</span>}
+        {capsule && <Text dim> in {capsule}</Text>}
       </HoverCardLine>
       <HoverCardLine dim>
         Started {started}

@@ -9,6 +9,7 @@ import css from "./MissionOutput.module.css";
 import { MissionOutputState } from "./MissionOutputState";
 import { MissionOutputThreads } from "./MissionOutputThreads";
 import { artifactTitle, isArtifact } from "./outputs";
+import { textClass } from "../ui/Text";
 
 const kindIcon: Record<string, IconName> = {
   proposal: "file",
@@ -50,7 +51,7 @@ export function MissionOutput({ a, selected, open, compact, id }: { a: Artifact;
           )}
           {(!compact || isArtifact(a)) && <MissionOutputState state={a.state} />}
           {a.threads && <MissionOutputThreads t={a.threads} />}
-          {!a.readable && a.url && <Icon name="external" size={12} className="dim" />}
+          {!a.readable && a.url && <Icon name="external" size={12} className={textClass("dim")} />}
         </div>
         {desc && (
           <div className={css.desc}>
