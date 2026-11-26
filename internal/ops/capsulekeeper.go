@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"fmt"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -10,6 +11,11 @@ import (
 
 	"github.com/withworkspace/workspace/internal/workspace"
 )
+
+// followed is who's following what, as the web server says it: the
+// missions whose pages are open, and the worktrees followed on their own
+// (Files' capsules, as repo/name).
+type followed func() (missions, worktrees []string)
 
 // The daemon keeps every repo's worktrees (its ground and its capsules) in
 // memory, and keeps them current itself: where each one's HEAD is and its
@@ -21,8 +27,9 @@ import (
 // its folders were written), the repos' folders listed again now and then
 // (a capsule lifted, or burned), and a sweep of every one's git files
 // every few minutes, for what a watch missed. What git keeps doesn't move
-// when a file's edited, so a capsule a page has shown lately is asked
-// whether it's dirty again every dirtyFloor, for as long as it's looked at.
+// when a file's edited, so a capsule someone's following (a mission's
+// page that's open, a capsule in Files), or that a page listed lately, is
+// asked whether it's dirty again every dirtyFloor.
 //
 // Outside the daemon (a command), nothing's kept: the readers ask as they
 // did (keeping is false).
@@ -75,6 +82,10 @@ type capsuleKeeper struct {
 	byCommon map[string][]*keptTree
 	asks     chan treeAsk
 	tell     func()
+	// following, once the web server says, is who's following what.
+	following atomic.Pointer[followed]
+	// capsulesOf is a mission's capsules' folders, as kept.
+	capsulesOf func(slug string) []string
 }
 
 // treeAsk is a worktree to ask git of: whether it's dirty, and, unless only
@@ -94,6 +105,7 @@ func (w *Workspace) keepCapsules(stop <-chan struct{}, moved <-chan []string) {
 	k.repos, k.byDir, k.byGitDir, k.byCommon = map[string][]*keptTree{}, map[string]*keptTree{}, map[string]*keptTree{}, map[string][]*keptTree{}
 	k.asks = make(chan treeAsk, 1024)
 	k.tell = w.tellSeen
+	k.capsulesOf = w.followedCapsules
 	k.mu.Unlock()
 	for range capsuleAskers {
 		go k.asker(stop)
@@ -246,13 +258,41 @@ func (k *capsuleKeeper) refresh(t *keptTree) bool {
 // askLooked asks again whether each worktree a page has shown lately is
 // dirty: an edit moves nothing git keeps.
 func (k *capsuleKeeper) askLooked() {
+	follow := map[string]bool{}
+	if f := k.following.Load(); f != nil && k.capsulesOf != nil {
+		missions, worktrees := (*f)()
+		for _, slug := range missions {
+			for _, dir := range k.capsulesOf(slug) {
+				follow[filepath.Clean(dir)] = true
+			}
+		}
+		for _, wt := range worktrees {
+			follow[wt] = true // repo/name: matched below
+		}
+	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	for _, t := range k.byDir {
-		if time.Since(t.looked) < lookedFor && time.Since(t.dirtyAt) >= dirtyFloor {
+		looked := time.Since(t.looked) < lookedFor || follow[t.dir] || follow[t.repo+"/"+t.name]
+		if looked && time.Since(t.dirtyAt) >= dirtyFloor {
 			k.queue(t, true)
 		}
 	}
+}
+
+// dirtyOf is whether a worktree has changes not committed, as kept: ok
+// false when it isn't kept, or git hasn't said.
+func (k *capsuleKeeper) dirtyOf(dir string) (dirty, ok bool) {
+	if !k.keeping.Load() {
+		return false, false
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	t := k.byDir[filepath.Clean(dir)]
+	if t == nil || t.dirtyAt.IsZero() {
+		return false, false
+	}
+	return t.dirty, true
 }
 
 // queue has git asked of t, unless it is already. k.mu is held.
@@ -316,6 +356,36 @@ func (k *capsuleKeeper) changed() {
 	}
 }
 
+// Following has the keeper ask after the worktrees of what follow says is
+// followed, for as long as it is: the daemon's web server says.
+func (w *Workspace) Following(follow func() (missions, worktrees []string)) {
+	f := followed(follow)
+	w.caps.following.Store(&f)
+}
+
+// followedCapsules is a mission's capsules' folders: as its row in the
+// workspace's view keeps them, or read.
+func (w *Workspace) followedCapsules(slug string) []string {
+	var out []string
+	w.overview.mu.Lock()
+	row, ok := w.overview.items[slug]
+	w.overview.mu.Unlock()
+	if ok {
+		for _, c := range row.it.Capsules {
+			out = append(out, c.Path)
+		}
+		return out
+	}
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return nil
+	}
+	for _, c := range m.Capsules {
+		out = append(out, filepath.Join(w.WS().RepoDir(c.Repo), c.Name))
+	}
+	return out
+}
+
 // keptWorktree is one worktree as kept, for a reader.
 type keptWorktree struct {
 	Name, Dir     string
@@ -375,6 +445,21 @@ func (k *capsuleKeeper) stampOf(dir string) (string, bool) {
 		return "", false
 	}
 	return "kept " + strconv.FormatInt(t.moves, 10), true
+}
+
+// factsOf names what's kept of a worktree, its dirtiness with it: what a
+// mission's page is told by (MissionStamp). ok false when it isn't kept.
+func (k *capsuleKeeper) factsOf(dir string) (string, bool) {
+	if !k.keeping.Load() {
+		return "", false
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	t := k.byDir[filepath.Clean(dir)]
+	if t == nil {
+		return "", false
+	}
+	return fmt.Sprintf("kept %d %t %t %d %d", t.moves, t.read, t.dirty, t.ahead, t.behind), true
 }
 
 // stamp names every worktree's kept facts as they are now: it moves when

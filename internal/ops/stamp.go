@@ -153,7 +153,7 @@ func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 		}
 		for _, c := range m.Capsules {
 			dir := filepath.Join(w.WS().RepoDir(c.Repo), c.Name)
-			if kept, ok := w.caps.stampOf(dir); ok {
+			if kept, ok := w.caps.factsOf(dir); ok {
 				fmt.Fprintln(h, dir, kept) // as the daemon keeps it
 			} else {
 				trees := filepath.Join(w.WS().BareDir(c.Repo), "worktrees", c.Name)

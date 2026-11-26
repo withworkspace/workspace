@@ -54,6 +54,10 @@ type Missions interface {
 	// repo's) until stop closes, and says on Seen when it has: a commit
 	// in a capsule reaches its pages then, not at the next poll.
 	WatchGit(stop <-chan struct{}, logf func(string, ...any))
+	// Following says who's following what (the missions whose pages are
+	// open, the worktrees followed in Files): what's kept of their
+	// capsules is kept current while they are.
+	Following(follow func() (missions, worktrees []string))
 	// BundleFile is a file of one of a mission's bundles: where it is, and
 	// its content type.
 	BundleFile(slug, id, name string) (path, media string, err error)

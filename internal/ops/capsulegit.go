@@ -264,6 +264,11 @@ func soon[T comparable](g *keptGit, dir, what string, ask func() answer[T]) (v T
 // says a fact: what's kept (looked at again past dirtyFloor, as dirty
 // does), or what was, while git's asked behind the read.
 func (g *keptGit) dirtySoon(dir string) (is, ok bool) {
+	if k := g.keeper.Load(); k != nil {
+		if dirty, ok := k.dirtyOf(dir); ok {
+			return dirty, true // as the daemon keeps it, asked again while it's followed
+		}
+	}
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -457,6 +462,11 @@ func (g *keptGit) commitsSince(dir, base string) int {
 }
 
 func (g *keptGit) dirty(dir string) bool {
+	if k := g.keeper.Load(); k != nil {
+		if dirty, ok := k.dirtyOf(dir); ok {
+			return dirty
+		}
+	}
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -318,6 +318,11 @@ func (s *Server) Start() error {
 	// And what git writes in a capsule or a repo is looked at as it's
 	// written: the hubs' polls are for what that can't see.
 	go s.App.WatchGit(s.ctx.Done(), s.Log.Printf)
+	// What's followed is what the daemon keeps current: a mission's page
+	// open, a capsule in Files.
+	s.App.Following(func() (missions, worktrees []string) {
+		return s.missions.followed(), s.filesFollowed.followed()
+	})
 	go func() {
 		for {
 			select {

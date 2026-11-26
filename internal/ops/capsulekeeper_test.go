@@ -217,3 +217,24 @@ func TestCapsuleKeeper_AsksOnlyWhatAMoveChanged(t *testing.T) {
 		t.Errorf("note = %+v, want dirty and read", wt)
 	}
 }
+
+// A capsule someone's following (a capsule in Files, a mission's page)
+// is asked whether it's dirty while they are, with no page reading it:
+// an edit's found, and told.
+func TestCapsuleKeeper_FollowedCapsulesAskedAfter(t *testing.T) {
+	was := lookedFor
+	lookedFor = 0 // nothing listed: only what's followed is asked after
+	t.Cleanup(func() { lookedFor = was })
+	w, _ := keptFixture(t)
+	dir := filepath.Join(w.WS().RepoDir("records"), "note")
+	writeFile(t, filepath.Join(dir, "draft.md"), "# Draft\n")
+	time.Sleep(3 * dirtyFloor)
+	if dirty, _ := w.caps.dirtyOf(dir); dirty {
+		t.Fatal("asked after though nobody follows it")
+	}
+	w.Following(func() (missions, worktrees []string) { return nil, []string{"records/note"} })
+	waitFor(t, "the edit found, the capsule followed", func() bool {
+		dirty, _ := w.caps.dirtyOf(dir)
+		return dirty
+	})
+}
