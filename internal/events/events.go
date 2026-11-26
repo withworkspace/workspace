@@ -32,6 +32,7 @@ import (
 // Kinds, named thing.happened.
 const (
 	CapsuleLanded    = "capsule.landed"
+	CapsuleLifted    = "capsule.lifted"
 	CapsuleBurned    = "capsule.burned"
 	PROpened         = "pr.opened"
 	PRMerged         = "pr.merged"
@@ -79,7 +80,7 @@ const (
 
 // Kinds is every kind there is, in the order they're listed.
 var Kinds = []string{
-	CapsuleLanded, CapsuleBurned, CommitsLanded,
+	CapsuleLifted, CapsuleLanded, CapsuleBurned, CommitsLanded,
 	PROpened, PRReviewRequested, PRApproved, PRChangesRequested, PRChecksFailed, PRChecksPassed, PRMerged, PRClosed,
 	MissionStarted, MissionFlagged, MissionWaiting, MissionEnded,
 	CrewStarted, CrewAsked, CrewDone, BundleHanded, ChecksJudged,

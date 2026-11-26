@@ -367,7 +367,7 @@ func TestLand_IsKeptAsAnEvent(t *testing.T) {
 		}
 		kinds = append(kinds, e.Kind)
 	}
-	if got := strings.Join(kinds, " "); got != "capsule.landed capsule.burned" {
+	if got := strings.Join(kinds, " "); got != "capsule.lifted capsule.landed capsule.burned" {
 		t.Errorf("kept: %s\n%s", got, r.Stdout)
 	}
 
