@@ -355,7 +355,8 @@ export function TeamPage() {
     />
   );
 
-  if (!view) {
+  // Nothing read yet: the daemon's reading the repos, and says when it has.
+  if (!view || (view.reading && view.days.length === 0)) {
     return (
       <div className="page">
         {head}
