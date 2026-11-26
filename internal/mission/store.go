@@ -202,9 +202,9 @@ func ensureExcluded(root string) {
 	}
 	defer f.Close()
 	if data, _ := os.ReadFile(path); len(data) > 0 && !bytes.HasSuffix(data, []byte("\n")) {
-		f.WriteString("\n")
+		_, _ = f.WriteString("\n") // not excluded, it shows in git status: no more
 	}
-	f.WriteString(excludeEntry + "\n")
+	_, _ = f.WriteString(excludeEntry + "\n") // not excluded, it shows in git status: no more
 }
 
 const excludeEntry = "/.ws/"

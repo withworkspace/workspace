@@ -355,7 +355,7 @@ func (s Store) Known(id string) (Entry, bool) {
 		return Entry{}, false
 	}
 	var k *kept
-	db.Read(context.Background(), func(tx *store.Tx) error {
+	_ = db.Read(context.Background(), func(tx *store.Tx) error { // a read it can't make is as none
 		k, err = keptIn(tx, id)
 		return err
 	})
@@ -373,7 +373,7 @@ func (s Store) IDs() []string {
 		return nil
 	}
 	var out []string
-	db.Read(context.Background(), func(tx *store.Tx) error {
+	_ = db.Read(context.Background(), func(tx *store.Tx) error { // a read it can't make is as none
 		rows, err := tx.Query(`SELECT id FROM artifacts ORDER BY n`)
 		if err != nil {
 			return err

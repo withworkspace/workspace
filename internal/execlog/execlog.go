@@ -132,5 +132,5 @@ func write(root, who, text string) {
 	}
 	defer f.Close()
 	// Continuation lines are indented under the entry they belong to.
-	f.WriteString(fmt.Sprintf("%s [%s] %s\n", time.Now().Format("2006-01-02 15:04:05.000"), who, strings.ReplaceAll(text, "\n", "\n    ")))
+	_, _ = f.WriteString(fmt.Sprintf("%s [%s] %s\n", time.Now().Format("2006-01-02 15:04:05.000"), who, strings.ReplaceAll(text, "\n", "\n    "))) // a log line that can't be written is lost
 }

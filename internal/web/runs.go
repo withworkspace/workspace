@@ -118,10 +118,14 @@ func (s *Server) markLooked() {
 		case now := <-t.C:
 			open := s.files.open(now)
 			maps.Copy(open, s.filesFollowed.open()) // followed over a socket
-			s.App.LookedAt(runs.Looking{Missions: s.missions.open(), Worktrees: open})
+			if err := s.App.LookedAt(runs.Looking{Missions: s.missions.open(), Worktrees: open}); err != nil {
+				s.Log.Printf("[web] couldn't note what's looked at: %v", err)
+			}
 			for key := range s.apps.open() {
 				if name, p, ok := appOfKey(key); ok {
-					s.App.LookedAtApp(p, name)
+					if err := s.App.LookedAtApp(p, name); err != nil {
+						s.Log.Printf("[web] couldn't note %s looked at: %v", name, err)
+					}
 				}
 			}
 		}

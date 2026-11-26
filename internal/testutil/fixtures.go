@@ -32,8 +32,12 @@ func WithStdin(t *testing.T, text string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.WriteString(text)
-	f.Seek(0, 0)
+	if _, err := f.WriteString(text); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
 	old := os.Stdin
 	os.Stdin = f
 	t.Cleanup(func() {
@@ -168,8 +172,14 @@ func OrchestrateFixture(t *testing.T) (*Workspace, mission.Store) {
 	t.Setenv(mission.EnvMission, "cache")
 	Run(t, w, nil, "lift", "backend", "cache-lookup")
 	t.Setenv(mission.EnvMission, "")
-	store.StartCrew("cache", "cursor", "conv-1")
-	store.SetCrewProcess("cache", "c1", 0, "backend/cache-lookup")
-	store.SaveTranscript("cache", "c1", "hangup", "…\nAll tests pass.\nOpened PR.\n")
+	if _, err := store.StartCrew("cache", "cursor", "conv-1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetCrewProcess("cache", "c1", 0, "backend/cache-lookup"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveTranscript("cache", "c1", "hangup", "…\nAll tests pass.\nOpened PR.\n"); err != nil {
+		t.Fatal(err)
+	}
 	return w, store
 }

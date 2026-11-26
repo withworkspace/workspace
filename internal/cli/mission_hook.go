@@ -206,7 +206,7 @@ func lastAssistantText(path string) string {
 	}
 	defer f.Close()
 	if info, err := f.Stat(); err == nil && info.Size() > transcriptTail {
-		f.Seek(info.Size()-transcriptTail, io.SeekStart)
+		_, _ = f.Seek(info.Size()-transcriptTail, io.SeekStart) // one it can't seek in is read from the start
 	}
 	data, _ := io.ReadAll(f)
 	lines := strings.Split(string(data), "\n")

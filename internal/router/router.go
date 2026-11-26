@@ -105,7 +105,7 @@ func (rt *Router) serve(ctx context.Context, l net.Listener, port int) {
 	rt.logf("router: serving names on :%d", port)
 	done := make(chan struct{})
 	go func() {
-		srv.Serve(l)
+		_ = srv.Serve(l) // it ends when it's shut down
 		close(done)
 	}()
 	yielded := false
@@ -116,7 +116,7 @@ func (rt *Router) serve(ctx context.Context, l net.Listener, port int) {
 	case <-done:
 	}
 	shut, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	srv.Shutdown(shut)
+	_ = srv.Shutdown(shut) // shutting down: it's ending either way
 	cancel()
 	if yielded {
 		rt.logf("router: stepped down on :%d for a newer router", port)
@@ -276,7 +276,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var h Hello
-		json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&h)
+		_ = json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&h) // one it can't read is from no newer router
 		if h.Router > Version {
 			writeJSON(w, Hello{Router: Version, PID: syscallPID()})
 			rt.mu.Lock()
@@ -497,7 +497,7 @@ func proxyTo(w http.ResponseWriter, r *http.Request, target *url.URL, itsHost bo
 
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v) // a client that's gone isn't told
 }
 
 func esc(s string) string { return html.EscapeString(s) }

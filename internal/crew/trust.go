@@ -107,7 +107,9 @@ func WatchTrust(store mission.Store, root string, spec Spec, t Term, trust func(
 		if _, ok := harness.ReadTrustDialog(t.RenderScrolled(0)); !ok {
 			// Answered yes (no would have ended it). A prompt hook may
 			// have said so already: this says no more than it would.
-			store.CrewHook(spec.Slug, spec.CrewID, mission.Hook{Prompted: true, WakeUp: true})
+			if err := store.CrewHook(spec.Slug, spec.CrewID, mission.Hook{Prompted: true, WakeUp: true}); err != nil {
+				execlog.Note(root, key, "couldn't note the trust dialog answered: %v", err)
+			}
 			return
 		}
 		time.Sleep(500 * time.Millisecond)

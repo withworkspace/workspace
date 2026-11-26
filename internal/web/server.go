@@ -416,7 +416,9 @@ func (s *Server) Close() {
 		s.srv.Close()
 	}
 	if cur, err := ReadInfo(s.Root); err == nil && cur.Pid == s.info.Pid {
-		writeInfo(s.Root, Info{Token: s.info.Token})
+		if err := writeInfo(s.Root, Info{Token: s.info.Token}); err != nil {
+			s.Log.Printf("[web] couldn't say it's stopped: %v", err)
+		}
 	}
 }
 
@@ -1000,7 +1002,7 @@ func hexColor(s string) bool {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v) // a client that's gone isn't told
 }
 
 func jsonError(w http.ResponseWriter, status int, msg string) {

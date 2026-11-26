@@ -40,7 +40,9 @@ func (s *Server) doc(w http.ResponseWriter, r *http.Request) {
 		// One you can edit keeps the version you open, to merge your edit
 		// with if it changes before you save.
 		if a.Editable && a.Markdown {
-			s.App.KeepVersion(doc.Scope{}, []byte(a.Text))
+			if _, err := s.App.KeepVersion(doc.Scope{}, []byte(a.Text)); err != nil {
+				s.Log.Printf("[web] couldn't keep the version opened, to merge an edit with: %v", err)
+			}
 		}
 		writeJSON(w, http.StatusOK, a)
 	}

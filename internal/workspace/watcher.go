@@ -345,12 +345,12 @@ func (sw *SiloWatcher) removeWatch(repo string) {
 	}
 	for gitdir, r := range sw.gitdirToRepo {
 		if r == repo {
-			sw.watcher.Remove(gitdir)
+			_ = sw.watcher.Remove(gitdir) // it may not have been watched
 			delete(sw.gitdirToRepo, gitdir)
 		}
 	}
 	for dir := range sw.watched[repo] {
-		sw.watcher.Remove(dir)
+		_ = sw.watcher.Remove(dir) // it may not have been watched
 	}
 	delete(sw.watched, repo)
 }

@@ -457,7 +457,9 @@ follow-up with ws mission new.` + fmt.Sprintf(onStdin, "resume-with c2"),
 					return nil
 				}
 				if by == mission.RoleOrchestrator {
-					store.ReleaseDispatch(m.Slug)
+					if err := store.ReleaseDispatch(m.Slug); err != nil {
+						fmt.Fprintf(ui.Stderr, "  %s couldn't give back %s's dispatch: %v\n", ui.Orange.Render("⚠"), m.Slug, err)
+					}
 				}
 				how := "type it into"
 				if c.Ended != nil {

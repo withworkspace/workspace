@@ -263,7 +263,9 @@ func (w *Workspace) Land(repo, capsule string, o LandOptions) (*Landed, error) {
 		}
 		if err != nil {
 			clash, _ := run("diff", "--name-only", "--diff-filter=U")
-			run("rebase", "--abort")
+			if _, aerr := run("rebase", "--abort"); aerr != nil {
+				return stop("rebase", fmt.Sprintf("%s couldn't be rebased onto %s, and the rebase couldn't be undone (%v): it's mid-rebase in the capsule (git rebase --abort there)", name, base, aerr), out)
+			}
 			files := strings.Join(strings.Fields(clash), ", ")
 			if files == "" {
 				return stop("rebase", fmt.Sprintf("%s couldn't be rebased onto %s: it's as it was", name, base), out)
@@ -278,7 +280,9 @@ func (w *Workspace) Land(repo, capsule string, o LandOptions) (*Landed, error) {
 		}
 		if o.Check != nil {
 			if err := o.Check(dir, baseHead); err != nil {
-				run("reset", "-q", "--hard", "ORIG_HEAD")
+				if _, rerr := run("reset", "-q", "--hard", "ORIG_HEAD"); rerr != nil {
+					return stop("number", fmt.Sprintf("%s's artifacts aren't whole once it's rebased onto %s (%v), and it couldn't be put back (%v): it's left rebased in the capsule", name, base, err, rerr), "")
+				}
 				return stop("number", fmt.Sprintf("%s's artifacts aren't whole once it's rebased onto %s (%v). It's as it was: rebase it in the capsule (git rebase %s), put them right, and land again", name, base, err, base), "")
 			}
 		}

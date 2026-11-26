@@ -88,7 +88,7 @@ func (s *Server) socket(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return // Accept has answered
 	}
-	defer c.CloseNow()
+	defer func() { _ = c.CloseNow() }() // closed already, if it ended well
 	if s.Hold != nil {
 		defer s.Hold()()
 	}

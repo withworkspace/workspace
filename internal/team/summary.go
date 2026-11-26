@@ -264,7 +264,7 @@ func (s *Service) Summarise(snap *Snapshot, since time.Time, key string) bool {
 			}
 		}
 		// One that failed leaves what was written before, with why.
-		s.keepSummary(key, sum)
+		_ = s.keepSummary(key, sum) // one that can't be kept is written again when it's next asked for
 		s.mu.Lock()
 		delete(s.summarising, key)
 		s.version++

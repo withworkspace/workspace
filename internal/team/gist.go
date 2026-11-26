@@ -437,8 +437,8 @@ func materialOf(bare string, sub Subject, room int) (Material, error) {
 				continue
 			}
 			var add, del int
-			fmt.Sscan(n[0], &add)
-			fmt.Sscan(n[1], &del)
+			_, _ = fmt.Sscan(n[0], &add) // what can't be read is none
+			_, _ = fmt.Sscan(n[1], &del) // what can't be read is none
 			path := renamedTo(n[2])
 			i, ok := at[path]
 			if !ok {
@@ -790,7 +790,7 @@ func (s *Service) Narrate(snap *Snapshot, strands []string, since time.Time) int
 			// A gist that was written stays, with why writing it again
 			// failed. One that can't be kept is written again when it's
 			// next asked for.
-			s.keepGist(g)
+			_ = s.keepGist(g) // one that can't be kept is written again when it's next asked for
 			s.mu.Lock()
 			delete(s.writing, sub.Strand)
 			s.version++

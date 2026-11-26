@@ -144,7 +144,7 @@ func GitAheadBehind(dir string) (int, int) {
 		return 0, 0
 	}
 	var ahead, behind int
-	fmt.Sscanf(strings.TrimSpace(out), "%d\t%d", &ahead, &behind)
+	_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d\t%d", &ahead, &behind) // what can't be read is none
 	return ahead, behind
 }
 
@@ -156,7 +156,7 @@ func GitCommitsSince(dir, base string) int {
 		return 0
 	}
 	var n int
-	fmt.Sscanf(strings.TrimSpace(out), "%d", &n)
+	_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d", &n) // what can't be read is none
 	return n
 }
 
@@ -168,7 +168,7 @@ func GitCommitsBehindRef(dir, ref string) int {
 		return 0
 	}
 	var n int
-	fmt.Sscanf(strings.TrimSpace(out), "%d", &n)
+	_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d", &n) // what can't be read is none
 	return n
 }
 

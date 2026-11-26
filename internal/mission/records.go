@@ -237,7 +237,7 @@ func (s Store) InPlaySlugs() (slugs map[string]bool, ok bool) {
 // Slugs is every mission's slug, archived ones too, without reading them.
 func (s Store) Slugs() []string {
 	var out []string
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		rows, err := tx.Query(`SELECT slug FROM missions ORDER BY created, slug`)
 		if err != nil {
 			return err
@@ -257,7 +257,7 @@ func (s Store) Slugs() []string {
 // Changed is when a mission's record or log last changed, or zero.
 func (s Store) Changed(slug string) time.Time {
 	var at string
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		return tx.QueryRow(`SELECT changed FROM missions WHERE slug = ?`, slug).Scan(&at)
 	})
 	return timeOf(at)

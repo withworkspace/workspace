@@ -116,11 +116,15 @@ func formatPrompt(w *os.File, data PromptData, format, tmpl string) error {
 		if err != nil {
 			return nil // bad template — silent
 		}
-		t.Execute(w, data)
+		if err := t.Execute(w, data); err != nil {
+			return err
+		}
 		fmt.Fprintln(w)
 
 	case format == "json":
-		json.NewEncoder(w).Encode(data)
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			return err
+		}
 
 	default:
 		fmt.Fprintf(w, "%s / %s\n", data.WorkspaceDisplayName, data.RepoDisplayName)

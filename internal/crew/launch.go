@@ -76,7 +76,9 @@ func Start(r Request) (Started, error) {
 		c, err = r.Store.ResumeCrew(r.Slug, r.Resume, r.By)
 		if err == nil && c.ResumeWith != "" {
 			prompt = c.ResumeWith
-			r.Store.SetResumeWith(r.Slug, c.ID, "")
+			if err := r.Store.SetResumeWith(r.Slug, c.ID, ""); err != nil {
+				execlog.Note(r.Root, "crew "+r.Slug+"/"+c.ID, "couldn't clear what it was resumed with: %v", err)
+			}
 		}
 	} else {
 		c, err = r.Store.StartCrewOn(r.Slug, r.Harness, r.Model, l.Conversation, r.Role)
@@ -92,7 +94,9 @@ func Start(r Request) (Started, error) {
 		execlog.Note(r.Root, who, "%s", n)
 	}
 	if r.Dispatch != "" {
-		r.Store.SetCrewDispatch(r.Slug, c.ID, r.By, r.Dispatch)
+		if err := r.Store.SetCrewDispatch(r.Slug, c.ID, r.By, r.Dispatch); err != nil {
+			execlog.Note(r.Root, who, "couldn't record who dispatched it: %v", err)
+		}
 	}
 	if r.Resume == "" && r.Role == "" {
 		if _, err := r.Store.JoinStage(r.Slug, c.ID, r.Stage); err != nil {
@@ -124,11 +128,15 @@ func Start(r Request) (Started, error) {
 	if err != nil {
 		execlog.Start(r.Root, who, args, l.Dir, spec.Env, 0)
 		execlog.Note(r.Root, who, "failed to start: %v", err)
-		r.Store.EndCrew(r.Slug, c.ID, "failed to start: "+err.Error())
+		if eerr := r.Store.EndCrew(r.Slug, c.ID, "failed to start: "+err.Error()); eerr != nil {
+			execlog.Note(r.Root, who, "couldn't record it ended: %v", eerr)
+		}
 		return Started{}, err
 	}
 	execlog.Start(r.Root, who, args, l.Dir, spec.Env, pid)
-	r.Store.SetCrewProcess(r.Slug, c.ID, pid, r.Place.Capsule)
+	if err := r.Store.SetCrewProcess(r.Slug, c.ID, pid, r.Place.Capsule); err != nil {
+		execlog.Note(r.Root, who, "couldn't record its process (%d): %v", pid, err)
+	}
 	if prompt == "" {
 		// Nothing for ws to hand them once their session's up (a prompt
 		// given as an argument, as Claude Code's is, they take up

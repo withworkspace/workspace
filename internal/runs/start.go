@@ -277,12 +277,12 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	}
 	if err := save(rec, dir); err != nil {
 		syscall.Kill(-pid, syscall.SIGKILL)
-		cmd.Wait()
+		_ = cmd.Wait() // killed: how it ended is known
 		return Run{}, false, err
 	}
 	keep = true
 	// It's nobody's child to wait for: the sweep sees it end.
-	go cmd.Wait()
+	go func() { _ = cmd.Wait() }()
 	return Run{Record: rec, Path: dir, State: Running}, true, nil
 }
 

@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1476,7 +1477,9 @@ func (s Store) StartAnswering(id string, pid int) (bool, error) {
 
 // EndAnswering marks the agent done answering.
 func (s Store) EndAnswering(id string) {
-	s.write(func(tx *store.Tx) error { return s.setAnswering(tx, id, 0) })
+	if err := s.write(func(tx *store.Tx) error { return s.setAnswering(tx, id, 0) }); err != nil {
+		log.Printf("conversation %s: still says it's being answered: %v", id, err)
+	}
 }
 
 // EndAnsweringBy ends every answering mark process pid holds, in any

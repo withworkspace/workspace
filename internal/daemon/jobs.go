@@ -3,6 +3,7 @@ package daemon
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -32,7 +33,9 @@ func markJob(root string) func(job.Job) job.Job {
 				j.Since = run.Since
 			}
 		case job.Answer, job.Thread:
-			conversation.For(root, j.Mission).StartAnswering(j.ID, os.Getpid())
+			if _, err := conversation.For(root, j.Mission).StartAnswering(j.ID, os.Getpid()); err != nil {
+				log.Printf("conversation %s: couldn't mark it being answered: %v", j.ID, err)
+			}
 		}
 		return j
 	}
@@ -99,20 +102,28 @@ func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 		}
 		if m.Planning != nil {
 			logf("the planner's turn in %s of %s was underway when the server before this one went: it's over", m.Planning.In, m.Slug)
-			mission.Store{Root: root}.EndPlanning(m.Slug, m.Planning.In)
+			if err := (mission.Store{Root: root}).EndPlanning(m.Slug, m.Planning.In); err != nil {
+				logf("%s: couldn't clear it: %v", m.Slug, err)
+			}
 		}
 		if m.Moving != nil {
 			logf("ws was moving %s on from step %d when the server before this one went: it's where it got to", m.Slug, m.Moving.Step)
-			mission.Store{Root: root}.EndMoving(m.Slug, *m.Moving)
+			if err := (mission.Store{Root: root}).EndMoving(m.Slug, *m.Moving); err != nil {
+				logf("%s: couldn't clear it: %v", m.Slug, err)
+			}
 		}
 		if m.Launching != nil {
 			logf("crew were being started on %s when the server before this one went: they weren't", m.Slug)
-			mission.Store{Root: root}.EndLaunching(m.Slug, *m.Launching)
+			if err := (mission.Store{Root: root}).EndLaunching(m.Slug, *m.Launching); err != nil {
+				logf("%s: couldn't clear it: %v", m.Slug, err)
+			}
 		}
 		if m.Orchestrating == nil {
 			continue
 		}
-		mission.Store{Root: root}.EndOrchestrating(m.Slug, *m.Orchestrating)
+		if err := (mission.Store{Root: root}).EndOrchestrating(m.Slug, *m.Orchestrating); err != nil {
+			logf("%s: couldn't clear it: %v", m.Slug, err)
+		}
 		logf("the orchestrator was running on %s when the server before this one went: running it again", m.Slug)
 		q.Start(job.Job{Kind: job.Orchestrate, Mission: m.Slug, Why: "restarted"})
 	}

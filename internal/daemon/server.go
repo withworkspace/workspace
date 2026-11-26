@@ -146,7 +146,11 @@ func (s *Server) Listen() error {
 	if err != nil {
 		return err
 	}
-	os.Chmod(path, 0o600)
+	// Only you reach it: the folder it's in may be others' to read.
+	if err := os.Chmod(path, 0o600); err != nil {
+		_ = ln.Close()
+		return err
+	}
 	s.ln = ln
 	s.store = mission.Store{Root: s.Root}
 	s.crews = map[string]*crewProc{}
@@ -560,7 +564,7 @@ func (s *Server) watch(cr *crewProc) {
 	cr.mu.Lock()
 	for c, sb := range cr.subs {
 		close(sb.quit)
-		c.send(message{Ev: "exit", Crew: cr.spec.Key(), Exit: exit})
+		_ = c.send(message{Ev: "exit", Crew: cr.spec.Key(), Exit: exit}) // a client that's gone isn't told
 	}
 	cr.subs = map[*conn]*sub{}
 	cr.mu.Unlock()
@@ -720,7 +724,7 @@ func (cr *crewProc) refreshMirror() {
 	cr.pane.SetMirror(writerFunc(func(p []byte) (int, error) {
 		data := append([]byte(nil), p...)
 		for _, c := range want {
-			c.send(message{Ev: "raw", Crew: key, Data: data})
+			_ = c.send(message{Ev: "raw", Crew: key, Data: data}) // a client that's gone isn't told
 		}
 		return len(p), nil
 	}))

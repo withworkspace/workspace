@@ -238,7 +238,7 @@ func (s Store) render(tx *store.Tx, r *Review) {
 	}
 	text := Render(r)
 	path := s.renderedPath(r.ID)
-	tx.OnCommit(func() { writeFile(path, []byte(text)) })
+	tx.OnCommit(func() { _ = writeFile(path, []byte(text)) }) // the record is the review: this is a copy to read
 }
 
 // NewNote is a comment to add to a capsule's draft.

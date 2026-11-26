@@ -29,7 +29,7 @@ func NoDaemon() {
 	orchestrateSpawner = func(root, slug, crewID, trigger string) {}
 	checkSpawner = func(root, slug, crewID string) {
 		if ctx, err := LoadOps(root); err == nil {
-			ctx.RunChecks(slug, crewID)
+			_, _ = ctx.RunChecks(slug, crewID) // what checks find is kept in the mission
 		}
 	}
 	prWriterSpawner = func(root, slug, capsule string) {
