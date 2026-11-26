@@ -145,7 +145,7 @@ func initRepo(t *testing.T, dir, defaultBranch string) {
 // GitCmd runs a git command. Exported so integration tests can use it.
 func GitCmd(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command("git", args...)
+	cmd := exec.CommandContext(t.Context(), "git", args...)
 	if dir != "" {
 		cmd.Dir = dir
 	}
