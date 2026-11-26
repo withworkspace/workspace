@@ -353,7 +353,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
             id: "do:upgrade",
             group: "do" as const,
             kind: "Do",
-            title: `Upgrade to ws ${w.later}`,
+            title: `Upgrade to Workspace ${w.later}`,
             hint: "update release version later",
             icon: "arrow-up" as const,
             score: 0,

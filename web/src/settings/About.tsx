@@ -24,7 +24,7 @@ export function About({ info, section }: { info?: SettingsInfo; section: Section
   const updates = section.blocks.find((b) => b.id === "updates");
   return (
     <>
-      <SettingsBlock title="ws">
+      <SettingsBlock title="Workspace">
         <SettingsFacts>
           <SettingsFact term="Version">
             <Text mono title={workspace.version}>

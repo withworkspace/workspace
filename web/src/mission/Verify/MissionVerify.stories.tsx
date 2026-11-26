@@ -162,7 +162,7 @@ export const Tab: StoryObj = {
                   <MissionVerifyRow icon="check-circle" tone="done" title="A key under the limit is let through" kind="approved" onChoose={none} />
                 </MissionVerifyGroup>
                 <MissionVerifyGroup title="Settled without you" n={1}>
-                  <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="ws ran it" kind="settled" onChoose={none} />
+                  <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="Run by Workspace" kind="settled" onChoose={none} />
                 </MissionVerifyGroup>
               </MissionVerifyList>
             </>
@@ -213,7 +213,7 @@ export const SentBack: StoryObj = {
                 </MissionVerifyGroup>
                 <MissionVerifyGroup title="You approved" n={2} fold={{ open: false, onToggle: none }} />
                 <MissionVerifyGroup title="Settled without you" n={1}>
-                  <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="ws ran it" kind="settled" onChoose={none} />
+                  <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="Run by Workspace" kind="settled" onChoose={none} />
                 </MissionVerifyGroup>
               </MissionVerifyList>
             </>
@@ -282,8 +282,8 @@ export const Rows: StoryObj = {
         <MissionVerifyRow icon="question" tone="info" title="A second tab sees the change" line="c3 can't tell" kind="wanted" selected onChoose={none} />
         <MissionVerifyRow icon="x-circle" tone="danger" title="Over the limit, a client is told when to try again" line="c2 says unmet · 2 pictures" onChoose={none} />
         <MissionVerifyRow icon="check-circle" tone="done" title="A key under the limit is let through" line="c3 says met" kind="approved" onChoose={none} />
-        <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="ws ran it" kind="settled" onChoose={none} />
-        <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go vet ./...` passes" />} line="ws ran it" kind="settled" selected onChoose={none} />
+        <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="Run by Workspace" kind="settled" onChoose={none} />
+        <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go vet ./...` passes" />} line="Run by Workspace" kind="settled" selected onChoose={none} />
       </div>
     </div>
   ),

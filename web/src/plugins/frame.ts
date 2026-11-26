@@ -118,7 +118,7 @@ export const versions: Readonly<Record<number, Speak>> = { 1: v1 };
 export function refusal(plugin: string, page: readonly number[], host: readonly number[]): string {
   if (!page.length) return `${plugin} lists no frame protocol version; Workspace supports ${host.join(", ")}. Update the plugin.`;
   const ahead = Math.max(...page) > Math.max(...host);
-  return `${plugin} supports frame protocol ${page.join(", ")}; Workspace supports ${host.join(", ")}. Update ${ahead ? "ws" : "the plugin"}.`;
+  return `${plugin} supports frame protocol ${page.join(", ")}; Workspace supports ${host.join(", ")}. Update ${ahead ? "Workspace" : "the plugin"}.`;
 }
 
 // answer is ws's answer to a ws:connect, on the port that came with it: a

@@ -56,7 +56,7 @@ export function WindowMenu({
         <div className={css.foot}>
           <Logotype />
           {version && (
-            <span className={css.version} title={`ws ${version.full}`}>
+            <span className={css.version} title={`Workspace ${version.full}`}>
               {version.short}
             </span>
           )}
@@ -89,9 +89,9 @@ export function WindowMenu({
       </MenuItem>
       {/* A later release, as the daemon last found: to where it's installed from. */}
       {later && (
-        <MenuItem id="later" textValue={`ws ${later} available`} className={css.later} onAction={onLater}>
+        <MenuItem id="later" textValue={`Workspace ${later} available`} className={css.later} onAction={onLater}>
           <Icon name="arrow-up" />
-          <MenuText>ws {later} available</MenuText>
+          <MenuText>Workspace {later} available</MenuText>
         </MenuItem>
       )}
       <MenuSeparator />

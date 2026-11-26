@@ -143,7 +143,7 @@ describe("waitHow", () => {
   it("says what ws's last look came to", () => {
     const at = () => "14:02";
     expect(watchWords(wait({ passes: "watched" }), at)).toBe("Not checked yet");
-    expect(watchWords(wait({ passes: "watched", watch: { since: "x", looked: "y", looks: 3, came: "not yet" } }), at)).toBe("ws last looked 14:02: not yet");
+    expect(watchWords(wait({ passes: "watched", watch: { since: "x", looked: "y", looks: 3, came: "not yet" } }), at)).toBe("Last checked 14:02: not yet");
   });
 });
 

@@ -33,7 +33,7 @@ export function Updates({ running }: { running?: string }) {
       .then((now) => {
         set(now);
         if (now.error) toast(`Could not check for updates: ${humanError(now.error)}`, { tone: "danger", ms: 8000 });
-        else toast(now.newer ? `ws ${now.latest} is out` : "ws is up to date", { tone: "done" });
+        else toast(now.newer ? `Workspace ${now.latest} is out` : "Workspace is up to date", { tone: "done" });
       })
       .catch((e: Error) => toast(`Could not check for updates: ${humanError(e.message)}`, { tone: "danger", ms: 8000 }))
       .finally(() => setBusy(undefined));
@@ -41,7 +41,7 @@ export function Updates({ running }: { running?: string }) {
   const upgrade = async () => {
     if (!up?.latest) return;
     const yes = await confirm({
-      title: `Upgrade ws to ${up.latest}?`,
+      title: `Upgrade Workspace to ${up.latest}?`,
       body: `Replaces ${shortVersion(up.version)}, which is kept: ws upgrade --rollback restores it. Workspace restarts when idle (no crew mid-turn, no agent runs); this page carries on.`,
       confirm: "Upgrade",
     });
@@ -49,7 +49,7 @@ export function Updates({ running }: { running?: string }) {
     setBusy("upgrade");
     try {
       const did = await upgradeWS();
-      toast(did.installed ? `ws ${did.to} installed: Workspace restarts when idle` : `Already running ws ${did.to}`, { tone: "done", ms: 8000 });
+      toast(did.installed ? `Workspace ${did.to} installed: restarts when idle` : `Already running Workspace ${did.to}`, { tone: "done", ms: 8000 });
       await reload();
     } catch (e) {
       toast(`Could not upgrade: ${humanError((e as Error).message)}`, { tone: "danger", ms: 10000 });

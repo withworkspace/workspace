@@ -38,7 +38,7 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
   return (
     <div className={css.updates}>
       {standing === "waiting" && (
-        <Callout className={css.note} tone="info" icon="rotate" title={`ws ${up.installed} is installed`}>
+        <Callout className={css.note} tone="info" icon="rotate" title={`Workspace ${up.installed} is installed`}>
           Workspace switches over when idle
           {up.waits?.length ? (
             <>
@@ -63,7 +63,7 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
           className={css.note}
           tone="attention"
           icon="arrow-up"
-          title={`ws ${up.latest} is out`}
+          title={`Workspace ${up.latest} is out`}
           actions={
             <Button variant="primary" onClick={onUpgrade} disabled={!!busy}>
               {busy === "upgrade" ? <Spinner size={12} /> : <Icon name="arrow-up" size={12} />} {busy === "upgrade" ? "Upgrading…" : `Upgrade to ${up.latest}`}
@@ -74,7 +74,7 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
         </Callout>
       )}
       {standing === "out-built" && (
-        <Callout className={css.note} tone="attention" icon="arrow-up" title={`ws ${up.latest} is out`}>
+        <Callout className={css.note} tone="attention" icon="arrow-up" title={`Workspace ${up.latest} is out`}>
           Running {shortVersion(up.version)}, built from source: pull and run <Text mono>just build</Text> to
           update. {notes}
         </Callout>
@@ -110,7 +110,7 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
             )}
             <Text dim> · {up.checks ? "checked daily" : "automatic checks off"}</Text>
           </span>
-          <Button size="small" onClick={onLook} disabled={!!busy} title="Check for ws and plugin updates">
+          <Button size="small" onClick={onLook} disabled={!!busy} title="Check for Workspace and plugin updates">
             {busy === "look" ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {busy === "look" ? "Checking…" : "Check now"}
           </Button>
         </SettingsFact>

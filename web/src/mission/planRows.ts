@@ -99,7 +99,7 @@ export function waitHow(s: Stage): WaitHow | undefined {
 export function watchWords(s: Stage, at: (iso: string) => string): string {
   const w = s.watch;
   if (!w?.looked) return "Not checked yet";
-  return `ws last looked ${at(w.looked)}${w.came ? `: ${w.came}` : ""}`;
+  return `Last checked ${at(w.looked)}${w.came ? `: ${w.came}` : ""}`;
 }
 
 // stepKind is a plan's step's kind as an icon and a word. A brief's stage
