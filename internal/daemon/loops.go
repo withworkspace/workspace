@@ -478,6 +478,18 @@ var (
 // once, until what stops it does). What landed on each is heard as
 // events (HearGrounds).
 func (d *daemon) followGroundsLoop(logf func(string, ...any), stop <-chan struct{}) {
+	// Where each ground is, heard at once: a move since the daemon last
+	// ran is heard now, and one from now on (the keeper hears it as it's
+	// made) is heard from here, not taken for the first look.
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		if heard, err := d.w.HearGrounds(ctx); err != nil {
+			logf("events: %v", err)
+		} else if len(heard) > 0 {
+			logf("events: heard %d from the grounds", len(heard))
+		}
+		cancel()
+	}
 	t := time.NewTimer(followGroundsFirst)
 	defer t.Stop()
 	said := map[string]string{} // repo → why it couldn't be followed, as last logged
