@@ -93,6 +93,9 @@ func Run(s Spec) (harness.Report, error) {
 		c.Cancel = func() error { return syscall.Kill(-c.Process.Pid, syscall.SIGKILL) }
 		c.WaitDelay = waitDelay
 		c.Stdout, c.Stderr = stdout, stderr
+		if l.Stdin != "" {
+			c.Stdin = strings.NewReader(l.Stdin)
+		}
 		if err := c.Start(); err != nil {
 			execlog.Start(s.Root, s.Who, c.Args, c.Dir, c.Env, 0)
 			execlog.Note(s.Root, s.Who, "failed to start: %v", err)
@@ -100,6 +103,9 @@ func Run(s Spec) (harness.Report, error) {
 		}
 		pid = c.Process.Pid
 		execlog.Start(s.Root, s.Who, c.Args, c.Dir, c.Env, pid)
+		if l.Stdin != "" {
+			execlog.Note(s.Root, s.Who, "its prompt on stdin, %d bytes: %s", len(l.Stdin), l.Stdin)
+		}
 		err = c.Wait()
 	}
 	switch {

@@ -114,7 +114,8 @@ func (c *Cursor) Start(b Brief) (Launch, error) {
 	}
 	// The opening prompt is typed in once the agent has drawn (see
 	// Launch.Prompt), not passed as an argument: a long multi-line prompt
-	// argument got new crew killed before they rendered.
+	// argument got new crew killed before they rendered (a long command
+	// line can get cursor-agent killed: see Converse).
 	return Launch{Args: args, Dir: b.Dir, Conversation: conv, Prompt: b.Prompt, Notes: []string{note}}, nil
 }
 
@@ -195,5 +196,6 @@ func (c *Cursor) Orchestrate(r OrchestratorRun) (Launch, error) {
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}
-	return Launch{Args: append(args, "--", r.OnCommandLine()), Dir: dir, Stream: StreamCursor}, nil
+	// The whole prompt, on stdin, as a conversation's is (Converse).
+	return Launch{Args: args, Stdin: r.Prompt, Dir: dir, Stream: StreamCursor}, nil
 }

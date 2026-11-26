@@ -112,6 +112,13 @@ func (c *Cursor) ConverseModel() string { return CursorConverseModel }
 // outside that folder. So ws runs it in a folder of its own (Scratch),
 // whose cli.json allows converseCommands: one folder per list, as a
 // thread and a talk may run at once, allowed different things.
+// The prompt goes on stdin, which -p reads when no prompt is given
+// (VERIFIED: with none there either, "No prompt provided for print mode").
+// VERIFIED (cursor-agent 2026.11.22, a Mac with an endpoint-security agent): with a
+// long command line it's killed as it starts, "signal: killed" after
+// ~100ms with no output and nothing in the system log: 14 of 15 starts
+// with ~19 KB of filler as its prompt argument, 15 of 15 with a real ws
+// prompt, none of 15 with that prompt on stdin.
 // VERIFIED: --resume of a chat that isn't there starts an empty one with
 // that id, saying nothing; chats are kept in ~/.cursor/chats/<hash>/<id>,
 // so ws looks for it first.
@@ -137,7 +144,7 @@ func (c *Cursor) Converse(r ConverseRun) (Launch, error) {
 	if r.Session != "" {
 		args = append(args, "--resume", r.Session)
 	}
-	return Launch{Args: append(args, "--", r.Prompt), Dir: dir, Stream: StreamCursor, Conversation: r.Session}, nil
+	return Launch{Args: args, Stdin: r.Prompt, Dir: dir, Stream: StreamCursor, Conversation: r.Session}, nil
 }
 
 // writeCursorPermissions writes a .cursor/cli.json allowing the shell

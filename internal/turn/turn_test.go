@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -56,5 +57,21 @@ func TestRun_EndedWithItsLife(t *testing.T) {
 	// One asked for once its life's over isn't started.
 	if _, err := Run(Spec{Life: life, Launch: harness.Launch{Args: []string{"/bin/true"}}, Timeout: time.Minute, Root: dir, Who: "test"}); !errors.Is(err, ErrEnded) {
 		t.Errorf("after its life: err = %v, want ErrEnded", err)
+	}
+}
+
+// A launch's Stdin is what the agent reads (a prompt kept off its command
+// line), and the exec log says it went there.
+func TestRun_Stdin(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ws"), 0o755)
+	tee := &strings.Builder{}
+	_, err := Run(Spec{Launch: harness.Launch{Args: []string{"/bin/cat"}, Stdin: "the prompt\nwhole"}, Timeout: time.Minute, Root: dir, Who: "test", Tee: tee})
+	if err != nil || tee.String() != "the prompt\nwhole" {
+		t.Errorf("read %q, %v", tee.String(), err)
+	}
+	log, _ := os.ReadFile(filepath.Join(dir, ".ws", "exec.log"))
+	if !strings.Contains(string(log), "its prompt on stdin, 16 bytes") {
+		t.Errorf("exec log:\n%s", log)
 	}
 }

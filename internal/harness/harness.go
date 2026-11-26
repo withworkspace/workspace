@@ -79,6 +79,9 @@ type Launch struct {
 	// Typing it in avoids relying on how a CLI treats a long multi-line
 	// prompt argument.
 	Prompt string
+	// Stdin, when set, is a headless run's input: its prompt, for a CLI
+	// that reads one there, kept off its command line.
+	Stdin string
 	// Notes say what the harness ran getting ready (and how it went), for
 	// the exec log: a chat id fetched, or why there isn't one.
 	Notes []string
@@ -328,10 +331,10 @@ type OrchestratorRun struct {
 }
 
 // OnCommandLine is the prompt as a harness that's given it on a command
-// line takes it: the line pointing at its file where there's one, as a
-// long, multi-line argument gets cursor-agent killed and could pass the
-// argument size limit. An ACP agent is sent the prompt itself (Prompt):
-// read from a file, it costs the agent a turn first, every run.
+// line takes it (pi): the line pointing at its file where there's one, as
+// a long argument could pass the argument size limit. Cursor's CLI and an
+// ACP agent are sent the prompt itself (Prompt), on stdin: read from a
+// file, it costs the agent a turn first, every run.
 func (r OrchestratorRun) OnCommandLine() string {
 	if r.Pointer != "" {
 		return r.Pointer
