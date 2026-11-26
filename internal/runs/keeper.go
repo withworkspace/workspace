@@ -63,6 +63,39 @@ type Keeper struct {
 	pending map[string]time.Time
 	all     string
 	places  map[string]string // each place's stamp (StampIn), by its folder
+
+	// changes are what's happened to the runs since Changes was last
+	// asked, from the second look on: the first only notes how they stand.
+	changes []Change
+	looked  bool
+}
+
+// Change is something that happened to a run, as the keeper saw it.
+type Change struct {
+	// Kind is Started, Up or Ended.
+	Kind string
+	Run  Run
+	// Status is how an ended one ended: passed, failed (exit 1), stopped
+	// (ws stopped it, or its folder was cleared away while it ran), or
+	// gone (its process went without saying).
+	Status string
+	At     time.Time
+}
+
+// The kinds of Change.
+const (
+	Started = "started"
+	Up      = "up"
+	Ended   = "ended"
+)
+
+// Changes is what's happened to the runs since it was last asked.
+func (k *Keeper) Changes() []Change {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	out := k.changes
+	k.changes = nil
+	return out
 }
 
 // keptRun is what's kept of one run.
@@ -79,6 +112,21 @@ type keptRun struct {
 	// asked at upAt.
 	alive, up bool
 	upAt      time.Time
+	// phase is how it stood when last noted (Started, Up, Ended), and
+	// pid and n the run it was then: another in its folder is a new run.
+	phase  string
+	pid, n int
+}
+
+// phaseOf is how r stands now.
+func (r *keptRun) phaseOf() string {
+	switch {
+	case !r.running() || !r.alive:
+		return Ended
+	case !r.rec.IsTask() && r.rec.Port > 0 && r.up:
+		return Up
+	}
+	return Started
 }
 
 func (r *keptRun) running() bool { return r.exit == 0 }
@@ -213,12 +261,76 @@ func (k *Keeper) Look(now time.Time) bool {
 			}
 		}
 	}
-	for dir := range k.runs {
+	for dir, r := range k.runs {
 		if !seen[dir] {
+			if k.looked && r.phase != "" && r.phase != Ended {
+				k.changes = append(k.changes, Change{Kind: Ended, Run: r.run(), Status: "stopped", At: now})
+			}
 			delete(k.runs, dir)
 		}
 	}
+	k.note(now)
+	k.looked = true
 	return k.restamp()
+}
+
+// note notes how each run stands, keeping what's happened to it since it
+// was last noted as changes (from the second look on). k.mu is held.
+func (k *Keeper) note(now time.Time) {
+	for _, r := range k.runs {
+		if r.phase != "" && (r.rec.PID != r.pid || r.rec.N != r.n) {
+			// Another run in its folder (a task run again): the one that was
+			// there has ended.
+			if k.looked && r.phase != Ended {
+				k.changes = append(k.changes, Change{Kind: Ended, Run: r.run(), Status: "stopped", At: now})
+			}
+			r.phase = ""
+		}
+		r.pid, r.n = r.rec.PID, r.rec.N
+		was, is := r.phase, r.phaseOf()
+		r.phase = is
+		if !k.looked || was == is {
+			continue
+		}
+		switch {
+		case was == "" && is != Ended:
+			k.changes = append(k.changes, Change{Kind: Started, Run: r.run(), At: now})
+			if is == Up {
+				k.changes = append(k.changes, Change{Kind: Up, Run: r.run(), At: now})
+			}
+		case is == Up:
+			k.changes = append(k.changes, Change{Kind: Up, Run: r.run(), At: now})
+		case is == Ended:
+			if was == "" { // started and ended between two looks
+				k.changes = append(k.changes, Change{Kind: Started, Run: r.run(), At: now})
+			}
+			k.changes = append(k.changes, Change{Kind: Ended, Run: r.run(), Status: r.ending(), At: now})
+		}
+	}
+}
+
+// run is r as a Run.
+func (r *keptRun) run() Run {
+	state := Running
+	if !r.running() {
+		state = Exited
+	}
+	return Run{Record: r.rec, Path: r.dir, State: state}
+}
+
+// ending is how r ended, as its folder says.
+func (r *keptRun) ending() string {
+	if b, err := os.ReadFile(filepath.Join(r.dir, stoppedFile)); err == nil && len(b) > 0 {
+		return "stopped"
+	}
+	b, err := os.ReadFile(filepath.Join(r.dir, exitFile))
+	if err != nil {
+		return "gone"
+	}
+	if code := strings.TrimSpace(string(b)); code != "0" {
+		return "failed (exit " + code + ")"
+	}
+	return "passed"
 }
 
 // Probe asks after what no file says: each running run's process, a
@@ -245,6 +357,9 @@ func (k *Keeper) Probe(now time.Time) (moved bool, next time.Duration) {
 		if !r.up && r.alive {
 			next = ProbeStarting
 		}
+	}
+	if k.looked {
+		k.note(now)
 	}
 	return k.restamp(), next
 }
