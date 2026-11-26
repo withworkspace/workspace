@@ -94,6 +94,9 @@ const (
 	ByYou          = "you"
 	ByOrchestrator = "orchestrator"
 	ByWS           = "ws"
+	// ByGitHub is for what GitHub says happened without saying who did
+	// it (your review asked for, a pull request approved).
+	ByGitHub = "github"
 )
 
 // ByCrew is crew id, as By says it.
