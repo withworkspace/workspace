@@ -228,7 +228,8 @@ func CrewNames() []string {
 // Converser is a harness that can hold a conversation headless: each turn
 // is a run that resumes the conversation's session with the new message,
 // reads what it needs, and replies with its final message. It may only
-// read, unless its shell is sandboxed (Sandboxer).
+// read, unless it runs things (RunsThings): in a sandbox of its own
+// (Sandboxer), or trusted to, ws answering what it asks (Trusted).
 type Converser interface {
 	Harness
 	// Converse builds the headless command for one turn.
@@ -265,13 +266,20 @@ type ConverseRun struct {
 	// what to do, of a ws or gh command that isn't on it. nil leaves it to
 	// them.
 	Guard []string
-	// Sandbox is a run whose shell runs what it likes in the harness's own
-	// sandbox (a Sandboxer that can here): it reads anything, reaches the
-	// network, and writes only in Write and Beside, the system's temp
-	// folder, and nowhere else under Dir. Only the commands it's allowed
-	// (converseCommands: ws, gh) leave the sandbox. A harness with none runs
-	// it as it would without: reading, and the commands allowed.
+	// Sandbox is a run whose shell runs what it likes (RunsThings). In the
+	// harness's own sandbox (a Sandboxer that can here) it reads anything,
+	// reaches the network, and writes only in Write and Beside, the
+	// system's temp folder, and nowhere else under Dir; only the commands
+	// it's allowed (converseCommands: ws, gh) leave the sandbox. A harness
+	// trusted to run things (Trusted) has no sandbox: ws answers what it
+	// asks, allowing any command but a ws or gh one that isn't allowed, and
+	// writes by its tools only in Folders. A harness that's neither runs it
+	// as it would without: reading, and the commands allowed.
 	Sandbox bool
+	// Folders are where its tools may write files, as they stand when it's
+	// asked (a capsule lifted a moment ago is there): a trusted harness's
+	// writes are judged by them (ConversePolicy).
+	Folders func() []string
 	// Write are the folders it works in: one of its own, and the capsules
 	// its conversation lifted. Beside are what its shell writes besides:
 	// git's own folders for the repos' capsules, and where tools keep
@@ -299,6 +307,26 @@ type Sandboxer interface {
 func Sandboxes(h Harness) bool {
 	s, ok := h.(Sandboxer)
 	return ok && s.Sandboxes()
+}
+
+// Truster is a harness ws lets run a conversation's shell with no sandbox
+// of its own: it asks ws before each command and each write outside its
+// session's folder, and ws answers (ConversePolicy). The user's call, of
+// Cursor: they trust it as they do crew, who run there the same way.
+type Truster interface {
+	// Trusted is whether its conversations run things unsandboxed.
+	Trusted() bool
+}
+
+// RunsThings is whether h's conversations that talk run things (any
+// command, writes in their own capsules), in a sandbox of its own or
+// trusted to: those of a harness that's neither only read.
+func RunsThings(h Harness) bool {
+	if Sandboxes(h) {
+		return true
+	}
+	t, ok := h.(Truster)
+	return ok && t.Trusted()
 }
 
 // Orchestrator is a harness that can run a one-shot, headless agent: a

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -47,8 +48,15 @@ type ACPRun struct {
 	Settings []acp.Setting `json:"settings,omitempty"`
 	// Allow are the shell commands it may run outside its sandbox, each
 	// the start of a command run alone (CommandPolicy).
-	Allow  []string `json:"allow,omitempty"`
-	Prompt string   `json:"prompt"`
+	Allow []string `json:"allow,omitempty"`
+	// Runs is a conversation's run that runs things with no sandbox
+	// (ConverseRun.Sandbox on a Truster): any command but a ws or gh one
+	// Allow doesn't allow, and edits in Folders (ConversePolicy). Folders
+	// are asked as they stand, so a run held in another process (`ws acp
+	// run`) has none, and edits nothing.
+	Runs    bool            `json:"runs,omitempty"`
+	Folders func() []string `json:"-"`
+	Prompt  string          `json:"prompt"`
 	// Auth is the auth method to sign in by first ("" for none).
 	Auth string `json:"auth,omitempty"`
 	// Answers are what the agent's own requests (an extension's, by
@@ -195,6 +203,9 @@ func RunACP(ctx context.Context, r ACPRun, out, errOut io.Writer) error {
 	var mu sync.Mutex
 	var refused []string
 	policy := CommandPolicy(r.Allow)
+	if r.Runs {
+		policy = ConversePolicy(r.Allow, r.Folders)
+	}
 	ag, err := acp.Run(ctx, acp.Options{
 		Command:  acp.Command{Args: r.Agent, Dir: r.Dir, Env: append(r.base(), r.Env...), Stderr: errOut},
 		Session:  acp.SessionParams{Dir: r.Dir, Dirs: r.Dirs},
@@ -309,6 +320,104 @@ func CommandPolicy(allow []string) acp.Policy {
 		}
 		return acp.Reject(r), true
 	}
+}
+
+// ConversePolicy answers a conversation's run that runs things with no
+// sandbox of its harness's own (ACPRun.Runs), with nobody there to: a
+// shell command runs, piped and chained as it likes, unless it runs ws or
+// gh (runsOutside) and isn't one of allow, run alone; an edit, a delete or
+// a move is made where every path it names is in one of folders() (asked
+// as they stand: a capsule lifted a moment ago is there), and refused
+// anywhere else, or where it names none ws can find; a read, a search or
+// a fetch is made. Anything else is as CommandPolicy answers it.
+//
+// It's a policy, not a sandbox: it reads a command's text, as Claude
+// Code's guard does (GuardAnswer), and what a command it lets run then
+// does is that command's. So a script that runs gh inside it, or a write
+// by the shell outside folders, isn't stopped: the agent's told where to
+// keep to. The user's call, trusting Cursor as they do its crew.
+func ConversePolicy(allow []string, folders func() []string) acp.Policy {
+	strict := CommandPolicy(allow)
+	return func(a acp.Ask) (acp.Answer, bool) {
+		if a.Permission == nil {
+			return strict(a)
+		}
+		r := *a.Permission
+		if cmd, ok := permissionCommand(r.ToolCall); ok && (r.ToolCall.Kind == "execute" || r.ToolCall.Kind == "") {
+			if commandAllowed(cmd, allow) || runsOutside(cmd) == "" {
+				return acp.Allow(r), true
+			}
+			return acp.Reject(r), true
+		}
+		switch r.ToolCall.Kind {
+		case "edit", "delete", "move":
+			var dirs []string
+			if folders != nil {
+				dirs = folders()
+			}
+			paths := permissionPaths(r.ToolCall)
+			if len(paths) == 0 {
+				return acp.Reject(r), true
+			}
+			for _, p := range paths {
+				if !within(p, dirs) {
+					return acp.Reject(r), true
+				}
+			}
+			return acp.Allow(r), true
+		case "read", "search", "fetch", "think":
+			return acp.Allow(r), true
+		}
+		return strict(a)
+	}
+}
+
+// permissionPaths are the files a permission to edit, delete or move is
+// asked for: its locations, the paths in its input and its diffs, and,
+// where there are none of those, the path its title names (Cursor's:
+// "Edit `/w/a.go`", "Write /w/new.go"). Only paths in full: one that
+// isn't can't be placed, and isn't allowed.
+func permissionPaths(tc acp.SessionUpdate) []string {
+	var out []string
+	add := func(p string) {
+		if p != "" && !slices.Contains(out, p) {
+			out = append(out, p)
+		}
+	}
+	for _, l := range tc.Locations {
+		add(l.Path)
+	}
+	var in map[string]any
+	if json.Unmarshal(tc.RawInput, &in) == nil {
+		for _, k := range []string{"path", "file_path", "filePath", "filepath", "target", "target_path", "source", "source_path", "destination", "new_path", "old_path", "notebook_path"} {
+			if v, ok := in[k].(string); ok {
+				add(v)
+			}
+		}
+	}
+	var content []struct {
+		Type string `json:"type"`
+		Path string `json:"path"`
+	}
+	if json.Unmarshal(tc.Content, &content) == nil {
+		for _, c := range content {
+			if c.Type == "diff" {
+				add(c.Path)
+			}
+		}
+	}
+	if len(out) == 0 && tc.Title != nil {
+		if _, rest, ok := strings.Cut(strings.TrimSpace(*tc.Title), " "); ok {
+			add(strings.Trim(strings.TrimSpace(rest), "`"))
+		}
+	}
+	for i, p := range out {
+		if !filepath.IsAbs(p) {
+			return nil // somewhere ws can't place: not allowed
+		}
+		out[i] = filepath.Clean(p)
+	}
+	return out
 }
 
 // CrewPolicy answers what crew's agent asks that ws may answer for you: a

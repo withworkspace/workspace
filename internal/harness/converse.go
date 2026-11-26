@@ -24,7 +24,9 @@ var ErrSessionGone = errors.New("its session is gone")
 // Where the harness has a sandbox for its shell (a Sandboxer: Claude
 // Code), a run that asks for it (ConverseRun.Sandbox) runs anything there,
 // and the list is only what leaves the sandbox: ws, which keeps the
-// workspace's records, and gh, which needs your login.
+// workspace's records, and gh, which needs your login. Where it's trusted
+// to run things with none (a Truster: Cursor over ACP), the list is the
+// ws and gh it may run, and anything else runs (ConversePolicy).
 
 // converseCommands are the shell commands a conversation's agent may run,
 // each the start of a command run alone (nothing chained): reading, ws
@@ -36,7 +38,8 @@ var ErrSessionGone = errors.New("its session is gone")
 // edit to the brief or the plan, crew, a replan by the mission's planner,
 // a review comment, a document of one of the workspace's kinds (or an
 // edit to one), or an artifact (or a version of one), and, where it may
-// (Lift), lifting a capsule for its conversation. Each proposal is the
+// (Lift), lifting a capsule for its conversation, or docking one on a
+// branch that's on the remote (a pull request's). Each proposal is the
 // --propose form of the verb that would do it, with --propose first: the
 // verb alone isn't allowed, and refuses a conversation's agent besides.
 // Every conversation also runs the plugins' commands their plugins marked
@@ -51,7 +54,7 @@ func converseCommands(r ConverseRun) []string {
 				ws+" mission brief --propose", ws+" mission plan --propose", ws+" mission plan --format", ws+" mission dispatch --propose", ws+" mission replan --propose", ws+" pr comment --propose",
 				ws+" doc add --propose", ws+" doc amend --propose", ws+" artifact add --propose", ws+" conversation withdraw", ws+" propose")
 			if r.Lift {
-				out = append(out, ws+" lift")
+				out = append(out, ws+" lift", ws+" dock")
 			}
 		} else {
 			out = append(out, ws+" thread suggest")

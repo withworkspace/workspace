@@ -59,6 +59,9 @@ type Capsule struct {
 	IDEErr      error  // the editor's workspace files couldn't be written
 	Mission     string // the mission it was to join
 	AttachErr   error  // why it didn't join it
+	// Joined is one that was there already, which a conversation's agent
+	// took on rather than made (joinForConversation).
+	Joined bool
 }
 
 // Lift makes a capsule for new work: branch, from base ("" for the

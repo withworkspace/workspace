@@ -69,7 +69,7 @@ func TestTalk_Sandboxed(t *testing.T) {
 		t.Errorf("its later turn: %s", next)
 	}
 
-	h.Sandbox = &Sandbox{Own: "/tmp/ws-1/workspace/w3"}
+	h.Sandbox = &Sandbox{Own: "/tmp/ws-1/workspace/w3", Confined: true}
 	p := TalkFirst(h, talk)
 	for _, want := range []string{
 		"run what you like: your shell is in a sandbox",
@@ -79,9 +79,14 @@ func TestTalk_Sandboxed(t *testing.T) {
 		"`ws` and `gh` run outside the sandbox, so each runs on its own",
 		"gh run list|view",
 		"`ws lift <repo> <name>`",
-		"It's this conversation's, not a mission's:",
+		"`ws dock <repo> <PR number or branch>`",
+		"joins it: you work in it as it is",
+		"it's this conversation's, not a mission's:",
 		"put away when the user puts this conversation away",
-		"don't push it or open a pull request",
+		"one you joined is left where it is",
+		"Push when the user asks you to, and only then: `git push` from the capsule",
+		"Don't force a push unless they've said to",
+		"Opening a pull request isn't a conversation's",
 		"propose a mission (`ws mission new --propose`, below) whose brief says what you did and names the branch",
 		"What's the workspace's (its missions, decisions, documents and artifacts) you don't change yourself, but you can propose",
 	} {
@@ -104,15 +109,40 @@ func TestTalk_Sandboxed(t *testing.T) {
 
 	// With capsules, it's told which are there and which were put away;
 	// and one that can't lift, why not, with no way to.
-	h.Sandbox = &Sandbox{Own: "/tmp/ws-1/workspace/w3",
-		Capsules: []SandboxCapsule{{Repo: "api", Name: "parallel-tests", Branch: "parallel-tests", Path: "/ws/repos/api/parallel-tests"}},
-		Away:     []SandboxCapsule{{Repo: "web", Name: "vitest-pool", Branch: "vitest-pool"}}}
+	h.Sandbox = &Sandbox{Own: "/tmp/ws-1/workspace/w3", Confined: true,
+		Capsules: []SandboxCapsule{{Repo: "api", Name: "parallel-tests", Branch: "parallel-tests", Path: "/ws/repos/api/parallel-tests"},
+			{Repo: "web", Name: "bump-vite", Branch: "deps/bump-vite", Path: "/ws/repos/web/bump-vite", Joined: true}},
+		Away: []SandboxCapsule{{Repo: "web", Name: "vitest-pool", Branch: "vitest-pool"}, {Repo: "api", Name: "hand-lifted", Branch: "hand-lifted", Joined: true}}}
 	next := TalkNext(h, talk)
 	for _, want := range []string{"Your shell is in a sandbox", "If your first message said you may only read", "ws lift <repo> <name> [<branch>]",
-		"- api/parallel-tests, at /ws/repos/api/parallel-tests (branch parallel-tests)", "- web/vitest-pool: `ws lift web vitest-pool` brings it back"} {
+		"`ws dock <repo> <PR number or branch>`", "Push its branch when the user asks you to",
+		"- api/parallel-tests, at /ws/repos/api/parallel-tests (branch parallel-tests)",
+		"- web/bump-vite, at /ws/repos/web/bump-vite (branch deps/bump-vite, joined: it was there already)",
+		"- web/vitest-pool: `ws lift web vitest-pool` brings it back",
+		"- api/hand-lifted, joined and left where it was: `ws lift api hand-lifted` joins it again"} {
 		if !strings.Contains(next, want) {
 			t.Errorf("a later turn doesn't say %q:\n%s", want, next)
 		}
+	}
+
+	// A shell with no sandbox of its harness's own (a trusted harness's:
+	// Cursor's) runs things just the same, and is told where to keep to,
+	// not that a sandbox stops it.
+	h.Sandbox = &Sandbox{Own: "/tmp/ws-1/workspace/w3"}
+	p = TalkFirst(h, talk)
+	for _, want := range []string{"You can read anything here, and run what you like.", "your shell isn't stopped, so keep to these places yourself",
+		"`ws` and `gh` each run on their own, as one command", "`ws dock <repo> <PR number or branch>`", "Push when the user asks you to"} {
+		if !strings.Contains(p, want) {
+			t.Errorf("an unsandboxed agent isn't told %q:\n%s", want, p)
+		}
+	}
+	for _, never := range []string{"sandbox", "operation not permitted", "change nothing:"} {
+		if strings.Contains(p, never) {
+			t.Errorf("an unsandboxed agent is told %q", never)
+		}
+	}
+	if next := TalkNext(h, talk); strings.Contains(next, "sandbox") || !strings.Contains(next, "Your shell runs any command") {
+		t.Errorf("an unsandboxed agent's later turn: %s", next)
 	}
 	h.Sandbox = &Sandbox{Own: "/tmp/x", NoLift: "this is an ask nobody's kept"}
 	if p := TalkFirst(h, talk); !strings.Contains(p, "You can't lift a capsule here: this is an ask nobody's kept.") || strings.Contains(p, "`ws lift <repo> <name>` makes") {
