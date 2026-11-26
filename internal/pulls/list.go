@@ -84,6 +84,10 @@ type PR struct {
 	Files     int `json:"files"`
 	// Checks is success, failure, pending, or "" for none.
 	Checks string `json:"checks,omitempty"`
+	// Merges is whether it merges cleanly into its base: clean, conflicts,
+	// or "" while GitHub hasn't said (it works it out once asked, and
+	// again after the base moves).
+	Merges string `json:"merges,omitempty"`
 	// Decision is GitHub's: approved, changes_requested, review_required,
 	// or "" where no review is needed.
 	Decision string `json:"decision,omitempty"`
@@ -350,6 +354,18 @@ func ifMerges(gp github.PR, words string) (state, why string) {
 	return Ready, words
 }
 
+// mergesOf is GitHub's word on whether a pull request merges cleanly,
+// as a PR says it: clean, conflicts, or "" while it's still unknown.
+func mergesOf(mergeable string) string {
+	switch mergeable {
+	case "MERGEABLE":
+		return "clean"
+	case "CONFLICTING":
+		return "conflicts"
+	}
+	return ""
+}
+
 // since is how long b is after a (RFC 3339 times), or 0 when it can't be
 // told.
 func since(a, b string) time.Duration {
@@ -452,6 +468,7 @@ func repoRows(me string, rp repoPRs, askedOf map[string]bool, local Local) []Row
 			Head: gp.HeadRefOid, Draft: gp.IsDraft, Bot: gp.Bot, Fork: gp.IsCrossRepository, Mine: sameLogin(gp.Author, me),
 			Additions: gp.Additions, Deletions: gp.Deletions, Files: gp.ChangedFiles, Checks: gp.StatusRollup,
 			Decision: strings.ToLower(gp.ReviewDecision), Created: gp.CreatedAt, Updated: gp.UpdatedAt,
+			Merges: mergesOf(gp.Mergeable),
 		}
 		p.State, p.Words, p.Asked, p.Reviewed = classify(gp, me, askedOf[p.Ref()])
 		key := rp.repo + "/" + gp.HeadRefName

@@ -1,0 +1,55 @@
+/* A review's way back, the side's first row (ReviewSideBack.tsx): as tall
+   as the bar over the pane (40px, its rule counted), so the rules meet.
+   It stays as the list scrolls under it. */
+
+.back {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px 0 10px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 6px 3px 4px;
+  border-radius: var(--radius);
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.link:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.icon {
+  flex: none;
+}
+
+.words {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keys {
+  flex: none;
+  opacity: 0.7;
+}

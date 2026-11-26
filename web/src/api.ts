@@ -572,6 +572,7 @@ export interface ReviewNote {
   // proposed and you added), or a login (someone's on a pull request).
   by?: string;
   url?: string; // where it is on GitHub
+  at?: string; // when it was said: in a draft here, or first on GitHub
   suggestion?: string | null;
   status: NoteStatus;
   // sending (a reply, or the comment's status): made here, in a pull
@@ -1661,6 +1662,8 @@ export interface PR {
   deletions: number;
   files: number;
   checks?: "success" | "failure" | "pending";
+  // Whether it merges cleanly into its base: unknown ("") until GitHub says.
+  merges?: "clean" | "conflicts";
   decision?: string;
   created?: string;
   updated?: string;

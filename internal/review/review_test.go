@@ -39,7 +39,7 @@ func TestDraftAndNotes(t *testing.T) {
 		t.Fatalf("draft = %+v", r)
 	}
 	c := r.Comments[0]
-	if c.ID != "r1.c1" || c.Commit != d.Head || strings.Join(c.Excerpt, "|") != "func key(tenant, id string) string {|\treturn tenant + \"/\" + id" || c.Status != "open" {
+	if c.ID != "r1.c1" || c.Commit != d.Head || strings.Join(c.Excerpt, "|") != "func key(tenant, id string) string {|\treturn tenant + \"/\" + id" || c.Status != "open" || !c.At.Equal(at) {
 		t.Errorf("comment = %+v", c)
 	}
 	// The old side's lines come from the base.

@@ -88,6 +88,22 @@ export function pickedRows(rows: Keyed[], pick?: DiffPick): { from: number; to: 
 // unchanged.
 export const unifiedKind = (r: DiffLineRow): DiffCell["kind"] => (r.left && !r.right ? "d" : r.right && !r.left ? "a" : "c");
 
+// bandAt is the kind of change a row of the page's own (a comment) sits
+// in, in one column: that of the lines either side of it, past any other
+// rows of the page's, where both are added or both removed. Next to a
+// gap, a note or the file's ends, or between two kinds, it's in none.
+export function bandAt<R extends Keyed>(rows: R[], n: number): "a" | "d" | undefined {
+  const theirs = (r: R) => !isLine(r) && !isGap(r) && !isNote(r);
+  let i = n - 1;
+  while (i >= 0 && theirs(rows[i])) i--;
+  let j = n + 1;
+  while (j < rows.length && theirs(rows[j])) j++;
+  const [a, b] = [rows[i], rows[j]];
+  if (!a || !b || !isLine(a) || !isLine(b)) return undefined;
+  const kind = unifiedKind(a);
+  return kind !== "c" && kind === unifiedKind(b) ? kind : undefined;
+}
+
 // digitsOf is how many digits the widest line number among the rows has
 // (two at least), for the width of their column.
 export function digitsOf(rows: Keyed[]): number {

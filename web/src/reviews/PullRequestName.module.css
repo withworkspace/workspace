@@ -1,18 +1,21 @@
-/* A pull request's name, in its review's head (PullRequestName.tsx). */
+/* A pull request's name, in its review's bar (PullRequestName.tsx): one
+   line, the title giving way before its place in the stack does. */
 
 .name {
   display: inline-flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-.ref {
-  font-family: var(--mono);
-  font-size: var(--text-md);
-  font-weight: 400;
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chip {
-  align-self: center;
+  flex: none;
+  font-weight: 400;
 }

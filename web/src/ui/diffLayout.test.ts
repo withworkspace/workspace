@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type DiffRow, digitsOf, pickedRows, pickFrom, unifiedKind } from "./diffLayout";
+import { bandAt, type DiffRow, digitsOf, type Keyed, pickedRows, pickFrom, unifiedKind } from "./diffLayout";
 
 const cell = (num: number, kind: "c" | "a" | "d" = "c") => ({ num, text: `line ${num}`, kind });
 
@@ -49,5 +49,29 @@ describe("digitsOf", () => {
     expect(digitsOf(rows)).toBe(4);
     expect(digitsOf(rows.slice(0, 3))).toBe(2);
     expect(digitsOf([])).toBe(2);
+  });
+});
+
+describe("bandAt", () => {
+  // A comment's row is any row that isn't a line, a gap or a note.
+  const said = (key: string): Keyed => ({ type: "comment", key });
+  const added = (n: number): DiffRow => ({ type: "line", key: `n${n}`, right: cell(n, "a") });
+  const removed = (n: number): DiffRow => ({ type: "line", key: `o${n}`, left: cell(n, "d") });
+
+  it("is the kind of change a comment sits in, when the lines either side are one kind", () => {
+    expect(bandAt([added(1), said("c1"), added(2)], 1)).toBe("a");
+    expect(bandAt([removed(1), said("c1"), removed(2)], 1)).toBe("d");
+  });
+
+  it("looks past other comments beside it, so two together are both in it", () => {
+    const run = [added(1), said("c1"), said("c2"), added(2)];
+    expect([bandAt(run, 1), bandAt(run, 2)]).toEqual(["a", "a"]);
+  });
+
+  it("is none between two kinds, beside unchanged lines, a gap, or the file's end", () => {
+    expect(bandAt([removed(1), said("c1"), added(1)], 1)).toBeUndefined();
+    expect(bandAt([rows[1], said("c1"), rows[1]], 1)).toBeUndefined();
+    expect(bandAt([added(1), said("c1"), rows[0]], 1)).toBeUndefined();
+    expect(bandAt([added(1), said("c1")], 1)).toBeUndefined();
   });
 });

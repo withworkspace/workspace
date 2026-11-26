@@ -3753,6 +3753,12 @@ export interface PullsPR {
      */
     checks?: string;
     /**
+     * Merges is whether it merges cleanly into its base: clean, conflicts,
+     * or "" while GitHub hasn't said (it works it out once asked, and
+     * again after the base moves).
+     */
+    merges?: string;
+    /**
      * Decision is GitHub's: approved, changes_requested, review_required,
      * or "" where no review is needed.
      */
@@ -4263,6 +4269,11 @@ export interface ReviewNote {
      */
     by?: string;
     url?: string;
+    /**
+     * At is when it was said: made in a draft here, or its first comment
+     * on GitHub. Notes kept before it was have none.
+     */
+    at?: string;
     /**
      * Suggestion replaces the lines, when set ("" suggests deleting them).
      */

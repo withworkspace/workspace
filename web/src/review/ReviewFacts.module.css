@@ -1,0 +1,10 @@
+/* What's said of a review in a card (ReviewFacts.tsx), under a rule. */
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}

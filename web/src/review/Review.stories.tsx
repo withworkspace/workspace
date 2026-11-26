@@ -10,21 +10,21 @@ import { escapeHTML, highlightLines, languageOf, useHighlighter } from "./highli
 import { fileRows } from "./model";
 import { ReviewComment } from "./ReviewComment";
 import { ReviewCommon } from "./ReviewCommon";
-import { ReviewCommits } from "./ReviewCommits";
+import { ReviewBar } from "./ReviewBar";
+import { ReviewChangesBar } from "./ReviewChangesBar";
+import { ReviewCommitCount } from "./ReviewCommitCount";
 import { ReviewEarlier } from "./ReviewEarlier";
 import { ReviewFile } from "./ReviewFile";
 import { ReviewFileJump } from "./ReviewFileJump";
 import { ReviewFinding } from "./ReviewFinding";
 import { ReviewFindingActions } from "./ReviewFindingActions";
 import { ReviewGuideGroup } from "./ReviewGuideGroup";
-import { ReviewHead } from "./ReviewHead";
 import { ReviewLayout } from "./ReviewLayout";
 import { ReviewLines } from "./ReviewLines";
 import { ReviewNoteEditor } from "./ReviewNoteEditor";
 import { ReviewOrphanPath } from "./ReviewOrphanPath";
 import { ReviewOrphans } from "./ReviewOrphans";
 import { ReviewProgress } from "./ReviewProgress";
-import { ReviewScope } from "./ReviewScope";
 import { ReviewSelectBar } from "./ReviewSelectBar";
 import { ReviewStatus } from "./ReviewStatus";
 import { ReviewSubmit } from "./ReviewSubmit";
@@ -35,10 +35,11 @@ import { ReviewViewRow } from "./ReviewViewRow";
 import { ReviewViews } from "./ReviewViews";
 import { Text } from "../ui/Text";
 import { proseClass } from "../ui/Prose";
+import { RepoTag } from "../ui/RepoTag";
 
-// A review's page from its parts: the list down the side (its views, the
-// Changes view and how much of it's viewed), the head and what the diff is
-// of, a file with its lines and one folded each way, a group of the
+// A review's page from its parts: the list down the side (the way back,
+// its views, the Changes view and how much of it's viewed), its bar and
+// the changes' bar, a file with its lines and one folded each way, a group of the
 // guide's, comments in each state, a pass's finding, the editor, lines
 // picked, the dialog that submits it and the file finder.
 
@@ -132,13 +133,18 @@ function Page() {
   const [view, setView] = useState("changes");
   return (
     <div style={{ height: 900 }}>
-      <ReviewLayout side={<Side />} onResize={none} onResetWidth={none}>
-        <ReviewHead
+      <ReviewLayout back={{ to: "/missions/names", label: "Find the names a file declares" }} side={<Side />} onResize={none} onResetWidth={none}>
+        <ReviewBar
           back={{ to: "/missions/names", label: "Find the names a file declares" }}
-          name={<Text mono>api/names</Text>}
-          scope={<ReviewScope since={{ name: "r1", title: "What's changed since r1" }} commits={3} additions={42} deletions={7} />}
+          name={<Text mono>names</Text>}
+          about={
+            <>
+              <RepoTag label="api" color="#e0a030" />
+              <ReviewCommitCount since commits={[{ sha: "88cf2940000", subject: "nav: names a file declares", author: "Maya" }, { sha: "0a963600000", subject: "nav: read a file once", author: "Maya" }]} />
+            </>
+          }
           actions={
-            <Button variant="primary">
+            <Button variant="primary" size="small">
               Submit review · 2 <Keys k="s" />
             </Button>
           }
@@ -152,11 +158,11 @@ function Page() {
           here={view}
           onPick={setView}
         />
+        <ReviewChangesBar scope={{ since: true, sinceName: "r1", onChange: none }} additions={42} deletions={7} split={{ on: false, onChange: none }} />
         <ReviewStatus>
           Re-reviewing what's changed since r1 (changes requested). Its comments sit on the lines they were made on; 1 still to resolve: <Keys k="⏎" /> replies, <Keys k="x" /> resolves.
         </ReviewStatus>
         <ReviewViewBody label="Changes" hidden={false}>
-          <ReviewCommits commits={[{ sha: "88cf2940000", subject: "nav: names a file declares", author: "Maya" }, { sha: "0a963600000", subject: "nav: read a file once", author: "Maya" }]} />
           <ReviewEarlier reviews={earlier} />
           <ReviewGuideGroup label="What it finds" files={2} why="Start here: `Names` is what the rest is built on." />
           <ReviewFile index={0} status="modified" path={path} additions={42} deletions={7} viewed={false} folded={false} cursor guide="Finds the names a file declares, for the explorer's outline." onHead={none} onFold={none} onViewed={none}>
@@ -187,8 +193,8 @@ export const OnePage: StoryObj = { render: () => <Page /> };
 function Read() {
   return (
     <div style={{ height: 500 }}>
-      <ReviewLayout side={<Side />} onResize={none} onResetWidth={none} foot={<div style={{ padding: 12, pointerEvents: "auto" }}>A foot over the pane</div>}>
-        <ReviewHead back={{ to: "/reviews", label: "Reviews" }} name="Add idempotency keys" actions={<Button variant="primary">Submit review</Button>} />
+      <ReviewLayout back={{ to: "/reviews", label: "Reviews" }} side={<Side />} onResize={none} onResetWidth={none} foot={<div style={{ padding: 12, pointerEvents: "auto" }}>A foot over the pane</div>}>
+        <ReviewBar back={{ to: "/reviews", label: "Reviews" }} name={<span>Add idempotency keys</span>} actions={<Button variant="primary" size="small">Submit review</Button>} />
         <ReviewViewBody label="Overview" hidden={false} read>
           <h2>What it's for</h2>
           <p className={proseClass()}>Requests that repeat with the same key get the first answer again.</p>

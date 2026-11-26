@@ -1,0 +1,11 @@
+/* Which repo something's in (RepoTag.tsx): its colour, then its name. */
+
+@layer ui {
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+    white-space: nowrap;
+  }
+}

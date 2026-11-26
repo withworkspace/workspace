@@ -1,0 +1,19 @@
+/* Where a review stands (ReviewStand.tsx): an icon that's a target of its
+   own, and the card it opens. */
+
+.stand {
+  flex: none;
+  align-items: center;
+  padding: 4px;
+  margin: 0 -2px 0 -4px;
+  border-radius: var(--radius);
+}
+
+.stand:hover {
+  background: var(--hover);
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+}
