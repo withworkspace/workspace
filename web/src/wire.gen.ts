@@ -4874,6 +4874,11 @@ export interface SocketSaid {
      * Screen is a running crew's screen, or its end (its screen topic's).
      */
     screen?: ScreenOp;
+    /**
+     * Version is the version of what's changed it's now at, where it has
+     * one: a page that's read it as of then, or later, needn't again.
+     */
+    version?: number;
 }
 
 // From web/enums.go

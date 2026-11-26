@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -475,9 +476,18 @@ func TestWorkspaceView_ServedAsKeptWhileFollowed(t *testing.T) {
 		return s.views.built["workspace"]
 	}
 	before := built()
+	version := func(res *http.Response) int64 {
+		v, _ := strconv.ParseInt(res.Header.Get(versionHeader), 10, 64)
+		return v
+	}
+	var was int64
 	for range 5 {
 		time.Sleep(60 * time.Millisecond) // past a poll each time
-		do(t, s, "GET", "/api/workspace", true, nil).Body.Close()
+		res := do(t, s, "GET", "/api/workspace", true, nil)
+		res.Body.Close()
+		if was = version(res); was == 0 {
+			t.Fatal("a read didn't say its version")
+		}
 	}
 	if n := built() - before; n != 0 {
 		t.Errorf("reads built the view %d times, want none", n)
@@ -486,7 +496,14 @@ func TestWorkspaceView_ServedAsKeptWhileFollowed(t *testing.T) {
 	if got := st.next(3 * time.Second); got != "changed workspace" {
 		t.Fatalf("after a mission's made: %q", got)
 	}
+	told := st.last.Version
+	if told <= was {
+		t.Errorf("told it's at version %d, after %d", told, was)
+	}
 	res := do(t, s, "GET", "/api/workspace", true, nil)
+	if v := version(res); v != told {
+		t.Errorf("read as of version %d, told %d", v, told)
+	}
 	var ws Workspace
 	json.NewDecoder(res.Body).Decode(&ws)
 	res.Body.Close()

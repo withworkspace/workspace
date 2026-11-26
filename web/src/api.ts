@@ -274,6 +274,16 @@ async function request<T>(method: string, path: string, opts: { body?: unknown; 
 
 export const getJSON = <T>(path: string) => request<T>("GET", path);
 
+// getVersioned is a view and the version it's as of (X-Ws-Version), for
+// one that has one: 0 where it doesn't say.
+export async function getVersioned<T>(path: string): Promise<{ data: T; version: number }> {
+  const res = await fetch(path, { headers: { accept: "application/json" } });
+  if (res.status === 401) throw new NotSignedIn();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, data.code, data.error ?? `${res.status} ${res.statusText}`, typeof data.output === "string" ? data.output : undefined);
+  return { data: data as T, version: Number(res.headers.get("X-Ws-Version") ?? 0) || 0 };
+}
+
 export type Connection = "connecting" | "live" | "lost";
 
 // useVisible is whether the page is showing. What it follows is followed
@@ -299,7 +309,9 @@ export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "r
 // itself, as when it was refused).
 export interface EventHandlers {
   hello?: () => void;
-  changed: () => void;
+  // version is the latest version told of what changed, where it has one
+  // (the workspace's view): what's held as of it, or later, is current.
+  changed: (version?: number) => void;
   lost?: (closed: boolean) => void;
 }
 
@@ -315,13 +327,17 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   handlers.current = on;
   useEffect(() => {
     if (!visible) return;
-    const changes = bursts(() => handlers.current.changed());
+    let version = 0; // the latest told, for a burst's one telling
+    const changes = bursts(() => handlers.current.changed(version || undefined));
     const app = new URLSearchParams(says.replace(/^&/, "")).get("app") ?? "";
     const leave = pageSocket.follow(
       topic,
       {
         following: () => handlers.current.hello?.(),
-        changed: () => changes.changed(),
+        changed: (said) => {
+          version = Math.max(version, said.version ?? 0);
+          changes.changed();
+        },
         lost: (closed) => handlers.current.lost?.(closed),
       },
       app,

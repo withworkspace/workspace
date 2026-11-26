@@ -64,6 +64,9 @@ type SocketSaid struct {
 	RunLog *RunLogOp `json:"runLog,omitempty"`
 	// Screen is a running crew's screen, or its end (its screen topic's).
 	Screen *ScreenOp `json:"screen,omitempty"`
+	// Version is the version of what's changed it's now at, where it has
+	// one: a page that's read it as of then, or later, needn't again.
+	Version int64 `json:"version,omitempty"`
 }
 
 // socketPing is how often an idle socket is pinged, so one whose page has
@@ -159,7 +162,7 @@ func (ss *socketSession) follow(topic, app string) {
 					waiting = nil
 				}
 			case t := <-ch:
-				said := SocketSaid{Kind: SocketChanged, Topic: topic}
+				said := SocketSaid{Kind: SocketChanged, Topic: topic, Version: t.Version}
 				switch op := t.Op.(type) {
 				case *ConversationOp:
 					said.Conversation = op

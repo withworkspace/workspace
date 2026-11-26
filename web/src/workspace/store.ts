@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { create } from "zustand";
-import { type CommandLabel, type Connection, type FocusPin, getJSON, type Plugin, useEvents, type Workspace } from "../api";
+import { type CommandLabel, type Connection, type FocusPin, getJSON, getVersioned, type Plugin, useEvents, type Workspace } from "../api";
 import { keepSame } from "./keepSame";
 
 // The workspace as the daemon says it is, in one store: the workspace
@@ -18,6 +18,10 @@ import { keepSame } from "./keepSame";
 interface WorkspaceStore {
   // Undefined until it's first read.
   workspace?: Workspace;
+  // The version of it that's held (the daemon's X-Ws-Version): a change
+  // told as of it, or before, is had already; a read that comes back
+  // older than it is let be.
+  version: number;
   // Why it couldn't be read, the last time it was asked for.
   error?: Error;
   // How the stream that follows it is.
@@ -44,10 +48,16 @@ let commandLabelsAsked = false;
 export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   connection: "connecting",
   commandLabels: [],
+  version: 0,
 
   read: () =>
-    getJSON<Workspace>("/api/workspace").then(
-      (workspace) => set((s) => ({ workspace: keepSame(s.workspace, workspace), error: undefined, focusAnswered: undefined })),
+    getVersioned<Workspace>("/api/workspace").then(
+      ({ data: workspace, version }) =>
+        set((s) =>
+          version && version < s.version
+            ? {} // an older answer, come back after a newer one
+            : { workspace: keepSame(s.workspace, workspace), version, error: undefined, focusAnswered: undefined },
+        ),
       (error: Error) => set({ error }),
     ),
   readPlugins: () =>
@@ -82,7 +92,11 @@ export function useFollowWorkspace(showing?: string) {
       useWorkspaceStore.setState({ connection: "live" });
       void read();
     },
-    changed: () => void read(),
+    changed: (version) => {
+      // Told it's at a version that's held already: nothing to read.
+      if (version && version <= useWorkspaceStore.getState().version) return;
+      void read();
+    },
     lost: (closed) => {
       useWorkspaceStore.setState({ connection: "lost" });
       // A stream refused for being signed out never opens: find out why.

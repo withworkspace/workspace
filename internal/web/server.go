@@ -218,6 +218,7 @@ func (s *Server) Start() error {
 	// too, when a read behind finds it changed: looked at as soon as it has.
 	ws.stamp, ws.floor = func() string { return s.App.Stamp() + " " + s.keptStamp() }, 30*time.Second
 	s.reads.told = ws.nudge
+	ws.version = func() int64 { return s.views.versionOf("workspace") }
 	s.topics[topicWorkspace] = ws
 	if s.Reviews != nil {
 		if s.ReviewsPoll == 0 {
@@ -841,8 +842,9 @@ func (s *Server) workspace(w http.ResponseWriter, r *http.Request) {
 	// minute): the view's served as it's kept, built by nobody's read. A
 	// write from a page forgets it, so that page reads what it wrote.
 	if h := s.topics[topicWorkspace]; h != nil && h.watching() {
-		if data, ok := s.views.kept("workspace"); ok {
+		if data, version, ok := s.views.kept("workspace"); ok {
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(versionHeader, strconv.FormatInt(version, 10))
 			w.Write(data)
 			return
 		}
@@ -853,8 +855,13 @@ func (s *Server) workspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(versionHeader, strconv.FormatInt(s.views.versionOf("workspace"), 10))
 	w.Write(data)
 }
+
+// versionHeader says which version of a view an answer is: a page holding
+// a later one (told over its socket, or read since) lets it be.
+const versionHeader = "X-Ws-Version"
 
 // fingerprint says whether what the API serves has changed.
 func (s *Server) fingerprint() string {
