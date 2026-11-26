@@ -363,6 +363,9 @@ type run struct {
 	e  *Engine
 	a  *Automation
 	ev events.Event
+	// dry, for a dry run, keeps its steps in memory and does nothing
+	// outside it (DryRun): nil for a run that does.
+	dry *dryRun
 	// batch is what settled with ev (settle), ev last: nil for none.
 	batch []events.Event
 	steps int
@@ -433,7 +436,7 @@ func (r *run) read(builtin string, get func() (any, error)) (any, error) {
 func (r *run) step(builtin string, do func() (string, error)) (string, error) {
 	r.steps++
 	n := r.steps
-	state, result, err := stepState(r.e.Root, r.a.Name, r.ev.N, n)
+	state, result, err := r.stepState(n)
 	switch {
 	case err != nil:
 		return "", err
@@ -442,15 +445,15 @@ func (r *run) step(builtin string, do func() (string, error)) (string, error) {
 	case state == "started":
 		return "", errUnsure
 	}
-	if err := keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, "started", ""); err != nil {
+	if err := r.keepStep(n, builtin, "started", ""); err != nil {
 		return "", err
 	}
 	result, err = do()
 	if err != nil {
-		_ = keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, "", "") // not done: it may be again
+		_ = r.keepStep(n, builtin, "", "") // not done: it may be again
 		return "", err
 	}
-	return result, keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, "done", result)
+	return result, r.keepStep(n, builtin, "done", result)
 }
 
 // builtins are what a run's script is given.
@@ -614,7 +617,7 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	}
 	r.steps++
 	n := r.steps
-	state, result, err := stepState(r.e.Root, r.a.Name, r.ev.N, n)
+	state, result, err := r.stepState(n)
 	switch {
 	case err != nil:
 		return nil, err
@@ -630,12 +633,16 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	case state == "waiting":
 		return nil, errParked
 	}
-	after, err := latest(r.e.Root)
-	if err != nil {
+	// It waits for what's kept after it's reached: after the latest event
+	// now, or in a dry run, after the event it's run on, from when that was.
+	after, due := int64(0), r.e.now().Add(d)
+	if r.dry != nil {
+		after, due = r.ev.N, r.ev.At.Add(d)
+	} else if after, err = latest(r.e.Root); err != nil {
 		return nil, err
 	}
-	kept, _ := json.Marshal(waitFor{Match: m.m.String(), After: after, Due: r.e.now().Add(d)})
-	if err := keepStep(r.e.Root, r.a.Name, r.ev.N, n, "wait", "waiting", string(kept)); err != nil {
+	kept, _ := json.Marshal(waitFor{Match: m.m.String(), After: after, Due: due})
+	if err := r.keepStep(n, "wait", "waiting", string(kept)); err != nil {
 		return nil, err
 	}
 	return nil, errParked
@@ -834,4 +841,26 @@ func snake(k string) string {
 		b.WriteRune(c)
 	}
 	return b.String()
+}
+
+// stepState is a step of r as kept: in the records, or a dry run's memory.
+func (r *run) stepState(n int) (state, result string, err error) {
+	if r.dry != nil {
+		st := r.dry.steps[n]
+		return st[0], st[1], nil
+	}
+	return stepState(r.e.Root, r.a.Name, r.ev.N, n)
+}
+
+// keepStep keeps a step of r as it stands.
+func (r *run) keepStep(n int, builtin, state, result string) error {
+	if r.dry != nil {
+		if state == "" {
+			delete(r.dry.steps, n)
+		} else {
+			r.dry.steps[n] = [2]string{state, result}
+		}
+		return nil
+	}
+	return keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, state, result)
 }
