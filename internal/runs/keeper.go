@@ -125,7 +125,7 @@ func (k *Keeper) Folders() []string {
 		return []string{filepath.Dir(root)}
 	}
 	out := []string{}
-	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error { //nolint:errcheck // what can't be walked isn't watched
 		if err != nil || !d.IsDir() {
 			return nil
 		}

@@ -31,7 +31,7 @@ func (s *Server) mission(w http.ResponseWriter, r *http.Request) {
 		if data, version, ok := s.views.kept(key); ok {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set(versionHeader, strconv.FormatInt(version, 10))
-			w.Write(data)
+			w.Write(data) //nolint:errcheck // a page gone mid-answer is nothing to say
 			return
 		}
 	}

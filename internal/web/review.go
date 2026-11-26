@@ -388,8 +388,9 @@ func (s *Server) warmCapsules(slug string, d *MissionDetail) {
 			if stamp == "" {
 				continue
 			}
-			s.reads.kept(keyOf("diff", dir, baseRef, "", stamp), func() (any, error) { return review.Compare(dir, baseRef) })
-			s.reads.soon(keyOf("summary", dir, baseRef), dir, func() (any, error) { return review.Summarize(dir, baseRef) })
+			// One that can't be read is read, and said, when a page asks.
+			s.reads.kept(keyOf("diff", dir, baseRef, "", stamp), func() (any, error) { return review.Compare(dir, baseRef) }) //nolint:errcheck // as above
+			s.reads.soon(keyOf("summary", dir, baseRef), dir, func() (any, error) { return review.Summarize(dir, baseRef) })  //nolint:errcheck // as above
 		}
 	}()
 }

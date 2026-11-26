@@ -157,7 +157,7 @@ func (w *fileWatch) run(ctx context.Context) {
 				}
 				due = time.After(wait)
 			}
-		case <-w.fw.Errors:
+		case <-w.fw.Errors: //nolint:errcheck // a file missed is looked at at its hub's sweep
 		case <-due:
 			due, last = nil, time.Now()
 			w.mu.Lock()
