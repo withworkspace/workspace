@@ -97,11 +97,11 @@ func TestShow_PullRequest(t *testing.T) {
 	}
 }
 
-// Asking about a pull request docks it for the agent (not boarded: it's
-// ws's to tidy up), starts an ask anchored to it and to the lines asked
-// about (the workspace's, and not listed until it's kept), and its agent
-// starts from ws show <repo>#<n>. The capsule goes once the PR has merged
-// or closed, unless something's been changed in it.
+// Asking about a pull request starts an ask anchored to it and to the
+// lines asked about (the workspace's, and not listed until it's kept) at
+// once; its answer docks it for the agent (not boarded: it's ws's to tidy
+// up), and its agent starts from ws show <repo>#<n>. The capsule goes
+// once the PR has merged or closed, unless something's been changed in it.
 func TestAskPR_DocksAndTidiesUp(t *testing.T) {
 	w, gh := reviewsFixture(t)
 	useFakeConverser(t, w)
@@ -112,6 +112,10 @@ func TestAskPR_DocksAndTidiesUp(t *testing.T) {
 		t.Fatal(err)
 	}
 	capsule := filepath.Join(w.Root, "repos", "backend", "existing")
+	if _, err := os.Stat(capsule); err == nil {
+		t.Fatal("docked while asking: that's its answer's to do")
+	}
+	testutil.Run(t, w, gh, "conversation", "answer", id)
 	if info, err := os.Stat(capsule); err != nil || !info.IsDir() {
 		t.Fatalf("it isn't docked: %v", err)
 	}
@@ -138,7 +142,6 @@ func TestAskPR_DocksAndTidiesUp(t *testing.T) {
 	}
 
 	// Its agent starts from the pull request, and may read where it's docked.
-	testutil.Run(t, w, gh, "conversation", "answer", id)
 	c, _ = talks.Load(id)
 	if len(c.Turns) != 2 || c.Turns[1].Body != "about the pull request, knowing where to start and what it may propose, and which lines, reading where it is docked" {
 		t.Fatalf("the agent's answer: %+v", c.Turns)
@@ -158,9 +161,11 @@ func TestAskPR_DocksAndTidiesUp(t *testing.T) {
 	}
 
 	// Asking again uses the capsule that's there.
-	if _, err := testutil.AskPR(ctx, "backend", 7, web.PRQuestion{Body: "And who uses it?"}); err != nil {
+	again, err := testutil.AskPR(ctx, "backend", 7, web.PRQuestion{Body: "And who uses it?"})
+	if err != nil {
 		t.Fatal(err)
 	}
+	testutil.Run(t, w, gh, "conversation", "answer", again)
 	if _, err := os.Stat(capsule + "-2"); err == nil {
 		t.Error("docked it a second time")
 	}
@@ -186,9 +191,11 @@ func TestTidyDocked_KeepsWhatYouChanged(t *testing.T) {
 	w, gh := reviewsFixture(t)
 	useFakeConverser(t, w)
 	ctx := reviewsContext(t, w, gh)
-	if _, err := testutil.AskPR(ctx, "backend", 7, web.PRQuestion{Body: "Why?"}); err != nil {
+	id, err := testutil.AskPR(ctx, "backend", 7, web.PRQuestion{Body: "Why?"})
+	if err != nil {
 		t.Fatal(err)
 	}
+	testutil.Run(t, w, gh, "conversation", "answer", id)
 	capsule := filepath.Join(w.Root, "repos", "backend", "existing")
 	os.WriteFile(filepath.Join(capsule, "scratch.txt"), []byte("mine"), 0o644)
 	gh.PRsForRepoFn = func(org, repo string) ([]github.PR, error) { return nil, nil }

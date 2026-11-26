@@ -6,7 +6,7 @@ import { DockBody } from "../chrome/DockBody";
 import { PaneHead } from "../chrome/PaneHead";
 import { useChromeStore, useGives, useKeysAsked } from "../chrome/store";
 import { ConvoTurn } from "../conversation/ConvoTurn";
-import { useTalk, useTalks } from "../conversation/talks";
+import { isAsking, useTalk, useTalks } from "../conversation/talks";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { ProposalCard } from "../talk/ProposalCard";
 import { Button } from "../ui/Button";
@@ -68,8 +68,10 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
   }, [to, stamp]);
 
   // One that's gone: an ask says so, a tab left from another day just
-  // closes.
-  const gone = !!held?.gone;
+  // closes, as does one that was being asked before the page was loaded
+  // again (talks.ts's asking), which nothing holds.
+  const pending = isAsking(to);
+  const gone = !!held?.gone || (pending && !held);
   useEffect(() => {
     if (!gone) return;
     if (talk?.ephemeral) toast("Conversation gone: not kept.");
@@ -81,7 +83,8 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
   // Asked to take the keys (something was just asked from the page's
   // bar): the reply has them, so what's said next carries on here.
   const asked = useKeysAsked(to);
-  const ready = talk?.status === "open";
+  // While it's being asked, there's nothing to reply to yet.
+  const ready = !pending && talk?.status === "open";
   useEffect(() => {
     if (asked && ready && useChromeStore.getState().takeKeys(to)) field.current?.focus();
   }, [asked, ready, to]);
@@ -144,7 +147,7 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
         <PaneHead
           to={talk && !talk.ephemeral ? to : undefined}
           more={
-            talk?.ephemeral && (
+            talk?.ephemeral && !pending && (
               <Button size="small" onClick={keep} disabled={keeping} aria-busy={keeping} title="Save to Conversations">
                 <Icon name="message" size={12} /> Keep
               </Button>
