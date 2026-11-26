@@ -36,12 +36,13 @@ export function valueSaid(s: Setting, v: unknown = s.value): string {
 
 // A Row is a line of a section: a setting, or one of the page's own. The
 // sidebar's two keys ([ui] sidebar and menu) are one row, as they're one
-// arrangement; theme, sendKey, keyHints and notify are kept in the
+// arrangement; theme, depth, sendKey, keyHints and notify are kept in the
 // browser, not in a file; daemon is the daemon's switch.
 export type Row =
   | { kind: "setting"; s: Setting; crumb?: string } // crumb: whose it is, said where the row is out of its block (Find)
   | { kind: "places"; settings: Setting[] }
   | { kind: "theme" }
+  | { kind: "depth" }
   | { kind: "sendKey" }
   | { kind: "keyHints" }
   | { kind: "notify" }
@@ -54,6 +55,7 @@ export const words = {
     about: "Which places show in the sidebar, in what order, and which move to the workspace menu. Yours replaces the team's.",
   },
   theme: { label: "Theme", about: "Light, dark, or match system." },
+  depth: { label: "Depth", about: "When it's dark, how far the page goes towards black, for OLED screens." },
   sendKey: {
     label: "Send with",
     about: "Key that sends a reply, message to crew, or comment. Forms with several fields keep their own key.",
@@ -141,7 +143,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const others: Section[] = [];
 
   const rows = (settings: Setting[], crumb?: string): Row[] => settings.map((s) => ({ kind: "setting", s, crumb }));
-  const ui: Row[] = [{ kind: "theme" }];
+  const ui: Row[] = [{ kind: "theme" }, { kind: "depth" }];
   const roles: Block = { id: "roles", rows: [], roles: groups.filter((g) => g.runs) };
   agents.blocks.push(roles);
 

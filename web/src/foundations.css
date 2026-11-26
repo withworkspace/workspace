@@ -53,6 +53,9 @@
      lines, the hovered row) and least on cards and text. A grey pick
      tints nothing. */
   --accent-tint: 0;
+  /* How deep the dark theme goes, 0 to 1 (see the dark theme): kept in
+     the browser, as the theme is, and put on <html> by theme.js. */
+  --dark-depth: 0;
   --bg: color-mix(in oklab, #fbfbfc, oklch(from var(--accent-pick) 0.9884 calc(min(c, 0.16) * 0.14) h) calc(var(--accent-tint) * 100%));
   --panel: color-mix(in oklab, #f4f4f6, oklch(from var(--accent-pick) 0.9677 calc(min(c, 0.16) * 0.22) h) calc(var(--accent-tint) * 100%));
   --raised: color-mix(in oklab, #ffffff, oklch(from var(--accent-pick) 0.997 calc(min(c, 0.16) * 0.06) h) calc(var(--accent-tint) * 100%));
@@ -188,21 +191,54 @@
 
   --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.35);
-  --shadow-lg: 0 2px 8px rgb(0 0 0 / 0.45), 0 22px 56px rgb(0 0 0 / 0.55);
+  /* On a page near black a shadow can't be seen: what floats has a ring
+     of the strong line, as strong as the page is deep. */
+  --shadow-lg: 0 0 0 1px color-mix(in srgb, var(--line-strong) calc(var(--dark-depth) * 100%), transparent), 0 2px 8px rgb(0 0 0 / 0.45), 0 22px 56px rgb(0 0 0 / 0.55);
 
-  --bg: color-mix(in oklab, #0f0f11, oklch(from var(--accent-pick) 0.1693 calc(min(c, 0.16) * 0.16) h) calc(var(--accent-tint) * 100%));
-  --panel: color-mix(in oklab, #151518, oklch(from var(--accent-pick) 0.1971 calc(min(c, 0.16) * 0.2) h) calc(var(--accent-tint) * 100%));
-  --raised: color-mix(in oklab, #1a1a1f, oklch(from var(--accent-pick) 0.22 calc(min(c, 0.16) * 0.22) h) calc(var(--accent-tint) * 100%));
+  --bg: color-mix(
+    in oklab,
+    color-mix(in oklab, #0f0f11, oklch(0 0 0) calc(var(--dark-depth) * 100%)),
+    oklch(from var(--accent-pick) calc(0.1693 - 0.1693 * var(--dark-depth)) calc(min(c, 0.16) * 0.16) h) calc(var(--accent-tint) * 100%)
+  );
+  --panel: color-mix(
+    in oklab,
+    color-mix(in oklab, #151518, oklch(0.15 0.004 286) calc(var(--dark-depth) * 100%)),
+    oklch(from var(--accent-pick) calc(0.1971 - 0.0471 * var(--dark-depth)) calc(min(c, 0.16) * 0.2) h) calc(var(--accent-tint) * 100%)
+  );
+  --raised: color-mix(
+    in oklab,
+    color-mix(in oklab, #1a1a1f, oklch(0.18 0.005 286) calc(var(--dark-depth) * 100%)),
+    oklch(from var(--accent-pick) calc(0.22 - 0.04 * var(--dark-depth)) calc(min(c, 0.16) * 0.22) h) calc(var(--accent-tint) * 100%)
+  );
   --fg: color-mix(in oklab, #e8e8ec, oklch(from var(--accent-pick) 0.9321 calc(min(c, 0.16) * 0.06) h) calc(var(--accent-tint) * 100%));
   --dim: color-mix(in oklab, #8f8f99, oklch(from var(--accent-pick) 0.6533 calc(min(c, 0.16) * 0.2) h) calc(var(--accent-tint) * 100%));
   --faint: color-mix(in oklab, #55555e, oklch(from var(--accent-pick) 0.4528 calc(min(c, 0.16) * 0.24) h) calc(var(--accent-tint) * 100%));
-  --line: color-mix(in oklab, #24242a, oklch(from var(--accent-pick) 0.2628 calc(min(c, 0.16) * 0.3) h) calc(var(--accent-tint) * 100%));
-  --line-strong: color-mix(in oklab, #32323a, oklch(from var(--accent-pick) 0.3203 calc(min(c, 0.16) * 0.3) h) calc(var(--accent-tint) * 100%));
-  --hover: color-mix(in oklab, #1d1d23, oklch(from var(--accent-pick) 0.2334 calc(min(c, 0.16) * 0.32) h) calc(var(--accent-tint) * 100%));
+  --line: color-mix(
+    in oklab,
+    color-mix(in oklab, #24242a, oklch(0.24 0.008 286) calc(var(--dark-depth) * 100%)),
+    oklch(from var(--accent-pick) calc(0.2628 - 0.0228 * var(--dark-depth)) calc(min(c, 0.16) * 0.3) h) calc(var(--accent-tint) * 100%)
+  );
+  --line-strong: color-mix(
+    in oklab,
+    color-mix(in oklab, #32323a, oklch(0.3 0.01 286) calc(var(--dark-depth) * 100%)),
+    oklch(from var(--accent-pick) calc(0.3203 - 0.0203 * var(--dark-depth)) calc(min(c, 0.16) * 0.3) h) calc(var(--accent-tint) * 100%)
+  );
+  --hover: color-mix(
+    in oklab,
+    color-mix(in oklab, #1d1d23, oklch(0.2 0.006 286) calc(var(--dark-depth) * 100%)),
+    oklch(from var(--accent-pick) calc(0.2334 - 0.0334 * var(--dark-depth)) calc(min(c, 0.16) * 0.32) h) calc(var(--accent-tint) * 100%)
+  );
   --code-bg: rgb(255 255 255 / 0.06);
   --scrim: rgb(0 0 0 / 0.55);
 
-  /* The neutrals, tinted as the light theme's are, from the dark greys. */
+  /* The neutrals, tinted as the light theme's are, from the dark greys,
+     and as deep as --dark-depth says: 0 is the greys as they are, 1 the
+     page black, for an OLED screen. Each surface goes to its own deepest,
+     the page to black and the rest only so near it that they're still
+     told apart (near black a small step in lightness is all but unseen),
+     the lines least, so what's drawn with them keeps its shape. Text
+     stays: on a darker page it only has more contrast. A tinted surface
+     goes as deep, keeping its tint; the page at black has none. */
 
   /* On the dark page the pick is lifted, keeping its hue. The accent, for
      text, is :root's lifted one (an OKLCH lightness of at least 0.77); the
@@ -234,7 +270,7 @@
   --horizon-1: var(--primary);
   --horizon-2: var(--accent);
   --horizon-3: oklch(from var(--primary) calc(l + 0.23) calc(c * 0.262) calc(h + 108));
-  --horizon-strength: calc(0.54 + 0.2 * var(--accent-tint));
+  --horizon-strength: calc(0.54 + 0.2 * var(--accent-tint) - 0.14 * var(--dark-depth));
   --horizon-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3CradialGradient id='g' cx='0' cy='0' r='1' gradientTransform='translate(.5 0) scale(.5 1)'%3E%3Cstop offset='.2'/%3E%3Cstop offset='1' stop-opacity='0'/%3E%3C/radialGradient%3E%3Cmask id='m' style='mask-type:alpha'%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/mask%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' mask='url(%23m)' opacity='.076'/%3E%3C/svg%3E");
 
   --well: rgb(255 255 255 / 0.027);

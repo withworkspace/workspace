@@ -10,7 +10,7 @@ import { SettingsBlock } from "./SettingsBlock";
 import { SettingsMarked } from "./SettingsMarked";
 import { SettingsNote } from "./SettingsNote";
 import { SettingsRow } from "./SettingsRow";
-import { SettingsTint } from "./SettingsTint";
+import { SettingsLevel } from "./SettingsLevel";
 import { SettingsRows } from "./SettingsRows";
 
 // The Settings page's rows: one of each control (a switch, a few to pick
@@ -76,7 +76,7 @@ function Accent({ picked: was, pulled }: { picked: string; pulled?: { way: strin
 
 function Tint({ value: was }: { value: number }) {
   const [value, setValue] = useState(was);
-  return <SettingsTint label="Tint" value={value} onPreview={setValue} />;
+  return <SettingsLevel label="Tint" ends={["Grey", "Tinted"]} value={value} onPreview={setValue} />;
 }
 
 function Rows() {

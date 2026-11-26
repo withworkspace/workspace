@@ -18,7 +18,7 @@ import { textClass } from "../ui/Text";
 // what this browser keeps.
 export function Yours({ info, sections }: { info: SettingsInfo; sections: Section[] }) {
   const { notify } = usePage();
-  const { choice } = useTheme();
+  const { choice, depth } = useTheme();
   const sendKey = useSendKey();
   const [keyHints] = usePref("keyHints");
   const mines = minesOf(sections);
@@ -43,6 +43,15 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
               · Theme
             </span>
             <span>{{ system: "System", light: "Light", dark: "Dark" }[choice]}</span>
+          </SettingsMineRow>
+          <SettingsMineRow>
+            <span>
+              <Link to="/settings/appearance" className={textClass("link")}>
+                Appearance
+              </Link>{" "}
+              · Depth
+            </span>
+            <span>{depth === 0 ? "Default" : depth === 100 ? "Black" : `${depth}%`}</span>
           </SettingsMineRow>
           <SettingsMineRow>
             <span>

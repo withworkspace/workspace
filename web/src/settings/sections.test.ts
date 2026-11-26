@@ -101,7 +101,7 @@ describe("sectionsOf", () => {
       ["updates", ["[updates] check"]],
       ["daemon", ["daemon"]],
     ]);
-    expect(rowsOf("appearance")).toEqual([["ui", ["theme", "[ui] accent", "places"]]]);
+    expect(rowsOf("appearance")).toEqual([["ui", ["theme", "depth", "[ui] accent", "places"]]]);
   });
 
   it("holds every setting once", () => {
@@ -172,6 +172,7 @@ describe("find", () => {
 
   it("finds the page's own rows", () => {
     expect(found("theme")).toEqual([["appearance", ["theme"]]]);
+    expect(found("oled")).toEqual([["appearance", ["depth"]]]);
     expect(found("sidebar")).toEqual([["appearance", ["places"]]]);
     expect(found("send with")).toEqual([["keyboard", ["sendKey"]]]);
     expect(found("key hints")).toEqual([["keyboard", ["keyHints"]]]);

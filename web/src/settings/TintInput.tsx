@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { showTint } from "../ui/accent";
 import type { ControlProps } from "./controlProps";
-import { SettingsTint } from "./SettingsTint";
+import { SettingsLevel } from "./SettingsLevel";
 
 // TintInput is the tint setting: how far the accent tints the greys. The
 // page follows as you drag (the tint on <html>), and it's written once you
@@ -53,5 +53,5 @@ export function TintInput({ s, set, reset }: ControlProps) {
     [],
   );
 
-  return <SettingsTint label={s.label} value={value} slider={slider} onPreview={setPreview} />;
+  return <SettingsLevel label={s.label} ends={["Grey", "Tinted"]} value={value} slider={slider} onPreview={setPreview} />;
 }

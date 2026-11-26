@@ -1,7 +1,7 @@
-/* How far the accent tints the greys (SettingsTint.tsx): a slider, where
-   it's at, and the surfaces it tints, as they're drawn now. */
+/* How far a look goes (SettingsLevel.tsx): a slider, where it's at, and
+   the surfaces it changes, as they're drawn now. */
 
-.tint {
+.level {
   display: grid;
   justify-items: end;
   gap: 8px;
@@ -61,7 +61,7 @@
 }
 
 @media (max-width: 640px) {
-  .tint {
+  .level {
     justify-items: start;
   }
 }
