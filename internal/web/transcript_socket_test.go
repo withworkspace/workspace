@@ -107,6 +107,15 @@ func TestSocket_FollowsATranscript(t *testing.T) {
 	if !held.Available || held.Version != int64(len(whole)) {
 		t.Errorf("at the end: available %v, version %d of %d", held.Available, held.Version, len(whole))
 	}
+
+	// Followed, it's served as its hub last read it: the file isn't read
+	// for a page's read (here, it can't be).
+	os.Chmod(path, 0)
+	t.Cleanup(func() { os.Chmod(path, 0o644) })
+	got := read()
+	if !got.Available || got.Version != held.Version || asJSON(t, got.Entries) != asJSON(t, held.Entries) {
+		t.Errorf("read while followed: available %v, version %d, %d entries; want what the page holds", got.Available, got.Version, len(got.Entries))
+	}
 }
 
 func asJSON(t *testing.T, v []harness.TranscriptEntry) string {

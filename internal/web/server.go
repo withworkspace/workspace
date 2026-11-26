@@ -139,6 +139,10 @@ type Server struct {
 	// transcripts is crew's sessions', each read as it grows by whoever
 	// follows it (followed).
 	transcripts *keyedHub
+	// followed is each crew session a page follows (transcript.go), as its
+	// hub last read it.
+	followedMu sync.Mutex
+	followed   map[string]*transcriptFollow
 	// filesFollowed is the Files page's grounds and capsules, each told when
 	// the runs move; a page that follows one has it open, for the runs
 	// started from it. runLogs is runs' logs, each told what's written.

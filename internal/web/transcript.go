@@ -79,14 +79,19 @@ func (s *Server) crewSession(w http.ResponseWriter, r *http.Request) (CrewSessio
 }
 
 func (s *Server) crewTranscript(w http.ResponseWriter, r *http.Request) {
-	sess, ok := s.crewSession(w, r)
-	if !ok {
-		return
-	}
-	t, err := LoadTranscript(sess)
-	if err != nil {
-		jsonError(w, http.StatusInternalServerError, err.Error())
-		return
+	// A session a page follows is served as its hub last read it: the page
+	// follows before it reads, and is told of what's been added since.
+	t := s.followedTranscript(r.PathValue("slug"), r.PathValue("id"))
+	if t == nil {
+		sess, ok := s.crewSession(w, r)
+		if !ok {
+			return
+		}
+		var err error
+		if t, err = LoadTranscript(sess); err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	// ?last=n is only its latest n entries, for what needs no more than
 	// what it's doing now (the foot).
@@ -138,6 +143,41 @@ type transcriptFollow struct {
 	sess      CrewSession
 	reader    *harness.TranscriptReader
 	lookedFor time.Time
+
+	// read is the session as last read, which a page that follows it is
+	// served (followedTranscript): nil till it's been read.
+	mu   sync.Mutex
+	read *Transcript
+}
+
+// keep notes the session as a read found it.
+func (f *transcriptFollow) keep(got harness.TranscriptRead) {
+	t := &Transcript{Harness: f.sess.Harness, Available: true, Why: f.sess.Why, Entries: got.Entries, Version: got.Size}
+	f.mu.Lock()
+	f.read = t
+	f.mu.Unlock()
+}
+
+// followedTranscript is a followed session's transcript as its hub last
+// read it, its latest entries: no file's read, and nothing's parsed again.
+// nil when nobody follows it, or it hasn't been read.
+func (s *Server) followedTranscript(slug, id string) *Transcript {
+	s.followedMu.Lock()
+	f := s.followed[slug+"/"+id]
+	s.followedMu.Unlock()
+	if f == nil {
+		return nil
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.read == nil {
+		return nil
+	}
+	t := *f.read
+	if n := len(t.Entries); n > TranscriptShown {
+		t.Earlier, t.Entries = n-TranscriptShown, t.Entries[n-TranscriptShown:]
+	}
+	return &t
 }
 
 // transcriptHub follows crew's sessions (transcript:<slug>/<crew>): each
@@ -164,6 +204,9 @@ func (s *Server) transcriptHub() *keyedHub {
 		mu.Lock()
 		delete(paths, key)
 		mu.Unlock()
+		s.followedMu.Lock()
+		delete(s.followed, key)
+		s.followedMu.Unlock()
 	}
 	// find looks for where f's session is, and says whether it's found.
 	find := func(key string, f *transcriptFollow) bool {
@@ -187,8 +230,16 @@ func (s *Server) transcriptHub() *keyedHub {
 			slug, id, _ := strings.Cut(key, "/")
 			f = &transcriptFollow{slug: slug, id: id}
 			if find(key, f) {
-				f.reader.Read(f.sess.Path) //nolint:errcheck // read again at the next change
+				if got, err := f.reader.Read(f.sess.Path); err == nil {
+					f.keep(got)
+				} // else read again at the next change
 			}
+			s.followedMu.Lock()
+			if s.followed == nil {
+				s.followed = map[string]*transcriptFollow{}
+			}
+			s.followed[key] = f
+			s.followedMu.Unlock()
 			return nil, f
 		}
 		from0 := false
@@ -199,6 +250,9 @@ func (s *Server) transcriptHub() *keyedHub {
 			from0 = true // started since: the page has none of it
 		}
 		got, err := f.reader.Read(f.sess.Path)
+		if err == nil {
+			f.keep(got)
+		}
 		switch {
 		case err != nil:
 			return nil, f // half there: the next look
