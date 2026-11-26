@@ -172,12 +172,25 @@ func (s Store) read(fn func(tx *store.Tx) error) error {
 	return db.Read(context.Background(), fn)
 }
 
+// write runs fn in a write, which says it's changed the conversations of
+// its mission (or the workspace's): what a page shows of them, and the
+// workspace's view of the mission, are of them as they are.
 func (s Store) write(fn func(tx *store.Tx) error) error {
 	db, err := s.records()
 	if err != nil {
 		return err
 	}
-	return db.Write(context.Background(), fn)
+	return db.Write(context.Background(), func(tx *store.Tx) error {
+		if err := fn(tx); err != nil {
+			return err
+		}
+		if s.Workspace() {
+			tx.Changed("workspace")
+		} else {
+			tx.Changed("mission:" + s.Slug)
+		}
+		return nil
+	})
 }
 
 // notFound is the answer for a conversation that isn't there.
