@@ -4798,7 +4798,7 @@ export interface SettingChoice {
 }
 
 // From web/enums.go
-export type SettingKind = "bool" | "choice" | "color" | "harness" | "model" | "number" | "picks" | "places" | "text";
+export type SettingKind = "bool" | "choice" | "color" | "harness" | "model" | "number" | "picks" | "places" | "text" | "tint";
 
 // From web/enums.go
 export type SettingSource = "default" | "team" | "yours";

@@ -8,6 +8,7 @@ import { ModelInput } from "./ModelInput";
 import { Picks } from "./Picks";
 import { Stepper } from "./Stepper";
 import { TextInput } from "./TextInput";
+import { TintInput } from "./TintInput";
 
 // A setting's control, by its kind: what it's set to, and the way to set
 // it. Each writes as soon as it's changed (a switch flipped, a field
@@ -31,6 +32,8 @@ export function Control(p: ControlProps) {
     case "color":
       // The one colour setting is the accent, which the page wears.
       return s.section === "ui" && s.key === "accent" ? <AccentInput {...p} /> : <TextInput {...p} />;
+    case "tint":
+      return <TintInput {...p} />;
     default:
       return <TextInput {...p} short />;
   }

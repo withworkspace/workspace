@@ -99,3 +99,13 @@ export function pulled(picked: string, shown: string): "lighter" | "darker" | nu
   if (close) return null;
   return luminance(b) > luminance(a) ? "lighter" : "darker";
 }
+
+const tint = "--accent-tint";
+
+// showTint puts how far the greys are tinted towards the accent (0 to 100)
+// on the page or, given none, takes it away, so the default (none) applies.
+export function showTint(n: number | null) {
+  const style = document.documentElement.style;
+  if (n !== null && n > 0) style.setProperty(tint, String(n / 100));
+  else style.removeProperty(tint);
+}

@@ -148,6 +148,9 @@ type Settings interface {
 	// Accent is the web UI's accent as set, #rrggbb, or "" for its own
 	// default: the page is served with it (see Server.app).
 	Accent() string
+	// Tint is how far the web UI's greys are tinted towards the accent,
+	// 0 to 100: the page is served with it, as with the accent.
+	Tint() int
 }
 
 // SettingsOf is your settings as the API serves them.
