@@ -81,10 +81,11 @@ func (c *Claude) Start(b Brief) (Launch, error) {
 	if err != nil {
 		return Launch{}, fmt.Errorf("making a session id: %w", err)
 	}
-	args := []string{bin, "--session-id", id, "--name", sessionName(b)}
-	if b.Model != "" {
-		args = append(args, "--model", b.Model)
+	model, err := claudeModelArgs(b.Model)
+	if err != nil {
+		return Launch{}, err
 	}
+	args := append([]string{bin, "--session-id", id, "--name", sessionName(b)}, model...)
 	prompt := b.Prompt
 	args = append(args, "--", prompt)
 	return Launch{Args: args, Dir: b.Dir, Conversation: id, Notes: []string{
@@ -116,10 +117,57 @@ func (c *Claude) Resume(dir, conversation string) (Launch, error) {
 }
 
 // ClaudeOrchestratorModel is the model Claude Code runs the orchestrator on
-// unless [orchestrator] model says otherwise (an alias for the latest).
-const ClaudeOrchestratorModel = "haiku"
+// unless [orchestrator] model says otherwise: the latest Haiku, at high
+// effort. ws's evals (orchestrator runs replayed, 2026-11-25) found Haiku
+// at high made the calls Sonnet made, and at its own effort fewer.
+const ClaudeOrchestratorModel = "haiku[high]"
+
+// ClaudeSmallModel is the small model the roles that don't think at length
+// run on (the judge, the Team page's gists): the latest Haiku at its own
+// effort. More effort made neither better in ws's evals, the judge slower
+// by twice and more.
+const ClaudeSmallModel = "haiku"
 
 func (c *Claude) OrchestratorModel() string { return ClaudeOrchestratorModel }
+func (c *Claude) SmallModel() string        { return ClaudeSmallModel }
+
+// ClaudeEfforts are the efforts Claude Code's --effort takes, least first.
+var ClaudeEfforts = []string{"low", "medium", "high", "xhigh", "max"}
+
+// claudeModel reads a model as ws names it for Claude Code: an alias
+// (haiku) or a model's full name, with the effort to run it at in
+// brackets where one's chosen (haiku[high]), as Codex's models are named.
+//
+// VERIFIED (claude 2.1.332): --model takes no effort in its name
+// ("Model 'haiku[high]' not found"); --effort <level> sets it, and in a
+// session /effort <level> does, auto going back to the model's own.
+func claudeModel(m string) (name, effort string, err error) {
+	name, effort, braced := strings.Cut(strings.TrimSpace(m), "[")
+	if !braced {
+		return name, "", nil
+	}
+	effort, closed := strings.CutSuffix(effort, "]")
+	if !closed || !slices.Contains(ClaudeEfforts, effort) {
+		return "", "", fmt.Errorf("claude: %q isn't a model with an effort Claude Code takes: name[effort], effort one of %s", m, strings.Join(ClaudeEfforts, ", "))
+	}
+	return name, effort, nil
+}
+
+// claudeModelArgs are the flags that run Claude Code on m: none for "".
+func claudeModelArgs(m string) ([]string, error) {
+	if strings.TrimSpace(m) == "" {
+		return nil, nil
+	}
+	name, effort, err := claudeModel(m)
+	if err != nil {
+		return nil, err
+	}
+	args := []string{"--model", name}
+	if effort != "" {
+		args = append(args, "--effort", effort)
+	}
+	return args, nil
+}
 
 // claudeOrchestratorTools is all the orchestrator may use. It acts through
 // ws mission (and ws lift for a capsule the next crew needs) and looks around
@@ -180,15 +228,21 @@ func capsuleGitRules(paths []string) []string {
 // --allowedTools takes one rule per argument, so -- ends the list before the
 // prompt. --no-session-persistence keeps these runs out of the user's
 // /resume list (their output is in orchestrator.log).
+//
+// It's given the whole prompt as its argument, as the judge's and the PR
+// writer's are, not the line pointing at its file: reading that cost every
+// run a turn first. ws's prompts stay under Linux's limit on one argument
+// (128 KiB): orchestrator.promptMax is 112 KiB.
 func (c *Claude) Orchestrate(r OrchestratorRun) (Launch, error) {
 	bin, err := c.bin()
 	if err != nil {
 		return Launch{}, err
 	}
-	args := []string{bin, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--no-session-persistence"}
-	if r.Model != "" {
-		args = append(args, "--model", r.Model)
+	model, err := claudeModelArgs(r.Model)
+	if err != nil {
+		return Launch{}, err
 	}
+	args := append([]string{bin, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--no-session-persistence"}, model...)
 	args = append(args, "--allowedTools")
 	args = append(args, claudeOrchestratorTools...)
 	args = append(args, capsuleGitRules(append(append([]string(nil), r.Capsules...), r.Grounds...))...)
@@ -261,10 +315,11 @@ func (c *Claude) Converse(r ConverseRun) (Launch, error) {
 	if sandbox {
 		turns = claudeSandboxTurns
 	}
-	args := []string{bin, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--max-turns", turns}
-	if r.Model != "" {
-		args = append(args, "--model", r.Model)
+	model, err := claudeModelArgs(r.Model)
+	if err != nil {
+		return Launch{}, err
 	}
+	args := append([]string{bin, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--max-turns", turns}, model...)
 	if r.Session != "" {
 		args = append(args, "--resume", r.Session)
 	}

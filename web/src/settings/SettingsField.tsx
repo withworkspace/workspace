@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { cx } from "../ui/cx";
 import { Input } from "../ui/Input";
 import css from "./SettingsField.module.css";
+import { textClass } from "../ui/Text";
 
 type SettingsFieldProps = {
   // What it's at, and what it goes back to.
@@ -48,7 +49,7 @@ export function SettingsField({ value, label, placeholder, short, mono, stretch,
     <Input
       ref={field}
       type="text"
-      className={cx(css.field, mono && "mono", short && css.short, stretch && css.stretch)}
+      className={cx(css.field, mono && textClass("mono"), short && css.short, stretch && css.stretch)}
       value={text}
       placeholder={placeholder}
       spellCheck={false}

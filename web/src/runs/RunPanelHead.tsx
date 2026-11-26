@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Status, type StatusInfo } from "../ui/Status";
 import css from "./RunPanelHead.module.css";
+import { Text, textClass } from "../ui/Text";
 
 // RunPanelHead is a run's panel's head: the way back, what it's called
 // (title: its recipe's, with its name beside where that's another), which
@@ -30,12 +31,12 @@ export function RunPanelHead({
   return (
     <header className={css.head}>
       {back}
-      <h2 className={cx(!named && "mono", css.name)}>{named ? title : name}</h2>
-      {named && <span className={cx("mono", css.n)}>{name}</span>}
+      <h2 className={cx(!named && textClass("mono"), css.name)}>{named ? title : name}</h2>
+      {named && <Text mono className={css.n}>{name}</Text>}
       {!!n && <span className={css.n}>run {n}</span>}
       <Status s={status} className={css.status} />
       {address && (
-        <a href={address.href} target="_blank" rel="noopener noreferrer" className={cx("mono", css.address)} title={address.title}>
+        <a href={address.href} target="_blank" rel="noopener noreferrer" className={cx(textClass("mono"), css.address)} title={address.title}>
           <span className={css.host}>{address.host}</span>
           <Icon name="arrow-up-right" size={11} />
         </a>

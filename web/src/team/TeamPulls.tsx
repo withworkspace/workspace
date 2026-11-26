@@ -3,6 +3,7 @@ import { Status, type StatusInfo } from "../ui/Status";
 import css from "./TeamPulls.module.css";
 import { TeamRepoDot } from "./TeamRepoDot";
 import { TeamState } from "./TeamState";
+import { Text } from "../ui/Text";
 
 export type TeamPull = {
   key: string;
@@ -26,7 +27,7 @@ export function TeamPulls({ pulls }: { pulls: TeamPull[] }) {
             <Status s={p.status} iconOnly size={13} />
             <TeamRepoDot color={p.color} />
             <span>{p.repo}</span>
-            <span className="mono dim">#{p.number}</span>
+            <Text mono dim>#{p.number}</Text>
             <TeamState tone={p.status.tone}>{p.status.words}</TeamState>
           </>
         );

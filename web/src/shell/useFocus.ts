@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { changeFocus, type FocusPin } from "../api";
 import { toast } from "../ui/toast";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { useWorkspaceIfRead, useWorkspaceStore } from "../workspace/store";
 import { pinsAnswered, unpinNamed } from "./pins";
 

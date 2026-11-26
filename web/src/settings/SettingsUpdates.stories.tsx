@@ -5,6 +5,7 @@ import { SettingsBlock } from "./SettingsBlock";
 import { SettingsFact, SettingsFacts } from "./SettingsFacts";
 import { SettingsUpdates } from "./SettingsUpdates";
 import { type Standing, standingOf } from "./standing";
+import { Text } from "../ui/Text";
 
 // Settings' About: the facts of which ws this is and where the workspace
 // keeps its files, and Updates in each standing: this is the latest; this
@@ -50,12 +51,12 @@ export const Facts: StoryObj = {
       <SettingsBlock title="ws">
         <SettingsFacts>
           <SettingsFact term="Version">
-            <span className="mono">v0.15.0</span>
-            <div className="dim">The daemon's, which serves this page.</div>
+            <Text mono>v0.15.0</Text>
+            <Text as="div" dim>The daemon's, which serves this page.</Text>
           </SettingsFact>
           <SettingsFact term="What's new" id="whats-new">
             <Button size="small">Show what's new</Button>
-            <div className="dim">Said once after an upgrade, and kept here.</div>
+            <Text as="div" dim>Said once after an upgrade, and kept here.</Text>
           </SettingsFact>
         </SettingsFacts>
       </SettingsBlock>
@@ -69,10 +70,10 @@ export const Facts: StoryObj = {
             /Users/you/Projects/sorrel/a-folder-with-a-long-name-that-wraps-where-it-has-to/workspace
           </SettingsFact>
           <SettingsFact term="The team's settings">
-            <code>ws.toml</code> <span className="dim">in the config repo, changed by commit</span>
+            <code>ws.toml</code> <Text dim>in the config repo, changed by commit</Text>
           </SettingsFact>
           <SettingsFact term="Yours">
-            <code>ws.local.toml</code> <span className="dim">beside it, not committed</span>
+            <code>ws.local.toml</code> <Text dim>beside it, not committed</Text>
           </SettingsFact>
         </SettingsFacts>
       </SettingsBlock>

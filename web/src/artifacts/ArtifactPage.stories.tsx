@@ -10,6 +10,7 @@ import { ArtifactSource } from "./ArtifactSource";
 import { ArtifactSourceCode } from "./ArtifactSourceCode";
 import { ArtifactSourceFile, ArtifactSourceFiles } from "./ArtifactSourceFiles";
 import { days, none, Page, promoted, versions } from "./samples";
+import { Text } from "../ui/Text";
 
 // An artifact's page, from its parts: its head with one version and with
 // several (the one in the repo it lives in underlined, with the press
@@ -36,7 +37,7 @@ export const SeveralVersions: StoryObj = {
       }
       notes={
         <>
-          <ArtifactPromotedNote at={days(1)} by="you" version={1} into={<span className="mono">records:proposals/export.md</span>} />
+          <ArtifactPromotedNote at={days(1)} by="you" version={1} into={<Text mono>records:proposals/export.md</Text>} />
           <ArtifactHome where="records:artifacts/2026-11-20-where-export-goes/" repo="records" version={1} commit="501f85db6f54" put={{ n: 2, busy: false, onPress: none }} />
         </>
       }

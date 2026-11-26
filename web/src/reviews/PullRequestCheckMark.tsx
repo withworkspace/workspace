@@ -2,6 +2,7 @@ import type { PR } from "../api";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import css from "./PullRequestCheckMark.module.css";
+import { SrOnly } from "../ui/SrOnly";
 
 const says: Record<NonNullable<PR["checks"]>, { icon: IconName; words: string; look: string }> = {
   success: { icon: "check", words: "Checks pass", look: css.success },
@@ -17,7 +18,7 @@ export function PullRequestCheckMark({ checks }: { checks?: PR["checks"] }) {
   return (
     <span className={cx(css.mark, s.look)} title={s.words}>
       <Icon name={s.icon} size={12} />
-      <span className="sr-only">{s.words}</span>
+      <SrOnly>{s.words}</SrOnly>
     </span>
   );
 }

@@ -1,7 +1,7 @@
 import type { MouseEvent } from "react";
 import type { Mission } from "../../api";
 import { crewStatus, headlineStatus } from "../../ui/statusOf";
-import { plain } from "../../ui/text";
+import { plain } from "../../ui/strings";
 import { CheckingLine } from "../Checking/CheckingLine";
 import { MissionListCrew } from "./MissionListCrew";
 import { MissionListRow } from "./MissionListRow";

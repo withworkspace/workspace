@@ -1,0 +1,13 @@
+/* Prose (Prose.tsx): something written to be read, a document or a
+   proposal's text. Not in a layer: markdown's own module is a page's, and
+   prose's larger measure is drawn over it, as the global .prose was. */
+
+.prose a {
+  color: var(--accent);
+}
+
+.prose :global(.markdown) {
+  font-size: var(--text-lg);
+  line-height: 1.65;
+  max-width: 70ch;
+}

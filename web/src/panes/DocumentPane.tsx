@@ -9,7 +9,7 @@ import { useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Loading } from "../ui/Loading";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { useWorkspace } from "../workspace/store";
 
 type DocumentPaneProps = {

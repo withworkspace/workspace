@@ -5,6 +5,7 @@ import { GroupHead } from "../../ui/GroupHead";
 import { FilesMark } from "./FilesMark";
 import css from "./FilesChanged.module.css";
 import type { FileStatus } from "./words";
+import { Text } from "../../ui/Text";
 
 export interface ChangedFile {
   path: string;
@@ -24,7 +25,7 @@ export function FilesChanged({ files, count, onOpen }: { files: ChangedFile[]; c
             <Button variant="link" className={css.file} onClick={() => onOpen(f.path)}>
               <FilesMark status={f.status} uncommitted={f.uncommitted} />
               <FileIcon path={f.path} />
-              <span className="mono">{f.path}</span>
+              <Text mono>{f.path}</Text>
               {f.uncommitted && <Chip tone="attention">Not committed</Chip>}
             </Button>
           </li>

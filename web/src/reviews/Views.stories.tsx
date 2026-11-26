@@ -26,6 +26,7 @@ import { SaidHead } from "./SaidHead";
 import { SaidItem } from "./SaidItem";
 import { SaidList } from "./SaidList";
 import { SaidReply } from "./SaidReply";
+import { Text } from "../ui/Text";
 
 // A review's views beside its changes, from their parts: its passes (one
 // no go with what it found, one running, one that can't run), its guide
@@ -70,16 +71,16 @@ function Passes() {
               blocks
               kind={<span className="kind k-found k-blocking">bug</span>}
               where={<PassFindingLink onClick={none}>limit/limit.go:12–14</PassFindingLink>}
-              said={<span className="dim">· suggests a change</span>}
+              said={<Text dim>· suggests a change</Text>}
               end={<ReviewFindingActions dismissing={dismissing} canAsk onTake={none} onDismissing={setDismissing} onDismiss={() => setDismissing(false)} onAsk={none} />}
               lines={<Excerpt lines={["if key == \"\" {", "  return nil", "}"]} from={12} />}
               text="An empty key is never counted, so it's never limited."
             />
-            <PassFinding kind={<span className="kind k-found k-addressed">Dealt with</span>} where={<span className="dim">The change as a whole</span>} end={<Button size="small">Resolve the comment</Button>} text="The retry header is in seconds now." />
+            <PassFinding kind={<span className="kind k-found k-addressed">Dealt with</span>} where={<Text dim>The change as a whole</Text>} end={<Button size="small">Resolve the comment</Button>} text="The retry header is in seconds now." />
           </PassFindings>
           <PassSettled summary="1 settled: 1 taken, 0 dismissed">
             <PassFindings>
-              <PassFinding settled kind={<span className="kind k-found">nit</span>} where={<span className="dim mono">limit/limit.go:3</span>} said={<span className="dim">Taken into your review</span>} end={<Button variant="ghost" size="small">Open again</Button>} text="Name the constant." />
+              <PassFinding settled kind={<span className="kind k-found">nit</span>} where={<Text dim mono>limit/limit.go:3</Text>} said={<Text dim>Taken into your review</Text>} end={<Button variant="ghost" size="small">Open again</Button>} text="Name the constant." />
             </PassFindings>
           </PassSettled>
         </PassCard>

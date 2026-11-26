@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Option, Select } from "./Select";
 import { Input } from "./Input";
+import { Text } from "./Text";
 
 // Selects: the size of a text box, small, tiny (in a line of words),
 // filling what it's in, disabled, and with a note on a choice.
@@ -32,38 +33,38 @@ export const Sizes: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 20 }}>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           A text box's
-        </span>
+        </Text>
         <Agents />
         <Input type="text" defaultValue="A text box beside it" style={{ width: 200 }} />
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Small
-        </span>
+        </Text>
         <Agents size="small" />
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Tiny
-        </span>
-        <span className="dim">
+        </Text>
+        <Text dim>
           Sorted by <Agents size="tiny" />
-        </span>
+        </Text>
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Fill
-        </span>
+        </Text>
         <div style={{ width: 360 }}>
           <Agents fill />
         </div>
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Disabled
-        </span>
+        </Text>
         <Agents disabled />
       </div>
     </div>

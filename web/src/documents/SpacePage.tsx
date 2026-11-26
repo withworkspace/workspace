@@ -43,6 +43,7 @@ import { SpaceTabs } from "./SpaceTabs";
 import { useKindOrder } from "./useKindOrder";
 import { useListWidth } from "./useListWidth";
 import { useSpaceSearch } from "./useSpaceSearch";
+import { Text } from "../ui/Text";
 
 // A row the cursor can be on: a page, or a document.
 type Target = { id: string; to: string };
@@ -376,7 +377,7 @@ export function SpacePage() {
             {folders.map(([folder, docs]) => (
               <section key={folder} id={listID("folder", folder)} aria-label={folder || "Top"}>
                 <GroupHead count={docs.length}>
-                  <span className="mono">{folder || "(top)"}</span>
+                  <Text mono>{folder || "(top)"}</Text>
                 </GroupHead>
                 <FolderList repo={repo} label={folder || "Top"} docs={docs} at={folderAt(docs)} index={index} setIndex={wide ? undefined : setIndex} flights={flights} hits={hits} picking={picking} />
               </section>
@@ -397,7 +398,7 @@ export function SpacePage() {
                 />
               ) : (
                 <SpacePreview none>
-                  <p className="dim">{searched ? "Nothing found to show." : "Nothing to show."}</p>
+                  <Text as="p" dim>{searched ? "Nothing found to show." : "Nothing to show."}</Text>
                 </SpacePreview>
               )}
             </>

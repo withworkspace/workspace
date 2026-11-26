@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Button } from "../ui/Button";
-import { cx } from "../ui/cx";
 import { Input } from "../ui/Input";
 import { Radio, RadioGroup } from "../ui/RadioGroup";
 import css from "./SettingsAddRepoForm.module.css";
+import { Text, textClass } from "../ui/Text";
 
 type SettingsAddRepoFormProps = {
   // Its name here, as typed; invalid where it can't be that, and what's
@@ -37,8 +37,8 @@ export function SettingsAddRepoForm({ as, invalid, hint, onAs, group, team, onTe
     >
       <div className={css.field}>
         <label htmlFor="add-repo-as">Its name here</label>
-        <Input id="add-repo-as" className="mono" value={as} onChange={(e) => onAs(e.target.value)} aria-invalid={invalid} />
-        <span className={cx("dim", css.hint)}>{hint}</span>
+        <Input id="add-repo-as" className={textClass("mono")} value={as} onChange={(e) => onAs(e.target.value)} aria-invalid={invalid} />
+        <Text dim className={css.hint}>{hint}</Text>
       </div>
       <div className={css.field}>
         <span className={css.label}>Its group</span>
@@ -49,12 +49,12 @@ export function SettingsAddRepoForm({ as, invalid, hint, onAs, group, team, onTe
         <RadioGroup className={css.whose} value={team ? "team" : "me"} onChange={(v) => onTeam(v === "team")} aria-label="Whose">
           <Radio value="me">
             <span>
-              Just me <span className="dim">— in ws.local.toml</span>
+              Just me <Text dim>— in ws.local.toml</Text>
             </span>
           </Radio>
           <Radio value="team">
             <span>
-              The team <span className="dim">— in ws.toml, committed and pushed</span>
+              The team <Text dim>— in ws.toml, committed and pushed</Text>
             </span>
           </Radio>
         </RadioGroup>

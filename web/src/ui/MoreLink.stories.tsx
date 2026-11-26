@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { MoreLink } from "./MoreLink";
+import { Text } from "./Text";
 
 // More links: one that does something here (a button), one that goes
 // somewhere (a link), and one after a sentence it's part of.
@@ -23,22 +24,22 @@ export const Links: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 14 }}>
       <div style={row}>
-        <span className="dim">Shown here</span>
+        <Text dim>Shown here</Text>
         <span>
           <Shows />
         </span>
       </div>
       <div style={row}>
-        <span className="dim">Somewhere else</span>
+        <Text dim>Somewhere else</Text>
         <span>
           <MoreLink to="/missions/export-csv/crew/api-1">Open api-1's conversation</MoreLink>
         </span>
       </div>
       <div style={row}>
-        <span className="dim">In a sentence</span>
-        <span className="dim">
+        <Text dim>In a sentence</Text>
+        <Text dim>
           Two capsules, one with a pull request open. <MoreLink onClick={() => {}}>All of it in Work</MoreLink>
-        </span>
+        </Text>
       </div>
     </div>
   ),

@@ -57,8 +57,11 @@ func TestModels(t *testing.T) {
 	if err != nil || ids(ms) != "gpt-6.1-sol,gpt-6.1-sol[low],gpt-6.1-sol[high]" || !strings.Contains(ms[0].About, "default effort: low") {
 		t.Errorf("codex: %+v, %v", ms, err)
 	}
-	if ms, _ := (&Claude{}).Models(context.Background()); ids(ms) != "opus,sonnet,haiku" {
-		t.Errorf("claude: %+v", ms)
+	// Each alias, then each at each effort, one model (its label) in a picker.
+	ms, _ = (&Claude{}).Models(context.Background())
+	if got := ids(ms); !strings.HasPrefix(got, "opus,opus[low],opus[medium],opus[high],opus[xhigh],opus[max],sonnet,") || !strings.HasSuffix(got, ",haiku[max]") ||
+		ms[3].Label != "Opus" || ms[3].Effort != "high" || ms[3].Name != "Opus, high" {
+		t.Errorf("claude: %s", got)
 	}
 }
 

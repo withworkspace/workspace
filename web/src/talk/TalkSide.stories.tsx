@@ -7,6 +7,7 @@ import { TalkSideMade } from "./TalkSideMade";
 import { TalkSideNamed } from "./TalkSideNamed";
 import { TalkSideSection } from "./TalkSideSection";
 import { TalkSideSummary } from "./TalkSideSummary";
+import { Text } from "../ui/Text";
 
 // What's come of a conversation, in the column beside it: what's to
 // confirm (each goes to its card), what it made (each goes to the thing,
@@ -53,7 +54,7 @@ export const Full: StoryObj = {
             </li>
             <li title="Put away with the conversation">
               <code>web/fee-form</code>
-              <span className="dim"> put away</span>
+              <Text dim> put away</Text>
             </li>
           </TalkSideNamed>
         </TalkSideSection>

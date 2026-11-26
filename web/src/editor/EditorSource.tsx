@@ -6,6 +6,7 @@ import { EditorToolbar } from "./EditorToolbar";
 import css from "./EditorSource.module.css";
 import type { EditorProps } from "./MarkdownEditor";
 import { placed } from "./placed";
+import { Text } from "../ui/Text";
 
 type EditorSourceProps = EditorProps & { text: string; setText: (t: string) => void; onRich: () => void };
 
@@ -23,7 +24,7 @@ export function EditorSource({ text, setText, onRich, initial, label, placeholde
     <>
       {placed(
         <EditorToolbar compact={compact && toolbarIn === undefined} placed={toolbarIn !== undefined} source onSource={onRich}>
-          <span className="dim">Markdown, as it's saved</span>
+          <Text dim>Markdown, as it's saved</Text>
         </EditorToolbar>,
         { toolbarIn, toolbarOn },
       )}

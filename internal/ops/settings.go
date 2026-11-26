@@ -190,7 +190,7 @@ var settingRoles = []roleDef{
 		},
 		note: func(c *config.Config) string {
 			if c.Judge.Harness == "" {
-				return "It follows the planner's agent and model, as none is set here."
+				return "It follows the planner's agent, as none is set here, on that agent's small model unless one is set."
 			}
 			return ""
 		},
@@ -209,7 +209,7 @@ var settingRoles = []roleDef{
 				return "It's off ([pr_writer] enabled = false): ws titles each pull request as the mission is, and opens it at once."
 			}
 			if c.PRWriter.Harness == "" {
-				return "It follows conversations' agent and model, as none is set here."
+				return "It follows conversations' agent, as none is set here, on the model that agent orchestrates on unless one is set."
 			}
 			return ""
 		},

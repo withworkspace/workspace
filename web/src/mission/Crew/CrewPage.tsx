@@ -9,7 +9,7 @@ import { useTitle } from "../../ui/useTitle";
 import { toast } from "../../ui/toast";
 import { Loading } from "../../ui/Loading";
 import { Empty } from "../../ui/Empty";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { confirm } from "../../ui/Confirm";
 import type { StatusInfo } from "../../ui/Status";
 import { crewStatus } from "../../ui/statusOf";

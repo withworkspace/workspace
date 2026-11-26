@@ -7,6 +7,7 @@ import { PageMapEmpty } from "./PageMapEmpty";
 import { PageMapItem } from "./PageMapItem";
 import { PageMapSection } from "./PageMapSection";
 import { PageMapSum } from "./PageMapSum";
+import { Text } from "../ui/Text";
 
 // A page's map, beside it: what's open and out of date over it, then its
 // outline, its cells as each stands, its passes, what's open (unticked),
@@ -101,7 +102,7 @@ export const Full: StoryObj = {
             <PageMapItem to="/files/api?path=cmd/api/main.go">
               <Icon name="file" size={11} />
               <span>api/cmd/api/main.go</span>
-              <span className="dim">×2</span>
+              <Text dim>×2</Text>
             </PageMapItem>
           </li>
           <li>

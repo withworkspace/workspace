@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Inline } from "./Inline";
-import { plain } from "./text";
+import { plain } from "./strings";
+import { Text } from "./Text";
 
 // Inline markdown: what an agent wrote, as a line of the words around it.
 // Code, bold, emphasis and a link's words are drawn; a list, a heading, a
@@ -24,11 +25,11 @@ export const Written: StoryObj = {
         <Inline text={line} />
       </div>
       <div>
-        <div className="dim">Blocks fold into the line</div>
+        <Text as="div" dim>Blocks fold into the line</Text>
         <Inline text={blocks} />
       </div>
       <div>
-        <div className="dim">The same, with no markup, as a title has it (plain)</div>
+        <Text as="div" dim>The same, with no markup, as a title has it (plain)</Text>
         {plain(blocks)}
       </div>
     </div>
@@ -40,14 +41,14 @@ export const Clamped: StoryObj = {
     <div className="page" style={{ display: "grid", gap: 14, maxWidth: 360 }}>
       {[1, 2, 3].map((n) => (
         <div key={n}>
-          <div className="dim">
+          <Text as="div" dim>
             {n} {n === 1 ? "line" : "lines"}
-          </div>
+          </Text>
           <Inline text={long} lines={n} />
         </div>
       ))}
       <div>
-        <div className="dim">Whole</div>
+        <Text as="div" dim>Whole</Text>
         <Inline text={long} />
       </div>
     </div>

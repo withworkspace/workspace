@@ -9,7 +9,7 @@ import { Icon } from "../ui/Icon";
 import { MoreLink } from "../ui/MoreLink";
 import { Rows } from "../ui/Rows";
 import { sendKeys, useSendKey } from "../ui/sendKey";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useDraft } from "../ui/useDraft";
 import { TalkNew } from "./TalkNew";

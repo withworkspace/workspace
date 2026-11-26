@@ -4,6 +4,7 @@ import { RunEnds } from "./RunEnds";
 import { RunLink } from "./RunLink";
 import { RunMark } from "./RunMark";
 import { RunName } from "./RunName";
+import { Text } from "../ui/Text";
 
 // What a run's line is made of, on the Runs page and in a mission's Work
 // tab: its mark in each state, its name, where it answers, what a task
@@ -43,7 +44,7 @@ export const Lines: StoryObj = {
         <RunMark ended />
         <span style={top}>
           <RunName>worker</RunName>
-          <span className="dim">exited 0, 4 minutes ago</span>
+          <Text dim>exited 0, 4 minutes ago</Text>
         </span>
       </div>
       {["passed", "failed", "stopped"].map((result) => (

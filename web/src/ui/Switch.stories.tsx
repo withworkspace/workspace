@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Switch } from "./Switch";
+import { Text } from "./Text";
 
 // A switch: off, on, and disabled either way. Press one, or focus it and
 // press Space.
@@ -16,15 +17,15 @@ function One({ start = false, disabled }: { start?: boolean; disabled?: boolean 
 export const States: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 12, gridTemplateColumns: "100px auto", justifyContent: "start", alignItems: "center" }}>
-      <span className="dim">Off</span>
+      <Text dim>Off</Text>
       <One />
-      <span className="dim">On</span>
+      <Text dim>On</Text>
       <One start />
-      <span className="dim">Disabled</span>
+      <Text dim>Disabled</Text>
       <One disabled />
-      <span className="dim">Disabled, on</span>
+      <Text dim>Disabled, on</Text>
       <One start disabled />
-      <span className="dim">In a row</span>
+      <Text dim>In a row</Text>
       <label style={{ display: "flex", alignItems: "center", gap: 12, width: 280, justifyContent: "space-between" }}>
         Tell the desktop when something needs you <One start />
       </label>

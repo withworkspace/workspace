@@ -7,11 +7,12 @@ import { Copyable } from "../ui/Copyable";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Time } from "../ui/Time";
 import { SettingsFact, SettingsFacts } from "./SettingsFacts";
 import css from "./SettingsUpdates.module.css";
 import type { Standing } from "./standing";
+import { Text, textClass } from "../ui/Text";
 
 type SettingsUpdatesProps = {
   // What the daemon last found of ws's releases, and where this ws stands
@@ -30,7 +31,7 @@ type SettingsUpdatesProps = {
 // for before it restarts onto it.
 export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: SettingsUpdatesProps) {
   const notes = up.page && (
-    <a href={up.page} target="_blank" rel="noopener noreferrer" className={cx("link", css.notes)}>
+    <a href={up.page} target="_blank" rel="noopener noreferrer" className={cx(textClass("link"), css.notes)}>
       What's in it
       <Icon name="arrow-up-right" size={11} />
     </a>
@@ -76,20 +77,20 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
       {standing === "out-built" && (
         <Callout className={css.note} tone="attention" icon="arrow-up" title={`ws ${up.latest} is out`}>
           This is {shortVersion(up.version)}, built from a clone rather than installed from a release, so it's changed where it was built: pull, and{" "}
-          <span className="mono">just build</span>. {notes}
+          <Text mono>just build</Text>. {notes}
         </Callout>
       )}
       <SettingsFacts>
         <SettingsFact term="Latest release">
           {up.latest ? (
             <>
-              <span className="mono">{up.latest}</span>
-              {standing === "latest" && <span className="dim"> · this is it</span>}
-              {standing === "ahead" && <span className="dim"> · this ws is later</span>}
+              <Text mono>{up.latest}</Text>
+              {standing === "latest" && <Text dim> · this is it</Text>}
+              {standing === "ahead" && <Text dim> · this ws is later</Text>}
               {(standing === "latest" || standing === "ahead") && notes && <> · {notes}</>}
             </>
           ) : (
-            <span className="dim">{up.error ? "Not known" : up.tried ? "None yet" : "Not looked for yet"}</span>
+            <Text dim>{up.error ? "Not known" : up.tried ? "None yet" : "Not looked for yet"}</Text>
           )}
           {up.error && (
             <div className={css.error}>
@@ -102,13 +103,13 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
             {up.checked ? (
               <Time iso={up.checked} as="relative" />
             ) : up.tried ? (
-              <span className="dim">
+              <Text dim>
                 Tried <Time iso={up.tried} as="relative" />, with no answer
-              </span>
+              </Text>
             ) : (
-              <span className="dim">Never</span>
+              <Text dim>Never</Text>
             )}
-            <span className="dim"> · {up.checks ? "the daemon looks once a day" : "the daemon doesn't look by itself"}</span>
+            <Text dim> · {up.checks ? "the daemon looks once a day" : "the daemon doesn't look by itself"}</Text>
           </span>
           <Button size="small" onClick={onLook} disabled={!!busy} title="Ask now for the latest release of ws, and of each plugin installed from a repo">
             {busy === "look" ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {busy === "look" ? "Looking…" : "Check now"}
@@ -116,7 +117,7 @@ export function SettingsUpdates({ up, standing, busy, onLook, onUpgrade }: Setti
         </SettingsFact>
         {up.plugins > 0 && (
           <SettingsFact term="Plugins">
-            <Link to="/settings/plugins" className="link">
+            <Link to="/settings/plugins" className={textClass("link")}>
               {up.plugins} {up.plugins === 1 ? "plugin has" : "plugins have"} a later release
             </Link>
           </SettingsFact>

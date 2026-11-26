@@ -6,7 +6,7 @@ import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Time } from "../ui/Time";
 import { toast } from "../ui/toast";
 import { useWorkspace } from "../workspace/store";
@@ -22,6 +22,7 @@ import { RunsReports } from "./RunsReports";
 import { RunsServiceMore } from "./RunsServiceMore";
 import { RunsTaskMore } from "./RunsTaskMore";
 import { SaidTo } from "./SaidTo";
+import { Text } from "../ui/Text";
 
 // RunsRow is one run on the Runs page: a service with where it answers,
 // what it needs and when it ends, or a task with what it came to, the
@@ -81,9 +82,9 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
             <RunCame result={r.result}>
               {came(r)}
               {!live && r.ended && (
-                <span className="dim">
+                <Text dim>
                   , <Time iso={r.ended} as="relative" />
-                </span>
+                </Text>
               )}
             </RunCame>
           ) : live ? (
@@ -91,20 +92,20 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
               {bare(r.link)}
             </RunLink>
           ) : (
-            <span className="dim">
+            <Text dim>
               {r.state === "exited" ? `exited ${r.status ?? 0}` : "gone: ended outside ws"}
               {r.ended && (
                 <>
                   , <Time iso={r.ended} as="relative" />
                 </>
               )}
-            </span>
+            </Text>
           )}
           {live && !task && !r.up && <Chip tone="quiet">not up</Chip>}
           {task && (r.n ?? 0) > 1 && (
-            <span className="dim" title={`${r.past ?? 0} of its earlier runs are kept behind it`}>
+            <Text dim title={`${r.past ?? 0} of its earlier runs are kept behind it`}>
               run {r.n}
-            </span>
+            </Text>
           )}
         </>
       }
@@ -127,7 +128,7 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
             )}
             {task && <RunsReports r={r} />}
             {live && r.owner !== "run" && (r.neededBy?.length ?? 0) > 0 && <span>Needed by {listed(r.neededBy ?? [])}</span>}
-            {live && r.link !== r.local && <span className="mono">{bare(r.local)}</span>}
+            {live && r.link !== r.local && <Text mono>{bare(r.local)}</Text>}
           </RunsPageSub>
           {live && <RunsNeeds r={r} up={up} />}
           {live && r.ends && <RunEnds>Ends {r.ends}</RunEnds>}

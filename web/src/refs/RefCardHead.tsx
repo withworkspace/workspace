@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { HoverCardHead, HoverCardTitle } from "../ui/HoverCard";
 import { Icon, type IconName } from "../ui/Icon";
 import css from "./RefCardHead.module.css";
+import { Text, textClass } from "../ui/Text";
 
 type RefCardHeadProps = {
   // What kind of thing it is, as an icon.
@@ -18,9 +19,9 @@ type RefCardHeadProps = {
 export function RefCardHead({ icon, title, mono, aside }: RefCardHeadProps) {
   return (
     <HoverCardHead className={css.head}>
-      <Icon name={icon} size={13} className="dim" />
-      <HoverCardTitle className={mono ? cx("mono", css.mono) : undefined}>{title}</HoverCardTitle>
-      {aside && <span className={cx("dim mono", css.mono)}>{aside}</span>}
+      <Icon name={icon} size={13} className={textClass("dim")} />
+      <HoverCardTitle className={mono ? cx(textClass("mono"), css.mono) : undefined}>{title}</HoverCardTitle>
+      {aside && <Text dim mono className={css.mono}>{aside}</Text>}
     </HoverCardHead>
   );
 }

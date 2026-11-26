@@ -21,7 +21,7 @@ li > .link:hover {
   font-weight: 500;
 }
 
-.kind:global(.mono) {
+.kind.folder {
   font-weight: 400;
   font-size: var(--text-sm);
 }

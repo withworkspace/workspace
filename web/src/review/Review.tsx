@@ -13,6 +13,7 @@ import { ReviewSubmit } from "./ReviewSubmit";
 import { ReviewView } from "./ReviewView";
 import type { ReviewSource } from "./source";
 import { verdictWords } from "./words";
+import { Text } from "../ui/Text";
 
 // The review page's keys, and how a file's lines are coloured, are asked
 // for by this page's name.
@@ -31,9 +32,9 @@ export function Review() {
     return (
       <div className="page">
         <h1>No such capsule</h1>
-        <p className="dim">
+        <Text as="p" dim>
           {slug} has no capsule {repo}/{name}.
-        </p>
+        </Text>
       </div>
     );
   }
@@ -41,9 +42,9 @@ export function Review() {
     api,
     title: `Review ${repo}/${name}`,
     name: (
-      <span className="mono">
+      <Text mono>
         {repo}/{name}
-      </span>
+      </Text>
     ),
     back: { to: `/missions/${slug}`, label: mission.title },
     headNow: current.head,

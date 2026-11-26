@@ -7,6 +7,7 @@ import { ArtifactFoundFolder, ArtifactFoundTree } from "./ArtifactFoundTree";
 import { ArtifactRow } from "./ArtifactRow";
 import { ArtifactsFound } from "./ArtifactsFound";
 import { days } from "./samples";
+import { Text } from "../ui/Text";
 
 // The artifacts ws found in the workspace's repos, from their parts: as a
 // tree (a repo, the folders its artifacts are grouped in, and theirs, one
@@ -21,7 +22,7 @@ function Found({ title, where, by, at }: { title: string; where: string; by: str
       <span title={`It lives in records:${where}`}>
         <Icon name="branch" size={11} /> Records
       </span>
-      <span className="mono">records:{where}</span>
+      <Text mono>records:{where}</Text>
     </ArtifactRow>
   );
 }

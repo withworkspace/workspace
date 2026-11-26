@@ -1,6 +1,6 @@
 import type { Bundle, MissionEvent, Stage } from "../api";
 import type { IconName } from "../ui/Icon";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 
 // What the plan beside a mission works out before it draws: which steps
 // show when there are too many to list, what a folded run says of itself,

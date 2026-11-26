@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Copyable } from "./Copyable";
+import { Text } from "./Text";
 
 // Copyable: a ref, a path and a command that copy themselves; point at
 // one for its icon, press it and it says Copied. Then where its icon
@@ -13,9 +14,9 @@ export const Every: StoryObj = {
     <div className="page" style={{ display: "grid", gap: 16, justifyItems: "start" }}>
       <Copyable text="invoice-totals-off-by-a-penny" />
       <Copyable text="a3.v2" title="Copy its ref" />
-      <div className="dim">
+      <Text as="div" dim>
         It lives in <Copyable text="records/artifacts/a3" title="Copy its folder" /> too, for everyone with records.
-      </div>
+      </Text>
       <div>
         Say what it should ask for with <Copyable text="ws plugin config jira --ask">ws plugin config jira --ask</Copyable>.
       </div>

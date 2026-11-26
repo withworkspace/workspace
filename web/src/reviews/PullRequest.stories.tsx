@@ -10,13 +10,14 @@ import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo } from "../ui/Status";
 import { TextArea } from "../ui/TextArea";
 import { PullRequestLayers } from "./PullRequestLayers";
-import { PullRequestMeta, pullRequestMetaChipClass } from "./PullRequestMeta";
+import { PullRequestMeta, pullRequestMetaChipClass, pullRequestMetaCodeClass } from "./PullRequestMeta";
 import { PullRequestMetaChecks } from "./PullRequestMetaChecks";
 import { PullRequestName } from "./PullRequestName";
 import { PullRequestPosting } from "./PullRequestPosting";
 import { PullRequestReviewer } from "./PullRequestReviewer";
 import { PullRequestSubmit } from "./PullRequestSubmit";
 import { pullRequestLeftAloneClass, PullRequestSubmitLayer } from "./PullRequestSubmitLayer";
+import { Text } from "../ui/Text";
 
 // A pull request's review from its parts: its name (a layer, the whole
 // stack), where it stands, the stack's layers down the side, and the
@@ -67,7 +68,7 @@ function Head() {
           <PullRequestMeta>
             <Status s={needs} />
             <span>
-              mira · <span className="mono">rate-429</span> <Icon name="arrow-right" size={11} /> <span className="mono">rate-redis</span>
+              mira · <Text mono className={pullRequestMetaCodeClass}>rate-429</Text> <Icon name="arrow-right" size={11} /> <Text mono className={pullRequestMetaCodeClass}>rate-redis</Text>
             </span>
             <PullRequestMetaChecks checks="failure" />
             <PullRequestReviewer login="tomas" kind="approved" />
@@ -99,9 +100,9 @@ function Submit() {
           <Button>
             <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
           </Button>
-          <span className="dim">
+          <Text dim>
             <Keys k="[" /> <Keys k="]" /> pick a layer
-          </span>
+          </Text>
         </>
       }
       start={<Button variant="ghost">Discard the draft</Button>}
@@ -134,7 +135,7 @@ function Submit() {
         <PullRequestPosting p={posting} />
       </PullRequestSubmitLayer>
       <PullRequestSubmitLayer n={3} title="Say so in the docs" at="api#46" said="no comments" focus={false} posted={false} onFocus={none}>
-        <ReviewVerdicts label="Verdict for #46" keyed={false} onPick={none} after={<span className={`dim ${pullRequestLeftAloneClass}`}>Left alone</span>} />
+        <ReviewVerdicts label="Verdict for #46" keyed={false} onPick={none} after={<Text dim className={pullRequestLeftAloneClass}>Left alone</Text>} />
       </PullRequestSubmitLayer>
     </PullRequestSubmit>
   );

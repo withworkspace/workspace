@@ -6,3 +6,7 @@ import css from "./SettingsTable.module.css";
 export function SettingsTable({ children }: { children: ReactNode }) {
   return <table className={css.table}>{children}</table>;
 }
+
+// settingsTableQuietClass is what's quiet in a cell (as Text dim): a size
+// smaller than the table's words.
+export const settingsTableQuietClass: string = css.quiet;

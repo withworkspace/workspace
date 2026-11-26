@@ -1,5 +1,6 @@
 import { Time } from "../ui/Time";
 import css from "./OrchestratorRunMeta.module.css";
+import { Text } from "../ui/Text";
 
 type OrchestratorRunMetaProps = {
   // What it looked at ("c1 (done)").
@@ -21,7 +22,7 @@ export function OrchestratorRunMeta({ on, started, took, agent }: OrchestratorRu
       <span>
         <Time iso={started} /> · took {took}
       </span>
-      <span className="mono">{agent}</span>
+      <Text mono>{agent}</Text>
     </div>
   );
 }

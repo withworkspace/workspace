@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Checkbox } from "./Checkbox";
+import { Text } from "./Text";
 
 // Checkboxes: off, ticked, disabled either way, with more said under the
 // words, and one with no words (named by aria-label).
@@ -29,13 +30,13 @@ export const States: StoryObj = {
       <One start>
         <span>
           Remove what it kept for itself too
-          <span className="dim" style={{ display: "block", fontSize: "var(--text-sm)" }}>
+          <Text dim style={{ display: "block", fontSize: "var(--text-sm)" }}>
             Left alone, adding it again picks up where it was.
-          </span>
+          </Text>
         </span>
       </One>
       <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-        <One label="Accept item 3" /> <span className="dim">No words of its own</span>
+        <One label="Accept item 3" /> <Text dim>No words of its own</Text>
       </span>
     </div>
   ),

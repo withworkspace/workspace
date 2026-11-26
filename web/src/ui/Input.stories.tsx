@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Input } from "./Input";
+import { Text, textClass } from "./Text";
 
 // Text boxes: empty with a placeholder, with words, in mono, disabled,
 // invalid, and one a page draws without its box (in a bar of its own).
@@ -20,27 +21,27 @@ export const Boxes: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 14 }}>
       <label style={row}>
-        <span className="dim">Empty</span>
+        <Text dim>Empty</Text>
         <One placeholder="What it's named from" aria-label="Title" />
       </label>
       <label style={row}>
-        <span className="dim">With words</span>
+        <Text dim>With words</Text>
         <One start="Export invoices as CSV" aria-label="Title" />
       </label>
       <label style={row}>
-        <span className="dim">Mono</span>
-        <One className="mono" start="records:proposals/" aria-label="Where" />
+        <Text dim>Mono</Text>
+        <One className={textClass("mono")} start="records:proposals/" aria-label="Where" />
       </label>
       <label style={row}>
-        <span className="dim">Disabled</span>
+        <Text dim>Disabled</Text>
         <One start="Export invoices as CSV" disabled aria-label="Title" />
       </label>
       <label style={row}>
-        <span className="dim">Invalid</span>
+        <Text dim>Invalid</Text>
         <One start="not a number" aria-invalid aria-label="How many" />
       </label>
       <label style={row}>
-        <span className="dim">A page's own</span>
+        <Text dim>A page's own</Text>
         <span style={{ display: "flex", borderBottom: "1px solid var(--line)" }}>
           <One placeholder="Find a setting" aria-label="Find" style={{ flex: 1, border: 0, background: "none", boxShadow: "none", padding: "6px 0" }} />
         </span>

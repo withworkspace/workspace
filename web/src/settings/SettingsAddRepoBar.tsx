@@ -1,8 +1,8 @@
 import { Button } from "../ui/Button";
-import { cx } from "../ui/cx";
 import { Input } from "../ui/Input";
 import { Option, Select } from "../ui/Select";
 import css from "./SettingsAddRepoBar.module.css";
+import { Text } from "../ui/Text";
 
 const ANOTHER = "\u0000another";
 
@@ -47,14 +47,14 @@ export function SettingsAddRepoBar({ owners, owner, another, naming, named, filt
       ) : null}
       {naming && <Input className={css.owner} placeholder="owner on GitHub" aria-label="Owner on GitHub" value={named} onChange={(e) => onNamed(e.target.value)} autoFocus />}
       <Input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={filter} onChange={(e) => onFilter(e.target.value)} />
-      <span className={cx("dim", css.when)}>
+      <Text dim className={css.when}>
         {when}
         {!looking && (
           <Button variant="link" onClick={onLook}>
             Look again
           </Button>
         )}
-      </span>
+      </Text>
     </div>
   );
 }

@@ -145,7 +145,7 @@ func (p *Pi) Orchestrate(r OrchestratorRun) (Launch, error) {
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}
-	return Launch{Args: append(args, "--", r.Prompt), Dir: r.Dir, Stream: StreamPi}, nil
+	return Launch{Args: append(args, "--", r.OnCommandLine()), Dir: r.Dir, Stream: StreamPi}, nil
 }
 
 // piHooksFile is the extension ws writes into the hooks folder.

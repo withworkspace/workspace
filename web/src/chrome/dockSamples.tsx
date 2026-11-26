@@ -3,6 +3,7 @@ import { CrewBadge } from "../mission/CrewBadge";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";
 import { Turn, TurnSaid } from "../ui/Turn";
+import { Text } from "../ui/Text";
 
 // Things to peek at, for the docks' stories: Sorrel's, written by hand,
 // since the panes that will draw real ones aren't parts yet. What a pane
@@ -96,9 +97,9 @@ export const crew: SampleThing = {
   body: doc(
     <>
       {p("Writing the dark theme: the variables in theme.css, under prefers-color-scheme: dark.")}
-      <p className="dim" style={{ margin: 0 }}>
+      <Text as="p" dim style={{ margin: 0 }}>
         Edit web/src/theme.css
-      </p>
+      </Text>
     </>,
   ),
 };

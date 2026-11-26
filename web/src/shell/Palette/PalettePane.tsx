@@ -8,7 +8,7 @@ import { RefTag } from "../../refs/RefTag";
 import { HoverCardLine } from "../../ui/HoverCard";
 import { Icon } from "../../ui/Icon";
 import { Status } from "../../ui/Status";
-import { capital } from "../../ui/text";
+import { capital } from "../../ui/strings";
 import { actIcon, type ActOn, actsOn, type Found, type Item } from "../find";
 import { FindAct } from "./FindAct";
 import { FindActs } from "./FindActs";
@@ -18,6 +18,7 @@ import { FindPane } from "./FindPane";
 import { FindPullCard } from "./FindPullCard";
 import { FindSaidCard } from "./FindSaidCard";
 import { FindThing } from "./FindThing";
+import { textClass } from "../../ui/Text";
 
 // Thing is a plugin's thing, as a ref.
 type Thing = Extract<PageRef, { kind: "thing" }>;
@@ -93,7 +94,7 @@ export function PalettePane({
           </RefFoot>
         </>
       ) : on ? (
-        <FindItemCard mark={on.status ? <Status s={on.status} iconOnly size={13} /> : <Icon name={on.icon ?? "chevron-right"} size={13} className="dim" />} title={on.title} kind={on.kind} hint={on.hint} />
+        <FindItemCard mark={on.status ? <Status s={on.status} iconOnly size={13} /> : <Icon name={on.icon ?? "chevron-right"} size={13} className={textClass("dim")} />} title={on.title} kind={on.kind} hint={on.hint} />
       ) : (
         <HoverCardLine dim>What the cursor's on shows here.</HoverCardLine>
       )}

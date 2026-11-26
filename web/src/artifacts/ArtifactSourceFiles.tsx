@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon } from "../ui/Icon";
-import { cx } from "../ui/cx";
 import css from "./ArtifactSourceFiles.module.css";
+import { Text } from "../ui/Text";
 
 type ArtifactSourceFilesProps = {
   // What the list is called: "v2's files".
@@ -19,9 +19,9 @@ type ArtifactSourceFilesProps = {
 export function ArtifactSourceFiles({ label, count, size, children }: ArtifactSourceFilesProps) {
   return (
     <nav className={css.files} aria-label={label}>
-      <div className={cx(css.head, "dim")}>
+      <Text as="div" dim className={css.head}>
         {count} files, {size}
-      </div>
+      </Text>
       {children}
     </nav>
   );
@@ -52,7 +52,7 @@ export function ArtifactSourceFile({ path, size, current, page, onPick }: Artifa
     >
       <Icon name={page ? "artifact" : "file"} size={12} />
       <span className={css.path}>{path}</span>
-      <span className={cx(css.size, "dim")}>{size}</span>
+      <Text dim className={css.size}>{size}</Text>
     </button>
   );
 }

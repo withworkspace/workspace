@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import css from "./PassCard.module.css";
+import { Text } from "../ui/Text";
 
 // PassCard is one of a review's passes: how it stands, its title, what
 // it's for (about) and what's done with it (tools) in its head, then what
@@ -10,7 +11,7 @@ export function PassCard({ standing, title, about, tools, children }: { standing
       <header>
         {standing}
         <strong>{title}</strong>
-        <span className={`dim ${css.about}`}>{about}</span>
+        <Text dim className={css.about}>{about}</Text>
         <span className={css.spacer} />
         {tools}
       </header>

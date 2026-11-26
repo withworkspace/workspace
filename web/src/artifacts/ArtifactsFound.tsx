@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
 import css from "./ArtifactsFound.module.css";
+import { Text } from "../ui/Text";
 
 // ArtifactsFound is the artifacts ws found in the workspace's repos, under
 // the Artifacts page's own: what they are, over the list or the tree of
@@ -11,7 +11,7 @@ export function ArtifactsFound({ children }: { children: ReactNode }) {
       <h2 id="artifacts-found-title" className={css.title}>
         In the workspace's repos
       </h2>
-      <p className={cx("dim", css.about)}>Promoted by someone else, or by you on another machine: each runs from its repo's files.</p>
+      <Text as="p" dim className={css.about}>Promoted by someone else, or by you on another machine: each runs from its repo's files.</Text>
       {children}
     </section>
   );

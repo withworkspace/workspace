@@ -3,6 +3,7 @@ import { Inline } from "../../ui/Inline";
 import { MissionVerifyCommand } from "./MissionVerifyCommand";
 import { useTryRuns } from "./VerifyTryRuns";
 import { VerifyTryStart } from "./VerifyTryStart";
+import { Text } from "../../ui/Text";
 
 // VerifyTry is something to do to see it yourself: a recipe of the
 // bundle's capsule (ws run web) to start with a button, where the capsule
@@ -13,7 +14,7 @@ export function VerifyTry({ t }: { t: BundleTry }) {
   if (t.look) {
     return (
       <span>
-        <span className="dim">Look for</span> <Inline text={t.text} />
+        <Text dim>Look for</Text> <Inline text={t.text} />
       </span>
     );
   }

@@ -14,6 +14,7 @@ import { MissionStepCard } from "./MissionStepCard";
 import { MissionData } from "./MissionData";
 import { Stepper } from "./Stepper";
 import { PlanList } from "./PlanList";
+import { Text } from "../ui/Text";
 
 // A mission's plan: steps done, the one it's on and those to come, with
 // what's to be known of each (whose it is, its clock, its checks, where
@@ -226,9 +227,9 @@ export const OfMissions: StoryObj = {
         .filter(([, d]) => d.stages?.length)
         .map(([path, d]) => (
           <div key={path}>
-            <div className="dim" style={{ marginBottom: 6 }}>
+            <Text as="div" dim style={{ marginBottom: 6 }}>
               {d.title}
-            </div>
+            </Text>
             <MissionData.Provider value={d}>
               <Stepper stages={d.stages} />
             </MissionData.Provider>
@@ -245,9 +246,9 @@ export const InDetails: StoryObj = {
         .filter(([, d]) => d.stages?.length)
         .map(([path, d]) => (
           <div key={path}>
-            <div className="dim" style={{ marginBottom: 6 }}>
+            <Text as="div" dim style={{ marginBottom: 6 }}>
               {d.title}
-            </div>
+            </Text>
             <MissionData.Provider value={d}>
               <PlanList stages={d.stages} />
             </MissionData.Provider>

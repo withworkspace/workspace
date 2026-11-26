@@ -8,6 +8,7 @@ import { cx } from "../ui/cx";
 import css from "./MarkdownEditor.module.css";
 import { type Change, trackChanges } from "./track";
 import { highlighting, nodeViews } from "./views";
+import { Prose } from "../ui/Prose";
 
 // TrackedDoc shows a document with suggested edits in place, as tracked
 // changes: what each takes out struck through, what it puts in underlined,
@@ -76,9 +77,9 @@ export default function TrackedDoc({ text, changes, focus, settling, onSettle, o
   }, [tracked, changes, focus, settling]);
 
   return (
-    <div className="prose">
+    <Prose>
       <div ref={host} />
-    </div>
+    </Prose>
   );
 }
 

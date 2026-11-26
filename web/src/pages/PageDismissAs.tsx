@@ -3,6 +3,7 @@ import type { DismissWhy } from "../api";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import css from "./PageDismissAs.module.css";
+import { Text } from "../ui/Text";
 
 // PageDismissAs dismisses a finding, saying why (whys: each reason, its
 // words and what it means): it's wrong, the page already says it, or it's
@@ -18,7 +19,7 @@ export function PageDismissAs({ whys, onDismiss }: { whys: [DismissWhy, string, 
     );
   return (
     <span className={css.as} role="group" aria-label="Dismiss it as">
-      <span className="dim">Dismiss as</span>
+      <Text dim>Dismiss as</Text>
       {whys.map(([why, label, title]) => (
         <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)}>
           {label}

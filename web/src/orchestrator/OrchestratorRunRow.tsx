@@ -6,6 +6,7 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, rowLinkClass, rowStatusClass }
 import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import css from "./OrchestratorRunRow.module.css";
+import { Text } from "../ui/Text";
 
 type OrchestratorRunRowProps = {
   to: string;
@@ -32,7 +33,7 @@ export function OrchestratorRunRow({ to, outcome, mission, on, said, started, on
         <RowMain>
           <RowLine>
             {mission && <RowTitle>{mission}</RowTitle>}
-            <span className="dim">on {on}</span>
+            <Text dim>on {on}</Text>
             <Chip tone={outcome.tone}>{outcome.words}</Chip>
           </RowLine>
           {said && (

@@ -11,6 +11,7 @@ import { MissionSummaryMore } from "./MissionSummaryMore";
 import { MissionSummarySaid } from "./MissionSummarySaid";
 import { MissionSummaryWork } from "./MissionSummaryWork";
 import { Summary } from "./Summary";
+import { Text } from "../../ui/Text";
 
 // A mission's Summary tab: as missions ws gave (mission/fixtures) have it,
 // beside its details and alone (full, with what the details had), and its
@@ -27,7 +28,7 @@ const column = (children: ReactNode) => <div style={{ maxWidth: 916, padding: "1
 function Taken({ name, full }: { name: string; full?: boolean }) {
   storyWorkspace();
   const m = takenMissions.find((x) => x.name === name);
-  if (!m) return <p className="dim">No mission {name} among the fixtures.</p>;
+  if (!m) return <Text as="p" dim>No mission {name} among the fixtures.</Text>;
   return (
     <RefsProvider>
       <MissionData.Provider value={m.d}>

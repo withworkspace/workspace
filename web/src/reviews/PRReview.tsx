@@ -52,7 +52,7 @@ import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
 import { LayerList } from "./LayerList";
 import { PRSubmitDialog } from "./PRSubmitDialog";
-import { PullRequestMeta, pullRequestMetaChipClass } from "./PullRequestMeta";
+import { PullRequestMeta, pullRequestMetaChipClass, pullRequestMetaCodeClass } from "./PullRequestMeta";
 import { PullRequestMetaChecks } from "./PullRequestMetaChecks";
 import { PullRequestName } from "./PullRequestName";
 import { PullRequestReviewer } from "./PullRequestReviewer";
@@ -61,8 +61,9 @@ import { prHref, prStatus, reviewed } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/PagePin";
 import { Button, buttonClass } from "../ui/Button";
-import { clip, humanError } from "../ui/text";
+import { clip, humanError } from "../ui/strings";
 import { useWorkspace } from "../workspace/store";
+import { Text, textClass } from "../ui/Text";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -295,7 +296,7 @@ export function PRReviewPage() {
       title: "Not yours to review?",
       body: (
         <>
-          Your name comes off the reviewers of <span className="mono">{ref}</span> on GitHub, where {d.pr.author} and anyone else on it will see. Nobody's asked in your place.
+          Your name comes off the reviewers of <Text mono>{ref}</Text> on GitHub, where {d.pr.author} and anyone else on it will see. Nobody's asked in your place.
         </>
       ),
       confirm: "Take my name off",
@@ -434,17 +435,17 @@ export function PRReviewPage() {
             </Button>
           )}
           <span>
-            {pr.mine ? "Yours" : pr.author} · <span className="mono">{pr.branch}</span> <Icon name="arrow-right" size={11} />{" "}
-            <span className="mono">{whole && d.stack ? d.stack.base : pr.base}</span>
+            {pr.mine ? "Yours" : pr.author} · <Text mono className={pullRequestMetaCodeClass}>{pr.branch}</Text> <Icon name="arrow-right" size={11} />{" "}
+            <Text mono className={pullRequestMetaCodeClass}>{whole && d.stack ? d.stack.base : pr.base}</Text>
           </span>
           {pr.checks && !whole && <PullRequestMetaChecks checks={pr.checks} />}
           {!whole &&
             discussion?.reviewers.map((r) => <PullRequestReviewer key={r.login} login={r.login} kind={r.kind} stale={r.stale} />)}
-          {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
+          {pr.updated && <Time iso={pr.updated} as="relative" className={textClass("dim")} />}
           {!whole && !threads && !threadsError && (
-            <span className="dim" title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
+            <Text dim title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
               <Spinner size={12} /> Reading the comments on GitHub…
-            </span>
+            </Text>
           )}
           {pr.mission && (
             <Link to={`/missions/${pr.mission.slug}`} className={pullRequestMetaChipClass("quiet")}>

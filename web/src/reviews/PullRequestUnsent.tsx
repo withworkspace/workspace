@@ -1,7 +1,7 @@
 import type { Unsent } from "../api";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
-import { capital, clip, humanError } from "../ui/text";
+import { capital, clip, humanError } from "../ui/strings";
 import css from "./PullRequestUnsent.module.css";
 
 type Props = {

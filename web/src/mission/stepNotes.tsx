@@ -7,6 +7,7 @@ import { StepChecks } from "./StepChecks";
 import { StepLimit } from "./StepLimit";
 import { StepRuns } from "./StepRuns";
 import { StepWho } from "./StepWho";
+import { Text } from "../ui/Text";
 
 // stepNotes is what's to be known of a step, under its name, or nothing
 // where there's nothing to say.
@@ -66,9 +67,9 @@ export function stepNotes(s: Stage): ReactNode {
         <CrewBadge key={c} id={c} />
       ))}
       {s.checkIn && s.state !== "accepted" && (
-        <span className="dim" title="The orchestrator stops for you after this stage">
+        <Text dim title="The orchestrator stops for you after this stage">
           <Icon name="pause" size={11} /> check in after
-        </span>
+        </Text>
       )}
     </>
   );

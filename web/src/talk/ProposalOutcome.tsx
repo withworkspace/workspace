@@ -8,6 +8,7 @@ import { Icon } from "../ui/Icon";
 import { addedVersion } from "./proposals";
 import { TalkProposalSettled } from "./TalkProposalSettled";
 import { talkHref } from "./words";
+import { textClass } from "../ui/Text";
 
 // ProposalOutcome is what came of a card of ws's own, in its foot: that it
 // was declined, superseded or withdrawn; or what accepting it did (as a
@@ -105,6 +106,6 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
   if (!p.result) return done("Decided: kept with this conversation until it becomes a mission");
   const [on, ref] = p.result.split(":");
   return done(
-    <>Recorded as {ref} on <Link to={`/missions/${on}`} className="link">{on}</Link></>,
+    <>Recorded as {ref} on <Link to={`/missions/${on}`} className={textClass("link")}>{on}</Link></>,
   );
 }

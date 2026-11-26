@@ -5,7 +5,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { Option, Select } from "../ui/Select";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { AppBar, AppBarLink, AppBarNeed, AppBarPointer } from "./AppBar";
 import { AppCard } from "./AppCard";

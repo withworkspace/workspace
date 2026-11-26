@@ -11,3 +11,8 @@ export function PageField({ label, children }: { label: string; children: ReactN
     </label>
   );
 }
+
+// pageFieldCodeClass is a field whose words are a path or a commit's
+// message (an Input given textClass("mono")): the code's type, a size
+// down, with room between its lines.
+export const pageFieldCodeClass: string = css.code;

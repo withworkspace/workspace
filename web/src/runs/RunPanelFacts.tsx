@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Copyable } from "../ui/Copyable";
 import { cx } from "../ui/cx";
 import css from "./RunPanelFacts.module.css";
+import { textClass } from "../ui/Text";
 
 // RunPanelFacts is how and why a run was run, in its panel: facts side by
 // side, a RunPanelFact each, as many to a row as there's room for.
@@ -29,7 +30,7 @@ export function RunPanelAside({ children }: { children: ReactNode }) {
 // RunPanelCommand is the command a run ran, which copies itself.
 export function RunPanelCommand({ command }: { command: string }) {
   return (
-    <Copyable text={command} className={cx("mono", css.command)}>
+    <Copyable text={command} className={cx(textClass("mono"), css.command)}>
       {command}
     </Copyable>
   );

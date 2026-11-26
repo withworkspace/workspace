@@ -3,6 +3,7 @@ import { cx } from "../../ui/cx";
 import { DirtyDot } from "../../ui/DirtyDot";
 import { Icon } from "../../ui/Icon";
 import css from "./FilesSwitchMenu.module.css";
+import { Text, textClass } from "../../ui/Text";
 
 // FilesSwitchMenu is what a repo's worktree switches to: its ground and
 // each of its capsules (FilesSwitchItems), or what's said with no
@@ -11,7 +12,7 @@ export function FilesSwitchMenu({ label, none, children }: { label: string; none
   return (
     <ul className={css.menu} role="listbox" aria-label={label}>
       {children}
-      {none && <li className={cx("dim", css.none)}>{none}</li>}
+      {none && <Text as="li" dim className={css.none}>{none}</Text>}
     </ul>
   );
 }
@@ -37,7 +38,7 @@ type FilesSwitchItemProps = {
 export function FilesSwitchItem({ name, ground, sub, ahead, behind, dirty, current, on, onHover, onPick }: FilesSwitchItemProps) {
   return (
     <li role="option" aria-selected={current} className={cx(on && css.on)} onMouseMove={onHover} onClick={onPick}>
-      <Icon name={ground ? "layers" : "box"} size={14} className="dim" />
+      <Icon name={ground ? "layers" : "box"} size={14} className={textClass("dim")} />
       <span className={css.item}>
         <span className={css.name}>{ground ? "ground" : name}</span>
         <span className={css.sub}>{sub}</span>

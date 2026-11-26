@@ -9,6 +9,7 @@ import { Icon } from "../../ui/Icon";
 import { Spinner } from "../../ui/Spinner";
 import { Time } from "../../ui/Time";
 import { MissionWorkRun } from "./MissionWorkRun";
+import { Text } from "../../ui/Text";
 
 // WorkTaskLine is a task in a capsule: what it came to, at which commit,
 // going to its run on the Runs page.
@@ -44,9 +45,9 @@ export function WorkTaskLine({ r, busy, stop }: { r: RunDetail; busy: boolean; s
       <RunCame result={r.result}>
         {came(r)}
         {!live && r.ended && (
-          <span className="dim">
+          <Text dim>
             , <Time iso={r.ended} as="relative" />
-          </span>
+          </Text>
         )}
       </RunCame>
     </MissionWorkRun>

@@ -11,6 +11,7 @@ import { MissionBriefDoc } from "./MissionBriefDoc";
 import { MissionBriefDocNote } from "./MissionBriefDocNote";
 import { MissionBriefDocWaiting } from "./MissionBriefDocWaiting";
 import { unplaced as unplacedWords } from "./words";
+import { Prose } from "../../ui/Prose";
 
 // BriefDocPanel is the brief or the plan: its changes since the version
 // before marked in it to accept or decline, one by one or all at once;
@@ -142,9 +143,9 @@ export function BriefDocPanel({
       ) : blank ? (
         <MissionBriefDocWaiting>{empty}</MissionBriefDocWaiting>
       ) : readOnly || !byHand ? (
-        <div className="prose">
+        <Prose>
           <Markdown text={showing} />
-        </div>
+        </Prose>
       ) : (
         <div>
           {guard && (

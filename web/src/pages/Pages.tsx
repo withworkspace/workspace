@@ -4,7 +4,7 @@ import { type DocKind, kindHint, newPage, pageAddress, type PageInfo } from "../
 import type { Back } from "./Page";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
@@ -16,6 +16,7 @@ import { PageFileWhat } from "./PageFileWhat";
 import { PageKindPick } from "./PageKindPick";
 import { PageKindPicks } from "./PageKindPicks";
 import { PagesRow } from "./PagesRow";
+import { Text } from "../ui/Text";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -139,7 +140,7 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
       </PageFields>
       {k && (
         <PageFileWhat>
-          Its agents are told how one's written{k.guide ? <> (<span className="mono">{k.guide.split("/").slice(-3).join("/")}</span>)</> : null}, and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <span className="mono">{whereItGoes(k, title)}</span>.
+          Its agents are told how one's written{k.guide ? <> (<Text mono>{k.guide.split("/").slice(-3).join("/")}</Text>)</> : null}, and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <Text mono>{whereItGoes(k, title)}</Text>.
         </PageFileWhat>
       )}
       <DialogActions>

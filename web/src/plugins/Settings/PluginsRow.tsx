@@ -7,6 +7,7 @@ import { Row, RowMain, RowSub } from "../../ui/Rows";
 import { Time } from "../../ui/Time";
 import { type Tone, toneClass } from "../../ui/tone";
 import css from "./PluginsRow.module.css";
+import { Text } from "../../ui/Text";
 
 type PluginsRowProps = {
   // ready and failed colour its icon; one of the team's that isn't
@@ -53,7 +54,7 @@ export function PluginsRow({ kind, icon, name, to, version, state, out, about, f
           ) : (
             <span className={css.title}>{name}</span>
           )}
-          {version && <span className={cx("mono", "dim", css.version)}>{version}</span>}
+          {version && <Text mono dim className={css.version}>{version}</Text>}
           {state && (
             <Chip tone={state.tone} title={state.title}>
               {state.label}
@@ -88,7 +89,7 @@ export function PluginsRow({ kind, icon, name, to, version, state, out, about, f
             </span>
           )}
           {adds && adds.length > 0 && <span>Adds {adds.join(" · ")}</span>}
-          {source !== undefined && <span className="mono">{source}</span>}
+          {source !== undefined && <Text mono>{source}</Text>}
         </RowSub>
         {notes}
       </RowMain>

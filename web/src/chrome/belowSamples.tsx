@@ -3,6 +3,7 @@ import { Row, RowLine, RowMain, RowMeta, RowSub, Rows, RowTitle } from "../ui/Ro
 import { Status } from "../ui/Status";
 import type { BelowView } from "./Below";
 import type { BelowWhere } from "./chromeState";
+import { Text } from "../ui/Text";
 
 // Things to show below, for the docks' stories: Sorrel's runs, written
 // by hand, since the panes that will draw real ones aren't parts yet.
@@ -25,7 +26,7 @@ const icon = { done: "check-circle", danger: "x-circle", progress: "circle-dot" 
 // A view's rows: here's (the page's capsule), or everywhere's.
 function runs(all: SampleRun[], where: BelowWhere): ReactNode {
   const shown = where === "here" ? all.filter((r) => r.here) : all;
-  if (shown.length === 0) return <p className="dim" style={{ margin: 0, padding: "14px 16px" }}>Nothing here. There's more everywhere.</p>;
+  if (shown.length === 0) return <Text as="p" dim style={{ margin: 0, padding: "14px 16px" }}>Nothing here. There's more everywhere.</Text>;
   return (
     <Rows>
       {shown.map((r, i) => (
@@ -34,7 +35,7 @@ function runs(all: SampleRun[], where: BelowWhere): ReactNode {
           <RowMain>
             <RowLine>
               <RowTitle>{r.name}</RowTitle>
-              <span className="dim">{r.says}</span>
+              <Text dim>{r.says}</Text>
             </RowLine>
             <RowSub>In {r.in}</RowSub>
           </RowMain>

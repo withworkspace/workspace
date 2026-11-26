@@ -4,7 +4,7 @@ import { GroupHead } from "../ui/GroupHead";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import { Spinner } from "../ui/Spinner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Time } from "../ui/Time";
 import { cx } from "../ui/cx";
 import css from "./TeamSummary.module.css";

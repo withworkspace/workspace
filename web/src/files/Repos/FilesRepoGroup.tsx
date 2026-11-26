@@ -4,6 +4,7 @@ import { Count } from "../../ui/Count";
 import { cx } from "../../ui/cx";
 import { GroupHead, groupHeadClass } from "../../ui/GroupHead";
 import css from "./FilesRepoGroup.module.css";
+import { Text } from "../../ui/Text";
 
 type FilesRepoGroupProps = {
   // shown: under its name (none for the ungrouped, first); hidden: folded
@@ -35,7 +36,7 @@ export function FilesRepoGroup({ kind, label, count, open, children }: FilesRepo
     return (
       <details className={css.group} open={open}>
         <summary className={groupHeadClass(css.head)}>
-          {label} <span className="dim">· hidden</span> <Count>{count}</Count>
+          {label} <Text dim>· hidden</Text> <Count>{count}</Count>
         </summary>
         {children}
       </details>

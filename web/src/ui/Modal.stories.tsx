@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { Modal } from "./Modal";
+import { Text } from "./Text";
 
 // A modal with a look of its own (a Dialog is the one with a head): a
 // finder, here. Press the button; Escape or a press outside closes it,
@@ -40,9 +41,9 @@ function Finder({ own }: { own?: boolean }) {
               }}
               style={{ width: "100%", border: 0, borderRadius: 0, padding: 14, boxShadow: "none" }}
             />
-            <p className="dim" style={{ margin: 0, padding: "10px 14px", borderTop: "1px solid var(--line)" }}>
+            <Text as="p" dim style={{ margin: 0, padding: "10px 14px", borderTop: "1px solid var(--line)" }}>
               {q ? `Nothing matches “${q}”.` : "The page behind can't be reached while this is open."}
-            </p>
+            </Text>
           </div>
         </Modal>
       )}

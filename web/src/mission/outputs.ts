@@ -1,5 +1,5 @@
 import type { Artifact } from "../api";
-import { capital } from "../ui/text";
+import { capital } from "../ui/strings";
 
 // Outputs (a mission's recorded artifacts: its documents, pull requests
 // and artifacts): a short title, what the agent said of it under, and its

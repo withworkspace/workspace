@@ -32,13 +32,13 @@
   color: var(--fg);
 }
 
-.head :global(.repo-dot) {
+.head .dot {
   flex: none;
   width: 10px;
   height: 10px;
 }
 
-.head > :global(.mono) {
+.head > .where {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;

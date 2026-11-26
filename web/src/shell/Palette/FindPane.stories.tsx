@@ -12,6 +12,7 @@ import { FindPullCard } from "./FindPullCard";
 import { FindSaidCard } from "./FindSaidCard";
 import { FindThing } from "./FindThing";
 import { hits, pulls } from "./samples";
+import { Text, textClass } from "../../ui/Text";
 
 // Find's pane, with each card it shows for what the cursor's on: a line
 // of a file, a pull request (as Find was told of it, and one it would
@@ -27,7 +28,7 @@ export default meta;
 function Pane({ says, scrolls, children }: { says: string; scrolls?: boolean; children: ReactNode }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <span className="dim">{says}</span>
+      <Text dim>{says}</Text>
       <div className={finderBox} style={{ display: "flex", width: "auto", height: 260 }}>
         <FindPane scrolls={scrolls}>{children}</FindPane>
       </div>
@@ -67,11 +68,11 @@ export const Cards: StoryObj = {
           />
         </Pane>
         <Pane says="A row with no card of its own">
-          <FindItemCard mark={<Icon name="play" size={13} className="dim" />} title="Resume" kind="Do" hint="Invoices in more than one currency is parked" />
+          <FindItemCard mark={<Icon name="play" size={13} className={textClass("dim")} />} title="Resume" kind="Do" hint="Invoices in more than one currency is parked" />
         </Pane>
         <Pane says="A plugin's thing, and what can be done to it" scrolls>
           <FindThing>
-            <FindItemCard mark={<Icon name="chevron-right" size={13} className="dim" />} title="THING-2: the lantern" kind="A fixture thing" />
+            <FindItemCard mark={<Icon name="chevron-right" size={13} className={textClass("dim")} />} title="THING-2: the lantern" kind="A fixture thing" />
             <HoverCardLine wrap>{lantern.repeat(3)}</HoverCardLine>
           </FindThing>
           <FindActs>

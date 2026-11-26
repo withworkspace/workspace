@@ -7,6 +7,7 @@ import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteStatus, NoteThread, NoteTurn } from "./NoteCard";
 import { ReplyBox } from "./ReplyBox";
+import { Text, textClass } from "./Text";
 
 // Note cards: a comment as it's drawn on a diff (open, with the keys on
 // it, a draft, with what's been said since, resolved), what a pass found
@@ -32,9 +33,9 @@ export const Comments: StoryObj = {
   render: () => (
     <div className="page" style={col}>
       <div>
-        <div className="dim" style={label}>
+        <Text as="div" dim style={label}>
           Open
-        </div>
+        </Text>
         <NoteCard>
           <NoteHead
             end={
@@ -46,15 +47,15 @@ export const Comments: StoryObj = {
           >
             <span className="kind k-blocking">Blocking</span>
             <NoteStatus status="open">Open</NoteStatus>
-            <span className="dim">line 42</span>
+            <Text dim>line 42</Text>
           </NoteHead>
           <NoteBody>The total's rounded per line, so an invoice of thirds comes out a penny short.</NoteBody>
         </NoteCard>
       </div>
       <div>
-        <div className="dim" style={label}>
+        <Text as="div" dim style={label}>
           The keys are on it
-        </div>
+        </Text>
         <NoteCard cursor>
           <NoteHead
             end={
@@ -68,13 +69,13 @@ export const Comments: StoryObj = {
           >
             <span className="kind k-question">Question</span>
             <NoteStatus status="addressed">Addressed</NoteStatus>
-            <span className="dim">lines 12–18</span>
+            <Text dim>lines 12–18</Text>
           </NoteHead>
           <NoteBody>Is the retry here on purpose? It hides a timeout from whoever called it.</NoteBody>
           <NoteThread>
             <NoteTurn who="api-1" said="It was: the upstream drops one request in a hundred. I've said so above it.">
               <NoteStatus status="addressed">Addressed</NoteStatus>
-              <span className="mono dim">3f9c2ab</span>
+              <Text mono dim>3f9c2ab</Text>
             </NoteTurn>
             <NoteTurn who="You" said="Then say how many times it tries.">
               <NoteStatus status="reopened">Reopened</NoteStatus>
@@ -86,29 +87,29 @@ export const Comments: StoryObj = {
         </NoteCard>
       </div>
       <div>
-        <div className="dim" style={label}>
+        <Text as="div" dim style={label}>
           A draft, whose lines aren't showing
-        </div>
+        </Text>
         <NoteCard draft cursor>
           <NoteHead
             end={
-              <span className="dim">
+              <Text dim>
                 <Keys k="⏎" /> edit <Keys k="D" /> delete
-              </span>
+              </Text>
             }
           >
             <span className="kind k-nit">Nit</span>
             <NoteStatus>Draft</NoteStatus>
-            <span className="dim">line 7</span>
+            <Text dim>line 7</Text>
           </NoteHead>
           <Excerpt lines={["func total(lines []Line) Money {", "\tvar sum Money"]} from={7} />
           <NoteBody>sum reads as a verb here.</NoteBody>
         </NoteCard>
       </div>
       <div>
-        <div className="dim" style={label}>
+        <Text as="div" dim style={label}>
           Resolved
-        </div>
+        </Text>
         <NoteCard resolved>
           <NoteHead
             end={
@@ -120,7 +121,7 @@ export const Comments: StoryObj = {
           >
             <span className="kind k-suggestion">Suggestion</span>
             <NoteStatus status="resolved">Resolved</NoteStatus>
-            <span className="dim">line 3</span>
+            <Text dim>line 3</Text>
           </NoteHead>
         </NoteCard>
       </div>
@@ -134,14 +135,14 @@ export const Found: StoryObj = {
       <NoteCard found>
         <NoteHead end={<Button size="small">Add to review</Button>}>
           <span className="kind k-found">naming</span>
-          <span className="dim">line 19</span>
+          <Text dim>line 19</Text>
         </NoteHead>
         <NoteBody>exportCSV and ExportCsv are both here: one of them is the other's old name.</NoteBody>
       </NoteCard>
       <NoteCard found blocks cursor>
         <NoteHead end={<Button size="small">Add to review</Button>}>
           <span className="kind k-found k-blocking">correctness</span>
-          <span className="dim">lines 30–34</span>
+          <Text dim>lines 30–34</Text>
         </NoteHead>
         <NoteBody>The file's closed before the last row is written, so the export ends a row short.</NoteBody>
       </NoteCard>
@@ -174,7 +175,7 @@ function Thread({ state, children }: { state: "rest" | "hovered" | "yours" | "fo
         ) : null}
       </NoteHead>
       {state === "folded" ? (
-        <NoteBody oneLine className="dim">
+        <NoteBody oneLine className={textClass("dim")}>
           Does the export keep the order the invoices were raised in, or sort them by customer?
         </NoteBody>
       ) : (

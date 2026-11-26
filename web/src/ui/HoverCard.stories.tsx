@@ -4,6 +4,7 @@ import { Chip } from "./Chip";
 import { FloatingCard } from "./FloatingCard";
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardLinks, hoverCardLinkClass, HoverCardSaid, HoverCardStrong, HoverCardTitle } from "./HoverCard";
 import { Icon } from "./Icon";
+import { Text } from "./Text";
 
 // Hover cards: what a card says, laid out with its parts (drawn open
 // here, so they can be looked at); something to point at, which shows its
@@ -42,9 +43,9 @@ function Open({ words, beside, style }: { words: string; beside?: boolean; style
   const list = useRef<HTMLDivElement>(null);
   return (
     <div ref={list} style={{ width: 200, padding: 8, border: "1px dashed var(--line)", borderRadius: 8, ...style }}>
-      <span ref={setEl} className="dim">
+      <Text dim ref={setEl}>
         {words}
-      </span>
+      </Text>
       {el && (
         <FloatingCard anchor={el} beside={beside ? list.current : undefined} onEnter={() => {}} onLeave={() => {}}>
           {says}
@@ -65,9 +66,9 @@ export const Says: StoryObj = {
 export const Hovered: StoryObj = {
   render: () => (
     <div className="page" style={{ minHeight: 220 }}>
-      <span className="dim">Point at </span>
+      <Text dim>Point at </Text>
       <HoverCard trigger={<Chip tone="quiet">adr/0001</Chip>}>{says}</HoverCard>
-      <span className="dim"> for a moment, or give it the keys.</span>
+      <Text dim> for a moment, or give it the keys.</Text>
     </div>
   ),
 };

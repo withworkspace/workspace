@@ -4,6 +4,7 @@ import { Sidebar } from "../../chrome/Sidebar";
 import { workspace } from "../../chrome/samples";
 import { arrange, move, placesOf } from "../places";
 import { Arrange } from "./Arrange";
+import { Text } from "../../ui/Text";
 
 // The sidebar while it's arranged, side by side: Sorrel's places as they
 // come (Runs in the menu); with nothing in the menu (what's said in an
@@ -35,9 +36,9 @@ function ArrangeIn({ start, canReset }: { start: typeof places; canReset?: boole
         />
       </Sidebar>
       {said && (
-        <p className="dim" style={{ maxWidth: 232, margin: 0 }}>
+        <Text as="p" dim style={{ maxWidth: 232, margin: 0 }}>
           {said}
-        </p>
+        </Text>
       )}
     </div>
   );

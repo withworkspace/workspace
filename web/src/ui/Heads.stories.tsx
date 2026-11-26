@@ -5,6 +5,7 @@ import { Count } from "./Count";
 import { GroupHead } from "./GroupHead";
 import { PageHead } from "./PageHead";
 import { Summary, SummaryRow } from "./Summary";
+import { Text } from "./Text";
 
 // A page's parts: its head, with what's beside the title and its actions;
 // a group's heading with its count; counts alone; a summary.
@@ -21,13 +22,13 @@ export const Heads: StoryObj = {
       </PageHead>
       <PageHead
         lead={
-          <span className="dim">
+          <Text dim>
             Documents <span aria-hidden>/</span>
-          </span>
+          </Text>
         }
         title="records"
       >
-        <span className="dim">12 documents</span>
+        <Text dim>12 documents</Text>
       </PageHead>
       <PageHead
         title="Missions"
@@ -42,7 +43,7 @@ export const Heads: StoryObj = {
       />
       <section>
         <GroupHead count={3}>Running</GroupHead>
-        <p className="dim">A group's rows go here.</p>
+        <Text as="p" dim>A group's rows go here.</Text>
       </section>
       <section>
         <GroupHead count="3 of 12">Found</GroupHead>

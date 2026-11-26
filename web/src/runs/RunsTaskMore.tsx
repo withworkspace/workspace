@@ -10,6 +10,7 @@ import { RunsPageFacts } from "./RunsPageFacts";
 import { RunsPageMore, runsPageLogClass } from "./RunsPageMore";
 import { RunsPagePast, RunsPagePastRun } from "./RunsPagePast";
 import { RunsReports } from "./RunsReports";
+import { Text } from "../ui/Text";
 
 // RunsTaskMore is a task's run opened: the runs of it that are kept, the
 // latest first, one of them picked; that one's facts, and all it printed.
@@ -42,27 +43,27 @@ export function RunsTaskMore({ r, by, show }: { r: RunDetail; by?: string; show:
         <RunCame as="dd" result={one.result}>
           {came(one)}
           {one.ended && (
-            <span className="dim">
+            <Text dim>
               , ended <Time iso={one.ended} />
-            </span>
+            </Text>
           )}
         </RunCame>
         <dt>Command</dt>
-        <dd className="mono">
+        <Text as="dd" mono>
           <Copyable text={one.command}>{one.command}</Copyable>
-        </dd>
+        </Text>
         {one.dir && (
           <>
             <dt>Folder</dt>
-            <dd className="mono">{one.dir}</dd>
+            <Text as="dd" mono>{one.dir}</Text>
           </>
         )}
         {one.commit && (
           <>
             <dt>Commit</dt>
             <dd>
-              <span className="mono">{one.commit.slice(0, 12)}</span>
-              {one.dirty && <span className="dim">, with changes that weren't committed</span>}
+              <Text mono>{one.commit.slice(0, 12)}</Text>
+              {one.dirty && <Text dim>, with changes that weren't committed</Text>}
             </dd>
           </>
         )}

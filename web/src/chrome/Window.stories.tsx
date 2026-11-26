@@ -9,6 +9,7 @@ import { WindowNotFound } from "./WindowNotFound";
 import { WindowNotice } from "./WindowNotice";
 import { WindowUpdated } from "./WindowUpdated";
 import { WorkspaceName } from "./WorkspaceName";
+import { Text } from "../ui/Text";
 
 // What the window draws of its own, round the page: the workspace's menu
 // (press its name), the banners across the top (the daemon lost, with the
@@ -24,7 +25,7 @@ function Said({ children }: { children: (say: (what: string) => void) => React.R
   return (
     <div style={{ display: "flex", gap: 16, alignItems: "center", padding: 24 }}>
       {children(say)}
-      <span className="dim">{said}</span>
+      <Text dim>{said}</Text>
     </div>
   );
 }

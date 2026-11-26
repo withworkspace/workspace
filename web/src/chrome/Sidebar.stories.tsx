@@ -22,6 +22,7 @@ import {
 } from "./samples";
 import { Sidebar } from "./Sidebar";
 import { WorkspaceName } from "./WorkspaceName";
+import { Text } from "../ui/Text";
 
 // The sidebar: the workspace's name, Find, its places and what needs you.
 // It's drawn open or folded to a rail, which opens over the page while
@@ -90,10 +91,10 @@ export const Rail: StoryObj = {
   render: () => (
     <div style={ground}>
       <Card rail />
-      <p className="dim" style={{ marginLeft: 48, maxWidth: 320 }}>
+      <Text as="p" dim style={{ marginLeft: 48, maxWidth: 320 }}>
         The page. The rail opens over it while it's pointed at, and a count is a
         dot on its place's icon.
-      </p>
+      </Text>
     </div>
   ),
 };
@@ -261,9 +262,9 @@ function Arranging() {
         />
       </Sidebar>
       {done && (
-        <p className="dim" style={{ maxWidth: 320 }}>
+        <Text as="p" dim style={{ maxWidth: 320 }}>
           {done}
-        </p>
+        </Text>
       )}
     </div>
   );

@@ -5,7 +5,7 @@ import { shortVersion } from "../shell/version";
 import { confirm } from "../ui/Confirm";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Skeleton } from "../ui/Skeleton";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { SettingsUpdates } from "./SettingsUpdates";
 import { standingOf } from "./standing";

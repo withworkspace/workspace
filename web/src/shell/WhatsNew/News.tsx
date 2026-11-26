@@ -5,6 +5,7 @@ import { ledeOf, releaseOf, releasesIn } from "./lede";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { WhatsNewEntry } from "./WhatsNewEntry";
 import { WhatsNewGrid } from "./WhatsNewGrid";
+import { Text } from "../../ui/Text";
 
 // News is what's new, as the dialog draws it: the first entry large and
 // the rest as cards, and a way to each where it has one, which closes the
@@ -26,7 +27,7 @@ export function News({ title, entries, info, onClose }: { title: string; entries
   return (
     <WhatsNewDialog title={title} version={shortVersion(info.version)} lede={ledeOf(entries, info)} releases={info.missing ? info.releases : undefined} onClose={onClose}>
       {!lead ? (
-        <p className="dim">Nothing's said to be new in this ws.</p>
+        <Text as="p" dim>Nothing's said to be new in this ws.</Text>
       ) : (
         <>
           {entry(lead, true)}

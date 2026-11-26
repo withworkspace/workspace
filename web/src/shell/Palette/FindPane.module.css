@@ -19,3 +19,11 @@
 .scrolls {
   overflow-y: auto;
 }
+
+/* A path or a branch in a card here (as Text mono, findPaneCodeClass): the
+   code's type, small, at two classes' weight, as styles.css's
+   .ref-card .mono was. */
+.pane .code {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}

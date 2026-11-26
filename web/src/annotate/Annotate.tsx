@@ -37,7 +37,7 @@ import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { pageScroller } from "../ui/scroller";
 import { AnnotateAddComment } from "./AnnotateAddComment";
 import { AnnotateBar, AnnotateBarNote } from "./AnnotateBar";

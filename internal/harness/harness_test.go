@@ -313,7 +313,7 @@ func TestClaude_ResumeAndAvailability(t *testing.T) {
 func TestClaude_Orchestrate(t *testing.T) {
 	t.Setenv(EnvClaudeBin, "")
 	l, err := fakeClaude(map[string]string{"claude": "/bin/claude"}).Orchestrate(OrchestratorRun{
-		Prompt: "Read the prompt file.", Dir: "/root", Model: "haiku",
+		Prompt: "the whole prompt", Pointer: "Read the prompt file.", Dir: "/root", Model: "haiku",
 		Capsules: []string{"/root/repos/api/fix", "/root/repos/odd path/x"},
 		Grounds:  []string{"/root/repos/demo/.ground"},
 	})
@@ -339,8 +339,9 @@ func TestClaude_Orchestrate(t *testing.T) {
 			t.Errorf("args shouldn't contain %q: %s", never, args)
 		}
 	}
-	// -- ends --allowedTools' list, so the prompt isn't taken for a rule.
-	if n := len(l.Args); l.Args[n-2] != "--" || l.Args[n-1] != "Read the prompt file." || l.Dir != "/root" {
+	// -- ends --allowedTools' list, so the prompt isn't taken for a rule;
+	// the prompt itself, not the line pointing at its file.
+	if n := len(l.Args); l.Args[n-2] != "--" || l.Args[n-1] != "the whole prompt" || l.Dir != "/root" {
 		t.Errorf("tail = %q, dir %q", l.Args[n-2:], l.Dir)
 	}
 }
@@ -362,7 +363,7 @@ func TestCursor_ModelAndOrchestratorDefault(t *testing.T) {
 func TestCursor_Orchestrate(t *testing.T) {
 	c := fakeCursor(map[string]string{"cursor-agent": "/bin/ca"}, "", nil)
 	scratch := t.TempDir()
-	l, err := c.Orchestrate(OrchestratorRun{Prompt: "Read /w/p.md.", Dir: "/w", Model: "auto", Scratch: scratch, Grounds: []string{"/w/repos/api/.ground"}})
+	l, err := c.Orchestrate(OrchestratorRun{Prompt: "the whole prompt", Pointer: "Read /w/p.md.", Dir: "/w", Model: "auto", Scratch: scratch, Grounds: []string{"/w/repos/api/.ground"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -800,24 +801,43 @@ func TestRoles_ForConversation(t *testing.T) {
 	}
 }
 
-// The judge is the planner's agent and model unless [judge] says, and a
-// [judge] model alone goes on the planner's harness.
+// The judge is on the planner's agent unless [judge] says, on that
+// agent's small model unless [judge] names one, and a [judge] model alone
+// goes on the planner's harness.
 func TestRoles_ForJudge(t *testing.T) {
 	t.Setenv(EnvDefault, "")
 	p, _, err := Roles{Crew: Pick{Harness: "cursor"}, Briefing: Pick{Harness: "claude", Model: "opus"}}.ForJudge()
-	if err != nil || p.Harness != "claude" || p.Model != "opus" {
-		t.Errorf("the planner's: %+v, %v", p, err)
+	if err != nil || p.Harness != "claude" || p.Model != ClaudeSmallModel {
+		t.Errorf("the planner's agent, its small model: %+v, %v", p, err)
 	}
 	p, _, _ = Roles{Crew: Pick{Harness: "claude"}, Judge: Pick{Model: "sonnet"}}.ForJudge()
 	if p.Harness != "claude" || p.Model != "sonnet" {
 		t.Errorf("a model alone: %+v", p)
 	}
 	p, _, _ = Roles{Briefing: Pick{Harness: "claude", Model: "opus"}, Judge: Pick{Harness: "cursor"}}.ForJudge()
-	if p.Harness != "cursor" || p.Model != CursorConverseModel {
+	if p.Harness != "cursor" || p.Model != CursorOrchestratorModel {
 		t.Errorf("its own harness: %+v", p)
 	}
 	if _, _, err := (Roles{Judge: Pick{Harness: "nope"}}).ForJudge(); err == nil {
 		t.Error("judged on no harness")
+	}
+}
+
+// The PR writer is on conversations' agent unless [pr_writer] says, on
+// the model that agent orchestrates on unless [pr_writer] names one.
+func TestRoles_ForPRWriter(t *testing.T) {
+	t.Setenv(EnvDefault, "")
+	p, _, err := Roles{Conversation: Pick{Harness: "claude", Model: "opus"}}.ForPRWriter()
+	if err != nil || p.Harness != "claude" || p.Model != ClaudeOrchestratorModel {
+		t.Errorf("conversations' agent, the model it orchestrates on: %+v, %v", p, err)
+	}
+	p, _, _ = Roles{Conversation: Pick{Harness: "claude"}, PRWriter: Pick{Model: "sonnet"}}.ForPRWriter()
+	if p.Harness != "claude" || p.Model != "sonnet" {
+		t.Errorf("a model alone: %+v", p)
+	}
+	p, _, _ = Roles{PRWriter: Pick{Harness: "cursor-acp"}}.ForPRWriter()
+	if p.Harness != "cursor-acp" || p.Model != CursorOrchestratorModel {
+		t.Errorf("its own harness: %+v", p)
 	}
 }
 
@@ -959,5 +979,44 @@ func TestPi_Converse(t *testing.T) {
 	l, _ = p.Converse(ConverseRun{Prompt: "And?", Dir: "/root", Session: "sess-9", Scratch: scratch, Model: "openrouter/x"})
 	if args := strings.Join(l.Args, " "); !strings.Contains(args, "--session sess-9") || strings.Contains(args, "--session-id") || !strings.Contains(args, "--model openrouter/x") || l.Conversation != "sess-9" {
 		t.Errorf("resumed: %s", args)
+	}
+}
+
+// A model's effort in brackets is Claude Code's --effort, the model its
+// --model; an effort it doesn't take is refused, not passed on.
+func TestClaudeModelArgs(t *testing.T) {
+	for in, want := range map[string]string{
+		"":                       "",
+		"haiku":                  "--model haiku",
+		"haiku[high]":            "--model haiku --effort high",
+		" claude-opus-5-5[max] ": "--model claude-opus-5-5 --effort max",
+	} {
+		got, err := claudeModelArgs(in)
+		if err != nil || strings.Join(got, " ") != want {
+			t.Errorf("%q = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	for _, bad := range []string{"haiku[loud]", "haiku[high", "haiku[]"} {
+		if got, err := claudeModelArgs(bad); err == nil {
+			t.Errorf("%q = %q, want an error", bad, got)
+		}
+	}
+	c := fakeClaude(map[string]string{"claude": "/bin/claude"})
+	for _, l := range []func() (Launch, error){
+		func() (Launch, error) {
+			return c.Orchestrate(OrchestratorRun{Prompt: "p", Dir: "/w", Model: "haiku[high]"})
+		},
+		func() (Launch, error) {
+			return c.Converse(ConverseRun{Prompt: "p", Dir: "/w", Model: "haiku[high]", Once: true})
+		},
+		func() (Launch, error) { return c.Start(Brief{Slug: "m", Dir: "/w", Model: "haiku[high]", Prompt: "p"}) },
+	} {
+		launch, err := l()
+		if args := strings.Join(launch.Args, " "); err != nil || !strings.Contains(args, " --model haiku --effort high ") {
+			t.Errorf("launch = %q, %v", args, err)
+		}
+	}
+	if _, err := c.Orchestrate(OrchestratorRun{Prompt: "p", Dir: "/w", Model: "haiku[loud]"}); err == nil {
+		t.Error("ran on an effort Claude Code doesn't take")
 	}
 }

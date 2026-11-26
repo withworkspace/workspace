@@ -1,6 +1,7 @@
 import type { PluginProposalItem, TalkProposal } from "../api";
 import { Inline } from "../ui/Inline";
 import { TalkProposalSettled } from "./TalkProposalSettled";
+import { Text } from "../ui/Text";
 
 // PluginOutcome is what came of a plugin's proposal, in its foot: that it
 // was superseded, withdrawn or declined; or what was done (made: its
@@ -30,7 +31,7 @@ export function PluginOutcome({ p, made }: { p: TalkProposal; made: PluginPropos
     <TalkProposalSettled done icon="check-circle" size={14}>
       {" "}
       {names.length ? <Inline text={`Done: ${names.join(", ")}`} /> : "Done"}
-      {p.because && <span className="dim"> (the rest withdrawn: {p.because})</span>}
+      {p.because && <Text dim> (the rest withdrawn: {p.because})</Text>}
     </TalkProposalSettled>
   );
 }

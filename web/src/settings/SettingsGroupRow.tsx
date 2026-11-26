@@ -1,7 +1,9 @@
-import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
+import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
 import css from "./SettingsGroupRow.module.css";
+import { Text } from "../ui/Text";
+import { settingsTableQuietClass } from "./SettingsTable";
 
 type SettingsGroupRowProps = {
   name: string;
@@ -27,20 +29,20 @@ export function SettingsGroupRow({ name, label, repos, hidden, chosen, teamHidde
       <td>
         {label && label !== name ? (
           <span className={css.named}>
-            {label} <span className="mono dim">{name}</span>
+            {label} <Text mono dim className={settingsTableQuietClass}>{name}</Text>
           </span>
         ) : (
-          <span className="mono">{name}</span>
+          <Text mono>{name}</Text>
         )}
       </td>
-      <td className="dim">{repos}</td>
+      <Text as="td" dim className={settingsTableQuietClass}>{repos}</Text>
       <td>
         <Segmented value={hidden ? "hidden" : "shown"} onChange={(v) => onSet(v === "hidden")} disabled={busy} aria-label={`${name}: shown or hidden`}>
           <Segment value="shown">Shown</Segment>
           <Segment value="hidden">Hidden</Segment>
         </Segmented>
       </td>
-      <td className={cx("dim", css.team)}>
+      <Text as="td" dim className={cx(css.team, settingsTableQuietClass)}>
         {chosen ? (
           <>
             the team's: {teamHidden ? "hidden" : "shown"}
@@ -51,7 +53,7 @@ export function SettingsGroupRow({ name, label, repos, hidden, chosen, teamHidde
         ) : (
           "as the team has it"
         )}
-      </td>
+      </Text>
     </tr>
   );
 }

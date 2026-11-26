@@ -4,6 +4,7 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import css from "./CodeNavPanel.module.css";
+import { Text } from "../ui/Text";
 
 // CodeNavPanel is the panel beside the diff in code navigation: what it
 // shows (title) and of which side (said), how it was found (how), what
@@ -38,8 +39,8 @@ export function CodeNavPanel({
     <aside className={css.panel} aria-label={label} data-nav-panel="">
       <header className={css.head}>
         {title}
-        <span className="dim">{said}</span>
-        {how && <span className={`dim ${css.how}`}>{how}</span>}
+        <Text dim>{said}</Text>
+        {how && <Text dim className={css.how}>{how}</Text>}
         <span className={css.spacer} />
         {tools}
         <Button variant="ghost" size="small" onClick={onBack} title="Back">
@@ -50,7 +51,7 @@ export function CodeNavPanel({
         </Button>
       </header>
       <div className={cx(css.body, uses && css.uses)} ref={body}>
-        {note && <div className={`dim ${css.note}`}>{note}</div>}
+        {note && <Text as="div" dim className={css.note}>{note}</Text>}
         {children}
       </div>
     </aside>

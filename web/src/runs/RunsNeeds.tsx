@@ -3,6 +3,7 @@ import type { RunDetail } from "../api";
 import { Chip } from "../ui/Chip";
 import { bare } from "./runRows";
 import { RunsPageSub } from "./RunsPageSub";
+import { textClass } from "../ui/Text";
 
 // RunsNeeds is what a run needs: each need's name, the run that meets it
 // (or the address outside ws that does), and the path of the run's own
@@ -16,20 +17,20 @@ export function RunsNeeds({ r, up }: { r: RunDetail; up: Set<string> }) {
         n.folder ? (
           <span key={n.name}>
             Needs {n.name}:{" "}
-            <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.dir}` : n.dir}>
+            <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className={textClass("mono")} title={n.env ? `Handed to it as $${n.env}: ${n.dir}` : n.dir}>
               {n.repo} / {n.worktree}
             </Link>
           </span>
         ) : (
           <span key={n.name}>
             Needs {n.name}:{" "}
-            <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
+            <a href={n.address} target="_blank" rel="noopener noreferrer" className={textClass("mono")} title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
               {n.run ?? bare(n.address)}
             </a>
             {n.mount && r.link !== r.local && (
               <>
                 , at{" "}
-                <a href={r.link.replace(/\/$/, "") + n.mount} target="_blank" rel="noopener noreferrer" className="mono" title={`${n.name} answers below this run's own name`}>
+                <a href={r.link.replace(/\/$/, "") + n.mount} target="_blank" rel="noopener noreferrer" className={textClass("mono")} title={`${n.name} answers below this run's own name`}>
                   {n.mount}
                 </a>
               </>

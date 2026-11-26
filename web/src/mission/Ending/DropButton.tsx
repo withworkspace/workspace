@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { act, type MissionDetail } from "../../api";
 import type { Reload } from "../../load";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { MissionDrop } from "../MissionDrop";
 import { ended } from "./ended";

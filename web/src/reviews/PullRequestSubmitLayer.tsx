@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
 import css from "./PullRequestSubmitLayer.module.css";
+import { Text } from "../ui/Text";
 
 // pullRequestLeftAloneClass is "Left alone", said after a layer's
 // verdicts while it has none.
@@ -17,8 +18,8 @@ export function PullRequestSubmitLayer({ n, title, at, said, state, focus, poste
       <header>
         {n !== undefined && <span className={css.n}>{n}</span>}
         <span className={css.title}>{title}</span>
-        <span className="mono dim">{at}</span>
-        <span className="dim">{said}</span>
+        <Text mono dim>{at}</Text>
+        <Text dim>{said}</Text>
         <span className={css.spacer} />
         {state}
       </header>

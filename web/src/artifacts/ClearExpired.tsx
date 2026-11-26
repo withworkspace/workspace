@@ -3,7 +3,7 @@ import { type ArtifactInfo, clearExpiredArtifacts } from "../api";
 import { Button } from "../ui/Button";
 import { confirm } from "../ui/Confirm";
 import { Icon } from "../ui/Icon";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { clearable } from "./shown";
 

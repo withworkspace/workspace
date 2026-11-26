@@ -1,7 +1,7 @@
 import { Copyable } from "../../ui/Copyable";
-import { cx } from "../../ui/cx";
 import { Time } from "../../ui/Time";
 import css from "./MissionWorkCommits.module.css";
+import { Text, textClass } from "../../ui/Text";
 
 // MissionWorkCommits is a capsule's commits, newest first, a line each:
 // the commit to copy, what it says, and when. more is how many there are
@@ -15,10 +15,10 @@ export function MissionWorkCommits({ commits, more }: { commits: { sha: string; 
           <span className={css.subject} title={m.subject}>
             {m.subject}
           </span>
-          <Time iso={m.time} as="relative" className="dim" />
+          <Time iso={m.time} as="relative" className={textClass("dim")} />
         </li>
       ))}
-      {!!more && more > 0 && <li className={cx("dim", css.more)}>and {more} more</li>}
+      {!!more && more > 0 && <Text as="li" dim className={css.more}>and {more} more</Text>}
     </ul>
   );
 }

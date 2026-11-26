@@ -1,5 +1,5 @@
 import type { MissionEvent } from "../../api";
-import { plain } from "../../ui/text";
+import { plain } from "../../ui/strings";
 import { viewEvent } from "../eventView";
 
 // What the Log tab shows of the mission's log: everything, or one who's

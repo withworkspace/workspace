@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import { Time } from "../ui/Time";
 import css from "./TeamEvents.module.css";
+import { Text, textClass } from "../ui/Text";
 
 // TeamEvents is what's under a change on the Team page while it's open:
 // its pull requests, where it's in several repos (TeamPulls), what happened
@@ -37,15 +38,15 @@ export function TeamEventLine({ at, icon, children, commit, paths, files }: Team
   const more = (files ?? paths?.length ?? 0) - 3;
   return (
     <li className={css.event}>
-      <Time iso={at} as="clock" className={cx("dim", css.clock)} />
+      <Time iso={at} as="clock" className={cx(textClass("dim"), css.clock)} />
       <Icon name={icon} size={13} className={css.icon} />
       <span className={css.words}>{children}</span>
-      {commit && <span className="mono dim">{commit.slice(0, 7)}</span>}
+      {commit && <Text mono dim>{commit.slice(0, 7)}</Text>}
       {!!paths?.length && (
-        <span className={cx(css.paths, "dim")} title={paths.join("\n")}>
+        <Text dim className={css.paths} title={paths.join("\n")}>
           {paths.slice(0, 3).join(", ")}
           {more > 0 ? `, and ${more} more` : ""}
-        </span>
+        </Text>
       )}
     </li>
   );

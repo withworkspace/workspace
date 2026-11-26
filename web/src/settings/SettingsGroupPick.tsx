@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { Option, Select } from "../ui/Select";
 import css from "./SettingsGroupPick.module.css";
 import { Input } from "../ui/Input";
+import { textClass } from "../ui/Text";
 
 const NONE = "\u0000none";
 const NEW = "\u0000new";
@@ -34,7 +35,7 @@ export function SettingsGroupPick({ value, groups, labels, team, none, label, on
     return (
       <Input
         ref={field}
-        className={cx("mono", css.naming)}
+        className={cx(textClass("mono"), css.naming)}
         aria-label={`${label}: a new group`}
         placeholder="new group"
         value={name}

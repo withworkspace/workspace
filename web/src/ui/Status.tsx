@@ -3,6 +3,7 @@ import { cx } from "./cx";
 import { Icon, type IconName } from "./Icon";
 import { Spinner } from "./Spinner";
 import { type Tone, toneClass } from "./tone";
+import { SrOnly } from "./SrOnly";
 
 // StatusInfo is where something stands, to draw: its icon, its words, and
 // its tone, which is what it asks of you, not a hue.
@@ -28,7 +29,7 @@ export function Status({ s, iconOnly, title, size = 14, className }: { s: Status
   return (
     <span className={cx(css.status, toneClass(s.tone), className)} title={title ?? ((iconOnly && s.words) || undefined)}>
       {s.icon === "spinner" && s.live ? <Spinner size={size} /> : <Icon name={s.icon} size={size} className={s.live ? css.pulse : undefined} />}
-      {iconOnly ? s.words && <span className="sr-only">{s.words}</span> : <span>{s.words}</span>}
+      {iconOnly ? s.words && <SrOnly>{s.words}</SrOnly> : <span>{s.words}</span>}
     </span>
   );
 }

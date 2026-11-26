@@ -38,13 +38,13 @@ answer is known, as folders. It runs the role as a mission would (the same
 prompt, on the harness and model you say), and scores what comes back.
 
 It's for telling whether a change to a prompt, or another model in a role,
-does as well as what you have. It knows two roles: the judge, and the
-orchestrator.
+does as well as what you have. It knows four roles: the judge, the
+orchestrator, the Team page's writer, and the PR writer.
 
 It's off unless WS_EVAL is set: WS_EVAL=1 ws eval judge ...`,
 		Args: cobra.NoArgs,
 	}
-	cmd.AddCommand(newEvalJudgeCmd(), newEvalOrchestratorCmd())
+	cmd.AddCommand(newEvalJudgeCmd(), newEvalOrchestratorCmd(), newEvalTeamCmd(), newEvalPRWriterCmd())
 	return cmd
 }
 

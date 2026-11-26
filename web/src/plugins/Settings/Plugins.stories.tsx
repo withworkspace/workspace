@@ -13,6 +13,7 @@ import { PluginsRemove } from "./PluginsRemove";
 import { PluginsRow, PluginsRowNote } from "./PluginsRow";
 import { PluginsUpdates } from "./PluginsUpdates";
 import { stateOf } from "../installed";
+import { Text } from "../../ui/Text";
 
 // Settings › Plugins, from its parts: the field a plugin's added from,
 // what's out, what didn't work, and each plugin a row in every state it
@@ -85,7 +86,7 @@ function Installed() {
         adds={["a view, Coverage"]}
         notes={
           <PluginsRowNote tone="attention">
-            It can't be used until these are set: <span className="mono">token, project</span>. In a terminal:{" "}
+            It can't be used until these are set: <Text mono>token, project</Text>. In a terminal:{" "}
             <Copyable text="ws plugin config coverage --ask">ws plugin config coverage --ask</Copyable>
           </PluginsRowNote>
         }

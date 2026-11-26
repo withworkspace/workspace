@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { type RunDetail, runRecipe } from "../../api";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { MissionVerifyStart, type MissionVerifyStartState } from "./MissionVerifyStart";
 import type { TryRuns } from "./VerifyTryRuns";

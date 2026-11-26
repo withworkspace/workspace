@@ -9,7 +9,8 @@ import { PullRequestPeek } from "../reviews/PullRequestPeek";
 import { prHref, prStatus } from "../reviews/Reviews";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Loading } from "../ui/Loading";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
+import { Text } from "../ui/Text";
 
 type PullRequestPaneProps = {
   // Its tab's address, which is its review's.
@@ -30,7 +31,7 @@ export function PullRequestPane({ to, repo, number }: PullRequestPaneProps) {
   }, [to, pr]);
   return (
     <DockBody label={pr?.title ?? name} pad>
-      <PaneHead title={pr?.title ?? name} to={to} sub={<span className="mono">{name}</span>} />
+      <PaneHead title={pr?.title ?? name} to={to} sub={<Text mono>{name}</Text>} />
       {error && !d && <ErrorCard title="Couldn't read the pull request" error={humanError(error)} retry={() => void reload()} />}
       {!d && !error && <Loading what="Reading the pull request…" />}
       {d && pr && (

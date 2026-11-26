@@ -1,6 +1,7 @@
 import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import css from "./PullRequestName.module.css";
+import { Text } from "../ui/Text";
 
 // PullRequestName is a pull request's name in its review's head: its
 // title and where it is (at, its repo#number), and where it sits in its stack (layer of layers). The
@@ -17,7 +18,7 @@ export function PullRequestName({ title, at, layer, whole }: { title: string; at
         </>
       ) : (
         <>
-          {title} <span className={`dim ${css.ref}`}>{at}</span>
+          {title} <Text dim className={css.ref}>{at}</Text>
           {layer ? (
             <Chip tone="quiet" className={css.chip} title="Where this layer sits in its stack: 1 is the bottom">
               <Icon name="layers" size={11} /> {layer.n} of {layer.of}

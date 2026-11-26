@@ -5,6 +5,7 @@ import { MissionWorkFile } from "./MissionWorkFile";
 import { MissionWorkFileGroup } from "./MissionWorkFileGroup";
 import { MissionWorkFilter } from "./MissionWorkFilter";
 import { MissionWorkHeading } from "./MissionWorkHeading";
+import { Text } from "../../ui/Text";
 
 // The files that differ from where the capsule left the default branch,
 // by top-level folder: a click opens the file in the capsule, with what's
@@ -49,8 +50,8 @@ export function WorkFiles({ d, c, files, more, committed }: { d: MissionDetail; 
           })}
         </MissionWorkFileGroup>
       ))}
-      {!groups.length && <p className="dim">Nothing matches.</p>}
-      {!!more && !filter.trim() && <p className="dim">and {more.toLocaleString()} more</p>}
+      {!groups.length && <Text as="p" dim>Nothing matches.</Text>}
+      {!!more && !filter.trim() && <Text as="p" dim>and {more.toLocaleString()} more</Text>}
     </>
   );
 }

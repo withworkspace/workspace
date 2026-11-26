@@ -27,7 +27,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { Loading } from "../ui/Loading";
 import { Segment, Segmented } from "../ui/Segmented";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
@@ -56,6 +56,7 @@ import type { NavAt, ReviewDiff, ReviewSource, ViewKey } from "./source";
 import { type ViewEntry, ViewList } from "./ViewList";
 import { verdictWords } from "./words";
 import css from "./ReviewView.module.css";
+import { Text } from "../ui/Text";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -931,14 +932,14 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       <ReviewViewBody label="Changes" hidden={!changes}>
         {diff && diff.uncommitted.length > 0 && (
           <Callout tone="attention" icon="alert" title={`${diff.uncommitted.length} ${diff.uncommitted.length === 1 ? "file has" : "files have"} uncommitted changes, not in this review`}>
-            <span className="mono">{diff.uncommitted.slice(0, 5).join(", ")}</span>
+            <Text mono>{diff.uncommitted.slice(0, 5).join(", ")}</Text>
             {diff.uncommitted.length > 5 && " …"}
           </Callout>
         )}
         {!diff && !error && <Loading what="Reading the changes…" />}
         {diff && diff.commits.length > 0 && <ReviewCommits commits={diff.commits} />}
         {rs.reviews.length > 0 && <ReviewEarlier reviews={rs.reviews} />}
-        {diff && !files.length && <p className="dim">{source.empty}</p>}
+        {diff && !files.length && <Text as="p" dim>{source.empty}</Text>}
         {files.map((f, i) => (
           <Fragment key={f.path}>
             {guideHeads?.has(i) && <ReviewGuideGroup label={guideHeads.get(i)!.label} files={guideHeads.get(i)!.files.length} skim={guideHeads.get(i)!.skim} why={guideHeads.get(i)!.why} />}

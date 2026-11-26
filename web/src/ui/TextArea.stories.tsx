@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { useAutosize } from "./useAutosize";
 import { TextArea } from "./TextArea";
+import { Text, textClass } from "./Text";
 
 // Text areas: empty, with words, growing with what's typed (useAutosize),
 // in mono, disabled, and one a page lets be dragged taller.
@@ -28,27 +29,27 @@ export const Boxes: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 14 }}>
       <label style={row}>
-        <span className="dim">Empty</span>
+        <Text dim>Empty</Text>
         <One rows={3} placeholder="What it came to: the finding, what landed, why it stops" aria-label="What it came to" />
       </label>
       <label style={row}>
-        <span className="dim">With words</span>
+        <Text dim>With words</Text>
         <One rows={3} start={"Rounding moved to the end, so a penny doesn't go missing.\nINV-0042 comes to £1,094.40 again."} aria-label="Summary" />
       </label>
       <label style={row}>
-        <span className="dim">Grows</span>
+        <Text dim>Grows</Text>
         <Grows />
       </label>
       <label style={row}>
-        <span className="dim">Mono</span>
-        <One rows={2} className="mono" start={"go test ./...\npnpm test"} aria-label="Checks" />
+        <Text dim>Mono</Text>
+        <One rows={2} className={textClass("mono")} start={"go test ./...\npnpm test"} aria-label="Checks" />
       </label>
       <label style={row}>
-        <span className="dim">Disabled</span>
+        <Text dim>Disabled</Text>
         <One rows={2} start="It can't be changed now." disabled aria-label="Why" />
       </label>
       <label style={row}>
-        <span className="dim">Dragged taller</span>
+        <Text dim>Dragged taller</Text>
         <One rows={2} placeholder="Why it's discarded" style={{ resize: "vertical" }} aria-label="Why" />
       </label>
     </div>

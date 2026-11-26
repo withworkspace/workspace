@@ -40,6 +40,8 @@ import { MissionBriefTalk } from "./MissionBriefTalk";
 import { MissionBriefToolbar } from "./MissionBriefToolbar";
 import { MissionBriefUnfold } from "./MissionBriefUnfold";
 import { MissionBriefWhat } from "./MissionBriefWhat";
+import { Text } from "../../ui/Text";
+import { Prose } from "../../ui/Prose";
 
 // A mission's Brief tab, from its parts: the whole tab with a draft to
 // read (the bar, the outline, the brief and the plan, the planner beside
@@ -100,7 +102,7 @@ function ADraft({ side, folded }: { side?: boolean; folded?: boolean }) {
       bar={
         <MissionBriefBar>
           <MissionBriefWhat icon="pencil" tone="attention" title="Draft 2 of the brief, with its plan">
-            Draft 2 <span className="dim">· 2m ago</span>
+            Draft 2 <Text dim>· 2m ago</Text>
           </MissionBriefWhat>
           <MissionBriefToolbar slot={none} inset={0} none="Settle a document's changes, and it's yours to edit" />
           <MissionBriefActs>
@@ -137,9 +139,9 @@ function ADraft({ side, folded }: { side?: boolean; folded?: boolean }) {
               </>
             }
           >
-            <div className="prose">
+            <Prose>
               <Markdown text={brief} />
-            </div>
+            </Prose>
           </MissionBriefDoc>
           <MissionBriefDoc
             id="plan"
@@ -156,9 +158,9 @@ function ADraft({ side, folded }: { side?: boolean; folded?: boolean }) {
               </>
             }
           >
-            <div className="prose">
+            <Prose>
               <Markdown text={plan} />
-            </div>
+            </Prose>
           </MissionBriefDoc>
         </MissionBriefDocs>
         {folded && <MissionBriefAskFoot side={side}>{field}</MissionBriefAskFoot>}
@@ -264,7 +266,7 @@ export const Bar: StoryObj = {
     <div style={{ ...widths, display: "grid", gap: 6, padding: "16px 0", background: "var(--bg)" }}>
       <MissionBriefBar>
         <MissionBriefWhat icon="pencil" tone="attention" title="Draft 2 of the brief, with its plan">
-          Draft 2 <span className="dim">· 2m ago</span>
+          Draft 2 <Text dim>· 2m ago</Text>
         </MissionBriefWhat>
         <MissionBriefToolbar slot={none} inset={0} none="Settle a document's changes, and it's yours to edit" />
         <MissionBriefActs>
@@ -309,7 +311,7 @@ export const Bar: StoryObj = {
       </MissionBriefBar>
       <MissionBriefBar>
         <MissionBriefWhat icon="circle-dot">
-          As written <span className="dim">· at step 2 of 5</span>
+          As written <Text dim>· at step 2 of 5</Text>
         </MissionBriefWhat>
         <MissionBriefToolbar slot={none} inset={0} none="" />
         <MissionBriefActs>{null}</MissionBriefActs>
@@ -375,9 +377,9 @@ export const Documents: StoryObj = {
           </MissionBriefDocsNote>
           <MissionBriefDoc id="brief" title="The brief" toRead={<>1 change to read</>}>
             <MissionBriefDocNote>A change couldn't be shown in place: it's in as proposed.</MissionBriefDocNote>
-            <div className="prose">
+            <Prose>
               <Markdown text={brief} />
-            </div>
+            </Prose>
           </MissionBriefDoc>
           <MissionBriefDocsNote tone="attention" title="The plan doesn't read, so the mission works from its brief">
             step 2: no kind
@@ -407,7 +409,7 @@ export const PlannerPane: StoryObj = {
     <div style={{ display: "grid", gridTemplateColumns: "384px 384px 384px", gap: 24, alignItems: "start", height: 560, padding: 16, background: "var(--bg)" }}>
       <Planner />
       <MissionBriefPlanner label="The planner" onFold={none} foot={<AskField place="inline" placeholder="What should change in the plan, and why" onAsk={none} />}>
-        <p className="dim">It was briefed without a conversation. Say what should change, and a planner reads the mission and revises its plan. The steps behind the mission stay as they are. A change to a checkpoint or Z comes back to you to accept; anything else applies.</p>
+        <Text as="p" dim>It was briefed without a conversation. Say what should change, and a planner reads the mission and revises its plan. The steps behind the mission stay as they are. A change to a checkpoint or Z comes back to you to accept; anything else applies.</Text>
       </MissionBriefPlanner>
       <div style={{ display: "grid", gap: 8 }}>
         <MissionBriefProposed icon="file" name="Draft 2" fate="What the documents show" shown onGo={none} />
@@ -468,7 +470,7 @@ const talks = import.meta.glob<TalkDetail>("../fixtures/*/talks/*.json", { eager
 function Taken({ name, height }: { name: string; height?: number }) {
   storyWorkspace();
   const m = takenMissions.find((x) => x.name === name);
-  if (!m) return <p className="dim">No mission {name} among the fixtures.</p>;
+  if (!m) return <Text as="p" dim>No mission {name} among the fixtures.</Text>;
   const talk = Object.entries(talks).find(([path]) => path.endsWith(`/${m.from}/talks/${name}.json`))?.[1];
   if (talk && m.d.planner) serve(`/api/missions/${encodeURIComponent(m.d.slug)}/conversations/${encodeURIComponent(m.d.planner)}`, talk);
   return frame(

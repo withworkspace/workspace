@@ -8,7 +8,7 @@ import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/Time";
@@ -31,6 +31,7 @@ import { TeamSeenLine } from "./TeamSeenLine";
 import { TeamSub } from "./TeamSub";
 import { TeamSummary } from "./TeamSummary";
 import { knowInfo, periods } from "./words";
+import { Text } from "../ui/Text";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -384,7 +385,7 @@ export function TeamPage() {
           {view.problems.slice(0, 8).map((p) => (
             <div key={p}>{p}</div>
           ))}
-          {view.problems.length > 8 && <div className="dim">and {view.problems.length - 8} more</div>}
+          {view.problems.length > 8 && <Text as="div" dim>and {view.problems.length - 8} more</Text>}
         </Callout>
       )}
       {!view.github && (
@@ -398,7 +399,7 @@ export function TeamPage() {
           back.
         </Empty>
       )}
-      {total > 0 && !days.length && !!q && <p className="dim">Nothing matches “{q}”.</p>}
+      {total > 0 && !days.length && !!q && <Text as="p" dim>Nothing matches “{q}”.</Text>}
       {total > 0 && (fresh > 0 || (narrative && (narrative.writing > 0 || narrative.unwritten > 0)) || (summary && !summary.at && summary.can > 0)) && (
         <TeamNarrative dim>
           {fresh > 0 && marker && (

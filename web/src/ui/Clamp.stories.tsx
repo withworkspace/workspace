@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Clamp } from "./Clamp";
+import { Text } from "./Text";
 
 // Clamps: something long cut to a height, with the way to the rest;
 // something short, which has none; and one cut to a count of lines.
@@ -20,7 +21,7 @@ const col = { display: "grid", gap: 6, maxWidth: 420 } as const;
 export const Clamps: StoryObj = {
   render: () => (
     <div className="page" style={col}>
-      <span className="dim">Long</span>
+      <Text dim>Long</Text>
       <Clamp of={long}>
         {long.map((p, i) => (
           <p key={i} style={{ margin: "0 0 8px" }}>
@@ -28,11 +29,11 @@ export const Clamps: StoryObj = {
           </p>
         ))}
       </Clamp>
-      <span className="dim">Short</span>
+      <Text dim>Short</Text>
       <Clamp of={long[0]}>
         <p style={{ margin: 0 }}>{long[0]}</p>
       </Clamp>
-      <span className="dim">Three lines</span>
+      <Text dim>Three lines</Text>
       <Clamp lines={3} more="More" less="Less" of={long}>
         {long.join(" ")}
       </Clamp>

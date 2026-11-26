@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useKeys } from "../keys";
 import { CodeNavList } from "./CodeNavList";
 import css from "./CodeNavPicker.module.css";
+import { Text } from "../ui/Text";
 
 // CodeNavPicker is d's list: the names on a line (rect, the line's), to
 // follow one (j, k, ⏎ or d). While it's open the keys are its own.
@@ -23,7 +24,7 @@ export function CodeNavPicker({ names, rect, onClose, onPick }: { names: { from:
   const top = Math.min(rect.bottom + 4, window.innerHeight - 40 - n * 26);
   return (
     <div className={css.picker} style={{ top, left: Math.max(8, rect.left + 120) }} onMouseDown={(e) => e.stopPropagation()}>
-      <div className={`dim ${css.how}`}>Go to the definition of</div>
+      <Text as="div" dim className={css.how}>Go to the definition of</Text>
       <CodeNavList
         inline
         rows={names.map((x, i) => ({
@@ -34,7 +35,7 @@ export function CodeNavPicker({ names, rect, onClose, onPick }: { names: { from:
           children: (
             <>
               <code>{x.text}</code>
-              <span className="dim">{x.part === "m" ? "member" : x.part === "d" ? "defined here" : x.part === "i" ? "import" : ""}</span>
+              <Text dim>{x.part === "m" ? "member" : x.part === "d" ? "defined here" : x.part === "i" ? "import" : ""}</Text>
             </>
           ),
         }))}

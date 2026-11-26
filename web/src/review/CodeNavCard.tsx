@@ -4,9 +4,10 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import css from "./CodeNavCard.module.css";
-import { CodeNavList } from "./CodeNavList";
+import { CodeNavList, codeNavListWhereClass } from "./CodeNavList";
 import { CodeNavSig } from "./CodeNavSig";
 import { answerWords, type NavAnswer, type NavTarget } from "./nav";
+import { Text } from "../ui/Text";
 
 // CodeNavCard is a name's card: where it's defined and what it says, or
 // the definitions it may be, to pick from (j, k, ⏎). It's placed under
@@ -60,14 +61,14 @@ export function CodeNavCard({
   const one = a && !list ? a.targets[0] : undefined;
   return (
     <div ref={ref} className={cx(css.card, pinned && css.pinned)} style={pos ?? { visibility: "hidden" }} onMouseDown={(e) => e.stopPropagation()}>
-      {!a && <div className="dim">Looking…</div>}
+      {!a && <Text as="div" dim>Looking…</Text>}
       {one && (
         <button className={css.target} onClick={() => onGo(one)}>
           {one.signature && <CodeNavSig>{one.signature}</CodeNavSig>}
           {one.doc && <div className={css.doc}>{one.doc}</div>}
-          <div className={`mono dim ${css.where}`}>
+          <Text as="div" mono dim className={css.where}>
             {one.path}:{one.line}
-          </div>
+          </Text>
         </button>
       )}
       {a && !one && !list && <CodeNavSig as="div">{a.external?.module ? `${a.external.module}${a.external.name ? `.${a.external.name}` : ""}` : a.name}</CodeNavSig>}
@@ -81,16 +82,16 @@ export function CodeNavCard({
             children: (
               <>
                 <CodeNavSig>{t.signature || `${t.kind} ${a!.name}`}</CodeNavSig>
-                <span className="mono dim">
+                <Text mono dim className={codeNavListWhereClass}>
                   {t.path}:{t.line}
-                </span>
+                </Text>
               </>
             ),
           }))}
         />
       )}
       {a && (
-        <div className={`dim ${css.how}`}>
+        <Text as="div" dim className={css.how}>
           <span className={a.answer === "resolved" ? css.resolved : a.answer === "candidates" || a.answer === "unresolved" ? css.unsure : undefined}>{definedHere ? "Defined here: click for who uses it" : answerWords(a)}</span>
           {a.answer === "candidates" && a.how && <span> · {a.how}</span>}
           {a.partial && <span title="It ran out of time or files to read, and may have missed some"> · partial</span>}
@@ -100,7 +101,7 @@ export function CodeNavCard({
             </a>
           )}
           {pinned && <Keys k="esc" />}
-        </div>
+        </Text>
       )}
     </div>
   );

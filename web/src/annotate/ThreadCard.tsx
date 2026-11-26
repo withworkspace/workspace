@@ -7,7 +7,7 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 import { AnnotateEdit } from "./AnnotateEdit";
 import { AnnotateKindChip } from "./AnnotateKindChip";
 import { AnnotateLostQuote } from "./AnnotateLostQuote";
@@ -15,6 +15,7 @@ import { AnnotateSettled } from "./AnnotateSettled";
 import { AnnotateTyping } from "./AnnotateTyping";
 import { DecisionCard } from "./DecisionCard";
 import { linesWord } from "./words";
+import { Text, textClass } from "../ui/Text";
 
 interface CardProps {
   thread: Thread;
@@ -85,7 +86,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
         ) : null}
       </NoteHead>
       {folded ? (
-        <NoteBody oneLine className="dim">
+        <NoteBody oneLine className={textClass("dim")}>
           {first?.body}
         </NoteBody>
       ) : (
@@ -100,8 +101,8 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
             <NoteThread>
               {rest.map((t) => (
                 <NoteTurn key={t.n} who={t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by} quiet={t.by === "ws"} said={t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}>
-                  {t.changed && <span className="dim">changed it</span>}
-                  {t.commit && <span className="mono dim">{t.commit.slice(0, 7)}</span>}
+                  {t.changed && <Text dim>changed it</Text>}
+                  {t.commit && <Text mono dim>{t.commit.slice(0, 7)}</Text>}
                 </NoteTurn>
               ))}
             </NoteThread>

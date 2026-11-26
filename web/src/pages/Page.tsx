@@ -66,7 +66,7 @@ import { useHoverDelay } from "../ui/useHoverDelay";
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
-import { clip, humanError } from "../ui/text";
+import { clip, humanError } from "../ui/strings";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Tab } from "../ui/Tabs";
 import { useWorkspace } from "../workspace/store";
@@ -88,6 +88,8 @@ import { PageSelectPop } from "./PageSelectPop";
 import { PageTabFailed } from "./PageTabFailed";
 import { PageTabs } from "./PageTabs";
 import { PassTab } from "./PassTab";
+import { Text, textClass } from "../ui/Text";
+import { Spacer } from "../ui/Spacer";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -670,11 +672,11 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           </Chip>
         )}
         {tied?.in && (
-          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", "mono")} title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
+          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", textClass("mono"))} title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
             <Icon name="file" size={11} /> {tied.ref.replace(":", " · ")}
           </Link>
         )}
-        <span className="spacer" />
+        <Spacer />
         {planning &&
           (planning.turns.at(-1)?.by === "ws" ? (
             <PageRetry title={planning.turns.at(-1)?.body} onClick={() => startFilling(id, planning.id).then(put, failed)}>
@@ -777,7 +779,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             </Button>
           }
         >
-          <span className="mono">{tied.in?.path ?? tied.ref}</span> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
+          <Text mono>{tied.in?.path ?? tied.ref}</Text> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
         </Banner>
       )}
       {tied?.gone && (
@@ -796,7 +798,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             </Link>
           }
         >
-          Filed as <Link to={docTo(filed.ref)} className="mono">{filed.ref.replace(":", " · ")}</Link>
+          Filed as <Link to={docTo(filed.ref)} className={textClass("mono")}>{filed.ref.replace(":", " · ")}</Link>
           {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
         </Banner>
       )}

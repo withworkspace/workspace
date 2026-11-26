@@ -4,6 +4,7 @@ import { TLink } from "../ui/TLink";
 import { useWorkspace } from "../workspace/store";
 import { ArtifactFrom } from "./ArtifactFrom";
 import { fromRef, isConversation, missionTalk } from "./shown";
+import { textClass } from "../ui/Text";
 
 // From is where a version came from: a conversation or a mission, drawn
 // as its ref where this machine has it, its title where it hasn't (one
@@ -16,7 +17,7 @@ export function From({ from, title, inline }: { from: string; title?: string; in
   if (talk)
     return (
       <span title={title ? `${talk.id} on ${talk.slug}: ${title}` : undefined}>
-        <TLink to={`/missions/${talk.slug}/conversations/${talk.id}`} className="link">
+        <TLink to={`/missions/${talk.slug}/conversations/${talk.id}`} className={textClass("link")}>
           {talk.id}
         </TLink>{" "}
         on{" "}

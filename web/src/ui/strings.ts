@@ -1,4 +1,4 @@
-// Small things done to text that's shown.
+// Small things done to text that's shown. The part that draws words with a look of their own is Text.tsx.
 
 // clip cuts s to n characters at most, its last an ellipsis where it's cut,
 // with no space left before it.

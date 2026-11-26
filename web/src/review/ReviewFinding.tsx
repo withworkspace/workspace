@@ -5,6 +5,7 @@ import { NoteBody, NoteCard, NoteHead } from "../ui/NoteCard";
 import type { ReactNode } from "react";
 import css from "./ReviewFinding.module.css";
 import { Suggestion } from "./Suggestion";
+import { Text } from "../ui/Text";
 
 // ReviewFinding is what a pass found, under the lines it's about: which
 // pass (title), its kind (one that blocks says so), its lines, what it
@@ -21,10 +22,10 @@ export function ReviewFinding({ id, title, finding: f, cursor, actions, onClick 
         <span className={`kind k-found${f.blocks ? " k-blocking" : ""}`} title={f.blocks ? "A finding of this kind blocks: the pass is no go while it's open" : undefined}>
           {f.kind}
         </span>
-        <span className={`dim ${css.where}`}>
+        <Text dim className={css.where}>
           {f.side === "old" ? "removed " : ""}
           {lines}
-        </span>
+        </Text>
       </NoteHead>
       <NoteBody>
         <Inline text={f.text} />

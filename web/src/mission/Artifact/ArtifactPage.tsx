@@ -27,7 +27,7 @@ import { useLatest } from "../../load";
 import { Button, buttonClass } from "../../ui/Button";
 import { PageHead } from "../../ui/PageHead";
 import { pageScroller } from "../../ui/scroller";
-import { capital } from "../../ui/text";
+import { capital } from "../../ui/strings";
 import { useWorkspace } from "../../workspace/store";
 
 // ArtifactPage shows one of a mission's artifacts: markdown rendered, with

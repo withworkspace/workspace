@@ -3,6 +3,7 @@ import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, rowLinkClass, rowStat
 import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import css from "./TeamRow.module.css";
+import { Text } from "../ui/Text";
 
 type TeamRowProps = {
   id: string;
@@ -57,7 +58,7 @@ export function TeamRow({ id, status, name, beside, under, words, people, additi
         </RowMeta>
         {additions || deletions ? (
           <RowMeta className={css.size}>
-            <span className="plus">+{additions ?? 0}</span> <span className="minus">−{deletions ?? 0}</span>
+            <Text plus>+{additions ?? 0}</Text> <Text minus>−{deletions ?? 0}</Text>
           </RowMeta>
         ) : (
           <RowMeta className={css.size} />

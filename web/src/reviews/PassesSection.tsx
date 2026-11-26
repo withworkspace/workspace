@@ -1,6 +1,7 @@
 import type { PassFinding, ReviewPass } from "../api";
 import { PassList } from "./PassList";
 import { PassView } from "./PassView";
+import { Text } from "../ui/Text";
 
 // A review's passes, a view of its own: each pass, go or no go, what it said
 // of the change, and what it found, to take into your review or dismiss. Go
@@ -35,7 +36,7 @@ export function PassesSection({
     return (
       <>
         <h2>Passes</h2>
-        <p className="dim">Reading the passes…</p>
+        <Text as="p" dim>Reading the passes…</Text>
       </>
     );
   }
@@ -43,10 +44,10 @@ export function PassesSection({
     <>
       <h2>Passes</h2>
       {passes.length === 0 ? (
-        <p className="dim">
-          No pass is set up for reviews here. One is a skill or a few words saying what to look for, in <span className="mono">ws.toml</span> (the team's) or{" "}
-          <span className="mono">ws.local.toml</span> (yours): <span className="mono">[reviews.passes.&lt;name&gt;]</span>.
-        </p>
+        <Text as="p" dim>
+          No pass is set up for reviews here. One is a skill or a few words saying what to look for, in <Text mono>ws.toml</Text> (the team's) or{" "}
+          <Text mono>ws.local.toml</Text> (yours): <Text mono>[reviews.passes.&lt;name&gt;]</Text>.
+        </Text>
       ) : (
         <PassList>
           {passes.map((p) => (

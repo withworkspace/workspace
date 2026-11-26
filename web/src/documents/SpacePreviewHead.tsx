@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Copyable } from "../ui/Copyable";
 import css from "./SpacePreviewHead.module.css";
+import { Text } from "../ui/Text";
 
 type SpacePreviewHeadProps = {
   chips?: ReactNode; // its kind and where it stands
@@ -20,7 +21,7 @@ export function SpacePreviewHead({ chips, made, docRef, where, title, meta, acti
     <header className={css.head}>
       <div className={css.where}>
         {chips}
-        {made && <span className="mono">{made}</span>}
+        {made && <Text mono>{made}</Text>}
         <Copyable text={docRef} className={css.ref} title="Copy its ref">
           {where}
         </Copyable>

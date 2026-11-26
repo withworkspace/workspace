@@ -82,14 +82,27 @@ func ACPModel(h Harness, model string) (string, []acp.Setting, bool) {
 }
 
 // ModelSwitcher is a harness whose agent, running in a terminal, takes
-// another model mid-session by a command typed in: Claude Code's and
-// Cursor's /model.
+// another model mid-session by commands typed in, one after another:
+// Claude Code's and Cursor's /model.
 type ModelSwitcher interface {
-	SwitchModel(model string) string
+	SwitchModel(model string) ([]string, error)
 }
 
-func (c *Claude) SwitchModel(model string) string { return "/model " + model }
-func (c *Cursor) SwitchModel(model string) string { return "/model " + model }
+// SwitchModel is Claude Code's /model, then its /effort: the effort the
+// model's name gives, or auto (the model's own) where it gives none, so a
+// switch from haiku[high] to haiku leaves high behind.
+func (c *Claude) SwitchModel(model string) ([]string, error) {
+	name, effort, err := claudeModel(model)
+	if err != nil {
+		return nil, err
+	}
+	if effort == "" {
+		effort = "auto"
+	}
+	return []string{"/model " + name, "/effort " + effort}, nil
+}
+
+func (c *Cursor) SwitchModel(model string) ([]string, error) { return []string{"/model " + model}, nil }
 
 // WithModel puts a role's model on crew's ACP run where it has none:
 // Resume isn't told one, and a session resumed with none goes on with the

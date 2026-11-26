@@ -5,6 +5,7 @@ import { RunOutput } from "./RunOutput";
 import { bare } from "./runRows";
 import { RunsPageFacts } from "./RunsPageFacts";
 import { RunsPageMore, runsPageLogClass } from "./RunsPageMore";
+import { Text, textClass } from "../ui/Text";
 
 // RunsServiceMore is a service's run opened: how it was started, and its
 // output, followed while it runs.
@@ -14,13 +15,13 @@ export function RunsServiceMore({ r, by }: { r: RunDetail; by?: string }) {
     <RunsPageMore>
       <RunsPageFacts>
         <dt>Command</dt>
-        <dd className="mono">
+        <Text as="dd" mono>
           <Copyable text={r.command}>{r.command}</Copyable>
-        </dd>
+        </Text>
         {r.dir && (
           <>
             <dt>Folder</dt>
-            <dd className="mono">{r.dir}</dd>
+            <Text as="dd" mono>{r.dir}</Text>
           </>
         )}
         <dt>Started</dt>
@@ -44,7 +45,7 @@ export function RunsServiceMore({ r, by }: { r: RunDetail; by?: string }) {
               {r.link !== r.local && (
                 <>
                   {" "}
-                  (<a href={r.local} target="_blank" rel="noopener noreferrer" className="mono">
+                  (<a href={r.local} target="_blank" rel="noopener noreferrer" className={textClass("mono")}>
                     {bare(r.local)}
                   </a>
                   )

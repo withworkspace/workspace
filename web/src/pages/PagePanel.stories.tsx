@@ -29,6 +29,7 @@ import { PageTurn } from "./PageTurn";
 import { PageTurns } from "./PageTurns";
 import { PageUnstarted } from "./PageUnstarted";
 import { PageVersion } from "./PageVersion";
+import { Text } from "../ui/Text";
 
 // What's opened over a page's words: a cell's panel (written, with its
 // agent's notes and the files it read; asked to change, a second time;
@@ -109,7 +110,7 @@ export const Written: StoryObj = {
             <PageVersion>
               <Icon name="sparkle" size={12} />
               <span>Written</span>
-              <span className="dim">4:11 PM</span>
+              <Text dim>4:11 PM</Text>
             </PageVersion>
             <Calls calls={reads} />
             <PageNotes>
@@ -142,7 +143,7 @@ export const WrittenAgain: StoryObj = {
             <PageVersion>
               <Icon name="sparkle" size={12} />
               <span>Version 1</span>
-              <span className="dim">4:11 PM</span>
+              <Text dim>4:11 PM</Text>
               <Button variant="link">Use this</Button>
             </PageVersion>
             <PageNotes old>
@@ -163,7 +164,7 @@ export const WrittenAgain: StoryObj = {
             <PageVersion>
               <Icon name="sparkle" size={12} />
               <span>Version 2</span>
-              <span className="dim">4:12 PM</span>
+              <Text dim>4:12 PM</Text>
             </PageVersion>
           </PageTurn>
         </PageTurns>
@@ -184,7 +185,7 @@ export const OutOfDate: StoryObj = {
             <PageVersion>
               <Icon name="sparkle" size={12} />
               <span>Written</span>
-              <span className="dim">4:11 PM</span>
+              <Text dim>4:11 PM</Text>
             </PageVersion>
           </PageTurn>
         </PageTurns>

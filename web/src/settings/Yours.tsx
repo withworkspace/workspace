@@ -11,6 +11,7 @@ import { minesOf, name, type Section } from "./sections";
 import { SettingsBlock } from "./SettingsBlock";
 import { SettingsMine, SettingsMineRow } from "./SettingsMine";
 import { SettingsUnknown } from "./SettingsUnknown";
+import { textClass } from "../ui/Text";
 
 // Yours is what's yours alone: what your file sets, each with what it
 // would be without yours and the way back; the keys ws doesn't read; and
@@ -36,7 +37,7 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
         <SettingsMine>
           <SettingsMineRow>
             <span>
-              <Link to="/settings/appearance" className="link">
+              <Link to="/settings/appearance" className={textClass("link")}>
                 Appearance
               </Link>{" "}
               · Theme
@@ -45,7 +46,7 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
           </SettingsMineRow>
           <SettingsMineRow>
             <span>
-              <Link to="/settings/keyboard" className="link">
+              <Link to="/settings/keyboard" className={textClass("link")}>
                 Keyboard
               </Link>{" "}
               · Send with
@@ -56,7 +57,7 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
           </SettingsMineRow>
           <SettingsMineRow>
             <span>
-              <Link to="/settings/keyboard" className="link">
+              <Link to="/settings/keyboard" className={textClass("link")}>
                 Keyboard
               </Link>{" "}
               · Key hints
@@ -65,7 +66,7 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
           </SettingsMineRow>
           <SettingsMineRow>
             <span>
-              <Link to="/settings/notifications" className="link">
+              <Link to="/settings/notifications" className={textClass("link")}>
                 Notifications
               </Link>{" "}
               · Desktop notifications

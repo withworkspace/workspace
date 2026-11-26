@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Button } from "../ui/Button";
-import { cx } from "../ui/cx";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Input } from "../ui/Input";
 import { Keys } from "../ui/Keys";
 import css from "./SpaceNewInFolder.module.css";
+import { Text } from "../ui/Text";
 
 type SpaceNewInFolderProps = {
   repo: string;
@@ -62,9 +62,9 @@ export function SpaceNewInFolder({ repo, label, root, folders, busy, onStart, on
           />
         </label>
       </div>
-      <p className={cx("dim", css.what)}>
-        Once it's written, <em>File as…</em> files it at <span className="mono">{`${repo} · ${root}${clean}${name}.md`}</span>, as {label} lands its changes.
-      </p>
+      <Text as="p" dim className={css.what}>
+        Once it's written, <em>File as…</em> files it at <Text mono>{`${repo} · ${root}${clean}${name}.md`}</Text>, as {label} lands its changes.
+      </Text>
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel

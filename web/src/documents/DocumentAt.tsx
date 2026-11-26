@@ -4,7 +4,7 @@ import { docAddress, docTo, filesTo, GROUND, openFilePage, pageAddress } from ".
 import { DocPage } from "../files/DocPage";
 import { PagePage } from "../pages/Pages";
 import { Loading } from "../ui/Loading";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { ErrorCard } from "../ui/ErrorCard";
 import { useWorkspace } from "../workspace/store";
 

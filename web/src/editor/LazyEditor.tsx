@@ -3,6 +3,7 @@ import { markdownClass } from "../markdown/LazyMarkdown";
 import { cx } from "../ui/cx";
 import type { EditorProps } from "./MarkdownEditor";
 import css from "./MarkdownEditor.module.css";
+import { Prose } from "../ui/Prose";
 
 export type { Draft, EditorProps } from "./MarkdownEditor";
 export type { Quote } from "./views";
@@ -17,9 +18,9 @@ export function MarkdownEditor(props: EditorProps) {
     <Suspense
       fallback={
         <div className={css.editor}>
-          <div className="prose">
+          <Prose>
             <div className={cx("markdown pm", markdownClass, css.pm, props.compact && css.compact, css.loading)}>{props.initial}</div>
-          </div>
+          </Prose>
         </div>
       }
     >

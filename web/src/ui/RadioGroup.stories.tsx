@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Radio, RadioGroup } from "./RadioGroup";
+import { Text } from "./Text";
 
 // A radio group: a word or two each, words that run to two lines (the
 // dot sits by the first), and disabled. Press one, or move with the
@@ -15,12 +16,12 @@ function Whose({ disabled }: { disabled?: boolean }) {
     <RadioGroup value={whose} onChange={setWhose} disabled={disabled} aria-label="Whose">
       <Radio value="me">
         <span>
-          Just me <span className="dim">— in ws.local.toml</span>
+          Just me <Text dim>— in ws.local.toml</Text>
         </span>
       </Radio>
       <Radio value="team">
         <span>
-          The team <span className="dim">— in ws.toml, committed and pushed</span>
+          The team <Text dim>— in ws.toml, committed and pushed</Text>
         </span>
       </Radio>
     </RadioGroup>

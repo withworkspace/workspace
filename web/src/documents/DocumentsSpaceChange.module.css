@@ -1,14 +1,14 @@
 /* A document a capsule changes (DocumentsSpaceChange.tsx): its mark in
    the colour of what's done to it. */
 
-.change :global(.mono) {
+.change .mark {
   color: var(--dim);
 }
 
-.change.added :global(.mono) {
+.change.added .mark {
   color: var(--green);
 }
 
-.change.removed :global(.mono) {
+.change.removed .mark {
   color: var(--red);
 }

@@ -2,7 +2,7 @@ import { act, dockPR, restoreArtifact, setTalkStatus } from "../api";
 import { archiveMission } from "../mission/archive";
 import { confirm } from "../ui/Confirm";
 import { toast } from "../ui/toast";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import type { WsDoing } from "./acts";
 import type { Doing } from "./find";
 import { pinNamed, unpinNamed } from "./pins";

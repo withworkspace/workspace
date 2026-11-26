@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
 import css from "./PagePanelFoot.module.css";
+import { Text } from "../ui/Text";
+import { Spacer } from "../ui/Spacer";
 
 // PagePanelFoot is the foot of a cell's panel: what's done with the cell
 // (children) and its name (id); or, under the box that asks for a
@@ -11,11 +12,11 @@ export function PagePanelFoot({ id, hint, children }: { id?: string; hint?: Reac
       {children}
       {id && (
         <>
-          <span className="spacer" />
-          <span className="dim">{id}</span>
+          <Spacer />
+          <Text dim className={css.id}>{id}</Text>
         </>
       )}
-      {hint && <span className={cx("dim", css.hint)}>{hint}</span>}
+      {hint && <Text dim className={css.hint}>{hint}</Text>}
     </div>
   );
 }

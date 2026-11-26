@@ -3,6 +3,7 @@ import { Count } from "../ui/Count";
 import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import css from "./DocumentsSpaceCardKind.module.css";
+import { textClass } from "../ui/Text";
 
 type DocumentsSpaceCardKindProps = {
   to: string; // its list on the space's page
@@ -20,7 +21,7 @@ export function DocumentsSpaceCardKind({ to, name, folder, count, last, stands }
   return (
     <li>
       <TLink to={to} className={css.link}>
-        <span className={cx(css.kind, folder && "mono")}>{name}</span> <Count>{count}</Count>
+        <span className={cx(css.kind, folder && css.folder, folder && textClass("mono"))}>{name}</span> <Count>{count}</Count>
         {last && (
           <span className={css.last} title={`Changed last: ${last.title}`}>
             {last.title} · <Time iso={last.at} as="age" />

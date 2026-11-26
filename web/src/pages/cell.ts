@@ -1,6 +1,6 @@
 import type { CellSource, PageCell, TalkCall, TalkTurn } from "../api";
 import type { CellState } from "../editor/cells";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 
 // A cell, as its conversation says it stands.
 

@@ -1,0 +1,7 @@
+/* Promoting an artifact (ArtifactPromote.tsx): its fields are laid out as
+   filing a page's are (styles.css's file-as-fields); one that's a path is
+   in the code's type, a size down. */
+
+:global(.file-as-fields) input.code {
+  font: var(--text-sm) / 1.5 var(--mono);
+}

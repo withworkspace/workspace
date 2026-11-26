@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchSpace, pullSpace, type SpaceFresh } from "../api";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { DocumentsFresh } from "./DocumentsFresh";
 

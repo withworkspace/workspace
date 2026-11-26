@@ -1,6 +1,7 @@
 import { Button } from "../ui/Button";
 import { Keys } from "../ui/Keys";
 import css from "./ReviewSelectBar.module.css";
+import { Text } from "../ui/Text";
 
 // ReviewSelectBar hangs under lines picked in a review: which they are,
 // Comment (c) where comments can be made, Ask (a) where an agent can be
@@ -20,9 +21,9 @@ export function ReviewSelectBar({ label, onComment, onAsk }: { label: string; on
           Ask <Keys k="a" />
         </Button>
       )}
-      <span className="dim">
+      <Text dim>
         <Keys k="esc" /> clears
-      </span>
+      </Text>
     </div>
   );
 }

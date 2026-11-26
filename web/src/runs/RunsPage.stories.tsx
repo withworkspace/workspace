@@ -22,6 +22,7 @@ import { RunsPagePast, RunsPagePastRun } from "./RunsPagePast";
 import { RunsPageReports } from "./RunsPageReports";
 import { RunsPageRow } from "./RunsPageRow";
 import { RunsPageSub } from "./RunsPageSub";
+import { Text, textClass } from "../ui/Text";
 
 // The Runs page, from its parts: the whole page (its names, what's
 // running, the results, a silo, what's ended, one row open); each kind of
@@ -78,22 +79,22 @@ function ServiceRow({ up = true, open: opened = false, needs = false }: { up?: b
             <span>
               For <a href="#">crew c2</a>
             </span>
-            <span className="mono">127.0.0.1:48290</span>
+            <Text mono>127.0.0.1:48290</Text>
           </RunsPageSub>
           {needs && (
             <RunsPageSub>
               <span>
                 Needs api:{" "}
-                <a href="#" className="mono">
+                <a href="#" className={textClass("mono")}>
                   api.ground.records
                 </a>
                 , at{" "}
-                <a href="#" className="mono">
+                <a href="#" className={textClass("mono")}>
                   /api
                 </a>
               </span>
               <span>
-                Needs cache: <span className="mono">cache.ground.records</span> <Chip tone="waiting">not running</Chip>
+                Needs cache: <Text mono>cache.ground.records</Text> <Chip tone="waiting">not running</Chip>
               </span>
             </RunsPageSub>
           )}
@@ -106,11 +107,11 @@ function ServiceRow({ up = true, open: opened = false, needs = false }: { up?: b
         <RunsPageMore>
           <RunsPageFacts>
             <dt>Command</dt>
-            <dd className="mono">
+            <Text as="dd" mono>
               <Copyable text="python3 serve.py">python3 serve.py</Copyable>
-            </dd>
+            </Text>
             <dt>Folder</dt>
-            <dd className="mono">~/sorrel/repos/demo/a-page-that-needs-an-api</dd>
+            <Text as="dd" mono>~/sorrel/repos/demo/a-page-that-needs-an-api</Text>
             <dt>Started</dt>
             <dd>
               Today at 09:12 by crew c2, from its <code>[run.service.web]</code>
@@ -138,9 +139,9 @@ function TaskRow({ result, open: opened = false }: { result: "passed" | "failed"
         <>
           <RunCame result={result}>
             {came}
-            {result !== "running" && <span className="dim">, 4 minutes ago</span>}
+            {result !== "running" && <Text dim>, 4 minutes ago</Text>}
           </RunCame>
-          {result === "passed" && <span className="dim">run 3</span>}
+          {result === "passed" && <Text dim>run 3</Text>}
         </>
       }
       sub={
@@ -171,11 +172,11 @@ function TaskRow({ result, open: opened = false }: { result: "passed" | "failed"
               {came}
             </RunCame>
             <dt>Command</dt>
-            <dd className="mono">go test -coverprofile=cover.out ./...</dd>
+            <Text as="dd" mono>go test -coverprofile=cover.out ./...</Text>
             <dt>Commit</dt>
             <dd>
-              <span className="mono">3f2a91c0b7de</span>
-              <span className="dim">, with changes that weren't committed</span>
+              <Text mono>3f2a91c0b7de</Text>
+              <Text dim>, with changes that weren't committed</Text>
             </dd>
             <dt>Reports</dt>
             <dd>
@@ -198,8 +199,8 @@ function SiloRow({ trouble }: { trouble?: boolean }) {
       name="demo"
       top={
         <>
-          <span className="dim">on</span>
-          <span className="mono">silo-a</span>
+          <Text dim>on</Text>
+          <Text mono>silo-a</Text>
           {trouble && <Chip tone="waiting">sync failed</Chip>}
         </>
       }
@@ -223,7 +224,7 @@ function SiloRow({ trouble }: { trouble?: boolean }) {
       more={
         <RunsPageMore>
           {trouble && <p>rsync: write failed: no space left on device</p>}
-          <p className="dim">Its post-sync hook</p>
+          <Text as="p" dim>Its post-sync hook</Text>
           <Printed className={runsPageLogClass}>{"go build ./... \nok"}</Printed>
         </RunsPageMore>
       }
@@ -237,7 +238,7 @@ function EndedRow() {
       ended
       mark={<RunMark title="Ended" />}
       name="sh"
-      top={<span className="dim">exited 3, 2 minutes ago</span>}
+      top={<Text dim>exited 3, 2 minutes ago</Text>}
       sub={
         <RunsPageSub>
           <span>
@@ -257,21 +258,21 @@ function Names({ note, router = true }: { note?: boolean; router?: boolean }) {
     <RunsPageNames
       names={
         <>
-          <a href="#" className="mono">
+          <a href="#" className={textClass("mono")}>
             sorrel.localhost
             <Icon name="arrow-up-right" size={11} />
           </a>
-          <span className="dim"> and each run below it, as web.&lt;capsule&gt;.&lt;repo&gt;.sorrel.localhost</span>
+          <Text dim> and each run below it, as web.&lt;capsule&gt;.&lt;repo&gt;.sorrel.localhost</Text>
         </>
       }
       note={note ? <>sorrel was another workspace's first: this one is sorrel-2 while that one's daemon runs.</> : undefined}
       router={
         router ? (
           <>
-            On :80<span className="dim">. One serves every workspace on this machine.</span>
+            On :80<Text dim>. One serves every workspace on this machine.</Text>
           </>
         ) : (
-          <span className="dim">None running</span>
+          <Text dim>None running</Text>
         )
       }
     />

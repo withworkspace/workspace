@@ -6,6 +6,7 @@ import { Spinner } from "../ui/Spinner";
 import { Status, type StatusInfo } from "../ui/Status";
 import { ToggleButton } from "../ui/ToggleButton";
 import css from "./PullRequestLayers.module.css";
+import { Text } from "../ui/Text";
 
 // PullRequestLayer is one of a stack's layers down the side: where it
 // stands, its title and number, and where its review is. The one shown
@@ -44,21 +45,21 @@ export function PullRequestLayers({
     <div className={css.layers}>
       <div className={css.head}>
         <span title={title}>
-          Stack <span className="dim">· {about}</span>
+          Stack <Text dim>· {about}</Text>
         </span>
-        <span className={`dim ${css.keys}`}>
+        <Text dim className={css.keys}>
           <Keys k="[" /> <Keys k="]" />
-        </span>
+        </Text>
       </div>
       <ol>
-        {merged ? <li className={`dim ${css.merged}`}>{merged} merged below</li> : null}
+        {merged ? <Text as="li" dim className={css.merged}>{merged} merged below</Text> : null}
         {layers.map((l, i) => (
           <li key={l.number} className={cx(l.here && css.here)} aria-busy={l.going || undefined}>
             <Link to={l.to} replace title={`${l.title} (#${l.number}): ${l.words}`}>
               <span className={css.n}>{i + 1}</span>
               {l.going ? <Spinner size={13} /> : <Status s={l.status} iconOnly size={13} className={css.stands} />}
               <span className={css.title}>{l.title}</span>
-              <span className="mono dim">#{l.number}</span>
+              <Text mono dim className={css.number}>#{l.number}</Text>
             </Link>
           </li>
         ))}

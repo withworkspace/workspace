@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Button, type ButtonLook, buttonClass } from "./Button";
 import { Icon } from "./Icon";
 import { Keys } from "./Keys";
+import { Text } from "./Text";
 
 // Buttons: each variant, plain and small, then disabled, with an icon,
 // with a key, square (an icon alone), and a link drawn as a button.
@@ -25,9 +26,9 @@ export const Variants: StoryObj = {
     <div className="page" style={{ display: "grid", gap: 16 }}>
       {variants.map(({ name, look }) => (
         <div key={name} style={cell}>
-          <span className="dim" style={{ width: 80 }}>
+          <Text dim style={{ width: 80 }}>
             {name}
-          </span>
+          </Text>
           <Button {...look}>Save</Button>
           <Button {...look} size="small">
             Save
@@ -80,7 +81,7 @@ export const Bare: StoryObj = {
       <Button variant="bare" aria-label="Add" style={{ width: 32, height: 32, minHeight: 0, padding: 0, borderRadius: 16, display: "grid", placeItems: "center" }}>
         <Icon name="plus" size={14} />
       </Button>
-      <span className="dim">Its class is all of its look: the library gives it none.</span>
+      <Text dim>Its class is all of its look: the library gives it none.</Text>
     </div>
   ),
 };

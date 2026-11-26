@@ -11,7 +11,7 @@ import { sendKeys, useSendKey } from "../ui/sendKey";
 import { Spinner } from "../ui/Spinner";
 import { Time } from "../ui/Time";
 import { toast } from "../ui/toast";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { askingNow, baseName, besideChanged, changedSources, liveCalls, outOfDate, sourceHref, sourceName, versions } from "./cell";
 import { PageComposer } from "./PageComposer";
@@ -26,6 +26,7 @@ import { PageTurn } from "./PageTurn";
 import { PageTurns } from "./PageTurns";
 import { PageUnstarted } from "./PageUnstarted";
 import { PageVersion } from "./PageVersion";
+import { textClass } from "../ui/Text";
 
 // CellPanel is a cell opened: what was asked for, each version and what
 // you asked to change between them, what the latest was written from, and
@@ -191,7 +192,7 @@ export function CellPanel({
                 <PageVersion>
                   <Icon name="sparkle" size={12} />
                   <span>{all.length > 1 ? `Version ${k}` : "Written"}</span>
-                  <Time iso={t.at} as="clock" className="dim" />
+                  <Time iso={t.at} as="clock" className={textClass("dim")} />
                   {t !== latest && (
                     <Button variant="link" onClick={() => fillCell(view, cell.id, k, t.body)} title="Put this version back in the cell">
                       Use this

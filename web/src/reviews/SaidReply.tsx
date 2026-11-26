@@ -3,10 +3,11 @@ import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { SendKeys } from "../ui/SendKeys";
 import { sendKeys, sent, useSendKey } from "../ui/sendKey";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { TextArea } from "../ui/TextArea";
 import { useAutosize } from "../ui/useAutosize";
 import css from "./SaidReply.module.css";
+import { Text } from "../ui/Text";
 
 // SaidReply is you commenting on a pull request itself: what you're
 // writing, sent with the key you've chosen (ui/sendKey.ts), and that it
@@ -37,7 +38,7 @@ export function SaidReply({ text, busy, error, onText, onSend }: { text: string;
       />
       {error && <Banner>{humanError(error)}</Banner>}
       <div className={css.actions}>
-        <span className="dim">Posts to GitHub at once, as you: it isn't part of your draft.</span>
+        <Text dim>Posts to GitHub at once, as you: it isn't part of your draft.</Text>
         <span className={css.spacer} />
         <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={onSend} title="Post it to GitHub" keys={sendKeys(sendKey)}>
           {busy ? "Posting…" : "Comment on GitHub"} <SendKeys />

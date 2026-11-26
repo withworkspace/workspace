@@ -1,8 +1,8 @@
 import { Button } from "../ui/Button";
 import { Copyable } from "../ui/Copyable";
 import { Icon } from "../ui/Icon";
-import { cx } from "../ui/cx";
 import css from "./ArtifactHome.module.css";
+import { Text } from "../ui/Text";
 
 type ArtifactHomeProps = {
   // Its folder in the repo, as it's named for other people, the repo, and
@@ -21,7 +21,7 @@ type ArtifactHomeProps = {
 // version on the page there after it.
 export function ArtifactHome({ where, repo, version, commit, put }: ArtifactHomeProps) {
   return (
-    <div className={cx(css.home, "dim")}>
+    <Text as="div" dim className={css.home}>
       <Icon name="branch" size={12} /> It lives in <Copyable text={where} className={css.where} title="Copy its folder: how it's named for other people" /> too, for everyone with {repo}: v{version} is there
       {commit ? ` (${commit.slice(0, 7)})` : ""}.
       {put ? (
@@ -29,6 +29,6 @@ export function ArtifactHome({ where, repo, version, commit, put }: ArtifactHome
           <Icon name="check-circle" size={12} /> {put.busy ? "Landing…" : `Put v${put.n} there`}
         </Button>
       ) : null}
-    </div>
+    </Text>
   );
 }
