@@ -126,8 +126,9 @@ function WithBeside() {
 
 export const BesidesToggle: StoryObj = { render: () => <WithBeside /> };
 
-// Both docks' toggles, in the order the docks are in the window: Below's,
-// then Beside's at the end.
+// Both docks' toggles, in the order the docks are in the window: Below's
+// (Runs: how many services run, marked while it's closed when one has
+// just started), then Beside's at the end.
 function WithDocks() {
   const [below, setBelow] = useState(true);
   const [beside, setBeside] = useState(false);
@@ -141,7 +142,7 @@ function WithDocks() {
       }
       end={
         <>
-          <FootBelow open={below} onPress={() => setBelow((o) => !o)} />
+          <FootBelow open={below} count={3} fresh onPress={() => setBelow((o) => !o)} />
           <FootBeside open={beside} waiting={1} onPress={() => setBeside((o) => !o)} />
         </>
       }

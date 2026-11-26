@@ -76,6 +76,9 @@ export interface ChromeState {
     // Which of it: what's of the thing this page is of, or the
     // workspace's.
     where: BelowWhere;
+    // When it was last closed (ms): what's started since is new to you,
+    // and its toggle says so. None until it's first been seen.
+    seen?: number;
   };
 }
 
@@ -235,6 +238,10 @@ export function showBelow(s: ChromeState, tab: string): ChromeState {
   return { ...s, below: { ...s.below, open: !showing, tab } };
 }
 
+// seenBelow is Below's having been looked at, at: what started before is
+// no longer new.
+export const seenBelow = (s: ChromeState, at: number): ChromeState => ({ ...s, below: { ...s.below, seen: at } });
+
 export const belowWhere = (s: ChromeState, where: BelowWhere): ChromeState => (s.below.where === where ? s : { ...s, below: { ...s.below, where } });
 
 const heightWithin = (h: unknown): number => (typeof h === "number" && Number.isFinite(h) ? Math.round(Math.min(belowHeights.max, Math.max(belowHeights.min, h))) : belowHeights.rest);
@@ -267,7 +274,7 @@ export function read(kept: string | null | undefined): ChromeState {
   return {
     hidden: got.hidden === true,
     beside: { open: beside.open === true, over: beside.over === true, width: widthWithin(beside.width), tabs, about, front: typeof beside.front === "string" ? beside.front : undefined, fronts: strings(beside.fronts), peek: typeof beside.peek === "string" && tabs.includes(beside.peek) ? beside.peek : undefined },
-    below: { open: below.open === true, height: heightWithin(below.height), tab: typeof below.tab === "string" && below.tab !== "" ? below.tab : undefined, where: below.where === "everywhere" ? "everywhere" : "here" },
+    below: { open: below.open === true, height: heightWithin(below.height), tab: typeof below.tab === "string" && below.tab !== "" ? below.tab : undefined, where: below.where === "everywhere" ? "everywhere" : "here", seen: typeof below.seen === "number" && Number.isFinite(below.seen) ? below.seen : undefined },
   };
 }
 

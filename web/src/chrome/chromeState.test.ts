@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, belowHeights, belowWhere, closeBesideTab, floatBeside, heightenBelow, hideSidebar, openBeside, peekBeside, pickBeside, pickBelow, read, resting, showBelow, sidebarPlace, toggleBeside, toggleBelow, widenBeside, write } from "./chromeState";
+import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, belowHeights, belowWhere, closeBesideTab, floatBeside, heightenBelow, hideSidebar, openBeside, peekBeside, pickBeside, pickBelow, read, resting, seenBelow, showBelow, sidebarPlace, toggleBeside, toggleBelow, widenBeside, write } from "./chromeState";
 
 describe("where the sidebar is", () => {
   it("is the page's to say between open and the rail", () => {
@@ -172,6 +172,10 @@ describe("a peek", () => {
 });
 
 describe("what's below", () => {
+  it("keeps when it was last seen, and drops one that isn't a time", () => {
+    expect(read(write(seenBelow(resting, 1700000000000))).below.seen).toBe(1700000000000);
+    expect(read(JSON.stringify({ below: { seen: "yesterday" } })).below.seen).toBeUndefined();
+  });
   it("opens and closes, keeping the view that was showing", () => {
     const s = toggleBelow(pickBelow(resting, "results"));
     expect(s.below).toMatchObject({ open: true, tab: "results" });
