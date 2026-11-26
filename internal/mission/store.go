@@ -442,8 +442,8 @@ func (s Store) ClearInterrupted(slug, id string) error {
 // Briefing crew only count while the mission is still being briefed: once
 // it is ready, they have done their job and there is nothing to resume.
 func (m *Mission) LastResumableCrew(live func(id string) bool) (Crew, bool) {
-	for i := len(m.Crew) - 1; i >= 0; i-- {
-		c := m.Crew[i]
+	for _, c := range slices.Backward(m.Crew) {
+
 		if c.Done(m) {
 			continue
 		}
@@ -616,13 +616,6 @@ func (s Store) Confirm(slug, by string) error {
 		return err
 	}
 	return s.AppendLog(slug, Event{Kind: EventState, Crew: by, Text: "brief confirmed: under way"})
-}
-
-func stateOrDerived(s State) string {
-	if s == "" {
-		return "ready"
-	}
-	return string(s)
 }
 
 // Rename moves a mission to a new slug: its folder, then its record, its

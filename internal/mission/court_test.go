@@ -354,6 +354,12 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "PR approved and green", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success"}}
 		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, verb: VerbMerge, target: "api#88", text: "approved and its checks pass"},
+		{name: "PR green, no review decision, but its rules block it (an admin could bypass)", state: Review, edit: func(s *Snapshot) {
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Checks: "success", Blocked: true}}
+		}, court: CourtOutside, kind: KindAwaitingReview, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "waiting for the review its base branch's rules ask for"},
+		{name: "PR approved and green, but its rules still block it", state: Review, edit: func(s *Snapshot) {
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", Blocked: true}}
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "still hold it"},
 		{name: "PR needing no review", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88"}}
 		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, text: "needs no review, and has no checks"},

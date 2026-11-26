@@ -577,7 +577,7 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 		d.Stages = append(d.Stages, sg)
 	}
 	for _, c := range v.Capsules {
-		cd := CapsuleDetail{Capsule: Capsule{Repo: c.Repo, Name: c.Name, Branch: c.Branch, Path: c.Path, Exists: c.Exists}}
+		cd := CapsuleDetail{Repo: c.Repo, Name: c.Name, Branch: c.Branch, Path: c.Path, Exists: c.Exists}
 		if st, ok := v.Status[c.Repo+"/"+c.Name]; ok {
 			cd.Dirty, cd.Ahead, cd.Behind, cd.Head, cd.Unread = st.Dirty, st.Ahead, st.Behind, st.Head, st.Unread
 		}

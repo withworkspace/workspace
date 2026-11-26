@@ -94,8 +94,8 @@ func run() {
 					if _, n, _ := strings.Cut(e.Name, "-"); n != "1" {
 						return plugin.Exported{}, plugin.ErrNotFound
 					}
-					out := plugin.Exported{Package: plugin.Package{Title: "The first thing", Main: []byte("It says hello."),
-						Files: []plugin.PackageFile{{Name: "{slug}.svg", Content: []byte("<svg/>"), Picture: true}}}}
+					out := plugin.Exported{Title: "The first thing", Main: []byte("It says hello."),
+						Files: []plugin.PackageFile{{Name: "{slug}.svg", Content: []byte("<svg/>"), Picture: true}}}
 					if at, ok := home.Load().(plugin.RemoteThing); ok {
 						out.Remote, out.Base = at.Name, at.Version
 					}

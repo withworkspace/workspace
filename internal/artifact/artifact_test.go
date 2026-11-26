@@ -51,7 +51,7 @@ func TestAddAndRevise(t *testing.T) {
 	if e.Versions[0].Files != 1 || e.Versions[0].Size != len(page) {
 		t.Errorf("v1 says it's %d files, %d bytes", e.Versions[0].Files, e.Versions[0].Size)
 	}
-	e, n, err := s.AddVersion(ctx, "a1", Revision{HTML: []byte(page + "<p>2</p>"), At: day.Add(time.Hour), Version: Version{By: "you", Note: "No glow in light."}})
+	_, n, err := s.AddVersion(ctx, "a1", Revision{HTML: []byte(page + "<p>2</p>"), At: day.Add(time.Hour), Version: Version{By: "you", Note: "No glow in light."}})
 	if err != nil || n != 2 {
 		t.Fatalf("v2: %d, %v", n, err)
 	}

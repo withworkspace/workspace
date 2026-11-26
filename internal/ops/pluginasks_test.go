@@ -41,8 +41,7 @@ func ask[T any](t *testing.T, w *Workspace, method string, params any) (T, error
 }
 
 func rpcCode(err error) int {
-	var e *acp.RPCError
-	if errors.As(err, &e) {
+	if e, ok := errors.AsType[*acp.RPCError](err); ok {
 		return e.Code
 	}
 	return 0

@@ -23,8 +23,7 @@ func main() {
 	}
 	cmd := cli.NewRootCmd(version)
 	if err := cmd.Execute(); err != nil {
-		var exit *cli.ExitCodeError
-		if errors.As(err, &exit) {
+		if exit, ok := errors.AsType[*cli.ExitCodeError](err); ok {
 			os.Exit(exit.Code)
 		}
 		os.Exit(1)

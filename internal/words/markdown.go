@@ -145,7 +145,7 @@ func Title(text []byte) string {
 	s := strings.ReplaceAll(string(text), "\r\n", "\n")
 	if rest, ok := strings.CutPrefix(s, "---\n"); ok {
 		if fm, body, ok := strings.Cut(rest, "\n---"); ok {
-			for _, line := range strings.Split(fm, "\n") {
+			for line := range strings.SplitSeq(fm, "\n") {
 				if v, ok := strings.CutPrefix(line, "title:"); ok {
 					if t := strings.Trim(strings.TrimSpace(v), `"'`); t != "" {
 						return t
@@ -156,7 +156,7 @@ func Title(text []byte) string {
 		}
 	}
 	fenced := false
-	for _, line := range strings.Split(s, "\n") {
+	for line := range strings.SplitSeq(s, "\n") {
 		t := strings.TrimSpace(line)
 		if strings.HasPrefix(t, "```") || strings.HasPrefix(t, "~~~") {
 			fenced = !fenced

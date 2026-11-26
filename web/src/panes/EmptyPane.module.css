@@ -1,0 +1,30 @@
+/* Beside with nothing in it here, docked (EmptyPane.tsx). */
+
+@layer ui {
+  .empty {
+    padding-top: 64px;
+  }
+
+  .says {
+    margin: 0 0 14px;
+  }
+
+  .keys {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-items: baseline;
+    gap: 6px 10px;
+    margin: 0;
+    font-size: var(--text-sm);
+    text-align: start;
+  }
+
+  .keys dt {
+    justify-self: end;
+  }
+
+  .keys dd {
+    margin: 0;
+  }
+}

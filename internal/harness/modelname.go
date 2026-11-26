@@ -2,6 +2,7 @@ package harness
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -78,12 +79,7 @@ func parseModelName(id string) (modelName, bool) {
 }
 
 func isModelEffort(s string) bool {
-	for _, e := range ModelEfforts {
-		if e == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ModelEfforts, s)
 }
 
 // choiceWords are the words a model's shown name ends in for its choices

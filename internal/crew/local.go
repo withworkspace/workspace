@@ -86,9 +86,7 @@ func (h *LocalHost) Launch(s Spec) (int, error) {
 	}
 	h.byKey[s.Key()] = t
 	h.mu.Unlock()
-	h.ending.Add(1)
-	go func() {
-		defer h.ending.Done()
+	h.ending.Go(func() {
 		defer close(t.done)
 		<-p.Done()
 		exit, leaving := p.ExitSummary(), h.leaving.Load()
@@ -96,7 +94,7 @@ func (h *LocalHost) Launch(s Spec) (int, error) {
 			exit = "stopped: " + exit
 		}
 		Finish(h.Store, s, exit, p.Transcript(), HowEnded(t.stopped.Load(), leaving), h.OnEnded)
-	}()
+	})
 	// The prompt's typer and the trust dialog's watch end with the crew,
 	// and Leave waits for them as it does for the end's record: neither
 	// writes to a mission that's been left.
@@ -144,11 +142,9 @@ func (h *LocalHost) Leave() {
 	h.mu.Unlock()
 	var wg sync.WaitGroup
 	for _, t := range terms {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			t.Pane.Close(LeaveGrace)
-		}()
+		})
 	}
 	wg.Wait()
 	h.ending.Wait()

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"sort"
@@ -248,7 +249,7 @@ func syncableDirs(dir, sub string) ([]string, error) {
 		stop = "."
 	}
 	seen := map[string]bool{stop: true}
-	for _, f := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+	for f := range strings.SplitSeq(strings.TrimRight(out, "\x00"), "\x00") {
 		if f == "" {
 			continue
 		}
@@ -468,7 +469,7 @@ func (sw *SiloWatcher) addFolder(repo, capsuleDir, rel string) {
 	}
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
-	for _, f := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+	for f := range strings.SplitSeq(strings.TrimRight(out, "\x00"), "\x00") {
 		if f != "" {
 			sw.queue(repo, f)
 		}
@@ -635,9 +636,7 @@ func (sw *SiloWatcher) reloadTargets() {
 
 	sw.mu.Lock()
 	had := make(map[string]string, len(sw.targets))
-	for k, v := range sw.targets {
-		had[k] = v
-	}
+	maps.Copy(had, sw.targets)
 	for k, st := range sw.states {
 		if _, ok := had[k]; !ok {
 			had[k] = st.Target // kept in name only: its target wasn't there

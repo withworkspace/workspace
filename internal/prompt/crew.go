@@ -125,7 +125,7 @@ func Crew(b CrewBrief) string {
 		s.WriteString("- When your part is finished, commit it (the user reviews commits, and the next crew builds on them: uncommitted work is left out), and open PRs if that's how this repo works. Then report done with a one-line summary and a handoff for whoever comes next, whether the next crew or the user. Learned matters most: where things live, what you tried that didn't work, surprises. Keep it short. ws finds PRs from the mission's capsules itself.\n\n")
 	}
 	s.WriteString("  ws mission done \"<one-line summary>\" --handoff - <<'EOF'\n")
-	for _, l := range strings.Split(mission.HandoffTemplate, "\n") {
+	for l := range strings.SplitSeq(mission.HandoffTemplate, "\n") {
 		s.WriteString("  " + l + "\n")
 	}
 	s.WriteString("  EOF\n")

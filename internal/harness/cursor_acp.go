@@ -200,13 +200,26 @@ func (c *CursorACP) Converse(r ConverseRun) (Launch, error) {
 	if err != nil {
 		return Launch{}, err
 	}
-	run := ACPRun{Agent: agent, Dir: dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: cursorWorksIn(dir, r.Dir) + r.Prompt,
+	works := cursorWorksIn(dir, r.Dir)
+	runs := r.Sandbox && !r.Alone
+	if runs {
+		works = runsFrom(dir, r.Dir)
+	}
+	run := ACPRun{Agent: agent, Dir: dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: works + r.Prompt,
 		Allow: converseCommands(r), Auth: cursorLogin, Answers: cursorHeadlessAnswers}
+	if runs {
+		run.Runs, run.Folders = true, r.Folders
+	}
 	if r.Alone {
 		run.Allow = nil
 	}
 	return acpLaunch(run, r.Scratch)
 }
+
+// Trusted: a conversation's agent on Cursor runs things, with no sandbox
+// of Cursor's own, ws answering what it asks (ConversePolicy). The user's
+// call (2026-11-26): "I trust cursor", as crew run there.
+func (c *CursorACP) Trusted() bool { return true }
 
 // Orchestrate runs the orchestrator in agent mode, from a folder of ws's
 // own, its commands those it may run.

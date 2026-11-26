@@ -3,6 +3,7 @@ package mission
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -199,8 +200,8 @@ func (r *StageRecord) MetOn(capsule, tree, check string) (CheckRound, CheckResul
 	if r == nil || tree == "" {
 		return CheckRound{}, CheckResult{}, false
 	}
-	for i := len(r.Checks) - 1; i >= 0; i-- {
-		round := r.Checks[i]
+	for _, round := range slices.Backward(r.Checks) {
+
 		if round.Capsule != capsule || round.Tree != tree {
 			continue
 		}
@@ -466,8 +467,8 @@ func (m *Mission) UncheckedDone(brief string) (StageState, string, bool) {
 		}
 		return false
 	}
-	for i := len(cur.Record.Crew) - 1; i >= 0; i-- {
-		c, ok := m.CrewByID(cur.Record.Crew[i])
+	for _, v := range slices.Backward(cur.Record.Crew) {
+		c, ok := m.CrewByID(v)
 		if !ok || c.Role != "" || c.Status != CrewDone || c.StatusAt == nil || checked(c) {
 			continue
 		}

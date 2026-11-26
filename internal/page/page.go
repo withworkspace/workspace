@@ -12,6 +12,7 @@ import (
 	"errors"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -72,7 +73,7 @@ func Title(text []byte) string {
 			s = body
 		}
 	}
-	for _, line := range strings.Split(s, "\n") {
+	for line := range strings.SplitSeq(s, "\n") {
 		t := strings.TrimSpace(line)
 		if t == "" || strings.HasPrefix(t, "<!--") {
 			continue
@@ -207,8 +208,8 @@ type Filed struct {
 func AsText(text []byte) []byte {
 	out := string(text)
 	cells := Cells(text)
-	for i := len(cells) - 1; i >= 0; i-- {
-		c := cells[i]
+	for _, c := range slices.Backward(cells) {
+
 		before, after := out[:c.Start], out[c.End:]
 		if !c.Ask && c.Body != "" {
 			out = before + c.Body + after

@@ -354,7 +354,7 @@ func TestLand_IsKeptAsAnEvent(t *testing.T) {
 
 	r := testutil.Run(t, w, nil, "events", "-f", "json")
 	var kinds []string
-	for _, line := range strings.Split(strings.TrimSpace(r.Stdout), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(r.Stdout), "\n") {
 		var e struct{ Kind, By, Repo, Capsule, Text string }
 		if err := json.Unmarshal([]byte(line), &e); err != nil {
 			t.Fatalf("%q: %v", line, err)

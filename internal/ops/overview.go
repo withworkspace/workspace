@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -359,9 +360,9 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	d.Events, _ = w.Missions.ReadLog(slug, 0)
 	if all, err := w.Missions.Decisions(slug); err == nil {
 		d.Decisions = mission.CurrentDecisions(all)
-		for i := len(all) - 1; i >= 0; i-- {
-			if all[i].State != mission.DecisionCurrent {
-				d.Decisions = append(d.Decisions, all[i])
+		for _, a := range slices.Backward(all) {
+			if a.State != mission.DecisionCurrent {
+				d.Decisions = append(d.Decisions, a)
 			}
 		}
 	}

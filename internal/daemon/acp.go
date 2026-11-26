@@ -106,11 +106,9 @@ func (s *Server) launchACP(spec Spec) (int, error) {
 		ag.Send(acp.Text(run.Prompt)) //nolint:errcheck // it's just started
 	}
 	go s.followACP(cr)
-	s.watchers.Add(1)
-	go func() {
-		defer s.watchers.Done()
+	s.watchers.Go(func() {
 		s.watchACP(cr, rec)
-	}()
+	})
 	return ag.Client().Pid(), nil
 }
 
@@ -149,7 +147,7 @@ func (s *Server) release(key string) {
 // agentLog is where an agent's own logging goes: the server's log.
 func (s *Server) agentLog(key string) writerFunc {
 	return func(p []byte) (int, error) {
-		for _, line := range strings.Split(strings.TrimRight(string(p), "\n"), "\n") {
+		for line := range strings.SplitSeq(strings.TrimRight(string(p), "\n"), "\n") {
 			if strings.TrimSpace(line) != "" {
 				s.Log.Printf("%s: %s", key, line)
 			}

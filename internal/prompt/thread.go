@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -48,8 +49,8 @@ func ThreadFirst(h Here, c *conversation.Conversation) string {
 func ThreadNext(c *conversation.Conversation, docNow string) string {
 	var said []string
 	since := ""
-	for i := len(c.Turns) - 1; i >= 0; i-- {
-		t := c.Turns[i]
+	for _, t := range slices.Backward(c.Turns) {
+
 		if t.By != conversation.You {
 			since = t.Version
 			break
@@ -61,9 +62,9 @@ func ThreadNext(c *conversation.Conversation, docNow string) string {
 	for _, s := range said {
 		b.WriteString(s + "\n\n")
 	}
-	for i := len(c.Turns) - 1; i >= 0; i-- {
-		if c.Turns[i].By != conversation.You && c.Turns[i].By != conversation.Agent {
-			fmt.Fprintf(&b, "(%s also said in it: %s)\n\n", c.Turns[i].By, c.Turns[i].Body)
+	for _, v := range slices.Backward(c.Turns) {
+		if v.By != conversation.You && v.By != conversation.Agent {
+			fmt.Fprintf(&b, "(%s also said in it: %s)\n\n", v.By, v.Body)
 			break
 		}
 	}
@@ -102,7 +103,7 @@ func Draft(m *mission.Mission, c *conversation.Conversation, resumed bool) strin
 // why may run on). None, nothing was decided.
 func ParseDraft(reply string) (what, why string, ok bool) {
 	field := ""
-	for _, l := range strings.Split(reply, "\n") {
+	for l := range strings.SplitSeq(reply, "\n") {
 		l = strings.TrimSpace(strings.ReplaceAll(l, "**", ""))
 		lower := strings.ToLower(l)
 		switch {

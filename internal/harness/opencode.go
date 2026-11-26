@@ -136,14 +136,19 @@ const openCodeHeadless = "ws-headless"
 // headless runs may; every shell command is asked of ws, whose policy lets
 // out the role's (CommandPolicy) and refuses the rest. Everything else
 // (editing, fetching, subagents, todos) is denied: a subagent's asks
-// would never reach ws. Alone, everything is. The JSON is written out,
-// not marshalled from a map: the last rule that matches wins, so the
-// order of its keys is what it means.
-func openCodeConfig(alone bool) string {
+// would never reach ws. Alone, everything is. A conversation that runs
+// things (runs) has its edits asked of ws too, which allows them in its
+// folders (ConversePolicy), and fetches. The JSON is written out, not
+// marshalled from a map: the last rule that matches wins, so the order of
+// its keys is what it means.
+func openCodeConfig(alone, runs bool) string {
 	perm := `{"*":"deny","read":{"*":"allow","*.env":"deny","*.env.*":"deny","*.env.example":"allow"},` +
 		`"glob":"allow","grep":"allow","external_directory":"allow","bash":"ask"}`
-	if alone {
+	switch {
+	case alone:
 		perm = `{"*":"deny"}`
+	case runs:
+		perm = strings.TrimSuffix(perm, "}") + `,"edit":"ask","webfetch":"allow"}`
 	}
 	return `{"agent":{"` + openCodeHeadless + `":{"mode":"primary","description":"ws's headless runs: reading, and the commands ws lets out.",` +
 		`"permission":` + perm + `}},"experimental":{"continue_loop_on_deny":true}}`
@@ -152,8 +157,10 @@ func openCodeConfig(alone bool) string {
 // EnvOpenCodeConfig is OpenCode's own variable for config given inline.
 const EnvOpenCodeConfig = "OPENCODE_CONFIG_CONTENT"
 
-// headless is a headless run: in ws-headless, its commands allow.
-func (o *OpenCode) headless(dir, session, model, prompt string, allow []string, alone bool) (Launch, error) {
+// headless is a headless run: in ws-headless, its commands allow. One
+// that runs things (folders, not nil: a conversation's) is answered by
+// ConversePolicy, its edits judged by folders.
+func (o *OpenCode) headless(dir, session, model, prompt string, allow []string, alone bool, folders func() []string) (Launch, error) {
 	agent, err := o.agent()
 	if err != nil {
 		return Launch{}, err
@@ -161,25 +168,46 @@ func (o *OpenCode) headless(dir, session, model, prompt string, allow []string, 
 	if session != "" && !o.sessionKept(session) {
 		return Launch{}, fmt.Errorf("%w: OpenCode has no session %s", ErrSessionGone, session)
 	}
-	run := ACPRun{Agent: agent, Env: []string{EnvOpenCodeConfig + "=" + openCodeConfig(alone)}, Dir: dir, Load: session,
+	runs := folders != nil && !alone
+	run := ACPRun{Agent: agent, Env: []string{EnvOpenCodeConfig + "=" + openCodeConfig(alone, runs)}, Dir: dir, Load: session,
 		Mode: openCodeHeadless, Prompt: prompt, Allow: allow}
 	if alone {
 		run.Allow = nil
+	}
+	if runs {
+		run.Runs, run.Folders = true, folders
 	}
 	run.Model, run.Settings = openCodeModel(model)
 	return acpLaunch(run, "")
 }
 
 // Converse runs one turn of a conversation in ws-headless, its commands
-// those a conversation may run, going on with its session.
+// those a conversation may run, going on with its session. One that runs
+// things (r.Sandbox) runs any command and edits in its folders, as ws
+// answers (ConversePolicy): OpenCode has no sandbox, and asks ws before
+// each command and edit, as ws's agent config says.
 func (o *OpenCode) Converse(r ConverseRun) (Launch, error) {
-	return o.headless(r.Dir, r.Session, r.Model, r.Prompt, converseCommands(r), r.Alone)
+	var folders func() []string
+	if r.Sandbox {
+		folders = r.Folders
+		if folders == nil {
+			folders = func() []string { return nil }
+		}
+	}
+	return o.headless(r.Dir, r.Session, r.Model, r.Prompt, converseCommands(r), r.Alone, folders)
 }
+
+// Trusted: a conversation's agent on OpenCode runs things, with no
+// sandbox, ws answering what it asks (ConversePolicy), as on Cursor.
+// READ (OpenCode's code, v1.19.5; it couldn't be run here): an edit
+// asked for carries its file as rawInput's filepath and its diff, which
+// ConversePolicy places (permissionPaths).
+func (o *OpenCode) Trusted() bool { return true }
 
 // Orchestrate runs the orchestrator in ws-headless, its commands those
 // it may run.
 func (o *OpenCode) Orchestrate(r OrchestratorRun) (Launch, error) {
-	return o.headless(r.Dir, "", r.Model, r.Prompt, orchestratorCommands(r), false)
+	return o.headless(r.Dir, "", r.Model, r.Prompt, orchestratorCommands(r), false, nil)
 }
 
 // openCodeModel is a model as ws's config names it for OpenCode: its own
@@ -203,7 +231,7 @@ func (o *OpenCode) Models(ctx context.Context) ([]Model, error) {
 		return nil, err
 	}
 	var models []Model
-	for _, line := range strings.Split(string(out), "\n") {
+	for line := range strings.SplitSeq(string(out), "\n") {
 		id := strings.TrimSpace(line)
 		if id == "" || strings.ContainsAny(id, " \t{}\"") || !strings.Contains(id, "/") {
 			continue

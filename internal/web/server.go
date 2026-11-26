@@ -758,12 +758,7 @@ func (s *Server) hostAllowed(host string) bool {
 	if host == "127.0.0.1:"+p || host == "localhost:"+p {
 		return true
 	}
-	for _, n := range s.names() {
-		if host == n {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.names(), host)
 }
 
 func (s *Server) names() []string {

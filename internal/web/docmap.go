@@ -38,8 +38,8 @@ type Documents interface {
 // ArtifactContentOf is a document as the API serves it.
 func ArtifactContentOf(t *ops.DocText) *ArtifactContent {
 	a := &ArtifactContent{
-		Artifact: Artifact{Ref: t.Ref, Kind: t.Kind, Label: t.Label, State: t.State, URL: t.URL, Path: t.Path, By: t.By, Added: t.Added, Readable: true},
-		Text:     t.Text, Markdown: t.Markdown, Editable: t.Editable, Uneditable: t.Uneditable, Page: t.Page, Media: t.Media,
+		Ref: t.Ref, Kind: t.Kind, Label: t.Label, State: t.State, URL: t.URL, Path: t.Path, By: t.By, Added: t.Added, Readable: true,
+		Text: t.Text, Markdown: t.Markdown, Editable: t.Editable, Uneditable: t.Uneditable, Page: t.Page, Media: t.Media,
 	}
 	if t.Stage != nil {
 		st := DocStage(*t.Stage)

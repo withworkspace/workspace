@@ -1,0 +1,16 @@
+/* Beside (Beside.tsx): what's only its own. */
+
+@layer ui {
+  /* Its head with no tabs (nothing beside this page): its name where the
+     tabs would be, as tall as a tab, so the head doesn't move as one
+     comes or goes. */
+  .nothing {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 5px 9px;
+    color: var(--faint);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+}

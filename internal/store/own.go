@@ -210,15 +210,13 @@ func (o *owner) serve() {
 		if hold != nil {
 			release = hold()
 		}
-		o.wg.Add(1)
-		go func() {
-			defer o.wg.Done()
+		o.wg.Go(func() {
 			defer release()
 			o.handle(nc)
 			o.mu.Lock()
 			delete(o.conns, nc)
 			o.mu.Unlock()
-		}()
+		})
 	}
 }
 
@@ -349,8 +347,7 @@ func (o *owner) handle(nc net.Conn) {
 		}
 		if err != nil {
 			rep = reply{Error: err.Error()}
-			var se *sqlite.Error
-			if errors.As(err, &se) {
+			if se, ok := errors.AsType[*sqlite.Error](err); ok {
 				rep.Code = se.Code()
 			}
 		}

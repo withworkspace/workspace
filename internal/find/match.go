@@ -160,10 +160,7 @@ func matchTerm[T text](text T, lower []byte, term string, s *Scratch) (float64, 
 			if j >= base {
 				score += 2
 			}
-			gap := j - i
-			if gap > 8 {
-				gap = 8
-			}
+			gap := min(j-i, 8)
 			score -= float64(gap) * 0.3
 			s.at = append(s.at, j)
 			i = j + 1

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/withworkspace/plugin/protocol"
 )
 
 func proposalStates(c *Conversation) string {
@@ -106,7 +104,7 @@ func TestProposals_Withdraw(t *testing.T) {
 func pluginProposal(title string, items ...string) Proposal {
 	p := Proposal{Kind: ProposePlugin, Plugin: "jira", Proposes: "issues", Label: "Jira issues", Title: title, By: Agent, At: at}
 	for _, it := range items {
-		p.Items = append(p.Items, PluginItem{ProposalItem: protocol.ProposalItem{Title: it, Payload: []byte(`{"summary":"` + it + `"}`)}})
+		p.Items = append(p.Items, PluginItem{Title: it, Payload: []byte(`{"summary":"` + it + `"}`)})
 	}
 	return p
 }

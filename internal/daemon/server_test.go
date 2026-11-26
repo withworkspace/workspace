@@ -409,8 +409,7 @@ func TestServer_LaunchingTwiceStartsOne(t *testing.T) {
 	errs := make(chan error, 8)
 	var wg sync.WaitGroup
 	for range 8 {
-		wg.Add(1)
-		go func() { defer wg.Done(); _, err := s.Launch(spec); errs <- err }()
+		wg.Go(func() { ; _, err := s.Launch(spec); errs <- err })
 	}
 	wg.Wait()
 	close(errs)

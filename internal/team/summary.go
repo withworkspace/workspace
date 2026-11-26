@@ -92,8 +92,7 @@ func changes(t *Timeline) ([]Change, map[string][]string) {
 			if it.Bot || it.Gist == "" {
 				continue
 			}
-			i, seen := at[it.Strand]
-			if !seen {
+			if _, seen := at[it.Strand]; !seen {
 				if len(out) >= changesGiven {
 					continue
 				}
@@ -101,7 +100,7 @@ func changes(t *Timeline) ([]Change, map[string][]string) {
 				if len(repos) == 0 {
 					repos = []string{it.Repo}
 				}
-				i = len(out)
+				i := len(out)
 				at[it.Strand] = i
 				out = append(out, Change{Number: i + 1, Strand: it.Strand, Name: it.Name, Repos: repos, State: it.State, Gist: it.Gist, Know: it.Know})
 			}
@@ -186,7 +185,7 @@ func ParseSummary(reply string, list []Change) ([]Topic, error) {
 	}
 	taken := map[int]bool{}
 	var topics []Topic
-	for _, line := range strings.Split(reply, "\n") {
+	for line := range strings.SplitSeq(reply, "\n") {
 		line = strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(line), "-*"))
 		if !strings.HasPrefix(strings.ToLower(line), "topic:") {
 			continue
@@ -253,7 +252,7 @@ func (s *Service) Summarise(snap *Snapshot, since time.Time, key string) bool {
 		// Who's on a topic is who's on its changes, whose they are first.
 		for i := range sum.Topics {
 			seen := map[string]bool{}
-			for pass := 0; pass < 2; pass++ {
+			for pass := range 2 {
 				for _, strand := range sum.Topics[i].Strands {
 					for n, k := range on[strand] {
 						if (pass == 0) == (n == 0) && !seen[k] {

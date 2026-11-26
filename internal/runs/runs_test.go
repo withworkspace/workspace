@@ -234,8 +234,7 @@ func TestSweepEndsARunWhoseTimeIsUp(t *testing.T) {
 	if swept, _ := s.Sweep(nil, time.Now().Add(59*time.Minute)); len(swept) != 0 {
 		t.Fatal("swept before its time")
 	}
-	r, err := s.Keep(r, 2*time.Hour, time.Now())
-	if err != nil {
+	if _, err := s.Keep(r, 2*time.Hour, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if swept, _ := s.Sweep(nil, time.Now().Add(90*time.Minute)); len(swept) != 0 {
@@ -393,11 +392,11 @@ func TestEnds(t *testing.T) {
 		r    Run
 		want string
 	}{
-		{Run{Record: Record{Owner: Owner{Kind: ByPID, PID: 42, Command: "zsh"}, Expires: now.Add(4 * time.Hour)}}, "when pid 42 (zsh) exits, or in 4h00"},
-		{Run{Record: Record{Worktree: "feat", Owner: Owner{Kind: ByCapsule}}}, "when capsule feat is burned or landed"},
-		{Run{Record: Record{Owner: Owner{Kind: ByMission, Mission: "m1"}, Expires: now.Add(90*time.Minute + time.Second)}}, "when mission m1 ends, or in 1h31"},
-		{Run{Record: Record{Owner: Owner{Kind: ByNone}, Expires: now.Add(time.Hour)}}, "in 1h00"},
-		{Run{Record: Record{Owner: Owner{Kind: ByNone}}}, "only when it's stopped"},
+		{Run{Owner: Owner{Kind: ByPID, PID: 42, Command: "zsh"}, Expires: now.Add(4 * time.Hour)}, "when pid 42 (zsh) exits, or in 4h00"},
+		{Run{Worktree: "feat", Owner: Owner{Kind: ByCapsule}}, "when capsule feat is burned or landed"},
+		{Run{Owner: Owner{Kind: ByMission, Mission: "m1"}, Expires: now.Add(90*time.Minute + time.Second)}, "when mission m1 ends, or in 1h31"},
+		{Run{Owner: Owner{Kind: ByNone}, Expires: now.Add(time.Hour)}, "in 1h00"},
+		{Run{Owner: Owner{Kind: ByNone}}, "only when it's stopped"},
 	} {
 		if got := Ends(c.r, now); got != c.want {
 			t.Errorf("Ends = %q, want %q", got, c.want)

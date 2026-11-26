@@ -80,7 +80,7 @@ func TestATaskRunAgainKeepsTheRunsBeforeIt(t *testing.T) {
 	}
 	_ = first
 	// No more than KeepPast are kept behind it.
-	for i := 0; i < KeepPast+2; i++ {
+	for range KeepPast + 2 {
 		ended(t, s, task(t, s, dir, "lint", "true"))
 	}
 	list, _ = s.List()

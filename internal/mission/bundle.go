@@ -909,7 +909,7 @@ func (s Store) KeepBundle(slug string, b Bundle, files func(dir string, b *Bundl
 	if err := os.MkdirAll(s.BundlesDir(slug), 0o755); err != nil {
 		return Bundle{}, err
 	}
-	dir := ""
+	var dir string
 	for n := len(m.Bundles) + 1; ; n++ {
 		b.ID = "b" + strconv.Itoa(n)
 		dir = s.BundleDir(slug, b.ID)

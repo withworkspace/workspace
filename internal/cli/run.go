@@ -458,8 +458,7 @@ func needSaid(n runs.Need, link string, named bool) string {
 var ensureRunsWatched = func(root string) error {
 	c, err := daemon.Connect(root)
 	if err != nil {
-		var old *daemon.Incompatible
-		if errors.As(err, &old) {
+		if old, ok := errors.AsType[*daemon.Incompatible](err); ok {
 			return fmt.Errorf("The daemon here is another ws (pid %d): it won't end this run by itself until it's restarted onto this one (ws daemon restart). ws run ls ends what's due meanwhile.", old.Pid)
 		}
 		return fmt.Errorf("The daemon didn't start, so nothing will end this run by itself: %v. ws run ls ends what's due.", err)
@@ -611,8 +610,8 @@ func conversationStore(root, slug string) conversation.Store {
 // crewStep is the step crew are on: the latest of the mission's steps
 // they're recorded on that hasn't passed.
 func crewStep(m *mission.Mission, crew string) (mission.StageRecord, bool) {
-	for i := len(m.Stages) - 1; i >= 0; i-- {
-		st := m.Stages[i]
+	for _, st := range slices.Backward(m.Stages) {
+
 		if st.Accepted == nil && slices.Contains(st.Crew, crew) {
 			return st, true
 		}

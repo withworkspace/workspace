@@ -80,7 +80,7 @@ func (tsp) Import(e Env, from string, im Import) Where {
 var tspBuiltins = map[string]bool{}
 
 func init() {
-	for _, n := range strings.Fields(`string bytes boolean null void never unknown numeric integer float int8 int16 int32 int64
+	for n := range strings.FieldsSeq(`string bytes boolean null void never unknown numeric integer float int8 int16 int32 int64
 		uint8 uint16 uint32 uint64 safeint float32 float64 decimal decimal128 plainDate plainTime utcDateTime offsetDateTime duration url
 		Record Array Model Scalar Enum Union Operation Interface Namespace ModelProperty TemplateParameter
 		OptionalProperties UpdateableProperties OmitProperties PickProperties OmitDefaults DefaultKeyVisibility
@@ -96,7 +96,7 @@ func (tsp) Builtin(name string) bool { return tspBuiltins[name] }
 
 func (tsp) Docs(module, name string) string {
 	if module == "" {
-		first := strings.SplitN(name, ".", 2)[0]
+		first, _, _ := strings.Cut(name, ".")
 		if !tspBuiltins[first] {
 			return "" // a guess: one of several namespaces' (likely)
 		}
@@ -108,8 +108,8 @@ func (tsp) Docs(module, name string) string {
 	// A library: @typespec/http and its namespace TypeSpec.Http are
 	// documented at typespec.io; others are named.
 	lib := strings.TrimPrefix(module, "@typespec/")
-	if strings.HasPrefix(module, "TypeSpec.") {
-		lib = strings.ToLower(strings.TrimPrefix(module, "TypeSpec."))
+	if after, ok := strings.CutPrefix(module, "TypeSpec."); ok {
+		lib = strings.ToLower(after)
 	} else if lib == module {
 		return ""
 	}

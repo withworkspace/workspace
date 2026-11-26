@@ -43,7 +43,7 @@ request from each. It's done when every one is.
 			}
 			var repos []string
 			for _, r := range in {
-				for _, one := range strings.Split(r, ",") {
+				for one := range strings.SplitSeq(r, ",") {
 					if one = strings.TrimSpace(one); one != "" {
 						repos = append(repos, one)
 					}

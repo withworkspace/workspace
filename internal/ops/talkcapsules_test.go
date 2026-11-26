@@ -250,3 +250,145 @@ func TestProposedMissionJoinsACapsuleLiftedAlready(t *testing.T) {
 		t.Errorf("the mission's capsule went with the conversation: %v", err)
 	}
 }
+
+// trusting is a harness trusted to run a conversation's shell with no
+// sandbox of its own (Cursor over ACP).
+type trusting struct{ fakeConverser }
+
+func (*trusting) Trusted() bool { return true }
+
+// escalating is a harness whose sandbox a command leaves when its agent
+// asks (Codex).
+type escalating struct{ sandboxing }
+
+func (*escalating) Escalates() bool { return true }
+
+// "Look at capsule x, bump this, fix the conflicts and push" is a
+// conversation's to do, not a mission's: its agent joins a capsule that's
+// there already (lifted by hand, no mission's), or docks one on a pull
+// request's branch, and works there. One it joined is left where it is
+// when the conversation's put away; a mission's, a repo's .ground and
+// another conversation's it can't. On a trusted harness with no sandbox
+// it runs things all the same, its writes judged by its folders.
+func TestConversationJoinsAndDocksCapsules(t *testing.T) {
+	w := liftWorld(t)
+	root := w.Root()
+	gitIn := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", filepath.Join(root, dir), "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v in %s: %v\n%s", args, dir, err, out)
+		}
+	}
+	// A pull request's branch, made somewhere else: on the remote only.
+	gitIn("seed", "checkout", "-q", "-b", "bump-vite")
+	os.WriteFile(filepath.Join(root, "seed", "package.json"), []byte("{}\n"), 0o644)
+	gitIn("seed", "add", ".")
+	gitIn("seed", "commit", "-q", "-m", "bump vite")
+	gitIn("seed", "push", "-q", "origin", "bump-vite")
+	// A capsule lifted by hand.
+	if _, err := w.Lift("api", "by-hand", "", CapsuleOptions{By: AsYou}); err != nil {
+		t.Fatal(err)
+	}
+	hand := filepath.Join(w.WS().RepoDir("api"), "by-hand")
+
+	store := conversation.ForWorkspace(root)
+	c, err := store.OpenTalk(conversation.You, "Look at by-hand, bump vite, fix conflicts and push", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined, err := w.LiftForConversation("", c.ID, "api", "by-hand", "", CapsuleOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !joined.Joined || joined.Path != hand {
+		t.Errorf("joined %+v", joined)
+	}
+	_, err = w.LiftForConversation("", c.ID, "api", "by-hand", "", CapsuleOptions{})
+	refusedWith(t, err, "capsule-exists")
+
+	docked, err := w.DockForConversation("", c.ID, "api", "bump-vite", CapsuleOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pr := filepath.Join(w.WS().RepoDir("api"), "bump-vite")
+	if docked.Joined || docked.Path != pr {
+		t.Errorf("docked %+v", docked)
+	}
+	if _, err := os.Stat(filepath.Join(pr, "package.json")); err != nil {
+		t.Errorf("docked without the pull request's change: %v", err)
+	}
+	c, _ = store.Load(c.ID)
+	if len(c.Lifted()) != 2 || !c.Capsule("api", "by-hand").Joined || c.Capsule("api", "by-hand").Branch != "by-hand" || c.Capsule("api", "bump-vite").Joined || c.Capsule("api", "bump-vite").Branch != "bump-vite" {
+		t.Fatalf("its capsules: %+v", c.Capsules)
+	}
+
+	// A trusted harness runs things with no sandbox: its writes are
+	// judged by its folders, as they stand.
+	run := harness.ConverseRun{Dir: root, Talk: true}
+	said := w.sandboxFor(store, c, &trusting{}, &run)
+	if said == nil || said.Confined || !run.Sandbox || !run.Lift || run.Folders == nil {
+		t.Fatalf("the trusted run: %+v, told %+v", run, said)
+	}
+	if got := run.Folders(); !slices.Contains(got, resolved(hand)) || !slices.Contains(got, resolved(pr)) {
+		t.Errorf("its tools write in %v", got)
+	}
+	if len(said.Capsules) != 2 || !said.Capsules[0].Joined {
+		t.Errorf("told of %+v", said.Capsules)
+	}
+	if boxed := w.sandboxFor(store, c, &sandboxing{}, &harness.ConverseRun{Dir: root, Talk: true}); boxed == nil || !boxed.Confined || boxed.Asks {
+		t.Errorf("a sandboxed harness's run isn't confined: %+v", boxed)
+	}
+	if asks := w.sandboxFor(store, c, &escalating{}, &harness.ConverseRun{Dir: root, Talk: true}); asks == nil || !asks.Confined || !asks.Asks {
+		t.Errorf("an escalating harness's run: %+v", asks)
+	}
+
+	// Not a mission's, a .ground, or another conversation's.
+	m, err := w.Missions.Create("Cache")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Lift("api", "cache-work", "", CapsuleOptions{Mission: m.Slug, By: AsYou}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := w.Missions.FindByCapsule("api", "cache-work"); !ok {
+		t.Fatal("the mission hasn't its capsule")
+	}
+	_, err = w.LiftForConversation("", c.ID, "api", "cache-work", "", CapsuleOptions{})
+	refusedWith(t, err, "capsule-is-missions")
+	_, err = w.LiftForConversation("", c.ID, "api", workspace.GroundDir, "", CapsuleOptions{})
+	refusedWith(t, err, "capsule-is-ground")
+	other, err := store.OpenTalk(conversation.You, "And this?", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = w.LiftForConversation("", other.ID, "api", "by-hand", "", CapsuleOptions{})
+	refusedWith(t, err, "capsule-is-conversations")
+
+	// Put away: the one it docked goes, its branch kept; the one it
+	// joined stays where it was, no longer the conversation's to write in.
+	os.WriteFile(filepath.Join(hand, "wip.txt"), []byte("mine\n"), 0o644)
+	c, err = w.SetTalkStatus(doc.Scope{}, c.ID, conversation.Resolved, AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(hand, "wip.txt")); err != nil {
+		t.Errorf("the capsule it joined was put away with it: %v", err)
+	}
+	if _, err := os.Stat(pr); err == nil {
+		t.Error("the capsule it docked is still there")
+	}
+	if len(c.Lifted()) != 0 || len(c.PutAway()) != 2 || c.Capsule("api", "by-hand").Kept {
+		t.Errorf("put away: %+v", c.Capsules)
+	}
+	if got := w.ConversationFolders("", c.ID); len(got) != 1 {
+		t.Errorf("put away, it writes in %v", got)
+	}
+	// Taken up again, naming it joins it again.
+	if _, err := store.SetStatus(c.ID, conversation.You, conversation.Open, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if again, err := w.LiftForConversation("", c.ID, "api", "by-hand", "", CapsuleOptions{}); err != nil || !again.Joined {
+		t.Errorf("joined again: %+v, %v", again, err)
+	}
+}

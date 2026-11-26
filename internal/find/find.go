@@ -2,6 +2,7 @@ package find
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 )
@@ -94,12 +95,7 @@ func (r Request) wants(kind string) bool {
 	if len(r.Kinds) == 0 {
 		return true
 	}
-	for _, k := range r.Kinds {
-		if k == kind {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(r.Kinds, kind)
 }
 
 // Limits on how many of a kind are answered.

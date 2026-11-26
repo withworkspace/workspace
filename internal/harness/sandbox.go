@@ -277,7 +277,7 @@ func whyRefused(cmd string, allow []string) string {
 	words := cmds[0]
 	said := strings.Join(words[:min(len(words), 4)], " ")
 	if name == "gh" {
-		return "ws refused `" + said + "`: of gh, a conversation's agent reads (" + strings.Join(ghReads(allow), ", ") + "). To comment on a pull request, propose the comment (`ws pr comment --propose`). A pull request is opened by a mission: commit what you've done, and propose one (`ws mission new --propose`) whose brief names your branch. The rest of your shell works as before."
+		return "ws refused `" + said + "`: of gh, a conversation's agent reads (" + strings.Join(ghReads(allow), ", ") + "). To comment on a pull request, propose the comment (`ws pr comment --propose`). A pull request is opened by a mission: commit what you've done, and propose one (`ws mission new --propose`) whose brief names your branch. To update one that's open, work in a capsule on its branch (`ws dock <repo> <its number>`) and, when the user asks, `git push` there. The rest of your shell works as before."
 	}
 	if verb := proposable(words, allow); verb != "" {
 		return "ws refused `" + said + "`: you're in a conversation, so you propose it, and the user confirms it with a button under your reply. Run it again with --propose straight after `" + verb + "`."
@@ -292,7 +292,7 @@ func whyNotWritten(path string, dirs []string) string {
 	if len(dirs) > 0 {
 		where = "in " + strings.Join(dirs, ", ")
 	}
-	return "ws refused it: " + path + " isn't yours to write. Your tools for writing and editing files write " + where + " (a folder of your own, and the capsules this conversation has lifted). To change a repo's files, lift a capsule of your own (`ws lift <repo> <name>`) and write in it; a repo's .ground and a mission's capsules stay as they are."
+	return "ws refused it: " + path + " isn't yours to write. Your tools for writing and editing files write " + where + " (a folder of your own, and the capsules this conversation has lifted). To change a repo's files, lift a capsule of your own (`ws lift <repo> <name>`), dock one on a pull request's branch (`ws dock <repo> <its number>`), or join one that's there and no mission's (`ws lift <repo> <its name>`), and write in it; a repo's .ground and a mission's capsules stay as they are."
 }
 
 // within is whether path, as it resolves, is in one of dirs. A file that

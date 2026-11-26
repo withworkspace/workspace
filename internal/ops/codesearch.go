@@ -98,10 +98,8 @@ func (w *Workspace) CodeSearch(ctx context.Context, req CodeSearchRequest, emit 
 	if len(req.Patterns) == 0 {
 		return res, invalid("no pattern to search for")
 	}
-	for _, p := range req.Patterns {
-		if p == "" {
-			return res, invalid("an empty pattern matches every line")
-		}
+	if slices.Contains(req.Patterns, "") {
+		return res, invalid("an empty pattern matches every line")
 	}
 	maxMatches := capOf(req.MaxMatches, CodeSearchMatches, CodeSearchMaxMatches)
 	maxBytes := capOf(req.MaxBytes, CodeSearchBytes, CodeSearchMaxBytes)
@@ -255,7 +253,7 @@ func codeRoots(l find.Layout, repo string) ([]SearchRoot, map[string]map[string]
 		if repo != "" && g.Repo != repo {
 			continue
 		}
-		roots = append(roots, SearchRoot{SearchRoot: workspace.SearchRoot{Repo: g.Repo, Worktree: workspace.GroundDir, Path: g.Dir}})
+		roots = append(roots, SearchRoot{Repo: g.Repo, Worktree: workspace.GroundDir, Path: g.Dir})
 	}
 	for _, c := range l.Capsules {
 		if repo != "" && c.Repo != repo {
@@ -276,7 +274,7 @@ func codeRoots(l find.Layout, repo string) ([]SearchRoot, map[string]map[string]
 			continue
 		}
 		slices.Sort(files)
-		roots = append(roots, SearchRoot{SearchRoot: workspace.SearchRoot{Repo: c.Repo, Worktree: c.Name, Path: c.Dir}, Files: files})
+		roots = append(roots, SearchRoot{Repo: c.Repo, Worktree: c.Name, Path: c.Dir, Files: files})
 	}
 	slices.SortStableFunc(roots, func(a, b SearchRoot) int {
 		switch {
@@ -318,7 +316,7 @@ func codeHit(m Match) CodeHit {
 	units := 0
 	for i := 0; i < len(text); {
 		r, size := utf8.DecodeRuneInString(text[i:])
-		for j := 0; j < size; j++ {
+		for j := range size {
 			at[i+j] = units
 		}
 		b = append(b, r) // RuneError for a byte that isn't UTF-8

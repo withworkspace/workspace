@@ -1131,7 +1131,7 @@ func threadLine(c *conversation.Conversation) string {
 // what links to it (a mission's has crew and decisions; one on a document
 // outside a mission has only its document).
 func threadSaid(c *conversation.Conversation, clip func(string) string, full bool) *view {
-	state := c.Status
+	var state string
 	switch {
 	case c.Status == conversation.Resolved:
 		state = "resolved by the user"

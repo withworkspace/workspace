@@ -161,7 +161,7 @@ func graph(tx *store.Tx, repo string, number int, r *Record, at time.Time) error
 	title := strings.TrimSpace(r.Title)
 	// A pull request's words are of its moment: what it changed, as it was
 	// told when it was opened.
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at, Stands: store.Stands{Standing: store.Passing}}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at, Standing: store.Passing}); err != nil {
 		return err
 	}
 	return tx.Words(o, store.Place{Thing: me, Kind: ThingKind, Title: title, Text: strings.TrimSpace(r.Body), Said: at})

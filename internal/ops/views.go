@@ -75,15 +75,13 @@ func FetchPRs(ws *workspace.Workspace, gh github.Client, repos []string) PRIndex
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	for _, repo := range repos {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			r := repoPRs{open: indexPRs(gh.PRsForRepo(ws.RemoteOf(repo).Owner, ws.RemoteOf(repo).Name))}
 			r.merged = indexPRs(gh.MergedPRsForRepo(ws.RemoteOf(repo).Owner, ws.RemoteOf(repo).Name))
 			mu.Lock()
 			prs[repo] = r
 			mu.Unlock()
-		}()
+		})
 	}
 	wg.Wait()
 	return prs
@@ -150,9 +148,9 @@ func buildMissionViews(g capsuleGit, ws *workspace.Workspace, prs PRIndex, missi
 			} else if seen := c.SeenPR; seen != nil && seen.Number > 0 && !seen.Merged && !seen.Closed {
 				cv.LastSeen = &mission.PRFacts{
 					Capsule: c.Repo + "/" + c.Name, Ref: fmt.Sprintf("%s#%d", c.Repo, seen.Number),
-					Review: seen.Review, Checks: seen.Checks, Conflict: seen.Conflict,
+					Review: seen.Review, Checks: seen.Checks, Conflict: seen.Conflict, Blocked: seen.Blocked,
 					// Nothing seen of how it stands: it's only been opened.
-					Unasked: seen.Review == "" && seen.Checks == "" && !seen.Conflict,
+					Unasked: seen.Review == "" && seen.Checks == "" && !seen.Conflict && !seen.Blocked,
 				}
 				if web := ws.RemoteOf(c.Repo).URL(); web != "" {
 					cv.LastSeen.URL = fmt.Sprintf("%s/pull/%d", web, seen.Number)
@@ -402,6 +400,7 @@ func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []r
 		}
 		if c.PRS == mission.PROpen {
 			f.Conflict, f.MergeUnknown = merges(c.PR, c.SeenPR)
+			f.Blocked = c.PR.MergeState == "BLOCKED"
 		}
 		s.PRs = append(s.PRs, f)
 	}

@@ -22,6 +22,15 @@ type PR struct {
 	// Mergeable is GitHub's word on whether it merges cleanly: MERGEABLE,
 	// CONFLICTING, or UNKNOWN while it's working that out.
 	Mergeable string `json:"mergeable,omitempty"`
+	// MergeState is GitHub's mergeStateStatus: CLEAN, BLOCKED, BEHIND,
+	// DIRTY, DRAFT, HAS_HOOKS, UNSTABLE or UNKNOWN. BLOCKED is the one
+	// that matters here: the base branch's rules (a review they require,
+	// most often) don't let it merge yet. It says so to an admin too,
+	// who could merge it anyway by bypassing them, and reviewDecision
+	// can be empty while it does (a review asked for by a ruleset rather
+	// than branch protection), so it's the word on whether it's
+	// mergeable without going round the rules.
+	MergeState string `json:"mergeStateStatus,omitempty"`
 
 	// What the Reviews page needs besides: OpenPRs fills these in, with a
 	// query of its own (reviews.go).
@@ -84,7 +93,7 @@ func PRsForRepo(org, repo string) ([]PR, error) {
 		"pr", "list",
 		"--repo", fullRepo,
 		"--state", "open",
-		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,headRefOid",
+		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("gh pr list for %s: %w", fullRepo, err)
@@ -169,7 +178,7 @@ func PRFromNumber(org, repo string, number int) (*PR, error) {
 		"pr", "view",
 		fmt.Sprintf("%d", number),
 		"--repo", fullRepo,
-		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,headRefOid,mergedAt",
+		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid,mergedAt",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("gh pr view %d for %s: %w", number, fullRepo, err)

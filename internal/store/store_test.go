@@ -427,16 +427,14 @@ func TestWrite_TakesTurnsInOrder(t *testing.T) {
 	release, _ := db.own.turn(bg)
 	var wg sync.WaitGroup
 	for i := range 5 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			db.Write(bg, func(tx *Tx) error {
 				mu.Lock()
 				order = append(order, i)
 				mu.Unlock()
 				return nil
 			})
-		}()
+		})
 		time.Sleep(20 * time.Millisecond) // so each is queued before the next
 	}
 	release()
@@ -476,15 +474,13 @@ func TestProcesses_WriteAtOnce(t *testing.T) {
 	var wg sync.WaitGroup
 	errs := make(chan error, procs)
 	for range procs {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			cmd := exec.Command(os.Args[0], "-test.run=^TestHelperWriter$")
 			cmd.Env = append(os.Environ(), "WS_STORE_HELPER_ROOT="+db.Root(), "WS_STORE_HELPER_WRITES="+strconv.Itoa(each))
 			if out, err := cmd.CombinedOutput(); err != nil {
 				errs <- fmt.Errorf("%v: %s", err, out)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	close(stop)

@@ -158,7 +158,7 @@ func init() {
 		"microsoft.extensions.logging":             "ILogger ILoggerFactory LogLevel",
 		"microsoft.extensions.dependencyinjection": "IServiceCollection IServiceProvider ServiceCollection",
 	} {
-		for _, n := range strings.Fields(names) {
+		for n := range strings.FieldsSeq(names) {
 			csKnown[n] = ns + "." + strings.ToLower(n)
 		}
 	}

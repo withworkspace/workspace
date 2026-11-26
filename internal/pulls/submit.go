@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -391,8 +392,8 @@ func (s *Service) reviewMade(w outgoing, queued time.Time) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for i := len(said) - 1; i >= 0; i-- {
-		g := said[i]
+	for _, g := range slices.Backward(said) {
+
 		if g.State != states[w.Posting.Event] || !sameLogin(g.Author, me) || g.Commit != w.Posting.Commit {
 			continue
 		}

@@ -209,8 +209,7 @@ func (p *Pane) ExitSummary() string {
 	if err == nil {
 		return "ok"
 	}
-	var ee *exec.ExitError
-	if errors.As(err, &ee) {
+	if ee, ok := errors.AsType[*exec.ExitError](err); ok {
 		if ws, ok := ee.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
 			return ws.Signal().String()
 		}
@@ -305,7 +304,7 @@ func (p *Pane) RenderScrolled(offset int) string {
 	for i := sb.Len() - offset; i < sb.Len() && len(lines) < h; i++ {
 		lines = append(lines, sb.Line(i).Render())
 	}
-	for _, l := range strings.Split(screen, "\n") {
+	for l := range strings.SplitSeq(screen, "\n") {
 		if len(lines) == h {
 			break
 		}

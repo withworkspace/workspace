@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -74,8 +75,8 @@ type Replanning struct {
 // fit).
 func askedSince(c *conversation.Conversation) []string {
 	var said []string
-	for i := len(c.Turns) - 1; i >= 0; i-- {
-		t := c.Turns[i]
+	for _, t := range slices.Backward(c.Turns) {
+
 		switch {
 		case t.By == conversation.You:
 			said = append([]string{t.Body}, said...)

@@ -246,7 +246,7 @@ const BriefRef = "brief"
 func fileThing(slug, title, state string, f fileStamp, text []byte) store.Thing {
 	changed, _ := time.Parse(store.Stamp, f.mod)
 	if f.rel == briefFile {
-		return store.Thing{Key: store.Key{Scope: slug, Name: BriefRef}, Kind: placeBrief, Title: title, State: state, Changed: changed, Stands: store.Stands{Standing: store.InForce}}
+		return store.Thing{Key: store.Key{Scope: slug, Name: BriefRef}, Kind: placeBrief, Title: title, State: state, Changed: changed, Standing: store.InForce}
 	}
 	inFiles := strings.TrimPrefix(f.rel, MissionFilesDir+"/")
 	kind := placeFile
@@ -258,7 +258,7 @@ func fileThing(slug, title, state string, f fileStamp, text []byte) store.Thing 
 	}
 	// It stands in force, as its mission does: once that's ended, what's
 	// found in it is weighed as the mission (store.Stands.Under).
-	return store.Thing{Key: store.Key{Scope: slug, Name: "mission:" + inFiles}, Kind: kind, Title: title, State: state, Changed: changed, Stands: store.Stands{Standing: store.InForce}}
+	return store.Thing{Key: store.Key{Scope: slug, Name: "mission:" + inFiles}, Kind: kind, Title: title, State: state, Changed: changed, Standing: store.InForce}
 }
 
 // placesOf is what a file of a mission says: its sections, each a place.

@@ -79,8 +79,7 @@ func (s *Server) codeSearch(w http.ResponseWriter, r *http.Request) {
 	case r.Context().Err() != nil:
 		return // dropped: nobody's reading
 	case err != nil && !started:
-		var exit *ops.RgExit
-		if errors.As(err, &exit) {
+		if exit, ok := errors.AsType[*ops.RgExit](err); ok {
 			jsonError(w, http.StatusUnprocessableEntity, rgProblem(exit))
 			return
 		}
@@ -92,8 +91,7 @@ func (s *Server) codeSearch(w http.ResponseWriter, r *http.Request) {
 		end["capped"] = res.Capped
 	}
 	if err != nil {
-		var exit *ops.RgExit
-		if errors.As(err, &exit) {
+		if exit, ok := errors.AsType[*ops.RgExit](err); ok {
 			end["problem"] = rgProblem(exit)
 		} else {
 			end["problem"] = err.Error()

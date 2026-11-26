@@ -118,7 +118,7 @@ func TestChecking_KeptThenClearedByTheRound(t *testing.T) {
 func TestCheckNumbersAndElapsed(t *testing.T) {
 	for in, want := range map[string]string{"2": "check 2", "2,3": "checks 2 and 3", "2,4,5": "checks 2, 4 and 5"} {
 		var ns []int
-		for _, p := range strings.Split(in, ",") {
+		for p := range strings.SplitSeq(in, ",") {
 			ns = append(ns, int(p[0]-'0'))
 		}
 		if got := CheckNumbers(ns); got != want {

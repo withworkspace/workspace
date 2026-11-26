@@ -254,7 +254,7 @@ func commits(dir, base, head string) ([]Commit, error) {
 		return nil, err
 	}
 	list := []Commit{}
-	for _, rec := range strings.Split(string(out), "\x1e") {
+	for rec := range strings.SplitSeq(string(out), "\x1e") {
 		f := strings.Split(strings.TrimSpace(rec), "\x1f")
 		if len(f) != 4 {
 			continue
@@ -332,7 +332,7 @@ func files(dir, base, head string) ([]File, error) {
 // splitSections splits a patch into one section per file.
 func splitSections(patch string) [][]string {
 	var sections [][]string
-	for _, l := range strings.Split(strings.TrimSuffix(patch, "\n"), "\n") {
+	for l := range strings.SplitSeq(strings.TrimSuffix(patch, "\n"), "\n") {
 		if strings.HasPrefix(l, "diff --git ") {
 			sections = append(sections, nil)
 		}

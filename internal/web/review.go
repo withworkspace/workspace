@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -188,9 +189,9 @@ func (s *Server) reviewState(store review.Store, capsule string) (*ReviewState, 
 		return nil, err
 	}
 	st := &ReviewState{Draft: draft, Reviews: []*review.Review{}}
-	for i := len(all) - 1; i >= 0; i-- {
-		if all[i].Capsule == capsule && all[i].State == review.Submitted {
-			st.Reviews = append(st.Reviews, all[i])
+	for _, a := range slices.Backward(all) {
+		if a.Capsule == capsule && a.State == review.Submitted {
+			st.Reviews = append(st.Reviews, a)
 		}
 	}
 	if st.Viewed, err = store.Viewed(capsule); err != nil {

@@ -76,13 +76,13 @@ func TestFind_WeighedByStandingAndAge(t *testing.T) {
 		mission("over", Stands{Standing: Settled, Since: now.Add(-200 * day)})
 		// A talk, its last word two months ago: it says the words the most.
 		talk := Origin("conversation:/t1")
-		tx.Thing(talk, Thing{Key: Key{Name: "t1"}, Kind: "talk", Title: "Retry the webhook", State: "open", Changed: now.Add(-60 * day), Stands: Stands{Standing: Passing}})
+		tx.Thing(talk, Thing{Key: Key{Name: "t1"}, Kind: "talk", Title: "Retry the webhook", State: "open", Changed: now.Add(-60 * day), Standing: Passing})
 		tx.Words(talk, Place{Thing: Key{Name: "t1"}, At: "1", Kind: "turn", Title: "Retry the webhook", Text: "Retry the webhook forever: retries are cheap, so retry the webhook until it answers.", Said: now.Add(-60 * day)})
 		// What else is said, so the words that matter score as they would.
 		for i, text := range []string{"The cache is keyed by tenant.", "Tokens expire after an hour.", "Deploys go out on Tuesdays.", "The importer reads CSV.", "Logs are kept for a week.", "Names are sorted by surname.", "The queue is drained at night.", "Errors are sent to the channel."} {
 			o := Origin("conversation:/t" + string(rune('2'+i)))
 			k := Key{Name: "t" + string(rune('2'+i))}
-			tx.Thing(o, Thing{Key: k, Kind: "talk", Title: text, State: "open", Changed: now, Stands: Stands{Standing: Passing}})
+			tx.Thing(o, Thing{Key: k, Kind: "talk", Title: text, State: "open", Changed: now, Standing: Passing})
 			tx.Words(o, Place{Thing: k, At: "1", Kind: "turn", Text: text, Said: now})
 		}
 		decide := func(slug, id, what string, s Stands, when time.Time) {

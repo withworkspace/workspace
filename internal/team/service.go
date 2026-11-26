@@ -2,6 +2,7 @@ package team
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"sort"
@@ -250,9 +251,7 @@ func (s *Service) look(prev *Snapshot, since time.Time) (*Snapshot, error) {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, lookAtOnce)
 	for i, repo := range repos {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			// A fetch that fails (offline) leaves the clone as it was,
@@ -274,7 +273,7 @@ func (s *Service) look(prev *Snapshot, since time.Time) (*Snapshot, error) {
 				return
 			}
 			changed[i], asked[i] = acts, true
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -359,9 +358,7 @@ func (s *Service) readPRs() map[string]PR {
 	defer s.mu.Unlock()
 	s.kept()
 	out := make(map[string]PR, len(s.prs))
-	for k, pr := range s.prs {
-		out[k] = pr
-	}
+	maps.Copy(out, s.prs)
 	return out
 }
 

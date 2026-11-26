@@ -29,7 +29,7 @@ func stamp(day, hour int) string { return at(day, hour).Format(time.RFC3339) }
 
 // pr is a pull request in api, by ana-acme.
 func pr(number int, title string, set func(*github.PRActivity)) PR {
-	a := github.PRActivity{PR: github.PR{Number: number, Title: title, State: "OPEN", Author: "ana-acme", HeadRefName: "branch", URL: "https://github.example/api/pull/1", CreatedAt: stamp(3, 9)}}
+	a := github.PRActivity{Number: number, Title: title, State: "OPEN", Author: "ana-acme", HeadRefName: "branch", URL: "https://github.example/api/pull/1", CreatedAt: stamp(3, 9)}
 	if set != nil {
 		set(&a)
 	}
@@ -490,7 +490,7 @@ func TestService(t *testing.T) {
 	sha := w.commit("Ana Diaz", "ana@acme.example", "feat: cache tokens (#12)", at(9, 9), "cache.go")
 	w.commit("Cal Reyes", "cal@acme.example", "docs: add adr", at(9, 10), "adr.md")
 	w.prs = []github.PRActivity{{
-		PR:       github.PR{Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", CreatedAt: stamp(8, 9), MergedAt: stamp(9, 9), UpdatedAt: stamp(9, 9)},
+		Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", CreatedAt: stamp(8, 9), MergedAt: stamp(9, 9), UpdatedAt: stamp(9, 9),
 		MergedBy: "ana-acme", MergeCommit: sha,
 		Reviews: []github.PRReview{{Author: "ben-acme", State: "APPROVED", SubmittedAt: stamp(8, 15)}},
 	}}
@@ -528,7 +528,7 @@ func TestService(t *testing.T) {
 	// said before is kept.
 	w.now = w.now.Add(time.Hour)
 	w.commit("Cal Reyes", "cal@acme.example", "docs: amend adr", at(10, 12), "adr.md")
-	w.prs = []github.PRActivity{{PR: github.PR{Number: 13, Title: "fix: evict", State: "OPEN", Author: "ben-acme", CreatedAt: stamp(10, 12), UpdatedAt: stamp(10, 12)}}}
+	w.prs = []github.PRActivity{{Number: 13, Title: "fix: evict", State: "OPEN", Author: "ben-acme", CreatedAt: stamp(10, 12), UpdatedAt: stamp(10, 12)}}
 	snap, err = w.svc.Look(false, time.Time{})
 	if err != nil {
 		t.Fatal(err)

@@ -2,16 +2,10 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/ui"
 )
-
-func fileExists(p string) bool {
-	info, err := os.Stat(p)
-	return err == nil && !info.IsDir()
-}
 
 // artifactStateStyle colours a state: landed and merged are done, drafts
 // and reviews are in progress, missing is a problem.

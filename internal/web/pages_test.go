@@ -99,7 +99,6 @@ func TestPagesAPI(t *testing.T) {
 	store.Say("w1", conversation.Turn{By: conversation.Agent, At: time.Now(), Body: "| Route |\n|---|\n| /tokens |", Sources: []conversation.Source{src}})
 	withCell := text + "\n<!-- ws:cell w1 v1 | a table of the existing routes -->\n\n| Route |\n|---|\n| /tokens |\n\n<!-- /ws:cell -->\n"
 	pageWrite(t, s, "PUT", "/api/pages/p1", map[string]any{"text": withCell, "base": saved.Version}, nil)
-	text = withCell
 	json.NewDecoder(do(t, s, "GET", "/api/pages/p1", true, nil).Body).Decode(&got)
 	if cs := got.Cell[0].Sources; len(cs) != 1 || cs[0].Repo != "api" || cs[0].Worktree != ".ground" || cs[0].File != "routes.go" || cs[0].State != "" {
 		t.Errorf("what it was written from: %+v", cs)

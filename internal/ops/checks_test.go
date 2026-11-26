@@ -239,7 +239,7 @@ func TestLimit_OutOfTime(t *testing.T) {
 // listeningHost is crew that are running, and take what's said to them.
 type listeningHost struct{ said []string }
 
-func (h *listeningHost) Launch(s crew.Spec) (int, error) { return 4242, nil }
+func (h *listeningHost) Launch(s crew.Spec) (int, error) { return deadPID, nil }
 func (h *listeningHost) Stop(string) error               { return nil }
 func (h *listeningHost) Say(key, text string) (string, error) {
 	h.said = append(h.said, key+": "+text)

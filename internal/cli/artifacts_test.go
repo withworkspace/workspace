@@ -47,7 +47,7 @@ func TestResolveArtifact_States(t *testing.T) {
 	private := write(".ws", "missions", "m", "files", "notes.md")
 
 	capsule := func(name string, pr *github.PR, prs mission.PRState) ops.CapsuleView {
-		return ops.CapsuleView{Capsule: mission.Capsule{Repo: "records", Name: name}, Path: filepath.Join(root, "repos", "records", name), Exists: true, PR: pr, PRS: prs}
+		return ops.CapsuleView{Repo: "records", Name: name, Path: filepath.Join(root, "repos", "records", name), Exists: true, PR: pr, PRS: prs}
 	}
 	openPR := &github.PR{Number: 7, URL: "https://github.com/acme/records/pull/7"}
 	v := ops.MissionView{M: &mission.Mission{Slug: "m"}, Capsules: []ops.CapsuleView{
@@ -55,8 +55,8 @@ func TestResolveArtifact_States(t *testing.T) {
 		capsule("review-cap", openPR, mission.PROpen),
 		capsule("behind-cap", &github.PR{Number: 8}, mission.PRMerged),
 		capsule("merged-cap", &github.PR{Number: 9}, mission.PRMerged),
-		{Capsule: mission.Capsule{Repo: "records", Name: "gone-cap"}},
-		{Capsule: mission.Capsule{Repo: "api", Name: "fix"}, Exists: true, Path: filepath.Join(root, "repos", "api", "fix"), PR: &github.PR{Number: 88}, PRS: mission.PROpen},
+		{Repo: "records", Name: "gone-cap"},
+		{Repo: "api", Name: "fix", Exists: true, Path: filepath.Join(root, "repos", "api", "fix"), PR: &github.PR{Number: 88}, PRS: mission.PROpen},
 	}}
 	for _, tc := range []struct {
 		ref, kind, state, path, url string

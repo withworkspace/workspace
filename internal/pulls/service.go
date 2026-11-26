@@ -239,9 +239,7 @@ func (s *Service) load() (*List, error) {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, askAtOnce)
 	for i, repo := range repos {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			data[i].repo = repo
@@ -256,15 +254,13 @@ func (s *Service) load() (*List, error) {
 			if stacks, err := s.GitHub.StacksForRepo(s.owner(repo), s.name(repo)); err == nil {
 				data[i].stacks = stacks
 			}
-		}()
+		})
 	}
 	var asked []github.PRRef
 	var askedErr error
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		asked, askedErr = s.reviewRequested(repos)
-	}()
+	})
 	wg.Wait()
 
 	var local Local
@@ -456,7 +452,7 @@ func (s *Service) layer(pr *PR, st *Stack) (*layer, error) {
 		return nil, err
 	}
 	l := &layer{dir: s.BareDir(pr.Repo), head: head, baseRef: BaseRef(pr.Base)}
-	tip := ""
+	var tip string
 	if st != nil {
 		for i := range st.Layers {
 			if st.Layers[i].Number == pr.Number && i > 0 {

@@ -121,7 +121,7 @@ func Held(highlighted string, n int, mattering bool) float64 {
 		if j < 0 {
 			j = len(rest)
 		}
-		for _, w := range strings.Fields(rest[:j]) {
+		for w := range strings.FieldsSeq(rest[:j]) {
 			if !mattering || !small[strings.ToLower(strings.Trim(w, `"'?!.,:;()`))] {
 				marked++
 			}
@@ -162,7 +162,7 @@ func HeldAll(highlighted, plain string, q Query) float64 {
 var small = map[string]bool{}
 
 func init() {
-	for _, w := range strings.Fields(`a an the is are was were be been do does did done how what why when where who whom which
+	for w := range strings.FieldsSeq(`a an the is are was were be been do does did done how what why when where who whom which
 		we you i it its of to in on for by with from at as and or not this that these those can could should would will shall
 		our your my me us they them their there here about into than then so if but no yes any all some has have had`) {
 		small[w] = true

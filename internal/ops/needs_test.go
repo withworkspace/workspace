@@ -10,7 +10,7 @@ import (
 )
 
 func item(slug string, h mission.Headline) MissionItem {
-	return MissionItem{MissionView: MissionView{M: &mission.Mission{Slug: slug, Title: "The " + slug}}, Headline: h}
+	return MissionItem{M: &mission.Mission{Slug: slug, Title: "The " + slug}, Headline: h}
 }
 
 func talk(id string, at time.Time, by ...string) *conversation.Conversation {

@@ -12,7 +12,7 @@ func TestStandsSaid(t *testing.T) {
 	now := time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC)
 	day := 24 * time.Hour
 	found := func(s store.Stands, ended bool, said time.Time) ops.Found {
-		return ops.Found{Found: store.Found{Stands: s, Ended: ended, Said: said}}
+		return ops.Found{Stands: s, Ended: ended, Said: said}
 	}
 	for _, c := range []struct {
 		f    ops.Found

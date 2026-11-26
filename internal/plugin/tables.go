@@ -3,6 +3,7 @@ package plugin
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
 	"strings"
@@ -79,9 +80,7 @@ func Shaped(root, name string, keys []ConfigKey) (map[string]any, []ConfigProble
 		return nil, nil, err
 	}
 	out, problems := Shape(keys, cfg.Plugin[name], OrderOf(cfg.PluginOrder, name))
-	for k, v := range readSecrets(root, name) {
-		out[k] = v
-	}
+	maps.Copy(out, readSecrets(root, name))
 	return out, problems, nil
 }
 

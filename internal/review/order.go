@@ -114,7 +114,7 @@ func GeneratedIn(dir, base, head string) Generated {
 	}
 	var changed []string
 	var files []File
-	for _, p := range strings.Split(string(data), "\x00") {
+	for p := range strings.SplitSeq(string(data), "\x00") {
 		if p != "" {
 			changed = append(changed, p)
 			files = append(files, File{Path: p})

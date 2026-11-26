@@ -112,7 +112,7 @@ func tallies(c counts) map[string]Tally {
 	m := map[string]Tally{}
 	for k := range kinds {
 		if c.t[k].N > 0 {
-			m[Kind(k).String()] = Tally{c.t[k].N, ms(c.t[k].Dur)}
+			m[k.String()] = Tally{c.t[k].N, ms(c.t[k].Dur)}
 		}
 	}
 	return m
@@ -293,7 +293,7 @@ func sample() {
 			buf = make([]byte, 2*len(buf))
 			n = runtime.Stack(buf, true)
 		}
-		for _, g := range bytes.Split(buf[:n], []byte("\n\n")) {
+		for g := range bytes.SplitSeq(buf[:n], []byte("\n\n")) {
 			id, what, ok := doing(g)
 			if !ok {
 				continue
@@ -316,20 +316,20 @@ func doing(g []byte) (id uint64, what string, ok bool) {
 	head, rest, _ := bytes.Cut(g, []byte("\n"))
 	// goroutine 123 [semacquire, 2 minutes]:
 	h := strings.TrimPrefix(string(head), "goroutine ")
-	sp := strings.IndexByte(h, ' ')
-	if sp < 0 {
+	before, after, ok := strings.Cut(h, " ")
+	if !ok {
 		return 0, "", false
 	}
-	id, err := strconv.ParseUint(h[:sp], 10, 64)
+	id, err := strconv.ParseUint(before, 10, 64)
 	if err != nil {
 		return 0, "", false
 	}
-	state := strings.TrimSuffix(strings.TrimPrefix(h[sp+1:], "["), "]:")
+	state := strings.TrimSuffix(strings.TrimPrefix(after, "["), "]:")
 	if i := strings.IndexByte(state, ','); i >= 0 {
 		state = state[:i]
 	}
 	fn := "?"
-	for _, line := range strings.Split(string(rest), "\n") {
+	for line := range strings.SplitSeq(string(rest), "\n") {
 		if strings.HasPrefix(line, "\t") || !strings.HasPrefix(line, module) || own(line) {
 			continue
 		}

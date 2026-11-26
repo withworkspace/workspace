@@ -334,7 +334,7 @@ func TestKitAsksWS(t *testing.T) {
 			if in.Slug != "cache" {
 				return nil, plugin.NotFound("there's no mission " + in.Slug)
 			}
-			return protocol.MissionDetail{Mission: protocol.Mission{Slug: "cache"}, Brief: "## Goal"}, nil
+			return protocol.MissionDetail{Slug: "cache", Brief: "## Goal"}, nil
 		case protocol.MethodRepoList:
 			return protocol.RepoListResult{Repos: []protocol.Repo{{Name: "api", Capsules: []protocol.Capsule{{Name: ".ground", Ground: true}}}}}, nil
 		case protocol.MethodConversationStart:

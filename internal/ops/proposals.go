@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -622,10 +623,8 @@ func (w *Workspace) proposedCapsules(p conversation.Proposal) []string {
 			return
 		}
 		c = r + "/" + branch
-		for _, o := range out {
-			if o == c {
-				return
-			}
+		if slices.Contains(out, c) {
+			return
 		}
 		out = append(out, c)
 	}

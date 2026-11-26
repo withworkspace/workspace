@@ -2,6 +2,7 @@ package ops
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -73,8 +74,8 @@ func Needs(missions []MissionItem, talks []*conversation.Conversation, asked []p
 			out = append(out, n)
 		}
 	}
-	for i := len(talks) - 1; i >= 0; i-- {
-		if n, ok := talkNeed(talks[i], ""); ok {
+	for _, talk := range slices.Backward(talks) {
+		if n, ok := talkNeed(talk, ""); ok {
 			out = append(out, n)
 		}
 	}

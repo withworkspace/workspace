@@ -130,7 +130,7 @@ func hunkExcerpt(hunk, side string, n int) []string {
 		return nil
 	}
 	var lines []string
-	for _, l := range strings.Split(strings.TrimRight(hunk, "\n"), "\n") {
+	for l := range strings.SplitSeq(strings.TrimRight(hunk, "\n"), "\n") {
 		switch {
 		case strings.HasPrefix(l, "@@"), strings.HasPrefix(l, `\`):
 		case strings.HasPrefix(l, "+"):

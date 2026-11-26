@@ -608,7 +608,7 @@ func (p *planParser) who(it *planOpen, st *Step) {
 // "on haiku".
 func splitWho(rest string) []string {
 	var out []string
-	for _, part := range strings.Split(rest, ",") {
+	for part := range strings.SplitSeq(rest, ",") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}

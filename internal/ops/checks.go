@@ -755,7 +755,7 @@ func writeUnmet(b *strings.Builder, r mission.CheckResult, said string) {
 	fmt.Fprintf(b, ". %s\n", sentence(r.How()))
 	if printed != "" {
 		b.WriteString("  The end of what it printed:\n\n  ```\n")
-		for _, l := range strings.Split(lastLines(printed, sentBackOutputMax), "\n") {
+		for l := range strings.SplitSeq(lastLines(printed, sentBackOutputMax), "\n") {
 			b.WriteString("  " + l + "\n")
 		}
 		b.WriteString("  ```\n")

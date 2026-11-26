@@ -173,15 +173,13 @@ func (s *Service) lookNear(repos []string) {
 	var wg sync.WaitGroup
 	slots := make(chan struct{}, nearAtOnce)
 	for i, c := range due {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			slots <- struct{}{}
 			defer func() { <-slots }()
 			var err error
 			files[i], err = read(c)
 			failed[i] = err != nil
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -240,7 +238,7 @@ func capsuleChanged(c Capsule) ([]string, error) {
 		}
 	}
 	var out []string
-	for _, path := range strings.Split(strings.TrimSpace(string(names)), "\n") {
+	for path := range strings.SplitSeq(strings.TrimSpace(string(names)), "\n") {
 		if path != "" {
 			out = append(out, path)
 		}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -90,8 +91,8 @@ func TalksIn(store conversation.Store) []Talk {
 // talksOf is talks as a list shows them, newest first.
 func talksOf(store conversation.Store, list []*conversation.Conversation) []Talk {
 	out := []Talk{}
-	for i := len(list) - 1; i >= 0; i-- {
-		c := list[i]
+	for _, c := range slices.Backward(list) {
+
 		if c.Kind != conversation.Talk {
 			continue
 		}

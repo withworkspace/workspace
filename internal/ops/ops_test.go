@@ -213,10 +213,19 @@ func TestMayLand(t *testing.T) {
 	refusedWith(t, err, "not-yours")
 }
 
+// deadPID is the process the fake hosts' crew run in: one no system has,
+// past Linux's highest (4194304), so crew.ProcessAlive says it's gone. A
+// small number like 4242 can be some other process's, as it was on CI
+// once, and then crew look to be still working.
+const deadPID = 1 << 30
+
 // fakeHost starts nothing, and remembers what it was asked to.
 type fakeHost struct{ specs []crew.Spec }
 
-func (h *fakeHost) Launch(s crew.Spec) (int, error)    { h.specs = append(h.specs, s); return 4242, nil }
+func (h *fakeHost) Launch(s crew.Spec) (int, error) {
+	h.specs = append(h.specs, s)
+	return deadPID, nil
+}
 func (h *fakeHost) Stop(string) error                  { return crew.ErrNotRunning }
 func (h *fakeHost) Say(string, string) (string, error) { return "", crew.ErrNotRunning }
 

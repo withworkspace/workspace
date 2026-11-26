@@ -51,10 +51,9 @@ func (r *reader) ExportRemote(_ context.Context, _ string, in protocol.RemoteExp
 		r.exported[len(r.exported)-1] += " with " + string(in.Current.Content)
 		own.scene, own.base = own.scene+" + "+string(in.Current.Content), in.Current.Version
 	}
-	return protocol.RemoteExported{Name: own.remote, Base: own.base, RemotePackage: protocol.RemotePackage{
+	return protocol.RemoteExported{Name: own.remote, Base: own.base,
 		Title: own.title, Main: []byte(own.scene),
-		Files: []protocol.RemoteFile{{Name: "{slug}.svg", Content: []byte("<svg>" + own.scene + "</svg>"), Picture: true}},
-	}}, nil
+		Files: []protocol.RemoteFile{{Name: "{slug}.svg", Content: []byte("<svg>" + own.scene + "</svg>"), Picture: true}}}, nil
 }
 
 func (r *reader) SavedRemote(_ context.Context, _ string, in protocol.RemoteSavedParams) error {

@@ -35,7 +35,7 @@ func getJSON(t *testing.T, s *Server, path string, v any) (status int, gits int6
 // waitFor waits for ok, or fails saying what.
 func waitFor(t *testing.T, what string, ok func() bool) {
 	t.Helper()
-	for i := 0; i < 400; i++ {
+	for range 400 {
 		if ok() {
 			return
 		}

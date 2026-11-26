@@ -445,16 +445,9 @@ func claudeSandbox(r ConverseRun) (map[string]any, error) {
 // command it gives in place of the agent's, placed in or out of the
 // sandbox by what it then is.
 func claudeGuard(guard []string, dir string, allow []string, sandboxed bool) (map[string]any, error) {
-	list, _ := json.Marshal(guardList{Allow: allow, Sandboxed: sandboxed})
-	sum := sha256.Sum256(list)
-	file := filepath.Join(dir, "allow-"+hex.EncodeToString(sum[:])[:12]+".json")
-	if _, err := os.Stat(file); err != nil {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return nil, err
-		}
-		if err := writeAtomically(file, list); err != nil {
-			return nil, err
-		}
+	file, err := writeGuardList(dir, allow, sandboxed)
+	if err != nil {
+		return nil, err
 	}
 	var cmd []string
 	for _, c := range append(append([]string{}, guard...), file) {
@@ -473,6 +466,22 @@ func claudeGuard(guard []string, dir string, allow []string, sandboxed bool) (ma
 
 // claudeFileTools are Claude Code's tools that write files.
 var claudeFileTools = []string{"Write", "Edit", "MultiEdit", "NotebookEdit"}
+
+// writeGuardList writes what ws's guard goes by (guardList) in dir, named
+// by what it says, and says where: the file `ws conversation allowed` is
+// given.
+func writeGuardList(dir string, allow []string, sandboxed bool) (string, error) {
+	list, _ := json.Marshal(guardList{Allow: allow, Sandboxed: sandboxed})
+	sum := sha256.Sum256(list)
+	file := filepath.Join(dir, "allow-"+hex.EncodeToString(sum[:])[:12]+".json")
+	if _, err := os.Stat(file); err == nil {
+		return file, nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	return file, writeAtomically(file, list)
+}
 
 // guardList is what ws's guard goes by, as its file holds it: the
 // commands allowed, and whether the run's shell is sandboxed.
@@ -556,7 +565,7 @@ func GuardAnswer(event []byte, allowFile string, folders func() []string) string
 	case runsOutside(command) != "":
 		return say("deny", whyRefused(command, list.Allow))
 	case list.Sandboxed:
-		return say("allow", "it runs in the conversation's sandbox")
+		return say("allow", "a conversation that runs things may run it")
 	}
 	return ""
 }

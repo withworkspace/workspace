@@ -61,7 +61,7 @@ func Fingerprints(dir, base, head string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, l := range strings.Split(strings.TrimSpace(string(res)), "\n") {
+	for l := range strings.SplitSeq(strings.TrimSpace(string(res)), "\n") {
 		id, commit, ok := strings.Cut(l, " ")
 		if !ok {
 			continue

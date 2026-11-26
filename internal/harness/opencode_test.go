@@ -158,6 +158,26 @@ func TestOpenCodeHeadless(t *testing.T) {
 		t.Errorf("permission in the wrong order: %s", perm)
 	}
 
+	if r.Runs || r.Folders != nil || strings.Contains(perm, `"edit"`) {
+		t.Errorf("a talk that only reads runs things: %+v, %s", r, perm)
+	}
+	// One that runs things: its edits asked of ws too, after everything's
+	// denied, fetches allowed, answered by ConversePolicy, its edits
+	// judged by its folders.
+	l, err = o.Converse(ConverseRun{Prompt: "bump it", Dir: "/w", Talk: true, Sandbox: true, Lift: true, Folders: func() []string { return []string{"/w/repos/a/bump"} }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, cfg = openCodeRunConfig(t, *l.ACP)
+	runs := string(cfg.Agent[openCodeHeadless]["permission"])
+	if !l.ACP.Runs || l.ACP.Folders == nil || l.ACP.Folders()[0] != "/w/repos/a/bump" || !strings.HasPrefix(runs, `{"*":"deny",`) ||
+		!strings.Contains(runs, `"edit":"ask"`) || !strings.Contains(runs, `"webfetch":"allow"`) || !strings.Contains(runs, `"bash":"ask"`) || !commandAllowed("ws dock a 12", l.ACP.Allow) {
+		t.Errorf("a run that runs things = %+v, %s", *l.ACP, runs)
+	}
+	if !RunsThings(o) || Sandboxes(o) {
+		t.Errorf("OpenCode: runs things %v, sandboxes %v", RunsThings(o), Sandboxes(o))
+	}
+
 	// A session OpenCode hasn't: gone, so the conversation starts afresh.
 	if _, err := o.Converse(ConverseRun{Prompt: "hi", Dir: "/w", Session: "ses_gone"}); !errors.Is(err, ErrSessionGone) {
 		t.Errorf("a session OpenCode hasn't = %v", err)

@@ -37,7 +37,7 @@ func syncedBy(path string) string {
 	case home != "" && under(filepath.Join(home, "Library", "CloudStorage")):
 		return "a cloud storage app (Dropbox, Google Drive, OneDrive…)"
 	}
-	for _, part := range strings.Split(path, string(filepath.Separator)) {
+	for part := range strings.SplitSeq(path, string(filepath.Separator)) {
 		switch {
 		case part == "Dropbox" || strings.HasPrefix(part, "Dropbox ("):
 			return "Dropbox"

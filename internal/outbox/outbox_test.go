@@ -129,7 +129,7 @@ func TestQueue(t *testing.T) {
 // laneIdle waits for a lane to have nothing left to send.
 func (q *Queue) laneIdle(t *testing.T, lane string) {
 	t.Helper()
-	for i := 0; i < 2000; i++ {
+	for range 2000 {
 		q.mu.Lock()
 		running := q.running[lane]
 		q.mu.Unlock()

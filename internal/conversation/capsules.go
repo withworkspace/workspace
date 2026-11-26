@@ -11,7 +11,8 @@ import (
 // capsules it lifts: the conversation's, not a mission's (a mission's are
 // its plan's). The conversation keeps which it lifted, and they're put
 // away with it: burned, their branches kept, so they come back if it's
-// taken up again.
+// taken up again. One that was there already, which it joined, is left
+// where it is.
 
 // Capsule is a capsule a conversation's agent lifted.
 type Capsule struct {
@@ -23,6 +24,10 @@ type Capsule struct {
 	// branch kept, with what wasn't committed committed to it (Kept).
 	Away *time.Time `json:"away,omitempty"`
 	Kept bool       `json:"kept,omitempty"`
+	// Joined is one that was there before the conversation took it on
+	// (lifted by hand, docked elsewhere): put away, it's left where it is,
+	// not burned.
+	Joined bool `json:"joined,omitempty"`
 }
 
 // Ref is how a capsule's named: repo/name.

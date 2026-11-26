@@ -2,11 +2,14 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
@@ -50,6 +53,10 @@ func newDockCmd() *cobra.Command {
 		Short: "Check out an existing capsule",
 		Long: `Create a worktree for an existing remote branch. Use "." as the repo to
 infer from the current directory.
+
+Run by a conversation's agent, the capsule is that conversation's, as one
+it lifts (ws lift): on a pull request's branch, what it commits and pushes
+updates the pull request.
 
 Examples:
   ws dock frontend feature-branch
@@ -107,6 +114,10 @@ Examples:
 				return err
 			}
 
+			if id := agentConversation(); id != "" {
+				c, err := ctx.DockForConversation(os.Getenv(mission.EnvMission), id, repo, branch, ops.CapsuleOptions{Show: showCapsuleMaking, By: ops.ActorFromEnv()})
+				return madeForConversation(c, err, id)
+			}
 			c, err := ctx.Dock(repo, branch, capsuleOptions(ctx))
 			return madeCapsule(ctx, c, err, "Docked!")
 		},

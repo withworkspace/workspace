@@ -80,7 +80,7 @@ func (c *Cursor) Models(ctx context.Context) ([]Model, error) {
 		return nil, err
 	}
 	var models []Model
-	for _, line := range strings.Split(string(out), "\n") {
+	for line := range strings.SplitSeq(string(out), "\n") {
 		m := cursorModelLine.FindStringSubmatch(strings.TrimSpace(line))
 		if m == nil {
 			continue
@@ -160,7 +160,7 @@ func cursorACPOffered(v acp.ConfigValue) Model {
 	m := placed(Model{ID: bare})
 	m.Name, m.Effort, m.Thinking, m.Fast = v.Name, "", false, false
 	context := ""
-	for _, p := range strings.Split(strings.TrimSuffix(params, "]"), ",") {
+	for p := range strings.SplitSeq(strings.TrimSuffix(params, "]"), ",") {
 		k, val, _ := strings.Cut(p, "=")
 		switch k {
 		case "effort", "reasoning_effort", "reasoning":
@@ -202,7 +202,7 @@ func cursorACPOffered(v acp.ConfigValue) Model {
 // Flash".
 func idLabel(id string) string {
 	var words []string
-	for _, w := range strings.Split(id, "-") {
+	for w := range strings.SplitSeq(id, "-") {
 		n := len(words)
 		switch {
 		case n > 0 && isDigits(w) && isVersion(words[n-1]):

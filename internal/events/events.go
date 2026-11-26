@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -48,12 +49,7 @@ var Kinds = []string{
 
 // Known is whether kind is one there is.
 func Known(kind string) bool {
-	for _, k := range Kinds {
-		if k == kind {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(Kinds, kind)
 }
 
 // Keep is how long an event is kept.

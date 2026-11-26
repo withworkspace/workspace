@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -399,8 +400,8 @@ func artifactInfo(e artifact.Entry, cfg artifact.Config, now time.Time) Artifact
 		info.Latest = &latest
 	}
 	seen := map[string]bool{}
-	for i := len(e.Versions) - 1; i >= 0; i-- {
-		v := e.Versions[i]
+	for _, v := range slices.Backward(e.Versions) {
+
 		if v.From != "" && !seen[v.From] {
 			seen[v.From] = true
 			info.From = append(info.From, ArtifactFrom{From: v.From, Title: v.FromTitle})

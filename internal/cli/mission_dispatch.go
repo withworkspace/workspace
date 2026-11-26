@@ -148,20 +148,6 @@ In a conversation about the mission, its agent proposes a dispatch instead
 	return cmd
 }
 
-// readFirstList resolves what a dispatch names with --read into lines for
-// it, with where to read each.
-func readFirstList(ctx *ops.Workspace, m *mission.Mission, reads []string) (string, error) {
-	refs := make([]string, len(reads))
-	for i, in := range reads {
-		r, err := ctx.NormalizeArtifact(m, in, userDirOr())
-		if err != nil {
-			return "", fmt.Errorf("--read %s: %w", in, err)
-		}
-		refs[i] = r.String()
-	}
-	return ops.WhereToRead(ctx.WS(), missionStore(ctx), m, refs), nil
-}
-
 // dispatchLimitErr tells the orchestrator what to do instead.
 func dispatchLimitErr(err error) error {
 	if errors.Is(err, mission.ErrDispatchLimit) {
