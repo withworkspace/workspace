@@ -112,21 +112,26 @@ func SessionFile(harnessName, id string) (string, bool) {
 		return "", false
 	}
 	sessions.mu.Lock()
-	defer sessions.mu.Unlock()
 	if sessions.found == nil {
 		sessions.found, sessions.missed = map[string]string{}, map[string]time.Time{}
 	}
-	if path, ok := sessions.found[pattern]; ok {
+	path, known := sessions.found[pattern]
+	missed, wasMissed := sessions.missed[pattern]
+	sessions.mu.Unlock()
+	if known {
 		if _, err := os.Stat(path); err == nil {
 			return path, true
 		}
-		delete(sessions.found, pattern) // moved, or cleared: looked for again
 	}
-	if at, ok := sessions.missed[pattern]; ok && time.Since(at) < sessionMissFor {
+	if !known && wasMissed && time.Since(missed) < sessionMissFor {
 		return "", false
 	}
+	// Looked for with nobody else waiting on it: each session's own.
 	found, _ := filepath.Glob(pattern)
+	sessions.mu.Lock()
+	defer sessions.mu.Unlock()
 	if len(found) == 0 {
+		delete(sessions.found, pattern) // moved, or cleared
 		sessions.missed[pattern] = time.Now()
 		return "", false
 	}
