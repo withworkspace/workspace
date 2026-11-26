@@ -3,7 +3,7 @@ import { ApiError, getTalk, keepAsk, sayInTalk, settleTalkProposal, type TalkDet
 import { bursts } from "../load";
 import { pageSocket } from "../socket";
 import type { ConversationOp } from "../wire.gen";
-import { paneAt } from "../chrome/panes";
+import { paneAt, talkAt } from "../chrome/panes";
 
 // The conversations the window is holding, in one store, by address (a
 // conversation's own page's: chrome/panes.ts's talkAt). What a bar asks
@@ -61,9 +61,23 @@ const loading = new Map<string, Promise<void>>();
 // nothing for the workspace's) and its id, as the records name it.
 export const talkTopic = (slug: string, id: string) => `conversation:${slug}/${id}` as const;
 
+// Being asked: a conversation is held from the moment it's asked from a
+// bar, at an address of its own (askingAt), with what was asked as its
+// first turn and its agent at work, so its pane is there at once; the
+// daemon saying what it is (its id) takes its place. It's nothing the
+// daemon has: it isn't read or followed, and one left from before a
+// reload, with nothing held, is gone.
+let asked = 0;
+export const askingAt = () => talkAt(`asking-${++asked}`);
+export const isAsking = (to: string | undefined) => !!to && /^\/conversations\/asking-\d+$/.test(to);
+export const asking = (body: string): TalkDetail => {
+  const at = new Date().toISOString();
+  return { id: "", kind: "talk", by: "you", at, status: "open", ephemeral: true, answering: true, turns: [{ n: 1, by: "you", at, body }] };
+};
+
 const where = (to: string) => {
   const at = paneAt(to);
-  return at?.kind === "conversation" ? at : undefined;
+  return at?.kind === "conversation" && !isAsking(to) ? at : undefined;
 };
 
 export const useTalks = create<TalksStore>()((set, get) => {

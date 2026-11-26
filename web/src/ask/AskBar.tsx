@@ -2,7 +2,7 @@ import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "reac
 import { ApiError, type TalkProposal } from "../api";
 import { paneAt, talkAt } from "../chrome/panes";
 import { useBeside, useChromeStore, useGive } from "../chrome/store";
-import { useTalk, useTalks } from "../conversation/talks";
+import { asking, askingAt, isAsking, useTalk, useTalks } from "../conversation/talks";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/strings";
 import type { AskAbout } from "./ask";
@@ -63,6 +63,7 @@ export function AskBar<H>({
 }) {
   const beside = useBeside();
   const open = useChromeStore((s) => s.open);
+  const close = useChromeStore((s) => s.close);
   const [held, setHeld] = useState<H>();
   // The page's ask: the conversation this bar last asked in, by its
   // address beside. One asked here before (the bar's forgotten it, having
@@ -76,8 +77,9 @@ export function AskBar<H>({
   const there = !!at && beside.all.includes(at);
   // While it's there to see, it's where what's said next is said, and the
   // bar's out of the way; with something in hand it's back, since that's
-  // a new thing to ask.
-  const away = there && beside.shown && held === undefined;
+  // a new thing to ask. While it's being asked, the bar stays, busy, with
+  // what was asked in it: there to ask again if it couldn't be.
+  const away = there && beside.shown && held === undefined && !isAsking(at);
   const field = useRef<HTMLInputElement>(null);
   // Asked to take the keys while it was away: taken once it's drawn.
   const [wanted, setWanted] = useState(0);
@@ -91,24 +93,57 @@ export function AskBar<H>({
   // ask asks: in the page's conversation while it's beside, a follow-up;
   // with something in hand, or none there, a new ask. A follow-up to one
   // that's gone asks afresh.
-  const ask = (question: string, h = held) => {
-    const fresh = () => about.start(question, h);
-    const asked = there && at && h === undefined ? useTalks.getState().say(at, question).catch((e: Error) => (e instanceof ApiError && e.status === 404 ? fresh() : Promise.reject(e))) : fresh();
-    return asked.then(
+  const ask = (question: string, h = held): Promise<void> => {
+    if (!(there && at && h === undefined && !isAsking(at))) return fresh(question, h);
+    return useTalks
+      .getState()
+      .say(at, question)
+      .then(
+        (d) => {
+          const to = talkAt(d.id);
+          open(to, { here: true, keys: true });
+          setMine(to);
+          onOpen?.();
+        },
+        (e: Error) => (e instanceof ApiError && e.status === 404 ? fresh(question, h) : failed(e)),
+      );
+  };
+
+  // fresh is a new ask. Its pane's there at once, beside the page, what's
+  // asked its first turn (talks.ts's asking), while the daemon's asked; the
+  // conversation the daemon starts takes its place. It takes the place of
+  // the page's last, if nobody kept that; if it couldn't be asked, that's
+  // back in its place.
+  const fresh = (question: string, h: H | undefined): Promise<void> => {
+    const talks = useTalks.getState();
+    const was = at && !isAsking(at) && talk?.ephemeral !== false ? at : undefined;
+    const pending = askingAt();
+    talks.told(pending, asking(question));
+    open(pending, { here: true, inPlaceOf: was });
+    setMine(pending);
+    onOpen?.();
+    return about.start(question, h).then(
       (d) => {
         const to = talkAt(d.id);
-        useTalks.getState().told(to, d);
-        // A new ask takes the place of the page's last, if nobody kept that.
-        open(to, { here: true, inPlaceOf: at && at !== to && talk?.ephemeral !== false ? at : undefined, keys: true });
+        talks.told(to, d);
+        open(to, { here: true, inPlaceOf: pending, keys: true });
+        talks.forget(pending);
         setMine(to);
         setHeld(undefined);
-        onOpen?.();
       },
       (e: Error) => {
-        toast(humanError(e.message), { tone: "danger" });
-        throw e;
+        if (was) open(was, { here: true, inPlaceOf: pending });
+        else close(pending, { yours: true }); // as if it hadn't opened: Beside too, if that's all it held
+        talks.forget(pending);
+        setMine(was);
+        return failed(e);
       },
     );
+  };
+
+  const failed = (e: Error): Promise<never> => {
+    toast(humanError(e.message), { tone: "danger" });
+    return Promise.reject(e);
   };
 
   const toReply = () => at && open(at, { here: true, keys: true });
