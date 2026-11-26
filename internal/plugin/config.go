@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -40,9 +41,7 @@ func Values(root, name string) (map[string]any, error) {
 	for k, v := range cfg.Plugin[name] {
 		out[k] = jsonValue(v)
 	}
-	for k, v := range readSecrets(root, name) {
-		out[k] = v
-	}
+	maps.Copy(out, readSecrets(root, name))
 	return out, nil
 }
 

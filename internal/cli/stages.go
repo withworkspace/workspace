@@ -5,26 +5,9 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/withworkspace/workspace/internal/harness"
-	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/ui"
 )
-
-// briefStage tells new work crew which stage of the brief's plan they're
-// for: stage n, or for 0 the current one (the first not accepted). A brief
-// without stages leaves it out.
-func briefStage(b *harness.Brief, m *mission.Mission, brief string, n int) error {
-	states, _ := m.StageProgress(brief)
-	st, err := mission.PickStage(states, n)
-	if err != nil {
-		return err
-	}
-	if !st.Implicit {
-		b.Stage, b.StageN, b.StageOf, b.Steps = st.Whole(), st.N, len(states), st.Step != nil
-	}
-	return nil
-}
 
 func newMissionAcceptCmd() *cobra.Command {
 	var slug string

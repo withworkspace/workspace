@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -352,8 +353,8 @@ func (w *Workspace) standingWithoutOrchestrator(v MissionView, brief string, eve
 // doesn't count.
 func orchestratorActed(store mission.Store, slug, run string) bool {
 	events, _ := store.ReadLog(slug, orchestrator.LogEvents)
-	for i := len(events) - 1; i >= 0; i-- {
-		e := events[i]
+	for _, e := range slices.Backward(events) {
+
 		if e.Run != run {
 			continue
 		}

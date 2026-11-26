@@ -279,8 +279,8 @@ func (b cardBuilder) card(h Headline) Card {
 		c.Since = &t
 	}
 	text := h.Text
-	if strings.HasSuffix(text, nothingToDo) {
-		text, c.Nothing = strings.TrimSuffix(text, nothingToDo), true
+	if before, ok := strings.CutSuffix(text, nothingToDo); ok {
+		text, c.Nothing = before, true
 	}
 	c.Title, c.Detail = titled(h.Kind, text)
 	if h.Action.Verb == VerbNone && (h.Court == CourtAgent || h.Court == CourtOutside) {
@@ -342,10 +342,6 @@ func (b cardBuilder) words(c *Card, h Headline, text string) {
 			}
 		}
 	}
-}
-
-func crewAct(do, who string) *Act {
-	return &Act{Do: do, Label: "Open " + who, Icon: "message", Target: who}
 }
 
 // lookAct is opening one thing a step looks at.

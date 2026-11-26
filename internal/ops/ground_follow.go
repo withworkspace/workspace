@@ -167,8 +167,7 @@ func (w *Workspace) pullGround(ctx context.Context, repo string) (SpaceFresh, bo
 		return f, false, refused("ground-branch", "%s's ground isn't on %s: look at why before anything moves it", repo, f.Branch)
 	}
 	if err := workspace.GitFFMerge(ground, "refs/remotes/origin/"+f.Branch); err != nil {
-		var ge *git.Error
-		if errors.As(err, &ge) {
+		if ge, ok := errors.AsType[*git.Error](err); ok {
 			return f, false, refused("ground-pull", "moving %s's ground forward: %s", repo, ge.Stderr)
 		}
 		return f, false, err

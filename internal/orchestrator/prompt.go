@@ -341,7 +341,7 @@ func Prompt(in Input) string {
 		}
 		caps.WriteByte('\n')
 		if c.DiffStat != "" {
-			for _, line := range strings.Split(c.DiffStat, "\n") {
+			for line := range strings.SplitSeq(c.DiffStat, "\n") {
 				caps.WriteString("    " + line + "\n")
 			}
 		}

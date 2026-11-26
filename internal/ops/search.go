@@ -388,10 +388,9 @@ func parseRgJSON(r io.Reader, emit func(rgMatch) error) error {
 		if err := json.Unmarshal(msg.Data, &d); err != nil {
 			return fmt.Errorf("reading ripgrep's match: %w", err)
 		}
-		m := rgMatch{path: d.Path.String(), Match: Match{
+		m := rgMatch{path: d.Path.String(),
 			Line: d.LineNumber,
-			Text: trimLineEnding(d.Lines.String()),
-		}}
+			Text: trimLineEnding(d.Lines.String())}
 		for _, s := range d.Submatches {
 			m.Submatches = append(m.Submatches, Span{Start: s.Start, End: s.End})
 		}

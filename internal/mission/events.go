@@ -81,7 +81,7 @@ func byOf(e Event) string {
 
 // prOf is the pull request a PR line of the log names first (demo#12).
 func prOf(text string) string {
-	for _, w := range strings.Fields(text) {
+	for w := range strings.FieldsSeq(text) {
 		w = strings.TrimSuffix(strings.TrimRight(w, ":,.)"), "'s")
 		if repo, n, ok := strings.Cut(w, "#"); ok && repo != "" && n != "" && strings.Trim(n, "0123456789") == "" {
 			return w

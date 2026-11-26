@@ -221,7 +221,7 @@ func TestEditLocalAddsAPluginsRows(t *testing.T) {
 func TestUpdateLocalLocked(t *testing.T) {
 	root := writeLocal(t, handWritten)
 	var wg sync.WaitGroup
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -234,7 +234,7 @@ func TestUpdateLocalLocked(t *testing.T) {
 	}
 	wg.Wait()
 	got := readLocal(t, root)
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		if !strings.Contains(got, fmt.Sprintf("repo%d = [\"c\"]", i)) {
 			t.Errorf("repo%d lost:\n%s", i, got)
 		}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -120,9 +121,9 @@ func (s Store) Decisions(slug string) ([]Decision, error) {
 // CurrentDecisions is the decisions that stand, newest first.
 func CurrentDecisions(all []Decision) []Decision {
 	var out []Decision
-	for i := len(all) - 1; i >= 0; i-- {
-		if all[i].State == DecisionCurrent {
-			out = append(out, all[i])
+	for _, a := range slices.Backward(all) {
+		if a.State == DecisionCurrent {
+			out = append(out, a)
 		}
 	}
 	return out
@@ -268,10 +269,5 @@ func (d Decision) IsAbout(ref string) bool {
 	if d.From == ref {
 		return true
 	}
-	for _, a := range d.About {
-		if a == ref {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(d.About, ref)
 }

@@ -282,10 +282,7 @@ func Ends(r Run, now time.Time) string {
 	}
 	what := strings.Join(whens, ", and ")
 	if !r.Expires.IsZero() {
-		left := r.Expires.Sub(now)
-		if left < 0 {
-			left = 0
-		}
+		left := max(r.Expires.Sub(now), 0)
 		in := "in " + Hours(left)
 		if what == "" {
 			what = in

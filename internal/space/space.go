@@ -107,7 +107,7 @@ func graph(tx *store.Tx, repo string, e entry, title string, r read, c change) e
 	o := origin(repo, e.path)
 	me, _ := store.KeyOf(ref.Ref{Kind: ref.File, Repo: repo, Path: e.path})
 	at, _ := time.Parse(time.RFC3339, c.at)
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at, Stands: store.Stands{Standing: store.Lasting}}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at, Standing: store.Lasting}); err != nil {
 		return err
 	}
 	for _, n := range r.names {
@@ -212,7 +212,7 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 	}
 	var now []entry
 	tree := map[string]string{} // every file under the space's folder, by path: what its things are made of
-	for _, rec := range strings.Split(string(out), "\x00") {
+	for rec := range strings.SplitSeq(string(out), "\x00") {
 		meta, p, ok := strings.Cut(rec, "\t")
 		f := strings.Fields(meta)
 		if !ok || len(f) != 3 || f[1] != "blob" {

@@ -1,0 +1,31 @@
+version: "2"
+
+# `just lint` runs these on all of ws. errcheck and noctx are set up here but
+# not on: `just lint` runs them only on what's changed since main (see the
+# justfile), since main has hundreds of each from before they were checked.
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - wastedassign
+    - rowserrcheck
+    - unconvert
+    - copyloopvar
+  settings:
+    staticcheck:
+      # Bugs and simplifications; not style (ST) or quick fixes (QF).
+      checks: ["all", "-ST*", "-QF*"]
+    errcheck:
+      exclude-functions: [fmt.Fprintf, fmt.Fprintln, fmt.Fprint]
+  exclusions:
+    presets: [std-error-handling, common-false-positives]
+    rules:
+      - path: _test\.go
+        linters: [errcheck, noctx]
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

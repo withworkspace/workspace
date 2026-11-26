@@ -550,6 +550,9 @@ func (s Store) idsIn(tx *store.Tx) []string {
 			out = append(out, id)
 		}
 	}
+	if rows.Err() != nil {
+		return nil
+	}
 	return out
 }
 
@@ -600,43 +603,6 @@ func MoveMission(root, old, slug string) error {
 		tx.Changed("workspace", "mission:"+old, "mission:"+slug)
 		return nil
 	})
-}
-
-// lineAt is when a line says it happened, if it says.
-func lineAt(l line) time.Time {
-	switch {
-	case l.Opened != nil:
-		return l.Opened.At
-	case l.Turn != nil:
-		return l.Turn.At
-	case l.Status != nil:
-		return l.Status.At
-	case l.Suggest != nil:
-		return l.Suggest.At
-	case l.Suggestion != nil:
-		return l.Suggestion.At
-	case l.Sent != nil:
-		return l.Sent.At
-	case l.Draft != nil:
-		return l.Draft.At
-	case l.Drafted != nil:
-		return l.Drafted.At
-	case l.Summary != nil:
-		return l.Summary.At
-	case l.Propose != nil:
-		return l.Propose.At
-	case l.Proposal != nil:
-		return l.Proposal.At
-	case l.Items != nil:
-		return l.Items.At
-	case l.Settle != nil:
-		return l.Settle.At
-	case l.Placed != nil:
-		return *l.Placed
-	case l.Kept != nil:
-		return l.Kept.At
-	}
-	return time.Time{}
 }
 
 // standingStep is the part's fifth step: a conversation written before

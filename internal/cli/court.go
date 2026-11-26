@@ -32,11 +32,6 @@ func styledLabel(h mission.Headline) string {
 	return ui.Orange.Render(h.Label)
 }
 
-// missionHeadlines is where a mission stands, as ws mission show says it.
-func missionHeadlines(ctx *ops.Workspace, v ops.MissionView, brief string, events []mission.Event) []mission.Headline {
-	return mission.Resolve(missionSnapshot(ctx, v, brief, events))
-}
-
 // missionSnapshot is what the court reads of a mission.
 func missionSnapshot(ctx *ops.Workspace, v ops.MissionView, brief string, events []mission.Event) mission.Snapshot {
 	return ops.MissionSnapshot(v, brief, events, ops.ReReviews(ctx.WS(), v.M), ops.DocThreadCourt(ctx.WS(), v, brief), !ctx.Config().OrchestratorEnabled())

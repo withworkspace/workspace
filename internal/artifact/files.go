@@ -141,7 +141,7 @@ func CleanPath(p string) (string, error) {
 	if len(p) > 240 {
 		return "", fmt.Errorf("%q is too long a path (240 at most)", clip(p))
 	}
-	for _, seg := range strings.Split(p, "/") {
+	for seg := range strings.SplitSeq(p, "/") {
 		switch {
 		case seg == "" || seg == "." || seg == "..":
 			return "", fmt.Errorf("%q leads out of the version, or nowhere in it", p)

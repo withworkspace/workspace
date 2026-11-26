@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -250,12 +251,7 @@ func known(source string) bool {
 	if _, ok := PluginOf(source); ok {
 		return true
 	}
-	for _, s := range Sources {
-		if s == source {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(Sources, source)
 }
 
 func write(root string, fn func(tx *store.Tx) error) error {

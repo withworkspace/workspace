@@ -812,8 +812,8 @@ func Slug(s string) string {
 // NameFor is the name a command's run gets when it's given none: its
 // first word's, as a slug.
 func NameFor(command string) string {
-	fields := strings.Fields(command)
-	for _, f := range fields {
+	fields := strings.FieldsSeq(command)
+	for f := range fields {
 		if strings.Contains(f, "=") && !strings.HasPrefix(f, "=") {
 			continue // FOO=bar before the command
 		}

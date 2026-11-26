@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -169,7 +170,7 @@ var (
 func ParseStages(brief string) []Stage {
 	var stages []Stage
 	in, level := false, 0
-	for _, line := range strings.Split(strings.ReplaceAll(brief, "\r\n", "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(brief, "\r\n", "\n"), "\n") {
 		if g := stagesHeading.FindStringSubmatch(line); g != nil {
 			in, level = true, len(g[1])
 			continue
@@ -418,8 +419,8 @@ func (m *Mission) CurrentStageArtifacts(brief string) (StageState, []Artifact) {
 // StageFor is the stage crew is for, from its record, if it joined one:
 // the latest, for crew who carried on from one step to the next.
 func StageFor(states []StageState, crewID string) (StageState, bool) {
-	for i := len(states) - 1; i >= 0; i-- {
-		if s := states[i]; s.Record != nil && contains(s.Record.Crew, crewID) {
+	for _, s := range slices.Backward(states) {
+		if s.Record != nil && contains(s.Record.Crew, crewID) {
 			return s, true
 		}
 	}
@@ -427,12 +428,7 @@ func StageFor(states []StageState, crewID string) (StageState, bool) {
 }
 
 func contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, s)
 }
 
 // recordFor finds or adds the record for stage st in m (matched as

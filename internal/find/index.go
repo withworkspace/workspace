@@ -2,6 +2,7 @@ package find
 
 import (
 	"context"
+	"maps"
 	"sort"
 	"strings"
 	"sync"
@@ -340,7 +341,6 @@ func (ix *Index) fresh(ctx context.Context, wait time.Duration) (*snapshot, erro
 	}
 	var grounds, capsules []chan struct{}
 	for _, wt := range ix.wts {
-		wt := wt
 		if wt.Name == Ground {
 			if job := ix.groundDue(wt, now); job != nil {
 				grounds = append(grounds, job)
@@ -567,9 +567,7 @@ func (ix *Index) Layout(ctx context.Context) (Layout, error) {
 	}
 	for _, c := range snap.capsules {
 		files := make(map[string]string, len(c.status))
-		for p, st := range c.status {
-			files[p] = st
-		}
+		maps.Copy(files, c.status)
 		l.Capsules = append(l.Capsules, CapsuleChanges{Worktree: c.wt, Files: files})
 	}
 	return l, nil

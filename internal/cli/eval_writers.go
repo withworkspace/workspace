@@ -198,7 +198,7 @@ func runEvals(cmd *cobra.Command, n int, asJSON, render bool, promptOf func(int)
 		if out := strings.TrimSpace(res.Output); out != "" {
 			// What it wrote is what's to be read: nothing scores how well.
 			fmt.Fprintln(os.Stdout, "  it wrote:")
-			for _, line := range strings.Split(out, "\n") {
+			for line := range strings.SplitSeq(out, "\n") {
 				fmt.Fprintln(os.Stdout, strings.TrimRight("    "+line, " "))
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -48,9 +49,7 @@ func (f *fakeProposer) Accept(_ context.Context, name string, in protocol.Propos
 	f.accepts = append(f.accepts, in)
 	var out protocol.ProposalAcceptResult
 	made := map[int]string{}
-	for n, m := range in.Made {
-		made[n] = m
-	}
+	maps.Copy(made, in.Made)
 	for _, it := range in.Items {
 		var is struct{ Summary, Parent string }
 		json.Unmarshal(it.Payload, &is)

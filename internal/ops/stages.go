@@ -309,8 +309,8 @@ func stageDoneSummary(m *mission.Mission, st mission.StageState) string {
 	if st.Record == nil {
 		return ""
 	}
-	for i := len(st.Record.Crew) - 1; i >= 0; i-- {
-		if c, ok := m.CrewByID(st.Record.Crew[i]); ok && c.Status == mission.CrewDone && c.Note != "" {
+	for _, v := range slices.Backward(st.Record.Crew) {
+		if c, ok := m.CrewByID(v); ok && c.Status == mission.CrewDone && c.Note != "" {
 			return " (" + c.ID + ": " + strings.TrimSuffix(oneLine(c.Note), ".") + ")"
 		}
 	}

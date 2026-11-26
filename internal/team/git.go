@@ -51,7 +51,7 @@ func Commits(bare, branch string, since time.Time) ([]Commit, error) {
 		return nil, err
 	}
 	var commits []Commit
-	for _, rec := range strings.Split(out, "\x1e") {
+	for rec := range strings.SplitSeq(out, "\x1e") {
 		head, stat, _ := strings.Cut(strings.TrimLeft(rec, "\n"), "\x1d")
 		f := strings.Split(head, "\x1f")
 		if len(f) < 7 {
@@ -60,7 +60,7 @@ func Commits(bare, branch string, since time.Time) ([]Commit, error) {
 		c := Commit{SHA: f[0], Parents: len(strings.Fields(f[1])), Name: f[2], Email: f[3], Subject: f[5]}
 		c.Lead, _, _ = strings.Cut(strings.TrimSpace(f[6]), "\n")
 		c.At, _ = time.Parse(time.RFC3339, f[4])
-		for _, line := range strings.Split(stat, "\n") {
+		for line := range strings.SplitSeq(stat, "\n") {
 			n := strings.SplitN(line, "\t", 3)
 			if len(n) < 3 {
 				continue

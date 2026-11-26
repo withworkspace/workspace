@@ -248,7 +248,7 @@ func docAskIntro(h Here, c *conversation.Conversation) string {
 			where += fmt.Sprintf(" (%s of the file)", lines)
 		}
 		fmt.Fprintf(&b, "They picked out a passage%s, and ask about it:\n\n", where)
-		for _, l := range strings.Split(strings.TrimSpace(a.Quote.Exact), "\n") {
+		for l := range strings.SplitSeq(strings.TrimSpace(a.Quote.Exact), "\n") {
 			b.WriteString("> " + l + "\n")
 		}
 		b.WriteString("\n")

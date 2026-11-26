@@ -145,10 +145,7 @@ func (w *Workspace) askPR(svc *pulls.Service, repo string, number int, q PRQuest
 	}
 	anchor := conversation.Anchor{PR: pr.Ref()}
 	if q.Path != "" {
-		end := q.EndLine
-		if end < q.Line {
-			end = q.Line
-		}
+		end := max(q.EndLine, q.Line)
 		lines, err := review.Blob(svc.BareDir(repo), q.Commit, q.Path)
 		if err != nil {
 			return nil, err

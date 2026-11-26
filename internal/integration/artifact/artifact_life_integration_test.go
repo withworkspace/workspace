@@ -46,7 +46,7 @@ func TestArtifactLifetime_ExpiredAreDiscarded(t *testing.T) {
 
 	r := testutil.Run(t, w, nil, "artifact", "list")
 	byID := map[string]string{}
-	for _, l := range strings.Split(r.Stdout, "\n") {
+	for l := range strings.SplitSeq(r.Stdout, "\n") {
 		if f := strings.Fields(l); len(f) > 0 {
 			byID[f[0]] = l
 		}

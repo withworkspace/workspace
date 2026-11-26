@@ -431,7 +431,8 @@ func cellNext(a *answering) string {
 func cellRead(a *answering, rep harness.Report, err error) reply {
 	c, root, now := a.c, a.w.Root(), a.w.now()
 	output := rep.Output
-	body, sources, notes := output, []conversation.Source(nil), ""
+	var body, notes string
+	var sources []conversation.Source
 	forPage, isPage := prompt.CutPage(output)
 	// (Not its first: what's first asked is a question, and is answered.)
 	answer := c.Asking() && !(isPage && len(c.Turns) > 1)

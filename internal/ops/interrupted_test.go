@@ -103,7 +103,7 @@ func TestResumeInterruptedLeaves(t *testing.T) {
 	w.opts.Host = host
 	harness.Register(resumableHarness{})
 
-	first := interruptedCrew(t, w, "one", mission.ActivityWorking)
+	interruptedCrew(t, w, "one", mission.ActivityWorking)
 	interruptedCrew(t, w, "one", mission.ActivityWorking)
 	w.Missions.Update("cache", func(m *mission.Mission) error { m.State = mission.Parked; return nil })
 	got := w.ResumeInterrupted()
@@ -113,7 +113,7 @@ func TestResumeInterruptedLeaves(t *testing.T) {
 
 	w2, _ := fixture(t, "## Goal\nCache it.\n", "one")
 	w2.opts.Host = host
-	first = interruptedCrew(t, w2, "one", mission.ActivityWorking)
+	first := interruptedCrew(t, w2, "one", mission.ActivityWorking)
 	interruptedCrew(t, w2, "one", mission.ActivityWorking)
 	got = w2.ResumeInterrupted()
 	if len(got) != 2 || got[0].ID != first || got[0].Why != "c2 has worked in frontend/one since" || !got[1].Resumed {

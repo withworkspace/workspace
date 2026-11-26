@@ -26,9 +26,7 @@ func TestWritesAreWhole(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	stop := make(chan struct{})
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for i := 0; ; i++ {
 			select {
 			case <-stop:
@@ -38,7 +36,7 @@ func TestWritesAreWhole(t *testing.T) {
 			s.WritePlan(m.Slug, plans[i%2])
 			s.WriteBrief(m.Slug, plans[(i+1)%2])
 		}
-	}()
+	})
 	for range 500 {
 		for _, read := range []func(string) (string, error){s.ReadPlan, s.ReadBrief} {
 			if got, err := read(m.Slug); err != nil || (got != plans[0] && got != plans[1]) {

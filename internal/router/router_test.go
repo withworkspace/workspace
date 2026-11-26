@@ -176,8 +176,7 @@ func TestThePortIsTheLock(t *testing.T) {
 	rt1, _, _ := routed(t)
 	rt2 := &Router{Dir: rt1.Dir, Procs: rt1.Procs}
 	ctx1, stop1 := context.WithCancel(context.Background())
-	ctx2, stop2 := context.WithCancel(context.Background())
-	defer stop2()
+	ctx2 := t.Context()
 	go rt1.Run(ctx1)
 	waitFor(t, func() bool { _, ok := WhoIs(p); return ok })
 	go rt2.Run(ctx2)

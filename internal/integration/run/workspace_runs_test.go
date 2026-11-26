@@ -150,7 +150,7 @@ func TestRun_TheWorkspacesOwnTask(t *testing.T) {
 command = "echo checked"
 `)
 	f.Close()
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		res := testutil.RunCommand(t, w.Root, nil, "run", "--for", "none", "check")
 		if res.Err != nil || !strings.Contains(res.Stdout, "checked") {
 			t.Fatalf("ws run check: %v\n%s%s", res.Err, res.Stdout, res.Stderr)

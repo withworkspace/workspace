@@ -132,8 +132,7 @@ func TestQueueMarksInOrder(t *testing.T) {
 	q.Start(Job{Kind: Orchestrate, Mission: "m", ID: "first"})
 	var wg sync.WaitGroup
 	for _, id := range []string{"a", "b", "c", "d"} {
-		wg.Add(1)
-		go func() { defer wg.Done(); q.Start(Job{Kind: Orchestrate, Mission: "m", ID: id}) }()
+		wg.Go(func() { ; q.Start(Job{Kind: Orchestrate, Mission: "m", ID: id}) })
 	}
 	wg.Wait()
 	close(release)

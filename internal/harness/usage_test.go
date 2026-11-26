@@ -67,9 +67,9 @@ func TestSessionSpend(t *testing.T) {
 		t.Errorf("last read: %q", last)
 	}
 	want := []Spent{
-		{Day: "2026-11-24", Usage: Usage{Model: "claude-opus-5-5", Input: 2, Output: 10, CacheWrite: 100, CacheRead: 1000}},
-		{Day: "2026-11-25", Usage: Usage{Model: "claude-opus-5-5", Input: 4, Output: 21, CacheWrite: 1, CacheRead: 2001}},
-		{Day: "2026-11-25", Usage: Usage{Model: "claude-haiku-5-5", Input: 1, Output: 5}},
+		{Day: "2026-11-24", Model: "claude-opus-5-5", Input: 2, Output: 10, CacheWrite: 100, CacheRead: 1000},
+		{Day: "2026-11-25", Model: "claude-opus-5-5", Input: 4, Output: 21, CacheWrite: 1, CacheRead: 2001},
+		{Day: "2026-11-25", Model: "claude-haiku-5-5", Input: 1, Output: 5},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %+v", got)
@@ -111,7 +111,7 @@ func TestPiStreamUsage(t *testing.T) {
 	}
 	// Four assistant messages, each counted once.
 	var out int64
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		var e struct {
 			Type    string    `json:"type"`
 			Message piMessage `json:"message"`
@@ -133,7 +133,7 @@ func TestPiSessionSpend(t *testing.T) {
 		`{"type":"message","id":"b","timestamp":"2026-11-25T10:00:01Z","message":{"role":"assistant","model":"m","usage":{"input":5,"output":7,"cacheRead":11,"cacheWrite":13,"cost":{"total":0.5}}}}`,
 		`{"type":"message","id":"c","timestamp":"2026-11-25T10:00:02Z","message":{"role":"assistant","model":"m","usage":{"input":1,"output":1,"cacheRead":0,"cacheWrite":0,"cost":{"total":0.25}}}}`,
 	), "")
-	want := Spent{Day: "2026-11-25", Usage: Usage{Model: "m", Input: 6, Output: 8, CacheRead: 11, CacheWrite: 13, Cost: 0.75}}
+	want := Spent{Day: "2026-11-25", Model: "m", Input: 6, Output: 8, CacheRead: 11, CacheWrite: 13, Cost: 0.75}
 	if len(got) != 1 || got[0] != want {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}

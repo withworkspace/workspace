@@ -94,7 +94,7 @@ func (r Repo) Versions(ctx context.Context) []int {
 		return nil
 	}
 	var ns []int
-	for _, l := range strings.Fields(string(out)) {
+	for l := range strings.FieldsSeq(string(out)) {
 		if n, err := strconv.Atoi(strings.TrimPrefix(l, "v")); err == nil && n > 0 && l == "v"+strconv.Itoa(n) {
 			ns = append(ns, n)
 		}
@@ -171,7 +171,7 @@ func (r Repo) tree(ctx context.Context, rev string) ([]entry, error) {
 		return nil, err
 	}
 	var es []entry
-	for _, rec := range strings.Split(string(out), "\x00") {
+	for rec := range strings.SplitSeq(string(out), "\x00") {
 		if rec == "" {
 			continue
 		}

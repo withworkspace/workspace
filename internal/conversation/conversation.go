@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -288,8 +289,8 @@ func (g Given) Clipped() Given {
 // StandingGiven is the page's standing context as its agent was last
 // given it: what a page's next has to differ from to be given again.
 func (c *Conversation) StandingGiven() string {
-	for i := len(c.Turns) - 1; i >= 0; i-- {
-		if g := c.Turns[i].Given; g != nil && g.Page != "" {
+	for _, v := range slices.Backward(c.Turns) {
+		if g := v.Given; g != nil && g.Page != "" {
 			return g.Page
 		}
 	}
@@ -945,12 +946,7 @@ type NewThread struct {
 }
 
 func validKind(k string) bool {
-	for _, v := range Kinds {
-		if k == v {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(Kinds, k)
 }
 
 // OpenThread opens a thread on a document, with its first message.

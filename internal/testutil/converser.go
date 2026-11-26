@@ -73,7 +73,7 @@ func (f FakeConverser) Converse(r harness.ConverseRun) (harness.Launch, error) {
 		// The PR writer: titled for the steps it was told are its task,
 		// and saying whether the workspace's PR.md was given.
 		var steps []string
-		for _, l := range strings.Split(r.Prompt, "\n") {
+		for l := range strings.SplitSeq(r.Prompt, "\n") {
 			if n, ok := strings.CutPrefix(l, "Step "); ok {
 				if i := strings.Index(n, " ("); i > 0 {
 					steps = append(steps, n[:i])

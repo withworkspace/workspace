@@ -381,7 +381,7 @@ func Files(ctx context.Context, ws *workspace.Workspace, t Thing) ([]File, error
 		return nil, err
 	}
 	var files []File
-	for _, rec := range strings.Split(string(out), "\x00") {
+	for rec := range strings.SplitSeq(string(out), "\x00") {
 		meta, p, ok := strings.Cut(rec, "\t")
 		f := strings.Fields(meta)
 		if !ok || len(f) != 4 || f[1] != "blob" {

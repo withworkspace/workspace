@@ -348,7 +348,7 @@ func (s *space) waitSeen(n int64) {
 // waitIdle waits for every ground read under way to finish.
 func (s *space) waitIdle() {
 	s.t.Helper()
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		s.ix.mu.Lock()
 		busy := false
 		for _, e := range s.ix.grounds {
@@ -583,10 +583,10 @@ func bigSnapshot(repos, each int) *snapshot {
 	names := []string{"server", "client", "token", "cache", "refresh", "handler", "router", "store", "index", "config", "model", "view", "page", "review", "mission"}
 	exts := []string{".go", "_test.go", ".ts", ".tsx", ".md", ".json"}
 	snap := &snapshot{}
-	for r := 0; r < repos; r++ {
+	for r := range repos {
 		g := &groundData{repo: fmt.Sprintf("repo%d", r)}
 		g.repoMask = Mask(g.repo) | maskOf('/')
-		for i := 0; i < each; i++ {
+		for i := range each {
 			p := fmt.Sprintf("%s/%s%d/%s/%s%d%s", dirs[i%len(dirs)], names[(i/7)%len(names)], i%97, names[(i/3)%len(names)], names[i%len(names)], i, exts[i%len(exts)])
 			g.paths = append(g.paths, p)
 			g.masks = append(g.masks, Mask(p))

@@ -282,8 +282,8 @@ func (w *Workspace) Bundles(m *mission.Mission) []BundleView {
 				v.StepChecks = st.Step.Checks
 			}
 			if st.Record != nil {
-				for i := len(st.Record.Checks) - 1; i >= 0; i-- {
-					if r := st.Record.Checks[i]; r.Capsule == b.Capsule && r.Commit == b.Commit {
+				for _, r := range slices.Backward(st.Record.Checks) {
+					if r.Capsule == b.Capsule && r.Commit == b.Commit {
 						v.Ran = &r
 						break
 					}

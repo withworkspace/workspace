@@ -352,8 +352,7 @@ func (l *lifted) commitAndLand(rel, subject, body, what string, add bool) (*DocS
 	res, err := w.land(l.repo, l.capsule, AsYou, l.land, true)
 	if err != nil {
 		l.undo()
-		var stopped *workspace.LandError
-		if errors.As(err, &stopped) {
+		if stopped, ok := errors.AsType[*workspace.LandError](err); ok {
 			msg := fmt.Sprintf("it wasn't %s, and nothing was pushed: %s", strings.ToLower(what), stopped.Msg)
 			if stopped.Output != "" {
 				msg += "\n" + clipString(stopped.Output, 600)

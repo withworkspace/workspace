@@ -266,7 +266,7 @@ func docstring(s string) string {
 		}
 	}
 	var para []string
-	for _, l := range strings.Split(strings.TrimSpace(s), "\n") {
+	for l := range strings.SplitSeq(strings.TrimSpace(s), "\n") {
 		l = strings.TrimSpace(l)
 		if l == "" {
 			break

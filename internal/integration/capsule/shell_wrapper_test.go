@@ -122,7 +122,7 @@ print -r -- "physical=$(command pwd -P 2>/dev/null)"
 	if logged, err := os.ReadFile(logPath); err == nil {
 		res.during = strings.TrimSpace(string(logged))
 	}
-	for _, line := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(stdout)), "\n") {
 		key, value, _ := strings.Cut(line, "=")
 		switch key {
 		case "status":

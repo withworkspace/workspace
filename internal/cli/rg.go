@@ -153,8 +153,7 @@ func runRg(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if err := rg.Run(context.Background(), os.Stdin, os.Stdout, os.Stderr); err != nil {
-		var exit *ops.RgExit
-		if errors.As(err, &exit) {
+		if exit, ok := errors.AsType[*ops.RgExit](err); ok {
 			return &ExitCodeError{Code: exit.Code}
 		}
 		return err
@@ -219,7 +218,7 @@ func parseRgArgs(args []string) (rgOptions, []string, error) {
 
 func splitRepoList(v string) []string {
 	var out []string
-	for _, part := range strings.Split(v, ",") {
+	for part := range strings.SplitSeq(v, ",") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}

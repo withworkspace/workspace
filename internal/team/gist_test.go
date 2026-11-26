@@ -196,7 +196,7 @@ func TestNarrate(t *testing.T) {
 	w.commit("Cal Reyes", "cal@acme.example", "docs: add adr", at(10, 10), "adr.md")
 	w.commit("Dee Old", "dee@acme.example", "chore: long ago", at(3, 10), "old.md")
 	w.prs = []github.PRActivity{{
-		PR:   github.PR{Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", CreatedAt: stamp(8, 9), MergedAt: stamp(9, 9)},
+		Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", CreatedAt: stamp(8, 9), MergedAt: stamp(9, 9),
 		Body: "Caches tokens per tenant.", MergeCommit: sha,
 	}}
 	var mu sync.Mutex
@@ -514,7 +514,7 @@ func TestSummarise(t *testing.T) {
 	sha := w.commit("Ana Diaz", "ana@acme.example", "feat: cache tokens (#12)", at(9, 9), "cache.go")
 	w.commit("Cal Reyes", "cal@acme.example", "docs: add adr", at(10, 10), "adr.md")
 	w.prs = []github.PRActivity{{
-		PR:          github.PR{Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", CreatedAt: stamp(8, 9), MergedAt: stamp(9, 9)},
+		Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", CreatedAt: stamp(8, 9), MergedAt: stamp(9, 9),
 		MergeCommit: sha, Reviews: []github.PRReview{{Author: "ben-acme", State: "APPROVED", SubmittedAt: stamp(8, 15)}},
 	}}
 	w.svc.Writer = func(a Ask) (string, error) { return "gist: " + a.Subject.Title + " is done.\nknow: none", nil }

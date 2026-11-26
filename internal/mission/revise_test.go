@@ -41,7 +41,7 @@ func mustPlan(t *testing.T, text string) *Plan {
 func progress(p *Plan, accepted int, begun bool) []StageState {
 	m := &Mission{Plan: p}
 	at := time.Now()
-	for i := 0; i < accepted; i++ {
+	for i := range accepted {
 		m.Stages = append(m.Stages, StageRecord{Text: p.Steps[i].Text, N: i + 1, Of: len(p.Steps), Accepted: &at})
 	}
 	if begun {

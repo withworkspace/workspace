@@ -173,7 +173,7 @@ func (t *gitTree) grep(word string, suffixes []string) ([]Hit, error) {
 	}
 	var hits []Hit
 	prefix := t.rev + ":"
-	for _, line := range strings.Split(string(out), "\n") {
+	for line := range strings.SplitSeq(string(out), "\n") {
 		line = strings.TrimPrefix(line, prefix)
 		p, rest, ok := strings.Cut(line, ":")
 		if !ok {
@@ -227,7 +227,7 @@ func loadTree(r *repo, rev string) (*gitTree, error) {
 		return nil, fmt.Errorf("no commit %s here", short(rev))
 	}
 	t := &gitTree{repo: r, rev: rev, blobs: map[string]string{}, sizes: map[string]int64{}}
-	for _, rec := range strings.Split(string(out), "\x00") {
+	for rec := range strings.SplitSeq(string(out), "\x00") {
 		// <mode> SP <type> SP <object> SP+ <size> TAB <path>
 		meta, p, ok := strings.Cut(rec, "\t")
 		if !ok {

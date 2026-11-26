@@ -207,7 +207,7 @@ func (s Store) graph(tx *store.Tx, r *Review) error {
 		state = r.Verdict
 	}
 	me := s.key(r.ID)
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: "review", Title: "Review " + r.ID + " of " + r.Capsule, State: state, Changed: at, Stands: store.Stands{Standing: store.Passing}}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: "review", Title: "Review " + r.ID + " of " + r.Capsule, State: state, Changed: at, Standing: store.Passing}); err != nil {
 		return err
 	}
 	if err := tx.Words(o, store.Place{Thing: me, Kind: "review", Text: strings.TrimSpace(r.Summary), Said: at}); err != nil {

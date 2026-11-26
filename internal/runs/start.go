@@ -343,7 +343,7 @@ func pickPort(key string, taken map[int]bool) (int, error) {
 	h := fnv.New32a()
 	h.Write([]byte(key))
 	first := int(h.Sum32() % PortRange)
-	for i := 0; i < PortRange; i++ {
+	for i := range PortRange {
 		p := PortBase + (first+i)%PortRange
 		if !taken[p] && portFree(p) {
 			return p, nil

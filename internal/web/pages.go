@@ -376,7 +376,7 @@ func (s *Server) pageDetail(id string) (*PageDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := &PageDetail{PageInfo: PageInfo{ID: p.ID, Title: p.Title, Updated: p.Updated, Kind: p.Kind, Filed: p.Filed, Source: p.Source, To: p.To}, Text: string(text), Version: doc.Version(text), Cell: pageCells(s.Root, id)}
+	d := &PageDetail{ID: p.ID, Title: p.Title, Updated: p.Updated, Kind: p.Kind, Filed: p.Filed, Source: p.Source, To: p.To, Text: string(text), Version: doc.Version(text), Cell: pageCells(s.Root, id)}
 	d.Cells = len(d.Cell)
 	if p.Source != nil {
 		d.Tied = PageTiedOf(s.App.PageTied(id))

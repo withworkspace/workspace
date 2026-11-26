@@ -14,7 +14,7 @@ var everyAsk = regexp.MustCompile(`(?i)\b(every|each) ask`)
 // paragraph is the paragraph (or list) of a prompt that re matches in, or
 // "".
 func paragraph(p string, re *regexp.Regexp) string {
-	for _, para := range strings.Split(p, "\n\n") {
+	for para := range strings.SplitSeq(p, "\n\n") {
 		if re.MatchString(para) {
 			return para
 		}

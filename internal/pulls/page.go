@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -299,8 +300,7 @@ func (s *Service) read(repo string, number int) (*page, error) {
 		threads, threadsErr = s.GitHub.ReviewThreads(s.owner(repo), s.name(repo), number)
 	}()
 	go func() { defer saying.Done(); said, saidErr = s.GitHub.Discussion(s.owner(repo), s.name(repo), number) }()
-	wg.Add(1)
-	go func() { defer wg.Done(); body = s.body(pr) }()
+	wg.Go(func() { ; body = s.body(pr) })
 	l, err := s.layer(pr, st)
 	wg.Wait()
 	if !first {
@@ -462,9 +462,7 @@ func (s *Service) keepRead(repo string, number int, was, pg *page) {
 func (s *Service) persist(repo string, number int, pg *page) {
 	s.mu.Lock()
 	diffs := make(map[string]*Diffed, len(pg.Diffs))
-	for k, d := range pg.Diffs {
-		diffs[k] = d
-	}
+	maps.Copy(diffs, pg.Diffs)
 	s.mu.Unlock()
 	keepPage(s.Root, repo, number, pg, diffs)
 }
@@ -695,9 +693,7 @@ func (s *Service) keepSaid(repo string, number int, pg *page, change func(*page)
 	change(&x)
 	s.mu.Lock()
 	x.Diffs = make(map[string]*Diffed, len(pg.Diffs))
-	for k, d := range pg.Diffs {
-		x.Diffs[k] = d
-	}
+	maps.Copy(x.Diffs, pg.Diffs)
 	s.mu.Unlock()
 	s.keepRead(repo, number, pg, &x)
 }

@@ -75,15 +75,13 @@ func FetchPRs(ws *workspace.Workspace, gh github.Client, repos []string) PRIndex
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	for _, repo := range repos {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			r := repoPRs{open: indexPRs(gh.PRsForRepo(ws.RemoteOf(repo).Owner, ws.RemoteOf(repo).Name))}
 			r.merged = indexPRs(gh.MergedPRsForRepo(ws.RemoteOf(repo).Owner, ws.RemoteOf(repo).Name))
 			mu.Lock()
 			prs[repo] = r
 			mu.Unlock()
-		}()
+		})
 	}
 	wg.Wait()
 	return prs

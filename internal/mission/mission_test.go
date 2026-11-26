@@ -130,15 +130,13 @@ func TestUpdate_ConcurrentWritersDontLoseCapsules(t *testing.T) {
 	var wg sync.WaitGroup
 	errs := make(chan error, n)
 	for i := range n {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := s.Update(m.Slug, func(m *Mission) error {
 				m.AddCapsule("repo", fmt.Sprintf("cap-%d", i))
 				return nil
 			})
 			errs <- err
-		}()
+		})
 	}
 	wg.Wait()
 	close(errs)

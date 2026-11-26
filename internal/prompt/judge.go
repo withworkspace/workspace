@@ -120,7 +120,7 @@ var judgeLine = regexp.MustCompile(`(?i)^\s*(?:[-*]\s*)?(\d+)[.):]?\s*\**\s*(met
 func ReadVerdicts(said string, n int) []Verdict {
 	out := make([]Verdict, n)
 	at := -1
-	for _, line := range strings.Split(said, "\n") {
+	for line := range strings.SplitSeq(said, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "```") {
 			continue
 		}

@@ -17,7 +17,7 @@ import (
 func TestExpiry(t *testing.T) {
 	c := Config{ExpireAfter: 30 * 24 * time.Hour}
 	last := day
-	e := Entry{Place: Local, Artifact: Artifact{Status: Live, Made: day, Versions: []Version{{N: 1, At: last}}}}
+	e := Entry{Place: Local, Status: Live, Made: day, Versions: []Version{{N: 1, At: last}}}
 	at, ok := c.Expires(e)
 	if !ok || !at.Equal(last.Add(30*24*time.Hour)) {
 		t.Fatalf("expires %v %v", at, ok)
@@ -224,7 +224,7 @@ func TestBringHome(t *testing.T) {
 		}
 		db, _ := s.records()
 		if err := db.Write(ctx, func(tx *store.Tx) error {
-			return saveAs(tx, &kept{Entry: Entry{ID: "a" + string(rune('0'+n)), N: n, Place: "records", Folder: folder, Artifact: a}}, 10, "then")
+			return saveAs(tx, &kept{ID: "a" + string(rune('0'+n)), N: n, Place: "records", Folder: folder, Artifact: a}, 10, "then")
 		}); err != nil {
 			t.Fatal(err)
 		}

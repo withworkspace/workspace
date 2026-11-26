@@ -45,8 +45,8 @@ func (w *Workspace) Verifying(m *mission.Mission, crewID string) bool {
 // latest crew working on the mission in the capsule who aren't its
 // verifiers.
 func workCrew(m *mission.Mission, st mission.StageState, capsule string) (mission.Crew, bool) {
-	for i := len(m.Crew) - 1; i >= 0; i-- {
-		c := m.Crew[i]
+	for _, c := range slices.Backward(m.Crew) {
+
 		if c.Role != "" || c.Capsule != capsule || st.Record != nil && slices.Contains(st.Record.Crew, c.ID) {
 			continue
 		}
@@ -233,8 +233,8 @@ func (w *Workspace) sendBackVerify(m *mission.Mission, st mission.StageState, ro
 		}
 		writeUnmet(&t, r, "unmet")
 	}
-	for i := len(m.Bundles) - 1; i >= 0; i-- {
-		if b := m.Bundles[i]; b.Crew == round.Crew && b.Stage == st.Text {
+	for _, b := range slices.Backward(m.Bundles) {
+		if b.Crew == round.Crew && b.Stage == st.Text {
 			fmt.Fprintf(&t, "\n`ws show -f llm %s` has what the verifier saw, with its files.", b.ID)
 			break
 		}

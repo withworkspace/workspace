@@ -51,7 +51,7 @@ func newTeamServer(t *testing.T) (*Server, *int) {
 	gh := &github.Stub{ChangedPRsFn: func(org, repo string, since time.Time) ([]github.PRActivity, error) {
 		asks++
 		return []github.PRActivity{{
-			PR:      github.PR{Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", URL: "https://github.com/acme/api/pull/12", CreatedAt: "2026-11-08T09:00:00Z", MergedAt: "2026-11-09T09:00:00Z"},
+			Number: 12, Title: "feat: cache tokens", State: "MERGED", Author: "ana-acme", URL: "https://github.com/acme/api/pull/12", CreatedAt: "2026-11-08T09:00:00Z", MergedAt: "2026-11-09T09:00:00Z",
 			Reviews: []github.PRReview{{Author: "ben-acme", State: "APPROVED", SubmittedAt: "2026-11-08T15:00:00Z"}},
 		}}, nil
 	}}

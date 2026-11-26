@@ -318,9 +318,7 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	for range 8 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			res := do(t, s, "GET", "/api/workspace", true, nil)
 			var ws Workspace
 			json.NewDecoder(res.Body).Decode(&ws)
@@ -328,7 +326,7 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 			if len(ws.Missions) != 1 {
 				t.Errorf("a page was served %d missions", len(ws.Missions))
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	if n := built("workspace") - before; n != 1 {
@@ -346,9 +344,7 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 	before = built("mission:" + slug)
 	ms.AppendLog(slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
 	for range 4 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			res := do(t, s, "GET", "/api/missions/"+slug, true, nil)
 			var d MissionDetail
 			json.NewDecoder(res.Body).Decode(&d)
@@ -356,7 +352,7 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 			if d.Slug != slug {
 				t.Errorf("a page was served %q", d.Slug)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	if n := built("mission:"+slug) - before; n != 1 {

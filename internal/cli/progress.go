@@ -27,7 +27,6 @@ type repoEntry struct {
 	displayName string // formatted display name for UI
 	state       repoState
 	err         error
-	skipped     bool // for setup: repo already existed
 }
 
 // repoResultMsg is sent when an operation on a single repo completes.

@@ -346,7 +346,7 @@ func (w *Workspace) alignLandedGround(repo, base string, step func(string)) erro
 // because the remote's branch has commits this one hasn't: the one refusal
 // worth trying again.
 func pushBehind(out string) bool {
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if strings.HasPrefix(line, "!") && strings.Contains(line, "[rejected]") &&
 			(strings.Contains(line, "fetch first") || strings.Contains(line, "non-fast-forward")) {
 			return true

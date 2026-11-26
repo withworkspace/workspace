@@ -227,7 +227,7 @@ func TestConvert(t *testing.T) {
 		t.Errorf("an old one's v1: %d files, %d bytes, %v", files, size, ok)
 	}
 	// Its next version converts it first.
-	e, n, err := s.AddVersion(ctx, "a1", Revision{Files: site(), At: day, Version: Version{By: "you"}})
+	_, n, err := s.AddVersion(ctx, "a1", Revision{Files: site(), At: day, Version: Version{By: "you"}})
 	if err != nil || n != 3 {
 		t.Fatalf("v3 of an old one: %d %v", n, err)
 	}

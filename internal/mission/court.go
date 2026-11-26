@@ -658,8 +658,8 @@ func Resolve(s Snapshot) []Headline {
 			Text:   text + ": " + d.Text,
 			Action: Action{Verb: VerbLaunchNext, Label: "launch the queued crew"}})
 	}
-	for i := len(m.Crew) - 1; i >= 0; i-- {
-		c := m.Crew[i]
+	for _, c := range slices.Backward(m.Crew) {
+
 		if c.ResumeWith == "" || c.Done(m) {
 			continue
 		}
@@ -1386,8 +1386,8 @@ func (s Snapshot) checksUnmet() *Headline {
 // if it left one, else the gist of its report.
 func (s Snapshot) orchestratorSaid() string {
 	report, run := "", ""
-	for i := len(s.Events) - 1; i >= 0; i-- {
-		e := s.Events[i]
+	for _, e := range slices.Backward(s.Events) {
+
 		switch {
 		case e.Kind == EventOrchestrateRun:
 			return report // the run's start: no note in it
@@ -1473,7 +1473,7 @@ func firstNonEmpty(s, or string) string {
 // markdown's marks, skipping a lone "…" (where a long report was cut), cut
 // to max runes.
 func firstLine(s string, max int) string {
-	for _, l := range strings.Split(s, "\n") {
+	for l := range strings.SplitSeq(s, "\n") {
 		l = strings.NewReplacer("**", "", "__", "").Replace(l)
 		if l = strings.TrimSpace(strings.TrimLeft(l, "#*->⏺ ")); l != "" && l != "…" && l != "..." {
 			if r := []rune(l); len(r) > max {
