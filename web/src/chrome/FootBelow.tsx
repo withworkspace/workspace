@@ -14,9 +14,8 @@ type FootBelowProps = {
   onPress?: () => void;
 };
 
-// FootBelow is Below's toggle, at the foot's end before Beside's: the
-// two in the order their docks are in the window. Below holds runs, so
-// it's Runs: its icon, how many services are running, and a mark when
+// FootBelow is Below's toggle, at the foot's start after the sidebar's.
+// Below holds runs, so it's Runs: its icon, how many services are running, and a mark when
 // one has started since you last looked.
 export function FootBelow({ open, count = 0, fresh, onPress }: FootBelowProps) {
   const marked = !open && !!fresh;

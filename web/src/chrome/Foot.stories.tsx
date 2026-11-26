@@ -137,12 +137,12 @@ function WithDocks() {
       start={
         <>
           <FootSidebar shown count={0} />
+          <FootBelow open={below} count={3} fresh onPress={() => setBelow((o) => !o)} />
           <Going />
         </>
       }
       end={
         <>
-          <FootBelow open={below} count={3} fresh onPress={() => setBelow((o) => !o)} />
           <FootBeside open={beside} waiting={1} onPress={() => setBeside((o) => !o)} />
         </>
       }

@@ -28,7 +28,7 @@ export function BelowRunsStart({ groups, busy, onStart }: BelowRunsStartProps) {
   return (
     <Menu
       aria-label="Start a service"
-      placement="top end"
+      placement="top start"
       onAction={onStart}
       trigger={
         <Button size="small" disabled={!!busy} title="Start a service from ws.repo.toml">

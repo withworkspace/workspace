@@ -11,12 +11,13 @@ type BelowRunsHeadProps = {
   start?: ReactNode;
 };
 
-// BelowRunsHead is the line over Below's Runs: whose services are listed
-// and how many run, a way to start another of the place's, and the way
-// to all of them, on the Runs page.
+// BelowRunsHead is the line over Below's Runs: a way to start another of
+// the place's services, at its start; whose services are listed and how
+// many run; and the way to all of them, on the Runs page, at its end.
 export function BelowRunsHead({ of, count, start }: BelowRunsHeadProps) {
   return (
     <div className={css.head}>
+      {start}
       <span className={css.said}>
         {count === 0 ? "Nothing running" : `${count} running`}
         {of ? (
@@ -28,7 +29,6 @@ export function BelowRunsHead({ of, count, start }: BelowRunsHeadProps) {
           " in the workspace"
         )}
       </span>
-      {start}
       <Link to="/runs" className={css.all}>
         All runs
       </Link>
