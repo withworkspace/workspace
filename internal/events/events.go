@@ -18,7 +18,9 @@ package events
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -210,6 +212,10 @@ func init() {
 		-- for those, '' for what it did.
 		ALTER TABLE events ADD COLUMN origin TEXT NOT NULL DEFAULT '';
 		CREATE INDEX events_origin ON events (origin, n);
+	`), store.SQL(`
+		-- Where what's heard of was last heard to: a ground's head, as the
+		-- commits that landed on it were written.
+		CREATE TABLE events_heard (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
 	`))
 }
 
@@ -369,4 +375,23 @@ func ListIn(tx *store.Tx, f Filter) ([]Event, error) {
 		out[i], out[j] = out[j], out[i]
 	}
 	return out, nil
+}
+
+// HeardTo is where what's heard of under key was last heard to, in tx:
+// "" for never.
+func HeardTo(tx *store.Tx, key string) (string, error) {
+	var v string
+	err := tx.QueryRow(`SELECT value FROM events_heard WHERE key = ?`, key).Scan(&v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return v, err
+}
+
+// SetHeardTo says what's heard of under key has been heard to value, in
+// tx: written with the events it was heard as, so neither is without the
+// other.
+func SetHeardTo(tx *store.Tx, key, value string) error {
+	_, err := tx.Exec(`INSERT INTO events_heard (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`, key, value)
+	return err
 }

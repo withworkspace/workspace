@@ -460,7 +460,8 @@ var (
 
 // followGroundsLoop follows the repos' grounds until stop closes, and
 // logs what's changed: a ground moved, or one that couldn't be (said
-// once, until what stops it does).
+// once, until what stops it does). What landed on each is heard as
+// events (HearGrounds).
 func (d *daemon) followGroundsLoop(logf func(string, ...any), stop <-chan struct{}) {
 	t := time.NewTimer(followGroundsFirst)
 	defer t.Stop()
@@ -481,6 +482,15 @@ func (d *daemon) followGroundsLoop(logf func(string, ...any), stop <-chan struct
 				logf("grounds: %s couldn't be followed: %s", f.Repo, why)
 			}
 			said[f.Repo] = why
+		}
+		// What landed on them, whoever moved them (this follow, a lift, a
+		// landing), heard as events.
+		heard, err := d.w.HearGrounds(ctx)
+		if len(heard) > 0 {
+			logf("events: heard %d from the grounds", len(heard))
+		}
+		if err != nil {
+			logf("events: %v", err)
 		}
 		cancel()
 		t.Reset(followGroundsEvery)
