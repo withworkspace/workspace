@@ -10,7 +10,7 @@ const back = (x: Setting): SettingChange => (has(x.yours) ? { section: x.section
 
 // without is what a setting goes back to, reset.
 export const without = (s: Setting) =>
-  has(s.team) ? `the team's, ${valueSaid(s, s.team) || "none"}` : `the default, ${valueSaid(s, s.default) || (s.kind === "picks" ? "none" : s.kind === "color" ? "Workspace's own" : s.kind === "places" ? "as Workspace has them" : "the agent's own")}`;
+  has(s.team) ? `the team's, ${valueSaid(s, s.team) || "none"}` : `the default, ${valueSaid(s, s.default) || (s.kind === "picks" ? "none" : s.kind === "color" ? "Workspace Violet" : s.kind === "places" ? "as Workspace has them" : "the agent's own")}`;
 
 // useSetting is a setting's two writes: set (a value of yours) and reset
 // (yours taken away), each undone from its toast.

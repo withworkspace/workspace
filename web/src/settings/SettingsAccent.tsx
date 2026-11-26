@@ -43,7 +43,7 @@ export function SettingsAccent({ label, ours, accents, picked, hex, dark, pulled
   return (
     <div className={css.accent}>
       <div className={css.swatches} role="group" aria-label={`${label} presets`}>
-        <button type="button" className={css.swatch} style={swatch(ours)} aria-pressed={picked === ours} title="Default" aria-label="Default" onClick={onOurs} />
+        <button type="button" className={css.swatch} style={swatch(ours)} aria-pressed={picked === ours} title="Workspace Violet" aria-label="Workspace Violet" onClick={onOurs} />
         {accents.map(([a, name]) => (
           <button key={a} type="button" className={css.swatch} style={swatch(a)} aria-pressed={picked === a} title={name} aria-label={name} onClick={() => picked !== a && onPick(a)} />
         ))}
