@@ -1,0 +1,49 @@
+/* Whether a pull request can go in (ReviewHealth.tsx): its checks and its
+   conflicts, an icon each, in a pill as tall as the repo's tag. */
+
+.health {
+  flex: none;
+  border-radius: 999px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.health:hover .pill {
+  background: var(--hover);
+}
+
+.mark {
+  display: block;
+  flex: none;
+  color: var(--tone);
+}
+
+.sep {
+  width: 1px;
+  height: 10px;
+  background: var(--line);
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+}
+
+.said {
+  display: grid;
+  gap: 2px;
+}
+
+.why {
+  padding-left: 22px;
+}

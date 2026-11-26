@@ -1,0 +1,15 @@
+/* What a change goes into, when it isn't the default (ReviewBase.tsx). */
+
+.base {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.base > :last-child {
+  color: var(--fg);
+}

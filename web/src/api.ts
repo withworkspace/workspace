@@ -1661,6 +1661,8 @@ export interface PR {
   deletions: number;
   files: number;
   checks?: "success" | "failure" | "pending";
+  // Whether it merges cleanly into its base: unknown ("") until GitHub says.
+  merges?: "clean" | "conflicts";
   decision?: string;
   created?: string;
   updated?: string;

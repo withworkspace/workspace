@@ -1,7 +1,10 @@
-/* A pull request's review (PRReview.tsx): what's only for a wide window. */
+/* A pull request's review (PRReview.tsx): lines added and taken away, in
+   its card. */
 
-@media (max-width: 860px) {
-  .desktopOnly {
-    display: none !important;
-  }
+.plus {
+  color: var(--green);
+}
+
+.minus {
+  color: var(--red);
 }

@@ -51,7 +51,13 @@ export interface Selection {
 export interface ReviewSource {
   api: string; // where its diff, files and reviews are read and written
   title: string; // the page's
-  name: React.ReactNode; // what it is, in the header
+  // Its bar: where it stands (ReviewStand), its name, and after it what's
+  // said of it (what it's in, who by: about) and whether it can go in
+  // (health), which come either side of how many commits it's of.
+  stand?: React.ReactNode;
+  name: React.ReactNode;
+  about?: React.ReactNode;
+  health?: React.ReactNode;
   back: { to: string; label: string };
   // headNow is where it is now: a diff of an earlier commit offers to
   // reload. updated changes when its reviews may have, to read them again.
@@ -73,8 +79,12 @@ export interface ReviewSource {
   // readOnly is why comments can't be made here, when they can't.
   readOnly?: string;
   side?: React.ReactNode; // above the list of files
-  actions?: React.ReactNode; // in the header
-  notices?: React.ReactNode; // under it
+  // At the bar's end, before where else it opens: what else is done to it.
+  actions?: React.ReactNode;
+  // Where else it opens, as MenuItems in the bar's Open menu (GitHub,
+  // docked here): browse comes last there, where it has files to browse.
+  opens?: React.ReactNode;
+  notices?: React.ReactNode; // under the bar
   // views are what's read beside the changes (a pull request's
   // description, its guide, what's been said on it, its passes), each a
   // view of its own above the changes in the list down the side, in the

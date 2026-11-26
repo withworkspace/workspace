@@ -5,14 +5,15 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   margin: 12px 0;
-  scroll-margin-top: 0;
+  /* Under what stays at the pane's top (ReviewLayout's --review-stick). */
+  scroll-margin-top: var(--review-stick, 0px);
   background: var(--raised);
   box-shadow: var(--shadow-xs);
 }
 
 .head {
   position: sticky;
-  top: 0;
+  top: var(--review-stick, 0px);
   z-index: 1;
   display: flex;
   align-items: center;

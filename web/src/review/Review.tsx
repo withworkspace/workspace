@@ -1,4 +1,4 @@
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { capsuleAPI, getDiff, submitReview } from "../api";
 import { Callout } from "../ui/Callout";
 import { GuideMark } from "../reviews/GuideMark";
@@ -14,6 +14,13 @@ import { ReviewView } from "./ReviewView";
 import type { ReviewSource } from "./source";
 import { verdictWords } from "./words";
 import { Text } from "../ui/Text";
+import { hoverCardLinkClass } from "../ui/HoverCard";
+import { Icon } from "../ui/Icon";
+import { headlineStatus } from "../ui/statusOf";
+import { ReviewFact } from "./ReviewFact";
+import { ReviewFacts } from "./ReviewFacts";
+import { ReviewRepo } from "./ReviewRepo";
+import { ReviewStand } from "./ReviewStand";
 
 // The review page's keys, and how a file's lines are coloured, are asked
 // for by this page's name.
@@ -28,6 +35,7 @@ export function Review() {
   const rp = useReviewPasses(api);
   const mission = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
   const current = mission?.capsules.find((c) => c.repo === repo && c.name === name);
+  const defaultBranch = useWorkspace((w) => w.defaultBranch) || "main";
   if (!mission || !current) {
     return (
       <div className="page">
@@ -41,11 +49,26 @@ export function Review() {
   const source: ReviewSource = {
     api,
     title: `Review ${repo}/${name}`,
-    name: (
-      <Text mono>
-        {repo}/{name}
-      </Text>
+    // Where its mission stands, its name, and the repo it's in. Said in
+    // the card: its branch, and the mission it's for.
+    stand: (
+      <ReviewStand s={headlineStatus(mission.headline)}>
+        <ReviewFacts>
+          {current.branch && (
+            <ReviewFact term="Branch">
+              <Text mono>{current.branch}</Text> <Icon name="arrow-right" size={11} /> <Text mono>{defaultBranch}</Text>
+            </ReviewFact>
+          )}
+          <ReviewFact term="Mission">
+            <Link to={`/missions/${slug}`} className={hoverCardLinkClass()}>
+              {mission.title}
+            </Link>
+          </ReviewFact>
+        </ReviewFacts>
+      </ReviewStand>
     ),
+    name: <Text mono>{name}</Text>,
+    about: <ReviewRepo repo={repo} />,
     back: { to: `/missions/${slug}`, label: mission.title },
     headNow: current.head,
     updated: `${mission.updated}:${rp.took}`,

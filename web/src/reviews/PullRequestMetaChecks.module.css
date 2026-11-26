@@ -1,7 +1,0 @@
-/* A pull request's checks, as a mark and in words (PullRequestMetaChecks.tsx). */
-
-.checks {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}

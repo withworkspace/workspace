@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   addNote,
   deleteNote,
@@ -20,13 +20,13 @@ import { type KeyMap, useKeys } from "../keys";
 import { useLatest } from "../load";
 import { usePref } from "../prefs";
 import { Banner } from "../ui/Banner";
-import { Button, buttonClass } from "../ui/Button";
+import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
 import type { DiffPick } from "../ui/diffLayout";
 import { Icon, type IconName } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { Loading } from "../ui/Loading";
-import { Segment, Segmented } from "../ui/Segmented";
+import { MenuItem, MenuText } from "../ui/Menu";
 import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useMedia } from "../ui/useMedia";
@@ -39,15 +39,16 @@ import type { FindingAct } from "./findings";
 import { groupByOrder, orderFiles } from "./files";
 import { useHighlighter } from "./highlight";
 import { type Editing, type FileState, fileRows, type Found, isChange, isHead, navigable, type Placed, type Row, sameLine, type Target } from "./model";
-import { ReviewCommits } from "./ReviewCommits";
+import { ReviewBar } from "./ReviewBar";
+import { ReviewChangesBar } from "./ReviewChangesBar";
+import { ReviewCommitCount } from "./ReviewCommitCount";
 import { ReviewEarlier } from "./ReviewEarlier";
 import { ReviewFileJump } from "./ReviewFileJump";
 import { ReviewGuideGroup } from "./ReviewGuideGroup";
-import { ReviewHead } from "./ReviewHead";
 import { ReviewLayout } from "./ReviewLayout";
 import { ReviewOrphanPath } from "./ReviewOrphanPath";
 import { ReviewOrphans } from "./ReviewOrphans";
-import { ReviewScope } from "./ReviewScope";
+import { ReviewOpenMenu } from "./ReviewOpenMenu";
 import { ReviewStatus } from "./ReviewStatus";
 import { ReviewTabs } from "./ReviewTabs";
 import { ReviewViewBody } from "./ReviewViewBody";
@@ -784,42 +785,34 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     return { key: p.key, ...viewNames[p.key], n: i + 1, mark: p.mark, count: p.count, news: kept !== undefined && view !== p.key ? p.news?.(kept) : undefined };
   });
 
-  const scopeLine = diff && (
-    <ReviewScope
-      since={sinceShown ? { name: sinceName, title: diff.since ? `Changes since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file compared with your review (${sinceName})` } : undefined}
-      commits={diff.commits.length}
-      base={diff.since ? undefined : diff.baseRef}
-      additions={totals.a}
-      deletions={totals.d}
-    />
+  // The review's bar: where it stands, its name, what's said of it (what
+  // it's in, who by), how many commits it's of, whether it can go in; at
+  // its end, what's done to it, where else it opens, and submitting.
+  const about = (
+    <>
+      {source.about}
+      {diff && diff.commits.length > 0 && <ReviewCommitCount commits={diff.commits} since={sinceShown && !diff.rebased} />}
+      {source.health}
+    </>
   );
   const actions = (
     <>
-      {changes && diff && sinceable !== undefined && (
-        <Button variant="ghost" size="small" onClick={toggleSince} title="Since last review / all changes" keys="i">
-          {sinceShown ? "Show all changes" : `Only since ${sinceName}`} <Keys k="i" />
-        </Button>
-      )}
       {source.actions}
-      {source.browse && (
-        <Link to={source.browse} className={buttonClass({ size: "small" }, css.desktopOnly)} title="Browse current files">
-          <Icon name="file" size={12} /> Browse files
-        </Link>
+      {(source.opens || source.browse) && (
+        <ReviewOpenMenu>
+          {source.opens}
+          {source.browse && (
+            <MenuItem id="browse" textValue="Browse files" onAction={() => navigate(source.browse!)}>
+              <Icon name="file" size={13} />
+              <MenuText>Browse files</MenuText>
+            </MenuItem>
+          )}
+        </ReviewOpenMenu>
       )}
       <Button variant="ghost" size="small" className={css.mobileOnly} onClick={() => setFinder(true)} title="Jump to a file" keys="t">
         <Icon name="file" size={13} /> Files
       </Button>
-      {changes && (
-        <Segmented className={css.desktopOnly} value={split ? "split" : "unified"} onChange={toggleSplit} aria-label="Diff layout">
-          <Segment value="unified" title="Unified" keys="u">
-            <Icon name="unified" size={13} /> Unified
-          </Segment>
-          <Segment value="split" title="Side by side" keys="u">
-            <Icon name="split" size={13} /> Split
-          </Segment>
-        </Segmented>
-      )}
-      <Button variant="primary" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys="s">
+      <Button variant="primary" size="small" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys="s">
         {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
       </Button>
     </>
@@ -828,6 +821,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   return (
     <ReviewLayout
       width={filesWidth}
+      back={source.back}
       side={
         <>
           {source.side}
@@ -889,8 +883,16 @@ export function ReviewView({ source }: { source: ReviewSource }) {
         </>
       }
     >
-      <ReviewHead back={source.back} name={source.name} scope={scopeLine} actions={actions} />
+      <ReviewBar back={source.back} stand={source.stand} name={source.name} about={about} actions={actions} />
       {entries.length > 0 && <ReviewTabs views={[...entries, { key: "changes", ...viewNames.changes, n: viewKeys.length }]} here={view} onPick={(k) => show(k as ViewKey)} />}
+      {changes && diff && (
+        <ReviewChangesBar
+          scope={sinceable !== undefined ? { since: scope === "auto", sinceName, onChange: (on) => setScope(on ? "auto" : "all") } : undefined}
+          additions={totals.a}
+          deletions={totals.d}
+          split={{ on: split, onChange: (on) => on !== split && toggleSplit() }}
+        />
+      )}
       {submitted && source.submitted(submitted.review, submitted.state)}
       {source.notices}
       {changes && scopeNote && (
@@ -938,7 +940,6 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           </Callout>
         )}
         {!diff && !error && <Loading what="Loading changes…" />}
-        {diff && diff.commits.length > 0 && <ReviewCommits commits={diff.commits} />}
         {rs.reviews.length > 0 && <ReviewEarlier reviews={rs.reviews} />}
         {diff && !files.length && <Text as="p" dim>{source.empty}</Text>}
         {files.map((f, i) => (

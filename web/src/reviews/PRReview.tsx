@@ -36,9 +36,7 @@ import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
-import { keyProps } from "../ui/keyHint";
 import { confirm } from "../ui/Confirm";
-import { Status } from "../ui/Status";
 import { Time } from "../ui/Time";
 import { GuideMark } from "./GuideMark";
 import { GuideSection } from "./GuideSection";
@@ -52,18 +50,24 @@ import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
 import { LayerList } from "./LayerList";
 import { PRSubmitDialog } from "./PRSubmitDialog";
-import { PullRequestMeta, pullRequestMetaChipClass, pullRequestMetaCodeClass } from "./PullRequestMeta";
-import { PullRequestMetaChecks } from "./PullRequestMetaChecks";
+import { chipClass } from "../ui/Chip";
+import { ReviewBase } from "../review/ReviewBase";
+import { ReviewBy } from "../review/ReviewBy";
+import { ReviewFact } from "../review/ReviewFact";
+import { ReviewFacts } from "../review/ReviewFacts";
+import { ReviewHealth } from "../review/ReviewHealth";
+import { ReviewRepo } from "../review/ReviewRepo";
+import { ReviewStand } from "../review/ReviewStand";
+import { MenuItem, MenuText } from "../ui/Menu";
 import { PullRequestName } from "./PullRequestName";
 import { PullRequestReviewer } from "./PullRequestReviewer";
 import css from "./PRReview.module.css";
 import { prHref, prStatus, reviewed } from "./Reviews";
 import { useLatest } from "../load";
-import { PagePin } from "../shell/PagePin";
 import { Button, buttonClass } from "../ui/Button";
 import { clip, humanError } from "../ui/strings";
 import { useWorkspace } from "../workspace/store";
-import { Text, textClass } from "../ui/Text";
+import { Text } from "../ui/Text";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -101,6 +105,7 @@ interface Shown {
 
 export function PRReviewPage() {
   const conversations = useWorkspace((w) => w.conversations);
+  const defaultBranch = useWorkspace((w) => w.defaultBranch) || "main";
   // The address says what's asked for; what's shown follows it once it's
   // been read. Moving to another layer, or to the whole stack and back,
   // keeps this one on screen until the next can be shown whole, then
@@ -392,7 +397,7 @@ export function PRReviewPage() {
   const source: ReviewSource = {
     api,
     title: `${pr.title} · ${ref}`,
-    name: <PullRequestName title={whole && d.stack ? d.stack.title : pr.title} at={ref} layer={d.stack && d.layer ? { n: d.layer, of: layers.length } : undefined} whole={whole && d.stack ? { layers: layers.length } : undefined} />,
+    name: <PullRequestName title={whole && d.stack ? d.stack.title : pr.title} layer={d.stack && d.layer ? { n: d.layer, of: layers.length } : undefined} whole={whole && d.stack ? { layers: layers.length } : undefined} />,
     back: { to: "/reviews", label: "Reviews" },
     headNow: whole ? undefined : d.head,
     updated: `${d.head}:${d.reviewed?.id ?? ""}:${took}`,
@@ -406,65 +411,95 @@ export function PRReviewPage() {
     opened: shown.opened,
     readOnly: whole ? "Whole stack is read-only: comment on a layer ([ and ] switch layers)." : undefined,
     side: d.stack ? <LayerList d={d} whole={whole} going={going} search={viewQ} onWhole={toggleWhole} /> : undefined,
-    actions: (
+    // Where it stands, said in a card: its branch, when it last moved,
+    // its size, who's reviewed it, and what else in ws is about it.
+    stand: whole ? undefined : (
+      <ReviewStand s={prStatus(pr)}>
+        <ReviewFacts>
+          <ReviewFact term="Branch">
+            <Text mono>{pr.branch}</Text> <Icon name="arrow-right" size={11} /> <Text mono>{pr.base}</Text>
+          </ReviewFact>
+          {pr.updated && (
+            <ReviewFact term="Updated">
+              <Time iso={pr.updated} as="relative" />
+            </ReviewFact>
+          )}
+          <ReviewFact term="Size">
+            {pr.files} {pr.files === 1 ? "file" : "files"} · <Text className={css.plus}>+{pr.additions}</Text> <Text className={css.minus}>−{pr.deletions}</Text>
+          </ReviewFact>
+          {!!discussion?.reviewers.length && (
+            <ReviewFact term="Reviewers">
+              {discussion.reviewers.map((r) => (
+                <PullRequestReviewer key={r.login} login={r.login} kind={r.kind} stale={r.stale} />
+              ))}
+            </ReviewFact>
+          )}
+          {!threads && !threadsError && (
+            <ReviewFact term="Comments">
+              <Spinner size={12} /> Reading them from GitHub…
+            </ReviewFact>
+          )}
+          {(pr.mission || d.docked || talks.length > 0) && (
+            <ReviewFact term="Also">
+              {pr.mission && (
+                <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet")}>
+                  <Icon name="flag" size={11} /> {pr.mission.title}
+                </Link>
+              )}
+              {d.docked && (
+                <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={chipClass("quiet")} title={d.docked.by === "ws" ? "Checked out for a question. Removed when this merges or closes, unless you edit it." : "Browse files"}>
+                  <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
+                </Link>
+              )}
+              {talks.map((t) => (
+                <Link key={t.id} to={`/conversations/${t.id}`} className={chipClass(t.waiting && t.status === "open" ? "attention" : "quiet")} title={t.title || t.opening}>
+                  {t.answering ? <Spinner size={11} /> : <Icon name="message" size={11} />}
+                  {t.answering ? "Answering" : t.waiting && t.status === "open" ? "Answered" : t.status === "resolved" ? "Resolved" : "Asked"}: {clip(t.title || t.opening, 48)}
+                </Link>
+              ))}
+            </ReviewFact>
+          )}
+        </ReviewFacts>
+      </ReviewStand>
+    ),
+    // What it's in, who by, and what it goes into where that isn't the
+    // repo's default branch (a stack's layer goes into the one below).
+    about: (
       <>
-        <PagePin r={{ kind: "pr", repo: pr.repo, number: pr.number }} />
-        <Button
-          variant="ghost" size="small"
-          className={css.desktopOnly}
-          onClick={dock}
-          disabled={docking}
-          unavailable={pr.fork ? "Cannot open forks here" : undefined}
-          title={d.docked?.by === "you" ? `Checked out in ${pr.repo}/${d.docked.capsule}` : "Check out here to run yourself"}
-          keys="O"
-        >
-          <Icon name="box" size={13} /> {docking ? "Opening…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
+        <ReviewRepo repo={pr.repo} />
+        {!whole && <ReviewBy name={pr.mine ? "you" : pr.author} />}
+        {!whole && pr.base !== defaultBranch && <ReviewBase base={pr.base} />}
+      </>
+    ),
+    health: whole ? undefined : <ReviewHealth checks={pr.checks} merges={pr.merges} base={pr.base} author={pr.mine ? "you" : pr.author} />,
+    actions:
+      !whole && pr.asked === "you" && pr.state === "needs-review" ? (
+        <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="Remove me from reviewers on GitHub">
+          {declining ? "Removing…" : "Not mine"}
         </Button>
-        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" {...keyProps("o", "Open on GitHub")}>
-          <Icon name="external" size={12} /> GitHub
-        </a>
+      ) : undefined,
+    opens: (
+      <>
+        <MenuItem id="github" textValue="Open on GitHub" keys="o" onAction={() => window.open(pr.url, "_blank", "noopener")}>
+          <Icon name="external" size={13} />
+          <MenuText>Open on GitHub</MenuText>
+        </MenuItem>
+        {d.docked?.by === "you" ? (
+          <MenuItem id="docked" textValue={`Docked in ${d.docked.capsule}`} onAction={() => navigate(`/files/${pr.repo}/${d.docked!.capsule}`)}>
+            <Icon name="box" size={13} />
+            <MenuText>Docked in {d.docked.capsule}</MenuText>
+          </MenuItem>
+        ) : (
+          <MenuItem id="dock" textValue="Dock in workspace" keys="O" onAction={dock}>
+            <Icon name="box" size={13} />
+            <MenuText>{docking ? "Docking…" : pr.fork ? "Dock in workspace (not a fork)" : "Dock in workspace"}</MenuText>
+          </MenuItem>
+        )}
       </>
     ),
     notices: (
       <>
         {!whole && d.unsent && <PullRequestUnsent unsent={d.unsent} busy={settling} onResend={(u) => settle(u, resendPR)} onDiscard={(u) => settle(u, discardPR)} />}
-        <PullRequestMeta>
-          {!whole && <Status s={prStatus(pr)} />}
-          {!whole && pr.asked === "you" && pr.state === "needs-review" && (
-            <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="Remove me from reviewers on GitHub">
-              {declining ? "Removing…" : "Not mine"}
-            </Button>
-          )}
-          <span>
-            {pr.mine ? "Yours" : pr.author} · <Text mono className={pullRequestMetaCodeClass}>{pr.branch}</Text> <Icon name="arrow-right" size={11} />{" "}
-            <Text mono className={pullRequestMetaCodeClass}>{whole && d.stack ? d.stack.base : pr.base}</Text>
-          </span>
-          {pr.checks && !whole && <PullRequestMetaChecks checks={pr.checks} />}
-          {!whole &&
-            discussion?.reviewers.map((r) => <PullRequestReviewer key={r.login} login={r.login} kind={r.kind} stale={r.stale} />)}
-          {pr.updated && <Time iso={pr.updated} as="relative" className={textClass("dim")} />}
-          {!whole && !threads && !threadsError && (
-            <Text dim title="Comments still loading">
-              <Spinner size={12} /> Loading comments…
-            </Text>
-          )}
-          {pr.mission && (
-            <Link to={`/missions/${pr.mission.slug}`} className={pullRequestMetaChipClass("quiet")}>
-              <Icon name="flag" size={11} /> {pr.mission.title}
-            </Link>
-          )}
-          {d.docked && (
-            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={pullRequestMetaChipClass("quiet")} title={d.docked.by === "ws" ? "Checked out for a question. Removed when this merges or closes, unless you edit it." : "Browse files"}>
-              <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
-            </Link>
-          )}
-          {talks.map((t) => (
-            <Link key={t.id} to={`/conversations/${t.id}`} className={pullRequestMetaChipClass(t.waiting && t.status === "open" ? "attention" : "quiet")} title={t.title || t.opening}>
-              {t.answering ? <Spinner size={11} /> : <Icon name="message" size={11} />}
-              {t.answering ? "Answering" : t.waiting && t.status === "open" ? "Answered" : t.status === "resolved" ? "Resolved" : "Asked"}: {clip(t.title || t.opening, 48)}
-            </Link>
-          ))}
-        </PullRequestMeta>
         {d.needsRebase && (
           <Callout tone="attention" title="This layer needs a rebase">
             The layer below has new commits. Changes shown against the layer below as of this push.

@@ -1,18 +1,18 @@
-/* What a review is of, said over the changes (ReviewStatus.tsx):
-   re-reviewing, or rebased since. */
+/* What a review is of, said once under the changes' bar (ReviewStatus.tsx):
+   re-reviewing, or rebased since. A quiet line: the bar's switch is what
+   says which. */
 
 .status {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  background: var(--panel);
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 0 4px;
   color: var(--dim);
   font-size: var(--text-sm);
 }
 
 .icon {
-  margin-top: 2px;
+  position: relative;
+  top: 2px;
+  flex: none;
 }
