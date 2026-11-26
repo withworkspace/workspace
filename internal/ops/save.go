@@ -132,7 +132,7 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 			body += " Merged with the changes made to it while it was being edited."
 		}
 		if cmd, err := git.Combined(place.CapsuleDir, "commit", "-q", "-m", subject, "-m", body, "--", place.Rel); err != nil {
-			os.WriteFile(place.File, now, info.Mode().Perm()) // as it was
+			_ = os.WriteFile(place.File, now, info.Mode().Perm()) // as it was
 			return nil, fmt.Errorf("committing it in %s: %v: %s", place.Capsule, err, clipString(cmd, 300))
 		}
 		saved.Commit, _ = git.Line(place.CapsuleDir, "rev-parse", "HEAD")

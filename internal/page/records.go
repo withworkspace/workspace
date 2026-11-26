@@ -120,7 +120,7 @@ func scanKept(sc interface{ Scan(...any) error }) (*kept, error) {
 	if err := sc.Scan(&k.id, &k.n, &k.title, &k.version, &k.size, &k.changed, &k.removed, &meta); err != nil {
 		return nil, err
 	}
-	json.Unmarshal([]byte(meta), &k.meta) // what can't be read is as nothing kept
+	_ = json.Unmarshal([]byte(meta), &k.meta) // what can't be read is as nothing kept
 	return &k, nil
 }
 
@@ -541,7 +541,7 @@ func (s Store) Remove(id string) error {
 		return tx.Forget(origin(id))
 	})
 	if err != nil && moved {
-		os.Rename(s.Path(id)+".removed", s.Path(id)) // its row still lists it
+		_ = os.Rename(s.Path(id)+".removed", s.Path(id)) // its row still lists it
 	}
 	return err
 }

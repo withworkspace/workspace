@@ -72,7 +72,9 @@ func SetupWorkspace(t *testing.T, opts WorkspaceOpts) *Workspace {
 
 	// Create repos dir
 	reposDir := filepath.Join(root, "repos")
-	os.MkdirAll(reposDir, 0755)
+	if err := os.MkdirAll(reposDir, 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, repo := range opts.Repos {
 		// The source repo acts as the "remote".
@@ -121,7 +123,9 @@ func writeWSToml(t *testing.T, root string, opts WorkspaceOpts) {
 	// write a pull request.
 	b.WriteString("[pr_writer]\nharness = \"fake-converse\"\n\n")
 
-	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(b.String()), 0644)
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte(b.String()), 0644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func quotedList(items []string) string {
@@ -137,7 +141,9 @@ func initRepo(t *testing.T, dir, defaultBranch string) {
 	GitCmd(t, dir, "init", "--initial-branch="+defaultBranch)
 	GitCmd(t, dir, "config", "user.email", "test@test.com")
 	GitCmd(t, dir, "config", "user.name", "Test")
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("hello"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	GitCmd(t, dir, "add", ".")
 	GitCmd(t, dir, "commit", "-m", "initial")
 }

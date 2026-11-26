@@ -189,7 +189,7 @@ func scanKept(sc interface{ Scan(...any) error }) (*kept, error) {
 	if err := sc.Scan(&k.ID, &k.N, &k.Place, &k.Folder, &k.size, &k.changed, &record); err != nil {
 		return nil, err
 	}
-	json.Unmarshal([]byte(record), &k.Artifact) // what can't be read is as nothing kept
+	_ = json.Unmarshal([]byte(record), &k.Artifact) // what can't be read is as nothing kept
 	if k.Status == "" {
 		k.Status = Live
 	}
@@ -916,7 +916,7 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 		if _, err := writeRecord(dir, a); err != nil {
 			return err
 		}
-		undo := func() { os.WriteFile(filepath.Join(dir, RecordFile), was, 0o644) }
+		undo := func() { _ = os.WriteFile(filepath.Join(dir, RecordFile), was, 0o644) } // undoing: the error that called for it is the one returned
 		to := filepath.Join(s.DiscardedDir(), k.Folder)
 		if err := os.MkdirAll(s.DiscardedDir(), 0o755); err != nil {
 			undo()
@@ -936,7 +936,7 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 			err = saveIn(tx, k, info)
 		}
 		if err != nil {
-			os.Rename(to, dir) // its row still lists it
+			_ = os.Rename(to, dir) // its row still lists it
 			undo()
 			return err
 		}

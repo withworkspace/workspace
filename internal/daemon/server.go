@@ -139,7 +139,9 @@ func (s *Server) Listen() error {
 		return fmt.Errorf("a daemon is already listening on %s", path)
 	}
 	os.Remove(path) // stale socket from a server that died
-	os.MkdirAll(dirOf(path), 0o755)
+	if err := os.MkdirAll(dirOf(path), 0o755); err != nil {
+		return err
+	}
 	ln, err := net.Listen("unix", path)
 	if err != nil {
 		return err

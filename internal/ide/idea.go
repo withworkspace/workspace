@@ -22,7 +22,9 @@ func GenerateIDEA(root string, boarded map[string][]string, remote func(repo str
 	}
 
 	modulesDir := filepath.Join(ideaDir, "modules")
-	os.MkdirAll(modulesDir, 0755)
+	if err := os.MkdirAll(modulesDir, 0755); err != nil {
+		return err
+	}
 
 	// Sort repos for deterministic output
 	repos := make([]string, 0, len(boarded))

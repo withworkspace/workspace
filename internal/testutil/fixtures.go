@@ -63,7 +63,9 @@ func Subjects(t *testing.T, dir, rev string) string {
 func CommitIn(t *testing.T, dir, path, text, subject string) {
 	t.Helper()
 	full := filepath.Join(dir, path)
-	os.MkdirAll(filepath.Dir(full), 0o755)
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(full, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}

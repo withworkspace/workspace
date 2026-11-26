@@ -40,7 +40,7 @@ It never fails, so a hook can't get in the agent's way.`,
 				return nil // not crew ws launched
 			}
 			var payload map[string]any
-			json.Unmarshal(data, &payload)
+			_ = json.Unmarshal(data, &payload) // a payload that isn't JSON is as none: a hook never stops crew
 			store := mission.Store{Root: root}
 			c := crewRecord(store, slug, crewID)
 			h, ok := hookFromEvent(args[0], payload, c.Harness, func() *harness.Found { return processCheck(slug, c) })
@@ -153,7 +153,7 @@ func hookFromEvent(event string, p map[string]any, harnessName string, check fun
 func askedQuestion(p map[string]any) (string, []string) {
 	input, _ := p["tool_input"].(map[string]any)
 	if raw, ok := p["tool_input"].(string); ok { // sent as JSON text
-		json.Unmarshal([]byte(raw), &input)
+		_ = json.Unmarshal([]byte(raw), &input) // text that isn't JSON is as no questions
 	}
 	qs, _ := input["questions"].([]any)
 	if len(qs) == 0 {

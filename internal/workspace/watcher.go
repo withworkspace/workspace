@@ -536,7 +536,9 @@ func (sw *SiloWatcher) flushPending(repo string) {
 	}
 	// The manifest has what the silo was given, so a file that came this
 	// way goes when it's pointed at a capsule without it.
-	noteSynced(siloDir, added, removed)
+	if err := noteSynced(siloDir, added, removed); err != nil {
+		sw.log.Printf("silos: %s: noting what was synced: %v", repo, err)
+	}
 	var err error
 	if len(failed) > 0 {
 		sort.Strings(failed)

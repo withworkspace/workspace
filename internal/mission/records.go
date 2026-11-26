@@ -203,7 +203,7 @@ func (s Store) Past() ([]Past, error) {
 			}
 			p.Created, p.Changed, p.Ended = timeOf(created), timeOf(changed), timeOf(ended)
 			if capsules != "" {
-				json.Unmarshal([]byte(capsules), &p.Capsules)
+				_ = json.Unmarshal([]byte(capsules), &p.Capsules) // what can't be read is as none
 			}
 			out = append(out, p)
 		}

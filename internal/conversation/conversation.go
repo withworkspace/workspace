@@ -1262,7 +1262,7 @@ func (s Store) SetSummary(id, title, summary string, at time.Time) error {
 func (s Store) RunFile(id string) string { return filepath.Join(s.dir(), id+".run") }
 
 func (s Store) RunPath(id string) string {
-	os.MkdirAll(s.dir(), 0o755)
+	_ = os.MkdirAll(s.dir(), 0o755) // writing the run says if its folder can't be made
 	return filepath.Join(s.dir(), id+".run")
 }
 
@@ -1285,7 +1285,9 @@ func (s Store) SetGuideGiven(id string, g GuideGiven) error {
 	if err != nil {
 		return err
 	}
-	os.MkdirAll(s.dir(), 0o755)
+	if err := os.MkdirAll(s.dir(), 0o755); err != nil {
+		return err
+	}
 	return os.WriteFile(s.givenPath(id), data, 0o644)
 }
 

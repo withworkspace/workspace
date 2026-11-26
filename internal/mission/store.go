@@ -195,7 +195,7 @@ func ensureExcluded(root string) {
 	if !ok {
 		return
 	}
-	os.MkdirAll(filepath.Dir(path), 0o755)
+	_ = os.MkdirAll(filepath.Dir(path), 0o755) // opening the file says if it can't be made
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return
@@ -683,7 +683,7 @@ func (s Store) Rename(old, slug string) error {
 		return s.appendLog(tx, slug, event(Event{Kind: EventState, Text: "renamed from " + old}))
 	})
 	if err != nil {
-		os.Rename(s.missionDir(slug), s.missionDir(old)) // as it was
+		_ = os.Rename(s.missionDir(slug), s.missionDir(old)) // as it was
 		return err
 	}
 	return nil

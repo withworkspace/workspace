@@ -85,8 +85,11 @@ func FullSync(srcDir, dstDir string) (int, error) {
 		}
 	}
 
-	// Write manifest with successfully synced files
-	writeManifest(dstDir, synced)
+	// Write manifest with successfully synced files. Without it, what was
+	// synced isn't taken away when the silo's pointed elsewhere.
+	if err := writeManifest(dstDir, synced); err != nil {
+		return changed, fmt.Errorf("noting what was synced: %w", err)
+	}
 
 	if len(errs) > 0 {
 		return changed, fmt.Errorf("failed to sync %d file(s): %s", len(errs), strings.Join(errs, ", "))
@@ -109,9 +112,9 @@ func readManifest(siloDir string) []string {
 
 // noteSynced adds files to the manifest of what siloDir was given, and
 // takes gone ones from it.
-func noteSynced(siloDir string, added, gone []string) {
+func noteSynced(siloDir string, added, gone []string) error {
 	if len(added) == 0 && len(gone) == 0 {
-		return
+		return nil
 	}
 	set := map[string]bool{}
 	for _, f := range readManifest(siloDir) {
@@ -127,15 +130,15 @@ func noteSynced(siloDir string, added, gone []string) {
 	for f := range set {
 		files = append(files, f)
 	}
-	writeManifest(siloDir, files)
+	return writeManifest(siloDir, files)
 }
 
 // writeManifest writes the list of synced files to the manifest.
-func writeManifest(siloDir string, files []string) {
+func writeManifest(siloDir string, files []string) error {
 	sorted := make([]string, len(files))
 	copy(sorted, files)
 	sort.Strings(sorted)
-	os.WriteFile(filepath.Join(siloDir, siloManifestName), []byte(strings.Join(sorted, "\n")+"\n"), 0644)
+	return os.WriteFile(filepath.Join(siloDir, siloManifestName), []byte(strings.Join(sorted, "\n")+"\n"), 0644)
 }
 
 // SyncFile copies a single file from srcDir to dstDir (relative path),

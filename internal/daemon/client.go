@@ -166,7 +166,9 @@ func spawn(root string) error {
 	if err != nil {
 		return err
 	}
-	os.MkdirAll(dirOf(LogPath(root)), 0o755)
+	if err := os.MkdirAll(dirOf(LogPath(root)), 0o755); err != nil {
+		return err
+	}
 	logf, err := os.OpenFile(LogPath(root), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err

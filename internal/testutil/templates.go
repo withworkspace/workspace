@@ -33,7 +33,9 @@ func repoTemplate(t *testing.T, defaultBranch string, repo RepoOpts) string {
 		// Create extra branches in source
 		for _, branch := range repo.Branches {
 			GitCmd(t, srcDir, "checkout", "-b", branch)
-			os.WriteFile(filepath.Join(srcDir, branch+".txt"), []byte(branch), 0644)
+			if err := os.WriteFile(filepath.Join(srcDir, branch+".txt"), []byte(branch), 0644); err != nil {
+				t.Fatal(err)
+			}
 			GitCmd(t, srcDir, "add", ".")
 			GitCmd(t, srcDir, "commit", "-m", "add "+branch)
 			GitCmd(t, srcDir, "checkout", defaultBranch)

@@ -124,7 +124,7 @@ func write(root, who, text string) {
 	}
 	path := Path(root)
 	if st, err := os.Stat(path); err == nil && st.Size() > maxBytes {
-		os.Rename(path, path+".1")
+		_ = os.Rename(path, path+".1") // a log that can't be rotated is written on
 	}
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {

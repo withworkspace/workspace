@@ -31,7 +31,9 @@ func (w *Workspace) SetupRepo(name string) SetupResult {
 		return SetupResult{Repo: name, Skipped: true}
 	}
 
-	os.MkdirAll(repoDir, 0755)
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		return SetupResult{Repo: name, Err: err}
+	}
 
 	r := w.RemoteOf(name)
 	url := RepoCloneURL(r.Owner, r.Name, w.GitProtocol)
