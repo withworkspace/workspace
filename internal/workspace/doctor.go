@@ -145,7 +145,7 @@ func (w *Workspace) checkTools() CheckCategory {
 
 func checkGitHubAuth() CheckResult {
 	result := CheckResult{Name: "gh auth", Status: CheckOK}
-	out, err := exec.Command("gh", "auth", "status", "--hostname", "github.com").CombinedOutput()
+	out, err := exec.Command("gh", "auth", "status", "--hostname", "github.com").CombinedOutput() //nolint:noctx // a quick gh call, with no context to end it with
 	if err != nil {
 		result.Status = CheckFail
 		result.Detail = "not authenticated"
@@ -170,7 +170,7 @@ func checkGitHubAuth() CheckResult {
 var CheckGitHubReachFunc = reachRepo
 
 func reachRepo(r ref.Remote) error {
-	out, err := exec.Command("gh", "api", "repos/"+r.String(), "--jq", ".full_name").CombinedOutput()
+	out, err := exec.Command("gh", "api", "repos/"+r.String(), "--jq", ".full_name").CombinedOutput() //nolint:noctx // a quick gh call, with no context to end it with
 	if err != nil {
 		return errors.New(strings.TrimSpace(string(out)))
 	}

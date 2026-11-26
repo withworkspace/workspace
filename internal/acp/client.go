@@ -72,7 +72,7 @@ func Start(ctx context.Context, c Command, cb Callbacks) (*Client, error) {
 	if len(c.Args) == 0 {
 		return nil, errors.New("no agent command")
 	}
-	cmd := exec.Command(c.Args[0], c.Args[1:]...)
+	cmd := exec.Command(c.Args[0], c.Args[1:]...) //nolint:noctx // the agent lives as long as the Client: Close ends it, group and all
 	cmd.Dir, cmd.Env, cmd.Stderr = c.Dir, c.Env, c.Stderr
 	if !c.ShareGroup {
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

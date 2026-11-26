@@ -32,7 +32,7 @@ func Build(dir string, out io.Writer) error {
 	if len(m.Build) == 0 {
 		return nil
 	}
-	cmd := exec.Command(m.Build[0], m.Build[1:]...)
+	cmd := exec.Command(m.Build[0], m.Build[1:]...) //nolint:noctx // no context comes through Build yet
 	cmd.Dir = dir
 	cmd.Stdout, cmd.Stderr = out, out
 	if err := cmd.Run(); err != nil {

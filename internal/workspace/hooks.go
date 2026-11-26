@@ -7,7 +7,7 @@ import (
 
 // RunHook executes a shell command in the given directory, streaming output.
 func RunHook(dir, command string, stdout, stderr io.Writer) error {
-	cmd := exec.Command("sh", "-c", command)
+	cmd := exec.Command("sh", "-c", command) //nolint:noctx // no context comes through RunHook yet
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
