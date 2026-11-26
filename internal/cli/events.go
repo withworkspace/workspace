@@ -149,7 +149,7 @@ func printEvent(w io.Writer, e events.Event, format string) {
 		return
 	}
 	about := strings.Join(e.Refs(), " ")
-	text := e.Text
+	text := eventSays(e)
 	if text != "" {
 		text = " · " + text
 	}
@@ -157,18 +157,45 @@ func printEvent(w io.Writer, e events.Event, format string) {
 	if e.Cause != "" {
 		cause = ui.Dim.Render(" (" + e.Cause + ")")
 	}
-	if text == "" && e.Title != "" {
-		text = " · " + e.Title
-	}
 	if n := len(e.Commits); n > 1 {
 		text += ui.Dim.Render(fmt.Sprintf(" (%d commits)", n))
 	}
-	kind := fmt.Sprintf("%-20s", e.Kind)
+	mark := "      "
 	if e.IsHeard() {
-		kind = ui.Dim.Render("heard ") + fmt.Sprintf("%-14s", e.Kind)
+		mark = ui.Dim.Render("heard ")
 	}
-	fmt.Fprintf(w, "%s %s %s %s%s %s%s\n",
+	fmt.Fprintf(w, "%s %s %s%-21s %s%s %s%s\n",
 		ui.Dim.Render(e.At.Local().Format("Jan 02 15:04")),
 		ui.Dim.Render(fmt.Sprintf("%-4s", e.Ref())),
-		kind, e.By, cause, about, text)
+		mark, e.Kind, e.By, cause, about, text)
+}
+
+// eventSays is what an event says, in a line: what changed in a thing,
+// field by field; a document as it's called and what became of it; how a
+// run ended; else its text, or what it's about is called.
+func eventSays(e events.Event) string {
+	switch {
+	case len(e.Changes) > 0:
+		var cs []string
+		for _, c := range e.Changes {
+			switch {
+			case c.From == "" && c.To == "":
+				cs = append(cs, c.Field+" changed")
+			case c.From == "":
+				cs = append(cs, c.Field+" → "+c.To)
+			case c.To == "":
+				cs = append(cs, c.Field+" cleared (was "+c.From+")")
+			default:
+				cs = append(cs, c.Field+" "+c.From+" → "+c.To)
+			}
+		}
+		return strings.TrimPrefix(e.Title+": ", ": ") + strings.Join(cs, ", ")
+	case e.Kind == events.DocChanged && e.Status != "":
+		return e.Title + " (" + e.Status + ")"
+	case e.Kind == events.RunEnded && e.Status != "":
+		return e.Status
+	case e.Text != "":
+		return e.Text
+	}
+	return e.Title
 }
