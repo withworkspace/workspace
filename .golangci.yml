@@ -1,8 +1,9 @@
 version: "2"
 
-# `just lint` runs these on all of ws. errcheck is set up here but not on:
-# `just lint` runs it only on what's changed since main (see the justfile),
-# since main has hundreds from before it was checked.
+# `just lint` runs these on all of ws.
+#
+# errcheck: an error let go on purpose is `_ = … // why`; one that can't
+# be returned, as it comes after what was done, is logged.
 #
 # noctx: a command, request or query with no context to end it is marked
 # `//nolint:noctx // why`, where it outlives its caller on purpose or
@@ -19,6 +20,7 @@ linters:
     - unconvert
     - copyloopvar
     - noctx
+    - errcheck
   settings:
     staticcheck:
       # Bugs and simplifications; not style (ST) or quick fixes (QF).

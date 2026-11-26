@@ -11,7 +11,7 @@ For agents working on ws itself. (`FOR_LLMS.md` is the guide for an agent workin
 ```sh
 just build     # the web UI into internal/web/dist, then bin/workspace. Always this, never go build -o
 just check     # gofmt, go vet, go build ./..., and web/src/wire.gen.ts current
-just lint      # golangci-lint (.golangci.yml); errcheck only on what's changed since main
+just lint      # golangci-lint (.golangci.yml) on all of ws
 just wire      # web/src/wire.gen.ts again, from internal/web's types
 just test      # go test ./..., then the web UI's tests (vitest)
 just try up [seed...]       # try this build by hand: a fresh workspace in /tmp, seeded, its daemon and web UI up; prints dir, link, port, token and its ws

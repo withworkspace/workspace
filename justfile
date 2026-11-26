@@ -28,10 +28,9 @@ check:
 
 golangci := "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0"
 
-# golangci-lint (.golangci.yml) on all of ws, then errcheck on what's changed since main (main has hundreds from before it was checked). Built with this repo's Go, which a released binary may be older than.
-lint base="origin/main":
+# golangci-lint (.golangci.yml) on all of ws. Built with this repo's Go, which a released binary may be older than.
+lint:
     go run {{golangci}} run ./...
-    go run {{golangci}} run --enable-only errcheck --new-from-merge-base {{base}} ./...
 
 # Write web/src/wire.gen.ts, the web UI's types of the API, from internal/web's Go types (scripts/wiretypes says how).
 wire:
