@@ -5,9 +5,9 @@ import { besideNow, useChromeStore } from "./store";
 // The store, as anything in the window uses it: by its actions, with no
 // component between.
 const store = () => useChromeStore.getState();
-const beside = () => besideNow(store().chrome, store().here, store().gives);
+const beside = () => besideNow(store().chrome, store().here, store().gives, store().roomy);
 
-beforeEach(() => useChromeStore.setState({ root: "", chrome: resting, here: undefined, gives: {}, keys: {} }));
+beforeEach(() => useChromeStore.setState({ root: "", chrome: resting, here: undefined, gives: {}, keys: {}, roomy: false }));
 
 describe("opening something beside", () => {
   it("about the page it was asked on puts it beside that page only", () => {
@@ -32,6 +32,51 @@ describe("opening something beside", () => {
     store().close("/conversations/x");
     expect(beside().all).toEqual([]);
     expect(store().keys).toEqual({});
+  });
+});
+
+describe("where the window has room for it", () => {
+  beforeEach(() => store().setRoomy(true));
+
+  it("is docked, and floats only where you've floated it", () => {
+    store().open("/conversations/x");
+    expect(beside()).toMatchObject({ shown: true, docked: true, over: false });
+    store().change((c) => ({ ...c, beside: { ...c.beside, over: true } }));
+    expect(beside()).toMatchObject({ docked: false, over: true });
+  });
+
+  it("stays as you go to a page it has nothing for, saying how many are elsewhere", () => {
+    store().setHere("document:records:adr/3.md");
+    store().open("/conversations/x", { here: true });
+    store().setHere("mission:dark-mode");
+    expect(beside()).toMatchObject({ shown: true, all: [], front: undefined, elsewhere: 1 });
+  });
+
+  it("floated, goes as you go to a page it has nothing for", () => {
+    store().change((c) => ({ ...c, beside: { ...c.beside, over: true } }));
+    store().setHere("document:records:adr/3.md");
+    store().open("/conversations/x", { here: true });
+    store().setHere("mission:dark-mode");
+    expect(beside().shown).toBe(false);
+  });
+
+  it("closes with the last tab you close here, but not with one that went by itself", () => {
+    store().open("/conversations/x");
+    store().close("/conversations/x", { yours: true });
+    expect(store().chrome.beside.open).toBe(false);
+    store().peek("/missions/dark-mode");
+    store().close("/missions/dark-mode");
+    expect(beside()).toMatchObject({ shown: true, all: [] });
+  });
+});
+
+describe("where the window hasn't room for it", () => {
+  it("floats over the page, and you closing the last tab leaves it open as it was", () => {
+    store().open("/conversations/x");
+    expect(beside()).toMatchObject({ docked: false, over: true });
+    store().close("/conversations/x", { yours: true });
+    expect(store().chrome.beside.open).toBe(true);
+    expect(beside().shown).toBe(false);
   });
 });
 

@@ -80,6 +80,9 @@ interface ChromeStore {
   gives: Record<string, PageGives>;
   // How many times each tab's been asked to take the keys, until it has.
   keys: Record<string, number>;
+  // The window has room for Beside docked next to the page (docksFrom):
+  // the window's, measured by the shell.
+  roomy: boolean;
 
   // Find, open: with what it starts with typed ("/" for files, from ⌘P).
   // Undefined is closed.
@@ -108,6 +111,7 @@ interface ChromeStore {
   // A change to how it's arranged, as a function of it (chromeState.ts's).
   change: (by: (s: ChromeState) => ChromeState) => void;
   setHere: (id: string | undefined) => void;
+  setRoomy: (roomy: boolean) => void;
   // give is the page giving a tab what it has, until what's returned is
   // called (the page has gone, or gives something else).
   give: (to: string, g: PageGives) => () => void;
@@ -116,7 +120,10 @@ interface ChromeStore {
   // inPlaceOf: it takes that tab's place, if that's there. keys: its pane
   // takes the keys (a conversation's reply).
   open: (to: string, o?: { here?: boolean; inPlaceOf?: string; keys?: boolean }) => void;
-  close: (to: string) => void;
+  // close closes a tab. yours: you closed it (its tab's ×), not the page
+  // or the peek going: docked, the last one here takes Beside with it,
+  // since an empty Beside you were done with isn't what you asked for.
+  close: (to: string, o?: { yours?: boolean }) => void;
   // peek is z on a thing, by its address: it opens beside as the peek, in
   // the last peek's place; on the peek in front, it closes it.
   peek: (to: string) => void;
@@ -150,6 +157,7 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
   here: undefined,
   gives: {},
   keys: {},
+  roomy: false,
   find: undefined,
   help: false,
   drawer: false,
@@ -177,6 +185,9 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
   setHere: (id) => {
     if (get().here !== id) set({ here: id });
   },
+  setRoomy: (roomy) => {
+    if (get().roomy !== roomy) set({ roomy });
+  },
   give: (to, g) => {
     set((s) => ({ gives: { ...s.gives, [to]: g } }));
     return () => {
@@ -192,9 +203,13 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
     change((c) => openBeside(c, to, { inPlaceOf: o.inPlaceOf, here, about: o.here ? here : undefined }));
     if (o.keys) set((s) => ({ keys: { ...s.keys, [to]: (s.keys[to] ?? 0) + 1 } }));
   },
-  close: (to) => {
-    const { here, change } = get();
-    change((c) => closeBesideTab(c, to, here));
+  close: (to, o = {}) => {
+    const { here, change, gives, roomy } = get();
+    change((c) => {
+      const next = closeBesideTab(c, to, here);
+      const now = besideNow(next, here, gives, roomy);
+      return o.yours && now.docked && now.all.length === 0 ? { ...next, beside: { ...next.beside, open: false } } : next;
+    });
     set((s) => {
       if (!(to in s.keys)) return s;
       const { [to]: _, ...rest } = s.keys;
@@ -277,31 +292,45 @@ export interface BesideNow {
   all: string[];
   // The one in front.
   front?: string;
-  // Beside is drawn: it's open, with something in it here.
+  // Beside is drawn: it's open, with something in it here; or docked,
+  // where it stays as you go from page to page, with nothing in it here or
+  // not, so the page's width never changes under you. Only you close it.
   shown: boolean;
-  // Over the page, not next to it.
+  // Over the page, not next to it: where you've floated it, or where the
+  // window hasn't room for it docked.
   over: boolean;
+  // Next to the page, the page making room: the window has room for it
+  // (roomy) and you haven't floated it.
+  docked: boolean;
   width: number;
   // Every tab about this page's thing, drawable or not, in the order
   // opened: what was asked here before, as the page finds it again.
   about: string[];
+  // How many are about other things' pages: there when you get there.
+  elsewhere: number;
 }
 
-export function besideNow(chrome: ChromeState, here: string | undefined, gives: Record<string, PageGives>): BesideNow {
+export function besideNow(chrome: ChromeState, here: string | undefined, gives: Record<string, PageGives>, roomy = false): BesideNow {
   const tabs = besideTabs(chrome, here);
   const mine = tabs.here.filter((t) => drawable(t, gives));
   const anywhere = tabs.anywhere.filter((t) => drawable(t, gives));
   const all = [...mine, ...anywhere];
+  const docked = roomy && !chrome.beside.over;
   const front = [besideFront(chrome, here), all[0]].find((t) => t !== undefined && all.includes(t));
   return {
     here: mine,
     anywhere,
     all,
     front,
-    shown: chrome.beside.open && all.length > 0,
-    over: chrome.beside.over,
+    shown: chrome.beside.open && (all.length > 0 || docked),
+    over: !docked,
+    docked,
     width: chrome.beside.width,
     about: chrome.beside.tabs.filter((t) => here !== undefined && besideAbout(chrome, t) === here),
+    elsewhere: chrome.beside.tabs.filter((t) => {
+      const of = besideAbout(chrome, t);
+      return of !== undefined && of !== here;
+    }).length,
   };
 }
 
@@ -312,7 +341,8 @@ export function useBeside(): BesideNow {
   const chrome = useChromeStore((s) => s.chrome);
   const here = useChromeStore((s) => s.here);
   const gives = useChromeStore((s) => s.gives);
-  return useMemo(() => besideNow(chrome, here, gives), [chrome, here, gives]);
+  const roomy = useChromeStore((s) => s.roomy);
+  return useMemo(() => besideNow(chrome, here, gives, roomy), [chrome, here, gives, roomy]);
 }
 
 // useGives is what the page gives a tab, as its pane draws it.
