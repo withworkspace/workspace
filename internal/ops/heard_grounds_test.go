@@ -81,6 +81,11 @@ func TestHearGrounds(t *testing.T) {
 	if len(docs) != 2 || docs["records:adr/0001-cache.md"] != "changed" || docs["records:adr/0002-queue.md"] != "added" {
 		t.Errorf("doc.changed: %v", docs)
 	}
+	for _, e := range by[events.DocChanged] {
+		if want := map[string]string{"records:adr/0001-cache.md": "Cache tokens per tenant", "records:adr/0002-queue.md": "One queue"}[e.Doc]; e.Title != want {
+			t.Errorf("%s titled %q, want %q", e.Doc, e.Title, want)
+		}
+	}
 
 	if again, _ := w.HearGrounds(ctx); len(again) != 0 {
 		t.Errorf("heard twice: %+v", again)

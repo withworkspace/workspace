@@ -197,14 +197,26 @@ func (w *Workspace) landedBetween(ctx context.Context, repo, last, head string) 
 	if !ok {
 		return heard, nil
 	}
-	heard = append(heard, docsChanged(repo, sp, commits, by)...)
+	title := func(p string, deleted bool) string {
+		at := head
+		if deleted {
+			at = last
+		}
+		if b, err := git.Read(ctx, ground, "show", at+":"+p); err == nil {
+			if t := firstHeading(string(b)); t != "" {
+				return t
+			}
+		}
+		return strings.TrimSuffix(path.Base(p), path.Ext(p))
+	}
+	heard = append(heard, docsChanged(repo, sp, commits, by, title)...)
 	heard = append(heard, w.thingsChanged(ctx, repo, sp, head, commits, by)...)
 	return heard, nil
 }
 
 // docsChanged is a doc.changed for each of the space's documents the
 // commits touched, by the last to: added, changed or deleted.
-func docsChanged(repo string, sp workspace.Space, commits []landed, by map[string]string) []events.Event {
+func docsChanged(repo string, sp workspace.Space, commits []landed, by map[string]string, title func(p string, deleted bool) string) []events.Event {
 	type touch struct {
 		c      landed
 		status string
@@ -237,7 +249,7 @@ func docsChanged(repo string, sp workspace.Space, commits []landed, by map[strin
 		}
 		out = append(out, events.Event{
 			Kind: events.DocChanged, Origin: events.Heard, By: by[t.c.sha], At: t.c.at,
-			Repo: repo, Doc: repo + ":" + p, Title: strings.TrimSuffix(path.Base(p), path.Ext(p)), Status: t.status,
+			Repo: repo, Doc: repo + ":" + p, Title: title(p, t.status == "deleted"), Status: t.status,
 			Text:    t.c.subject,
 			Commits: []events.Commit{{SHA: t.c.sha, Subject: t.c.subject, By: by[t.c.sha]}},
 		})
@@ -390,4 +402,18 @@ func (w *Workspace) peopleOf(commits []landed, me team.Event) map[string]string 
 		}
 	}
 	return out
+}
+
+// firstHeading is a markdown document's first heading's text, "" for
+// none in its first lines.
+func firstHeading(text string) string {
+	for i, line := range strings.Split(text, "\n") {
+		if i > 40 {
+			break
+		}
+		if h, ok := strings.CutPrefix(strings.TrimSpace(line), "#"); ok {
+			return strings.TrimSpace(strings.TrimLeft(h, "#"))
+		}
+	}
+	return ""
 }
