@@ -18,3 +18,8 @@
 .where {
   font-size: var(--text-xs);
 }
+
+/* Among the lines, it stands off the code: a shadow falls on them. */
+.lifted {
+  box-shadow: var(--shadow);
+}

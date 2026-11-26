@@ -50,7 +50,7 @@ export function ReviewComment({
 }) {
   const resolved = note.status === "resolved";
   return (
-    <NoteCard id={id} className={cx(css.card, apart && css.apart)} cursor={cursor} draft={draft} resolved={resolved} onClick={onClick}>
+    <NoteCard id={id} className={cx(css.card, apart && css.apart, !apart && !cursor && css.lifted)} cursor={cursor} draft={draft} resolved={resolved} onClick={onClick}>
       <NoteHead
         end={
           <>

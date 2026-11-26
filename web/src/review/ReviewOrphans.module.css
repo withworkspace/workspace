@@ -13,7 +13,8 @@
 .head {
   position: sticky;
   top: var(--review-stick, 0px);
-  z-index: 1;
+  /* Over what the lines' rows stand up (DiffLines: a card's shadow). */
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 10px;

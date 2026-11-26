@@ -3,6 +3,7 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import { NoteBody, NoteCard, NoteHead } from "../ui/NoteCard";
 import type { ReactNode } from "react";
+import { cx } from "../ui/cx";
 import css from "./ReviewFinding.module.css";
 import { Suggestion } from "./Suggestion";
 import { Text } from "../ui/Text";
@@ -14,7 +15,7 @@ import { Text } from "../ui/Text";
 export function ReviewFinding({ id, title, finding: f, cursor, actions, onClick }: { id: string; title: string; finding: PassFinding; cursor: boolean; actions: ReactNode; onClick: () => void }) {
   const lines = f.endLine && f.line && f.endLine > f.line ? `lines ${f.line}–${f.endLine}` : `line ${f.line}`;
   return (
-    <NoteCard id={id} className={css.card} found blocks={f.blocks} cursor={cursor} onClick={onClick}>
+    <NoteCard id={id} className={cx(css.card, !cursor && css.lifted)} found blocks={f.blocks} cursor={cursor} onClick={onClick}>
       <NoteHead end={actions}>
         <span className={css.pass} title={`Found by the ${title} pass. Take into your review, or dismiss`}>
           <Icon name="sparkle" size={11} /> {title}

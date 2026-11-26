@@ -8,6 +8,12 @@
   margin: 6px 14px 10px 0;
 }
 
+/* Among the lines, it stands off the code: a shadow falls on them (the
+   cursor's ring says it's the one in hand instead). */
+.lifted {
+  box-shadow: var(--shadow);
+}
+
 .card.apart {
   margin: 6px 14px 10px 118px;
 }
