@@ -1,0 +1,28 @@
+/* A file's comments' head in a review's list (ReviewCommentFile.tsx). */
+
+.file {
+  display: flex;
+  align-items: baseline;
+  padding: 12px 14px 4px;
+  font: var(--text-xs) var(--mono);
+  color: var(--dim);
+}
+
+.dir {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  flex: none;
+  color: var(--fg);
+}
+
+.count {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--faint);
+}

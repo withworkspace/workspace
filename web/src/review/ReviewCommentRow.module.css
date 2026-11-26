@@ -1,0 +1,98 @@
+/* A comment in a review's list (ReviewCommentRow.tsx). */
+
+.row {
+  display: grid;
+  gap: 4px;
+  width: calc(100% - 12px);
+  margin: 0 6px;
+  padding: 8px 8px 9px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+/* The one last gone to. */
+.on,
+.on:hover {
+  background: var(--selected);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+}
+
+.state {
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.draft {
+  font-style: italic;
+}
+
+.open,
+.addressed {
+  color: var(--amber);
+}
+
+.resolved,
+.wontfix {
+  color: var(--green);
+}
+
+.lines {
+  margin-left: auto;
+  font-family: var(--mono);
+  color: var(--faint);
+}
+
+.body {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.row:has(.resolved, .wontfix) .body {
+  color: var(--dim);
+}
+
+.reply {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.reply strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.replyIcon {
+  position: relative;
+  top: 1px;
+  margin-right: 4px;
+}
+
+.more {
+  margin-left: 4px;
+  color: var(--faint);
+}

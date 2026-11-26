@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   addNote,
   deleteNote,
@@ -16,6 +16,8 @@ import {
   respond,
   setViewed,
 } from "../api";
+import { commentsAt } from "../chrome/panes";
+import { useBeside, useChromeStore } from "../chrome/store";
 import { type KeyMap, useKeys } from "../keys";
 import { useLatest } from "../load";
 import { usePref } from "../prefs";
@@ -24,6 +26,7 @@ import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
 import type { DiffPick } from "../ui/diffLayout";
 import { Icon, type IconName } from "../ui/Icon";
+import { ToggleButton } from "../ui/ToggleButton";
 import { Keys } from "../ui/Keys";
 import { Loading } from "../ui/Loading";
 import { MenuItem, MenuText } from "../ui/Menu";
@@ -33,6 +36,7 @@ import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
 import { useCodeNav } from "./CodeNav";
 import { CommentCard } from "./CommentCard";
+import { commentEntries, stepFrom, useReviewComments } from "./comments";
 import { FileList } from "./FileList";
 import { FileSection } from "./FileSection";
 import type { FindingAct } from "./findings";
@@ -72,6 +76,7 @@ export const reviewKeys: [string, string][] = [
   ["⏎", "Reply to or edit comment; take finding; expand hidden lines or file"],
   ["x", "Resolve or reopen comment; else mark file viewed"],
   ["D", "Delete draft comment; dismiss finding (then 1, 2 or 3 for why)"],
+  ["N / P", "Next / previous comment"],
   ["s", "Submit review"],
   ["i", "Since last review / all changes"],
   ["e", "Show 20 more lines around this change"],
@@ -628,6 +633,52 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     goTo(`${file}:f:${pass}:${key}`);
     return true;
   };
+  // The comments, as the list beside the review has them (the Comments
+  // tab, ReviewCommentList): said while the page is open, with how to go
+  // to one, which shows the changes with it in the middle of the pane.
+  const location = useLocation();
+  const comments = useMemo(() => commentEntries(rows, orphans, files), [rows, orphans, files]);
+  const said = useReviewComments((c) => c.say);
+  const gone = useReviewComments((c) => c.gone);
+  // Going to one waits for the changes to show (it may come from another
+  // view), then puts it in the middle of the pane and lights it a moment.
+  const centerOn = useRef<string>(undefined);
+  const goToComment = useRef<(key: string) => void>(() => {});
+  goToComment.current = (key: string) => {
+    useReviewComments.getState().setAt(key);
+    centerOn.current = key;
+    show("changes");
+    setCursor(key);
+    setJump((n) => n + 1);
+  };
+  useEffect(() => {
+    const key = centerOn.current;
+    if (!key || view !== "changes" || row?.key !== key) return;
+    centerOn.current = undefined;
+    requestAnimationFrame(() => {
+      const el = rowEl(key);
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      el.classList.remove("nav-flash");
+      void el.offsetWidth;
+      el.classList.add("nav-flash");
+    });
+  }, [view, row?.key, jump]);
+  const of = location.pathname;
+  useEffect(() => said(of, comments, (key) => goToComment.current(key)), [said, of, comments]);
+  useEffect(() => () => gone(of), [gone, of]);
+  const stepComment = (n: 1 | -1) => {
+    const from = useReviewComments.getState().at ?? (row?.type === "comment" ? row.key : undefined);
+    const to = stepFrom(comments, from, n);
+    if (to) goToComment.current(to.key);
+  };
+  // Beside, the Comments tab: open, and in front, or not.
+  const beside = useBeside();
+  const openBeside = useChromeStore((c) => c.open);
+  const closeBeside = useChromeStore((c) => c.close);
+  const commentsTab = commentsAt(of);
+  const commentsShown = beside.shown && beside.front === commentsTab;
+  const toggleComments = () => (commentsShown ? closeBeside(commentsTab, { yours: true }) : openBeside(commentsTab, { here: true }));
   // toComment shows the changes with the cursor on a comment, if it's in
   // them.
   const toComment = (id: string) => {
@@ -759,6 +810,8 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     ...(view === "changes" ? diffKeys : {}),
     ...Object.fromEntries(viewKeys.map((v, i) => [`${i + 1}`, () => show(v)])),
     s: submit,
+    N: () => stepComment(1),
+    P: () => stepComment(-1),
     t: () => setFinder(true),
     r: load,
     Escape: () => {
@@ -795,9 +848,13 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       {source.health}
     </>
   );
+  const toSettle = comments.filter((c) => c.state !== "resolved" && c.state !== "wontfix").length;
   const actions = (
     <>
       {source.actions}
+      <ToggleButton variant="ghost" size="small" pressed={commentsShown} onChange={toggleComments} title={`Comments: ${toSettle} to settle, ${comments.length} in all`} aria-label="Comments">
+        <Icon name="message" size={13} /> {toSettle}
+      </ToggleButton>
       {(source.opens || source.browse) && (
         <ReviewOpenMenu>
           {source.opens}
