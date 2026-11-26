@@ -33,7 +33,6 @@ func TestHearPRs(t *testing.T) {
 		l := &pulls.List{Me: "me"}
 		sec := pulls.Section{Key: "others"}
 		for _, pr := range prs {
-			pr := pr
 			sec.Rows = append(sec.Rows, pulls.Row{Key: prKey(pr), PR: &pr})
 		}
 		l.Sections = []pulls.Section{sec}
