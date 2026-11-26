@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/store"
@@ -59,6 +60,10 @@ func init() {
 			events TEXT NOT NULL,              -- the events' numbers, as JSON, oldest first
 			PRIMARY KEY (name, key)
 		) WITHOUT ROWID;
+	`), store.SQL(`
+		-- Where in its script each step was called from (line:col), for
+		-- its outline to count them on.
+		ALTER TABLE automation_steps ADD COLUMN at TEXT NOT NULL DEFAULT '';
 	`))
 }
 
@@ -398,15 +403,17 @@ func stepState(root, name string, event int64, step int) (state, result string, 
 }
 
 // keepStep keeps a run's step as it stands: started, done (with what it
-// came to), or forgotten (state "": it failed, and may be done again).
-func keepStep(root, name string, event int64, step int, builtin, state, result string) error {
+// came to), or forgotten (state "": it failed, and may be done again);
+// at is where in its script it was called from ("" keeps what's kept).
+func keepStep(root, name string, event int64, step int, builtin, state, result, at string) error {
 	return write(root, func(tx *store.Tx) error {
 		if state == "" {
 			_, err := tx.Exec(`DELETE FROM automation_steps WHERE name = ? AND event = ? AND step = ?`, name, event, step)
 			return err
 		}
-		_, err := tx.Exec(`INSERT INTO automation_steps (name, event, step, builtin, state, result) VALUES (?, ?, ?, ?, ?, ?)
-			ON CONFLICT (name, event, step) DO UPDATE SET state = excluded.state, result = excluded.result`, name, event, step, builtin, state, result)
+		_, err := tx.Exec(`INSERT INTO automation_steps (name, event, step, builtin, state, result, at) VALUES (?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (name, event, step) DO UPDATE SET state = excluded.state, result = excluded.result,
+				at = CASE WHEN excluded.at != '' THEN excluded.at ELSE at END`, name, event, step, builtin, state, result, at)
 		return err
 	})
 }
@@ -561,4 +568,113 @@ func StepsOf(root, name string, evs []int64) (map[int64][]Step, error) {
 		return rows.Err()
 	})
 	return out, err
+}
+
+// StepCount is how a step of a script has gone, over its runs: where it
+// is (At, line:col, as an outline's steps are), its builtin, and how many
+// times it was done, begun and never said done (Started), is waiting
+// still, and, for a wait, was met or had its time up.
+type StepCount struct {
+	At       string `json:"at"`
+	Builtin  string `json:"builtin"`
+	Done     int    `json:"done,omitempty"`
+	Started  int    `json:"started,omitempty"`
+	Waiting  int    `json:"waiting,omitempty"`
+	Met      int    `json:"met,omitempty"`
+	TimedOut int    `json:"timedOut,omitempty"`
+}
+
+// count adds a step that stands so to c.
+func (c *StepCount) count(state, result string, n int) {
+	switch {
+	case state == "started":
+		c.Started += n
+	case state == "waiting":
+		c.Waiting += n
+	case c.Builtin == "wait" && result == "null":
+		c.TimedOut += n
+	case c.Builtin == "wait":
+		c.Met += n
+	default:
+		c.Done += n
+	}
+}
+
+// Counts is how each step of name's script has gone over its runs (those
+// kept where they were called from), and where its runs failed: line:col,
+// and how many.
+func Counts(root, name string) ([]StepCount, map[string]int, error) {
+	by := map[string]*StepCount{}
+	var order []string
+	failed := map[string]int{}
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT at, builtin, state, result = 'null', count(*) FROM automation_steps WHERE name = ? AND at != '' GROUP BY at, builtin, state, result = 'null'`, name)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var at, builtin, state string
+			var null bool
+			var n int
+			if err := rows.Scan(&at, &builtin, &state, &null, &n); err != nil {
+				rows.Close()
+				return err
+			}
+			c := by[at+" "+builtin]
+			if c == nil {
+				c = &StepCount{At: at, Builtin: builtin}
+				by[at+" "+builtin] = c
+				order = append(order, at+" "+builtin)
+			}
+			result := ""
+			if null {
+				result = "null"
+			}
+			c.count(state, result, n)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows, err = tx.Query(`SELECT error FROM automation_runs WHERE name = ? AND state = ?`, name, Failed)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var why string
+			if err := rows.Scan(&why); err != nil {
+				return err
+			}
+			if at := failedAt(name, why); at != "" {
+				failed[at]++
+			}
+		}
+		return rows.Err()
+	})
+	out := []StepCount{}
+	for _, k := range order {
+		out = append(out, *by[k])
+	}
+	return out, failed, err
+}
+
+// failedAt is where in name's script a run failed, as its error says it
+// (name.star:12:9: …): line:col, "" where it doesn't say.
+func failedAt(name, why string) string {
+	rest, ok := strings.CutPrefix(why, name+".star:")
+	if !ok {
+		return ""
+	}
+	parts := strings.SplitN(rest, ":", 3)
+	if len(parts) < 3 {
+		return ""
+	}
+	if _, err := strconv.Atoi(parts[0]); err != nil {
+		return ""
+	}
+	if _, err := strconv.Atoi(parts[1]); err != nil {
+		return ""
+	}
+	return parts[0] + ":" + parts[1]
 }

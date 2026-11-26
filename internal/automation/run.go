@@ -226,7 +226,7 @@ func (e *Engine) resume(a *Automation, st *State, ours func(events.Event) bool) 
 		if result == "" {
 			result = "null" // its time's up
 		}
-		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result); err != nil {
+		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result, ""); err != nil {
 			continue
 		}
 		evs := EventsNumbered(e.Root, []int64{w.event})
@@ -370,6 +370,8 @@ type run struct {
 	batch []events.Event
 	steps int
 	log   []string
+	// at is where the builtin being called was called from (line:col).
+	at string
 }
 
 // do runs r: its run(e), or, without one, the event notified as it is.
@@ -460,13 +462,27 @@ func (r *run) step(builtin string, do func() (string, error)) (string, error) {
 func (r *run) builtins() starlark.StringDict {
 	return starlark.StringDict{
 		"event":    starlark.NewBuiltin("event", eventBuiltin),
-		"notify":   starlark.NewBuiltin("notify", r.notify),
-		"converse": starlark.NewBuiltin("converse", r.converse),
+		"notify":   starlark.NewBuiltin("notify", r.placed(r.notify)),
+		"converse": starlark.NewBuiltin("converse", r.placed(r.converse)),
 		"log":      starlark.NewBuiltin("log", r.logLine),
-		"show":     starlark.NewBuiltin("show", r.show),
-		"events":   starlark.NewBuiltin("events", r.events),
-		"refs_in":  starlark.NewBuiltin("refs_in", r.refsIn),
-		"wait":     starlark.NewBuiltin("wait", r.wait),
+		"show":     starlark.NewBuiltin("show", r.placed(r.show)),
+		"events":   starlark.NewBuiltin("events", r.placed(r.events)),
+		"refs_in":  starlark.NewBuiltin("refs_in", r.placed(r.refsIn)),
+		"wait":     starlark.NewBuiltin("wait", r.placed(r.wait)),
+	}
+}
+
+type builtinFn = func(*starlark.Thread, *starlark.Builtin, starlark.Tuple, []starlark.Tuple) (starlark.Value, error)
+
+// placed is a builtin that keeps where it's called from (r.at), for its
+// step: the call's place in the script, as an outline's steps are.
+func (r *run) placed(f builtinFn) builtinFn {
+	return func(th *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		r.at = ""
+		if th.CallStackDepth() > 1 {
+			r.at = PosKey(th.CallFrame(1).Pos)
+		}
+		return f(th, b, args, kwargs)
 	}
 }
 
@@ -634,14 +650,12 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	case state == "waiting":
 		return nil, errParked
 	}
-	// It waits for what's kept after it's reached: after the latest event
-	// now, or in a dry run, after the event it's run on, from when that was.
-	var after int64
-	due := r.e.now().Add(d)
+	// It waits for what comes after the event it's run on: what happened
+	// while the daemon was catching up counts, as a dry run has it. Its time
+	// is from now, or in a dry run, from when that event was.
+	after, due := r.ev.N, r.e.now().Add(d)
 	if r.dry != nil {
-		after, due = r.ev.N, r.ev.At.Add(d)
-	} else if after, err = latest(r.e.Root); err != nil {
-		return nil, err
+		due = r.ev.At.Add(d)
 	}
 	kept, _ := json.Marshal(waitFor{Match: m.m.String(), After: after, Due: due})
 	if err := r.keepStep(n, "wait", "waiting", string(kept)); err != nil {
@@ -652,17 +666,6 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 
 // maxWait is the longest a run may wait.
 const maxWait = 7 * 24 * time.Hour
-
-// latest is the number of the latest event kept.
-func latest(root string) (int64, error) {
-	var n int64
-	err := read(root, func(tx *store.Tx) error {
-		var err error
-		n, err = latestEvent(tx)
-		return err
-	})
-	return n, err
-}
 
 // refsIn is refs_in(text): the refs a text names, each with .ref and
 // .kind.
@@ -861,8 +864,11 @@ func (r *run) keepStep(n int, builtin, state, result string) error {
 			delete(r.dry.steps, n)
 		} else {
 			r.dry.steps[n] = [2]string{state, result}
+			if r.at != "" {
+				r.dry.at[n] = [2]string{r.at, builtin}
+			}
 		}
 		return nil
 	}
-	return keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, state, result)
+	return keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, state, result, r.at)
 }

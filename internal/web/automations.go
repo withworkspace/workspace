@@ -40,6 +40,11 @@ type AutomationPage struct {
 	Automation ops.AutomationItem  `json:"automation"`
 	Source     string              `json:"source"`
 	Runs       []ops.AutomationRun `json:"runs"`
+	// Outline is its script, drawn, with how each step's gone over its
+	// runs (Steps) and where they failed (Failures: line:col, how many).
+	Outline  *automation.Outline    `json:"outline,omitempty"`
+	Steps    []automation.StepCount `json:"steps"`
+	Failures map[string]int         `json:"failures,omitempty"`
 }
 
 // AutomationOn is what POST /api/automations/{name}/on takes: on or off.
@@ -84,7 +89,7 @@ func (s *Server) automationDetail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, automationErr(err), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, AutomationPage{Automation: d.Automation, Source: d.Source, Runs: d.Runs})
+	writeJSON(w, http.StatusOK, AutomationPage{Automation: d.Automation, Source: d.Source, Runs: d.Runs, Outline: d.Outline, Steps: d.Steps, Failures: d.Failures})
 }
 
 // automationOn is POST /api/automations/{name}/on: turned on (from the

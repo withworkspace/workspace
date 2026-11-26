@@ -64,6 +64,11 @@ func TestAutomations_Page(t *testing.T) {
 		t.Errorf("its run: %+v", r)
 	}
 
+	if page.Outline == nil || len(page.Outline.Steps) != 1 || page.Outline.Steps[0].Kind != "notify" ||
+		len(page.Steps) != 1 || page.Steps[0].At != page.Outline.Steps[0].At || page.Steps[0].Done != 1 {
+		t.Errorf("its outline %+v, counted %+v", page.Outline, page.Steps)
+	}
+
 	if res := asks(t, s, "POST", "/api/automations/drawing/on", AutomationOn{On: false}, nil); res.StatusCode != http.StatusOK {
 		t.Errorf("turning it off: %d", res.StatusCode)
 	}

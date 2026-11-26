@@ -71,6 +71,21 @@ func TestWorkflow_Wait(t *testing.T) {
 	}
 }
 
+// A wait is for what comes after the event its run's on: one that came
+// before the daemon got to the run (it was catching up) meets it, as a
+// dry run would have had it.
+func TestWorkflow_WaitCountsWhatCameWhileCatchingUp(t *testing.T) {
+	e, got := engine(t)
+	e.Add("deploy", []byte(deploy))
+	emit(t, e.Root, events.Event{Kind: events.PRMerged, Origin: events.Heard, By: events.ByPerson("alice"), PR: "api#212"})
+	emit(t, e.Root, events.Event{Kind: events.RunEnded, Run: "deploy.ground.api", Title: "deploy", Status: "passed"})
+	e.RunDue() // parks at the wait, which is met at once
+	e.RunDue()
+	if strings.Join(got.notified, "|") != "deploy: deployed api#212 (Idempotency keys) " {
+		t.Errorf("notified %q", got.notified)
+	}
+}
+
 // settle runs once a key's events have been quiet, with all of them; per
 // keeps the keys apart.
 func TestWorkflow_Settle(t *testing.T) {

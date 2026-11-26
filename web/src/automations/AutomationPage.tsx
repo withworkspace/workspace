@@ -26,6 +26,7 @@ import { Time } from "../ui/Time";
 import { toast } from "../ui/toast";
 import { useTitle } from "../ui/useTitle";
 import { AutomationFacts } from "./AutomationFacts";
+import { AutomationFlow } from "./AutomationFlow";
 import { AutomationRunItem } from "./AutomationRunItem";
 import { AutomationRuns } from "./AutomationRuns";
 import { AutomationScript } from "./AutomationScript";
@@ -120,12 +121,18 @@ export function AutomationPage() {
         <>
           {a.about && <p>{a.about}</p>}
           {wrong && <Callout tone="danger">{wrong.words}</Callout>}
-          <AutomationFacts when={a.when} may={a.may}>
+          <AutomationFacts when={info.outline ? undefined : a.when} may={a.may}>
             <dt>Added</dt>
             <dd>
               <Time iso={a.added} />
             </dd>
           </AutomationFacts>
+          {info.outline && (
+            <AutomationsSection>
+              <GroupHead>What it does</GroupHead>
+              <AutomationFlow outline={info.outline} steps={info.steps} failures={info.failures} />
+            </AutomationsSection>
+          )}
           <AutomationsSection>
             <GroupHead count={tally.length > 0 ? tally.join(" · ") : undefined}>Runs</GroupHead>
             {info.runs.length === 0 ? (

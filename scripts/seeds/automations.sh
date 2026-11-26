@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Three automations, on: a sketch Brendan draws, a decision changing in records, a sketch's saves once it's settled; and Brendan landing them.
+# Four automations, on: a sketch Brendan draws, a decision changing in records, a sketch's saves once it's settled, a sketch picked up (a wait); and Brendan and Ana landing what they're for.
 #
 # For looking at automations (ws automation) and what they tell you:
 #
@@ -7,7 +7,8 @@
 #
 # It adds drawing.star (notify me if Brendan pushes a new drawing),
 # doc-changes.star (tell me when a decision changes in records) and
-# settled.star (a sketch's saves, once it's been quiet a minute), then
+# settled.star (a sketch's saves, once it's been quiet a minute) and
+# picked-up.star (Brendan's new sketch, waiting for Ana to change it), then
 # lands Brendan's sketch and decision on records, and Ana's two saves. The daemon hears the
 # landing, and runs both: two notifications, from Automations, in the
 # feed (the bell; ws notifications). ws automation list and ws automation
@@ -36,6 +37,7 @@ cp "$here"/agent/*.md "$dir/.try/agent/"
 "$ws" automation add "$here/drawing.star" >/dev/null
 "$ws" automation add "$here/doc-changes.star" >/dev/null
 "$ws" automation add "$here/settled.star" >/dev/null
+"$ws" automation add "$here/picked-up.star" >/dev/null
 
 "$ws" lift records release-flow >/dev/null 2>&1
 c="$dir/repos/records/release-flow"
@@ -68,7 +70,7 @@ done
 "$ws" talk "Tell me when Ana's done changing a sketch" --print >/dev/null 2>&1 || true
 
 cat <<OUT
-automations: drawing, doc-changes and settled, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
+automations: drawing, doc-changes, settled and picked-up, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
 
   ws automation list      each, and how its last run went
   ws automation runs      what each did

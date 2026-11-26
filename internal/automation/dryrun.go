@@ -37,6 +37,11 @@ type DryRun struct {
 	Settling int `json:"settling,omitempty"`
 	// Lines are its runs, the latest last: at most DryLines of them.
 	Lines []DryLine `json:"lines"`
+	// Steps are how each step of its script would have gone, and Failures
+	// where its runs would have failed (line:col, how many), for its
+	// outline.
+	Steps    []StepCount    `json:"steps,omitempty"`
+	Failures map[string]int `json:"failures,omitempty"`
 }
 
 // DryLine is one run a dry run had, or one held back.
@@ -62,7 +67,9 @@ const DryLines = 20
 // done.
 type dryRun struct {
 	steps map[int][2]string
-	did   []string
+	// at is where each step was called from, and its builtin.
+	at  map[int][2]string
+	did []string
 }
 
 // DryRun is what a would have done over the events of the last back.
@@ -87,6 +94,16 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 	}}
 	lines := []DryLine{}
 	ranAt := map[string][]time.Time{} // each key's runs, for at_most
+	counts := map[string]*StepCount{}
+	var countOrder []string
+	counted := func(at, builtin string) *StepCount {
+		k := at + " " + builtin
+		if counts[k] == nil {
+			counts[k] = &StepCount{At: at, Builtin: builtin}
+			countOrder = append(countOrder, k)
+		}
+		return counts[k]
+	}
 	runOne := func(ev events.Event, pace Pace, batch []events.Event) {
 		line := DryLine{Event: ev.Ref(), At: ev.At, Says: ev.Says()}
 		if len(batch) > 1 {
@@ -111,7 +128,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			}
 		}
 		ranAt[key] = append(ranAt[key], ev.At)
-		did = &dryRun{steps: map[int][2]string{}}
+		did = &dryRun{steps: map[int][2]string{}, at: map[int][2]string{}}
 		for {
 			r := &run{e: dry, a: a, ev: ev, batch: batch, dry: did}
 			err := r.do()
@@ -153,6 +170,19 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			did.steps[n] = [2]string{"done", result}
 		}
 		line.Did = did.did
+		for n, st := range did.steps {
+			if at, ok := did.at[n]; ok {
+				counted(at[0], at[1]).count(st[0], st[1], 1)
+			}
+		}
+		if line.Error != "" {
+			if at := failedAt(a.Name, line.Error); at != "" {
+				if out.Failures == nil {
+					out.Failures = map[string]int{}
+				}
+				out.Failures[at]++
+			}
+		}
 		out.Ran++
 		lines = append(lines, line)
 	}
@@ -204,6 +234,10 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 		lines = lines[len(lines)-DryLines:]
 	}
 	out.Lines = lines
+	out.Steps = []StepCount{}
+	for _, k := range countOrder {
+		out.Steps = append(out.Steps, *counts[k])
+	}
 	return out, nil
 }
 
@@ -232,4 +266,6 @@ type Proposed struct {
 	// Replaces is whether there's one by its name already, which accepting
 	// it replaces.
 	Replaces bool `json:"replaces,omitempty"`
+	// Outline is its script, drawn: its dry run's Steps counted on it.
+	Outline *Outline `json:"outline,omitempty"`
 }

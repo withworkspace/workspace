@@ -143,6 +143,11 @@ type AutomationDetail struct {
 	Automation AutomationItem  `json:"automation"`
 	Source     string          `json:"source"`
 	Runs       []AutomationRun `json:"runs"`
+	// Outline is its script, drawn (nil where it can't be read), with how
+	// each step's gone over its runs (Steps) and where they failed.
+	Outline  *automation.Outline    `json:"outline,omitempty"`
+	Steps    []automation.StepCount `json:"steps"`
+	Failures map[string]int         `json:"failures,omitempty"`
 }
 
 // automationRunsShown is the most runs an automation's page shows.
@@ -200,16 +205,24 @@ func (w *Workspace) Automation(name string) (AutomationDetail, error) {
 	}
 	st := states[name]
 	var item AutomationItem
+	var outline *automation.Outline
 	if a, err := automation.Load(root, name); err != nil {
 		item = AutomationItem{Name: name, May: []string{}, On: st.On, Added: st.Added, Broken: err.Error(), Tally: tallies[name]}
 	} else {
 		item = automationItem(root, a, st, tallies[name])
+		if o, err := automation.OutlineOf(a); err == nil {
+			outline = &o
+		}
 	}
 	runs, err := automationRuns(root, name, automationRunsShown)
 	if err != nil {
 		return AutomationDetail{}, err
 	}
-	return AutomationDetail{Automation: item, Source: string(src), Runs: runs}, nil
+	steps, failures, err := automation.Counts(root, name)
+	if err != nil {
+		return AutomationDetail{}, err
+	}
+	return AutomationDetail{Automation: item, Source: string(src), Runs: runs, Outline: outline, Steps: steps, Failures: failures}, nil
 }
 
 // automationRuns is name's latest runs, at most limit, each with the event

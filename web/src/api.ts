@@ -1214,6 +1214,10 @@ export type ProposedAutomation = AutomationProposed;
 export type {
   AutomationDryLine,
   AutomationDryRun,
+  AutomationOutline,
+  AutomationOutlineBranch,
+  AutomationOutlineStep,
+  AutomationStepCount,
   AutomationPage,
   AutomationsInfo,
   AutomationTally,

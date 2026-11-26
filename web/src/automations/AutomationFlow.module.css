@@ -1,0 +1,177 @@
+/* An automation's script, drawn (AutomationFlow.tsx): what it runs on,
+   then each step on one rail, a step's branches nested under it, each
+   with its own rail; how each has gone at the line's end. */
+
+.flow {
+  display: grid;
+  gap: 0;
+  font-size: var(--text-sm);
+}
+
+.node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  padding-bottom: 10px;
+}
+
+/* The rail: from under a step's mark to the next's. */
+.node::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  bottom: 0;
+  left: 10.5px;
+  width: 1px;
+  background: var(--line);
+}
+
+.node:last-child::before {
+  display: none;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--fg);
+}
+
+.trigger .mark {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.quiet .mark {
+  color: var(--dim);
+}
+
+.stop .mark {
+  color: var(--dim);
+}
+
+.body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px 10px;
+  flex-wrap: wrap;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.what {
+  font-weight: 600;
+}
+
+.dim {
+  color: var(--dim);
+}
+
+.when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.when code,
+.code,
+.label code {
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}
+
+.code {
+  white-space: pre-wrap;
+  color: var(--dim);
+}
+
+.or {
+  color: var(--dim);
+}
+
+.pace {
+  padding: 0 6px;
+  border-radius: var(--radius);
+  background: var(--well);
+  color: var(--dim);
+  font-family: var(--mono);
+}
+
+.words {
+  overflow-wrap: anywhere;
+}
+
+/* What's filled in as it runs, in its words. */
+.fill {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--well);
+  font-family: var(--mono);
+  font-size: 0.95em;
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.count {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.failed {
+  color: var(--red);
+}
+
+.at {
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.branch {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.label {
+  color: var(--dim);
+}
+
+.nested {
+  display: grid;
+  padding: 8px 0 0 10px;
+  border-left: 2px solid var(--line);
+}
+
+.nested > .node:last-child {
+  padding-bottom: 0;
+}
+
+.none {
+  padding-bottom: 6px;
+  color: var(--dim);
+}

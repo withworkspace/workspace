@@ -172,8 +172,12 @@ func proposeAutomation(w *ops.Workspace, name string, src []byte) error {
 		return fmt.Errorf("not proposed: its dry run: %w", err)
 	}
 	_, had := os.Stat(automation.Path(w.Root(), name))
+	var outline *automation.Outline
+	if o, err := automation.OutlineOf(a); err == nil {
+		outline = &o
+	}
 	p := conversation.Proposal{Kind: conversation.ProposeAutomation, Title: name, Text: string(src), Note: a.About,
-		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil}}
+		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil, Outline: outline}}
 	if err := propose(w, p); err != nil {
 		return err
 	}
