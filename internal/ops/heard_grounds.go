@@ -218,41 +218,53 @@ func (w *Workspace) landedBetween(ctx context.Context, repo, last, head string) 
 // commits touched, by the last to: added, changed or deleted.
 func docsChanged(repo string, sp workspace.Space, commits []landed, by map[string]string, title func(p string, deleted bool) string) []events.Event {
 	type touch struct {
-		c      landed
-		status string
-		first  bool // it was added in these commits
+		added *landed // the commit that added it, in these
+		last  landed  // the last to touch it
 	}
-	last := map[string]*touch{}
+	touched := map[string]*touch{}
 	var order []string
-	for _, c := range commits {
+	for i := range commits {
+		c := &commits[i]
 		for _, p := range c.paths {
 			if !sp.Has(p) {
 				continue
 			}
-			t := last[p]
+			t := touched[p]
 			if t == nil {
-				t = &touch{first: slices.Contains(c.added, p)}
-				last[p] = t
+				t = &touch{}
+				touched[p] = t
 				order = append(order, p)
 			}
-			t.c, t.status = c, "changed"
+			if slices.Contains(c.added, p) && t.added == nil {
+				t.added = c
+			}
+			t.last = *c
+		}
+	}
+	event := func(p, status string, c landed) events.Event {
+		return events.Event{
+			Kind: events.DocChanged, Origin: events.Heard, By: by[c.sha], At: c.at,
+			Repo: repo, Doc: repo + ":" + p, Title: title(p, status == "deleted"), Status: status,
+			Text:    c.subject,
+			Commits: []events.Commit{{SHA: c.sha, Subject: c.subject, By: by[c.sha]}},
 		}
 	}
 	var out []events.Event
 	for _, p := range order {
-		t := last[p]
+		t := touched[p]
 		switch {
-		case slices.Contains(t.c.deleted, p):
-			t.status = "deleted"
-		case t.first:
-			t.status = "added"
+		case slices.Contains(t.last.deleted, p):
+			out = append(out, event(p, "deleted", t.last))
+		case t.added != nil:
+			// Added, by whoever added it; and changed after, by whoever
+			// last did, where that's a later commit.
+			out = append(out, event(p, "added", *t.added))
+			if t.last.sha != t.added.sha {
+				out = append(out, event(p, "changed", t.last))
+			}
+		default:
+			out = append(out, event(p, "changed", t.last))
 		}
-		out = append(out, events.Event{
-			Kind: events.DocChanged, Origin: events.Heard, By: by[t.c.sha], At: t.c.at,
-			Repo: repo, Doc: repo + ":" + p, Title: title(p, t.status == "deleted"), Status: t.status,
-			Text:    t.c.subject,
-			Commits: []events.Commit{{SHA: t.c.sha, Subject: t.c.subject, By: by[t.c.sha]}},
-		})
 	}
 	return out
 }
@@ -283,13 +295,14 @@ func (w *Workspace) thingsChanged(ctx context.Context, repo string, sp workspace
 		return "", ""
 	}
 	type touch struct {
-		c        landed
+		added    *landed // the commit that added its thing.toml, in these
+		last     landed  // the last to touch it
 		manifest string
-		added    bool
 	}
 	last := map[string]*touch{}
 	var order []string
-	for _, c := range commits {
+	for i := range commits {
+		c := &commits[i]
 		for _, p := range c.paths {
 			dir, manifest := homeOf(p)
 			if dir == "" {
@@ -301,10 +314,10 @@ func (w *Workspace) thingsChanged(ctx context.Context, repo string, sp workspace
 				last[dir] = t
 				order = append(order, dir)
 			}
-			t.c = c
-			if slices.Contains(c.added, dir+"/"+protocol.ManifestName) {
-				t.added = true
+			if slices.Contains(c.added, dir+"/"+protocol.ManifestName) && t.added == nil {
+				t.added = c
 			}
+			t.last = *c
 		}
 	}
 	var out []events.Event
@@ -314,16 +327,25 @@ func (w *Workspace) thingsChanged(ctx context.Context, repo string, sp workspace
 		if !ok {
 			continue
 		}
-		e := events.Event{
-			Kind: events.ThingChanged, Origin: events.Heard, By: by[t.c.sha], At: t.c.at,
-			Repo: repo, Thing: space.Thing{Repo: repo, Path: dir + "/"}.Name(), ThingKind: kind, Title: title,
-			Text:    t.c.subject,
-			Commits: []events.Commit{{SHA: t.c.sha, Subject: t.c.subject, By: by[t.c.sha]}},
+		event := func(k string, c landed) events.Event {
+			return events.Event{
+				Kind: k, Origin: events.Heard, By: by[c.sha], At: c.at,
+				Repo: repo, Thing: space.Thing{Repo: repo, Path: dir + "/"}.Name(), ThingKind: kind, Title: title,
+				Text:    c.subject,
+				Commits: []events.Commit{{SHA: c.sha, Subject: c.subject, By: by[c.sha]}},
+			}
 		}
-		if t.added {
-			e.Kind = events.ThingAdded
+		switch {
+		case t.added != nil:
+			// Added, by whoever added it; and changed after, by whoever
+			// last did, where that's a later commit.
+			out = append(out, event(events.ThingAdded, *t.added))
+			if t.last.sha != t.added.sha {
+				out = append(out, event(events.ThingChanged, t.last))
+			}
+		default:
+			out = append(out, event(events.ThingChanged, t.last))
 		}
-		out = append(out, e)
 	}
 	return out
 }
