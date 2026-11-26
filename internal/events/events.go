@@ -434,3 +434,33 @@ func SetHeardTo(tx *store.Tx, key, value string) error {
 	_, err := tx.Exec(`INSERT INTO events_heard (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`, key, value)
 	return err
 }
+
+// Says is what an event says, in a line: what changed in a thing,
+// field by field; a document as it's called and what became of it; how a
+// run ended; else its text, or what it's about is called.
+func (e Event) Says() string {
+	switch {
+	case len(e.Changes) > 0:
+		var cs []string
+		for _, c := range e.Changes {
+			switch {
+			case c.From == "" && c.To == "":
+				cs = append(cs, c.Field+" changed")
+			case c.From == "":
+				cs = append(cs, c.Field+" → "+c.To)
+			case c.To == "":
+				cs = append(cs, c.Field+" cleared (was "+c.From+")")
+			default:
+				cs = append(cs, c.Field+" "+c.From+" → "+c.To)
+			}
+		}
+		return strings.TrimPrefix(e.Title+": ", ": ") + strings.Join(cs, ", ")
+	case e.Kind == DocChanged && e.Status != "":
+		return e.Title + " (" + e.Status + ")"
+	case e.Kind == RunEnded && e.Status != "":
+		return e.Status
+	case e.Text != "":
+		return e.Text
+	}
+	return e.Title
+}

@@ -214,32 +214,5 @@ func printEvent(w io.Writer, e events.Event, format string) {
 		mark, e.Kind, e.By, cause, about, text)
 }
 
-// eventSays is what an event says, in a line: what changed in a thing,
-// field by field; a document as it's called and what became of it; how a
-// run ended; else its text, or what it's about is called.
-func eventSays(e events.Event) string {
-	switch {
-	case len(e.Changes) > 0:
-		var cs []string
-		for _, c := range e.Changes {
-			switch {
-			case c.From == "" && c.To == "":
-				cs = append(cs, c.Field+" changed")
-			case c.From == "":
-				cs = append(cs, c.Field+" → "+c.To)
-			case c.To == "":
-				cs = append(cs, c.Field+" cleared (was "+c.From+")")
-			default:
-				cs = append(cs, c.Field+" "+c.From+" → "+c.To)
-			}
-		}
-		return strings.TrimPrefix(e.Title+": ", ": ") + strings.Join(cs, ", ")
-	case e.Kind == events.DocChanged && e.Status != "":
-		return e.Title + " (" + e.Status + ")"
-	case e.Kind == events.RunEnded && e.Status != "":
-		return e.Status
-	case e.Text != "":
-		return e.Text
-	}
-	return e.Title
-}
+// eventSays is what an event says, in a line (events.Event.Says).
+func eventSays(e events.Event) string { return e.Says() }
