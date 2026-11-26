@@ -117,6 +117,10 @@ func ByWorkflow(name string) string { return "workflow:" + name }
 // roster (team.Person), as By says it: person:brendan.
 func ByPerson(key string) string { return "person:" + key }
 
+// ByPlugin is a plugin, as By says it, for what it told ws of without
+// saying who did it: plugin:jira.
+func ByPlugin(name string) string { return "plugin:" + name }
+
 // PersonOf is the person By names, or ok false for one it doesn't.
 func PersonOf(by string) (key string, ok bool) {
 	key, ok = strings.CutPrefix(by, "person:")
@@ -168,6 +172,17 @@ type Event struct {
 	// (passed, failed, stopped, gone) for run.ended.
 	Run    string `json:"run,omitempty"`
 	Status string `json:"status,omitempty"`
+	// Changes are what changed in a thing a plugin keeps, field by field,
+	// for thing.changed: a Jira issue's status, from In Progress to Done.
+	Changes []FieldChange `json:"changes,omitempty"`
+}
+
+// FieldChange is one field of a thing, as it was and as it is. A long
+// one (text, markdown) is said to have changed, without either.
+type FieldChange struct {
+	Field string `json:"field"`
+	From  string `json:"from,omitempty"`
+	To    string `json:"to,omitempty"`
 }
 
 // Commit is one commit an event's about.
