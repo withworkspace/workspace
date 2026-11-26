@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -91,6 +92,11 @@ const transcriptTextMax = 8 << 10
 // one ws can read: Claude Code's in ~/.claude/projects/<folder>/<id>.jsonl,
 // pi's in ~/.pi/agent/sessions/<folder>/<time>_<id>.jsonl. Found by id,
 // whichever folder it ran in.
+//
+// Finding one is a look in every folder (there are hundreds, one for each
+// place Claude Code's been run), so a session's file is remembered once
+// found, and is then a stat; one not found isn't looked for again for
+// sessionMissFor.
 func SessionFile(harnessName, id string) (string, bool) {
 	home, err := homeDir()
 	if err != nil || id == "" || strings.ContainsAny(id, `/\*?[`) {
@@ -105,11 +111,45 @@ func SessionFile(harnessName, id string) (string, bool) {
 	default:
 		return "", false
 	}
-	found, _ := filepath.Glob(pattern)
-	if len(found) == 0 {
+	sessions.mu.Lock()
+	if sessions.found == nil {
+		sessions.found, sessions.missed = map[string]string{}, map[string]time.Time{}
+	}
+	path, known := sessions.found[pattern]
+	missed, wasMissed := sessions.missed[pattern]
+	sessions.mu.Unlock()
+	if known {
+		if _, err := os.Stat(path); err == nil {
+			return path, true
+		}
+	}
+	if !known && wasMissed && time.Since(missed) < sessionMissFor {
 		return "", false
 	}
+	// Looked for with nobody else waiting on it: each session's own.
+	found, _ := filepath.Glob(pattern)
+	sessions.mu.Lock()
+	defer sessions.mu.Unlock()
+	if len(found) == 0 {
+		delete(sessions.found, pattern) // moved, or cleared
+		sessions.missed[pattern] = time.Now()
+		return "", false
+	}
+	delete(sessions.missed, pattern)
+	sessions.found[pattern] = found[0]
 	return found[0], true
+}
+
+// sessionMissFor is how long a session that wasn't found isn't looked for
+// again: one that's starting is found then.
+var sessionMissFor = 2 * time.Second
+
+// sessions is the session files found, and when those not found were
+// last looked for, by what they were looked for as.
+var sessions struct {
+	mu     sync.Mutex
+	found  map[string]string
+	missed map[string]time.Time
 }
 
 // ReadTranscript reads a session's transcript, as its harness keeps it.

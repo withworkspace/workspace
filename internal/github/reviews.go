@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // What the Reviews page asks of GitHub besides a repo's open PRs: who you
@@ -55,7 +53,7 @@ func OpenPRs(org, repo string) ([]PR, error) {
 		if after != "" {
 			args = append(args, "-f", "after="+after)
 		}
-		stdOut, stdErr, err := gh.Exec(args...)
+		stdOut, stdErr, err := ghExec(args...)
 		if err != nil {
 			return nil, fmt.Errorf("open PRs of %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
@@ -173,7 +171,7 @@ func parseOpenPRs(data []byte) ([]PR, string, error) {
 
 // Viewer is the login gh is signed in as.
 func Viewer() (string, error) {
-	stdOut, _, err := gh.Exec("api", "user", "-q", ".login")
+	stdOut, _, err := ghExec("api", "user", "-q", ".login")
 	if err != nil {
 		return "", fmt.Errorf("gh api user: %w", err)
 	}
@@ -201,7 +199,7 @@ type PRRef struct {
 // review requests (PR.Requested has your login); user-review-requested:@me
 // finds the same.
 func ReviewRequested(org string) ([]PRRef, error) {
-	stdOut, _, err := gh.Exec(
+	stdOut, _, err := ghExec(
 		"search", "prs",
 		"--review-requested=@me",
 		"--state=open",
@@ -274,7 +272,7 @@ const stackPages = 5
 func StacksForRepo(org, repo string) ([]Stack, error) {
 	var out []Stack
 	for page := 1; page <= stackPages; page++ {
-		stdOut, stdErr, err := gh.Exec(
+		stdOut, stdErr, err := ghExec(
 			"api", fmt.Sprintf("repos/%s/stacks?per_page=100&page=%d", repoSlug(org, repo), page),
 			"-H", "Accept: application/vnd.github+json",
 			"-H", "X-GitHub-Api-Version: "+StacksAPIVersion,
@@ -383,7 +381,7 @@ func SubmitReview(org, repo string, number int, r ReviewSubmission) (string, err
 	if err := f.Close(); err != nil {
 		return "", err
 	}
-	stdOut, stdErr, err := gh.Exec(
+	stdOut, stdErr, err := ghExec(
 		"api", "-X", "POST", "repos/"+repoSlug(org, repo)+"/pulls/"+strconv.Itoa(number)+"/reviews",
 		"-H", "Accept: application/vnd.github+json",
 		"--input", f.Name(),
@@ -480,7 +478,7 @@ func ReviewThreads(org, repo string, number int) ([]ReviewThread, error) {
 		if after != "" {
 			args = append(args, "-f", "after="+after)
 		}
-		stdOut, stdErr, err := gh.Exec(args...)
+		stdOut, stdErr, err := ghExec(args...)
 		if err != nil {
 			return nil, fmt.Errorf("reading the threads on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
@@ -567,7 +565,7 @@ func parseReviewThreads(data []byte) ([]ReviewThread, string, error) {
 // of yours pending on GitHub, GitHub adds it to that instead of posting.)
 func ReplyToThread(threadID, body string) error {
 	const q = `mutation($id: ID!, $body: String!) { addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $id, body: $body}) { comment { id } } }`
-	stdOut, stdErr, err := gh.Exec("api", "graphql", "-f", "query="+q, "-f", "id="+threadID, "-f", "body="+body)
+	stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+q, "-f", "id="+threadID, "-f", "body="+body)
 	if err != nil {
 		return fmt.Errorf("replying on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
@@ -580,7 +578,7 @@ func ResolveThread(threadID string, resolved bool) error {
 	if !resolved {
 		q = `mutation($id: ID!) { unresolveReviewThread(input: {threadId: $id}) { thread { id } } }`
 	}
-	stdOut, stdErr, err := gh.Exec("api", "graphql", "-f", "query="+q, "-f", "id="+threadID)
+	stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+q, "-f", "id="+threadID)
 	if err != nil {
 		return fmt.Errorf("resolving on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
@@ -617,7 +615,7 @@ const discussionQuery = `query($owner: String!, $repo: String!, $number: Int!) {
 // comments, the latest hundred of each, oldest first. (GraphQL
 // pullRequest.reviews and .comments; not tried on a PR with more.)
 func Discussion(org, repo string, number int) ([]Said, error) {
-	stdOut, stdErr, err := gh.Exec("api", "graphql", "-f", "query="+discussionQuery, "-f", "owner="+org, "-f", "repo="+repo, "-F", "number="+strconv.Itoa(number))
+	stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+discussionQuery, "-f", "owner="+org, "-f", "repo="+repo, "-F", "number="+strconv.Itoa(number))
 	if err != nil {
 		return nil, fmt.Errorf("reading what's been said on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
@@ -682,7 +680,7 @@ func parseDiscussion(data []byte) ([]Said, error) {
 // /repos/{owner}/{repo}/issues/{number}/comments. Not tried on real
 // GitHub.)
 func Comment(org, repo string, number int, body string) error {
-	stdOut, stdErr, err := gh.Exec("api", "--method", "POST", fmt.Sprintf("repos/%s/%s/issues/%d/comments", org, repo, number), "-f", "body="+body)
+	stdOut, stdErr, err := ghExec("api", "--method", "POST", fmt.Sprintf("repos/%s/%s/issues/%d/comments", org, repo, number), "-f", "body="+body)
 	if err != nil {
 		return fmt.Errorf("commenting on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}

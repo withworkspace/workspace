@@ -36,6 +36,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/cost"
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/nav"
 	"github.com/withworkspace/workspace/internal/ops"
@@ -119,6 +120,11 @@ type Server struct {
 	// Poll is how often open pages are checked for changes to tell them
 	// about (default 2s).
 	Poll time.Duration
+	// Sweep is how often the workspace's view is looked at for what moved
+	// without saying (default 15s): what it's built from says when it
+	// moves (a records write, git, a file under .ws, GitHub), and it's
+	// looked at then.
+	Sweep time.Duration
 	// Assets is the app to serve (default Built()).
 	Assets fs.FS
 
@@ -138,6 +144,10 @@ type Server struct {
 	// transcripts is crew's sessions', each read as it grows by whoever
 	// follows it (followed).
 	transcripts *keyedHub
+	// followed is each crew session a page follows (transcript.go), as its
+	// hub last read it.
+	followedMu sync.Mutex
+	followed   map[string]*transcriptFollow
 	// filesFollowed is the Files page's grounds and capsules, each told when
 	// the runs move; a page that follows one has it open, for the runs
 	// started from it. runLogs is runs' logs, each told what's written.
@@ -197,7 +207,10 @@ func (s *Server) Start() error {
 	}
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.topics = map[string]*hub{}
-	ws := newHub(topicWorkspace, s.Poll, s.fingerprint)
+	if s.Sweep == 0 {
+		s.Sweep = 15 * time.Second
+	}
+	ws := newHub(topicWorkspace, max(s.Poll, s.Sweep), s.fingerprint)
 	// The view's built only when what it's built from has moved, and
 	// every half a minute regardless.
 	// What's kept for pages behind their reads (a capsule's tree and
@@ -205,6 +218,7 @@ func (s *Server) Start() error {
 	// too, when a read behind finds it changed: looked at as soon as it has.
 	ws.stamp, ws.floor = func() string { return s.App.Stamp() + " " + s.keptStamp() }, 30*time.Second
 	s.reads.told = ws.nudge
+	ws.version = func() int64 { return s.views.versionOf("workspace") }
 	s.topics[topicWorkspace] = ws
 	if s.Reviews != nil {
 		if s.ReviewsPoll == 0 {
@@ -218,6 +232,8 @@ func (s *Server) Start() error {
 			return listFingerprint(l, s.App.PassMarks(listHeads(l)))
 		}
 		s.topics[topicReviews] = h
+		// A list read moves what the workspace's view counts of it.
+		s.Reviews.Moved = ws.nudge
 		// A pull request's page: its page as kept is looked at as often as
 		// any page's, and read again behind when it's stale.
 		s.prs = newPRHub(s.Poll, func(r prRef) string {
@@ -299,6 +315,10 @@ func (s *Server) Start() error {
 		records = db
 	}
 	go watchRecords(s.ctx, records, func(topic string) {
+		// Whatever the records say changed, the workspace's view looks: it
+		// shows something of most of them, and finds what moved by its
+		// stamp.
+		ws.nudge()
 		if key, ok := topicKey(topic, missionTopic); ok {
 			s.missions.tell(key)
 		} else if key, ok := topicKey(topic, conversationTopic); ok {
@@ -313,12 +333,20 @@ func (s *Server) Start() error {
 	// And what git writes in a capsule or a repo is looked at as it's
 	// written: the hubs' polls are for what that can't see.
 	go s.App.WatchGit(s.ctx.Done(), s.Log.Printf)
+	// What's followed is what the daemon keeps current: a mission's page
+	// open, a capsule in Files.
+	s.App.Following(func() (missions, worktrees []string) {
+		return s.missions.followed(), s.filesFollowed.followed()
+	})
 	go func() {
 		for {
 			select {
 			case <-s.ctx.Done():
 				return
 			case <-seen:
+				// A capsule's moved, among what's told here: what's been
+				// read of it for a page is read again, as the pages look.
+				s.reads.refresh()
 				ws.nudge()
 				s.missions.nudge()
 			}
@@ -635,7 +663,8 @@ func (s *Server) Handler() http.Handler {
 		jsonError(w, http.StatusNotFound, "no such API: "+r.Method+" "+r.URL.Path)
 	})
 	mux.HandleFunc("/", s.app)
-	return s.guard(s.forgetsOnWrite(mux))
+	cost.Start(s.Root)
+	return s.guard(s.forgetsOnWrite(cost.Wrap(mux)))
 }
 
 // forgetsOnWrite has the workspace's view built afresh after a write a
@@ -808,14 +837,31 @@ func (s *Server) shutdown(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) workspace(w http.ResponseWriter, r *http.Request) {
+	// While a page follows the workspace, its hub keeps the view current
+	// (built again when what it's built from moves, and every half a
+	// minute): the view's served as it's kept, built by nobody's read. A
+	// write from a page forgets it, so that page reads what it wrote.
+	if h := s.topics[topicWorkspace]; h != nil && h.watching() {
+		if data, version, ok := s.views.kept("workspace"); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(versionHeader, strconv.FormatInt(version, 10))
+			w.Write(data)
+			return
+		}
+	}
 	data, err := s.views.workspace(s)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(versionHeader, strconv.FormatInt(s.views.versionOf("workspace"), 10))
 	w.Write(data)
 }
+
+// versionHeader says which version of a view an answer is: a page holding
+// a later one (told over its socket, or read since) lets it be.
+const versionHeader = "X-Ws-Version"
 
 // fingerprint says whether what the API serves has changed.
 func (s *Server) fingerprint() string {

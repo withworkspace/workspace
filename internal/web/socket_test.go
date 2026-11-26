@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -441,5 +442,114 @@ func TestAppTopicKey(t *testing.T) {
 		if ok && appTopicKey(name, p) != c.key {
 			t.Errorf("%q made again: %q", c.key, appTopicKey(name, p))
 		}
+	}
+}
+
+// While a page follows the workspace, its view is served as the hub keeps
+// it: a read builds nothing, however long since it was built, and however
+// many there are.
+func TestWorkspaceView_ServedAsKeptWhileFollowed(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 50 * time.Millisecond, Assets: testApp, listener: ln}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, c)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "workspace"})
+	if got := st.next(3 * time.Second); got != "following workspace" {
+		t.Fatalf("following: %q", got)
+	}
+	built := func() int {
+		s.views.mu.Lock()
+		defer s.views.mu.Unlock()
+		return s.views.built["workspace"]
+	}
+	before := built()
+	version := func(res *http.Response) int64 {
+		v, _ := strconv.ParseInt(res.Header.Get(versionHeader), 10, 64)
+		return v
+	}
+	var was int64
+	for range 5 {
+		time.Sleep(60 * time.Millisecond) // past a poll each time
+		res := do(t, s, "GET", "/api/workspace", true, nil)
+		res.Body.Close()
+		if was = version(res); was == 0 {
+			t.Fatal("a read didn't say its version")
+		}
+	}
+	if n := built() - before; n != 0 {
+		t.Errorf("reads built the view %d times, want none", n)
+	}
+	(mission.Store{Root: root}).Create("Pushed")
+	if got := st.next(3 * time.Second); got != "changed workspace" {
+		t.Fatalf("after a mission's made: %q", got)
+	}
+	told := st.last.Version
+	if told <= was {
+		t.Errorf("told it's at version %d, after %d", told, was)
+	}
+	res := do(t, s, "GET", "/api/workspace", true, nil)
+	if v := version(res); v != told {
+		t.Errorf("read as of version %d, told %d", v, told)
+	}
+	var ws Workspace
+	json.NewDecoder(res.Body).Decode(&ws)
+	res.Body.Close()
+	if len(ws.Missions) != 1 {
+		t.Errorf("told it changed, a page was served %d missions, want 1", len(ws.Missions))
+	}
+}
+
+// What the workspace's view is built from says when it moves: a file a
+// command writes under .ws (a mission's brief) reaches a page that
+// follows the workspace as it's written, not at the view's next sweep.
+func TestWorkspaceView_ToldOfAFileAsItsWritten(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ms := mission.Store{Root: root}
+	m, err := ms.Create("Pushed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brief := filepath.Join(ms.Dir(), m.Slug, "brief.md")
+	os.MkdirAll(filepath.Dir(brief), 0o755)
+	os.WriteFile(brief, []byte("## Goal\nFirst.\n"), 0o644)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 50 * time.Millisecond, Sweep: time.Hour, Assets: testApp, listener: ln}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, c)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "workspace"})
+	if got := st.next(3 * time.Second); got != "following workspace" {
+		t.Fatalf("following: %q", got)
+	}
+	time.Sleep(300 * time.Millisecond) // the folders watched, and anything the start moved told
+	for st.next(100*time.Millisecond) != "(nothing)" {
+	}
+	os.WriteFile(brief, []byte("## Goal\nSecond, and longer.\n"), 0o644)
+	if got := st.next(3 * time.Second); got != "changed workspace" {
+		t.Fatalf("after the brief's written: %q", got)
 	}
 }

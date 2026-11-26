@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Transcripts read from real sessions (claude 2.1.319, pi 1.5.0): what the
@@ -65,6 +66,40 @@ func TestSessionFile(t *testing.T) {
 		if _, ok := SessionFile(c[0], c[1]); ok {
 			t.Errorf("%v found", c)
 		}
+	}
+}
+
+// A session's file is remembered once found, so it's looked for in every
+// folder once; one that isn't found isn't looked for again for a while,
+// and one that's gone is looked for again.
+func TestSessionFile_Remembered(t *testing.T) {
+	home := t.TempDir()
+	old, miss := homeDir, sessionMissFor
+	homeDir = func() (string, error) { return home, nil }
+	sessionMissFor = time.Hour
+	t.Cleanup(func() { homeDir, sessionMissFor = old, miss })
+	folder := filepath.Join(home, ".claude", "projects", "-w-repos-api-cache")
+	os.MkdirAll(folder, 0o755)
+
+	if _, ok := SessionFile("claude", "late-1"); ok {
+		t.Fatal("found before it's there")
+	}
+	os.WriteFile(filepath.Join(folder, "late-1.jsonl"), nil, 0o644)
+	if _, ok := SessionFile("claude", "late-1"); ok {
+		t.Error("looked for again straight after it wasn't found")
+	}
+	sessionMissFor = 0
+	p, ok := SessionFile("claude", "late-1")
+	if !ok {
+		t.Fatal("not found once it's there")
+	}
+	// Moved to another folder: the one remembered is gone, so it's looked
+	// for again, and found where it is.
+	other := filepath.Join(home, ".claude", "projects", "-w-repos-api-other")
+	os.MkdirAll(other, 0o755)
+	os.Rename(p, filepath.Join(other, "late-1.jsonl"))
+	if p, ok := SessionFile("claude", "late-1"); !ok || filepath.Dir(p) != other {
+		t.Errorf("moved: %q %v", p, ok)
 	}
 }
 

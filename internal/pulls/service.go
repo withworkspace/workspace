@@ -21,6 +21,13 @@ import (
 // what it said between asks), fetches a PR's commits into its repo's
 // clone, reads its diffs from there, and posts your reviews.
 type Service struct {
+	// ReadYours reads, behind each list, the pages of the pull requests
+	// yours or asking for your review (readYours): the daemon's. Others'
+	// are read when they're first shown.
+	ReadYours bool
+	// Moved, if set, is told when a list's been read (Seen moves).
+	Moved func()
+
 	Root string
 	// Remote is where a repo is on GitHub, by its name here: the
 	// workspace's repos needn't share an owner, nor their names there.
@@ -72,7 +79,10 @@ type Service struct {
 	pageSeen  map[string]int64
 	reading   map[string]*pageRead
 	pageTried map[string]time.Time
-	pageDue   map[string]bool
+	// readingYours: the pages of PRs yours or asking for your review are
+	// being read behind a list (readYours).
+	readingYours bool
+	pageDue      map[string]bool
 	// saying: what's been said on a page is being read behind its first
 	// showing, and is in when this closes.
 	saying map[string]chan struct{}
@@ -180,6 +190,12 @@ func (s *Service) List(force bool) (*List, error) {
 	s.mu.Unlock()
 	if err == nil {
 		s.forgetGone(l)
+		if s.Moved != nil {
+			s.Moved()
+		}
+		if s.ReadYours {
+			s.readYours(l)
+		}
 	}
 	close(c.done)
 	return c.list, c.err

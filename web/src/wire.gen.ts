@@ -4874,6 +4874,11 @@ export interface SocketSaid {
      * Screen is a running crew's screen, or its end (its screen topic's).
      */
     screen?: ScreenOp;
+    /**
+     * Version is the version of what's changed it's now at, where it has
+     * one: a page that's read it as of then, or later, needn't again.
+     */
+    version?: number;
 }
 
 // From web/enums.go
@@ -5591,6 +5596,11 @@ export interface TeamView extends TeamTimeline {
      */
     stale?: boolean;
     error?: string;
+    /**
+     * Reading: what's asked for hasn't been read yet (nothing has, or not
+     * as far back), and is being: the page's told when it has.
+     */
+    reading?: boolean;
 }
 
 // From web/terminal.go

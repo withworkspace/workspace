@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -54,6 +55,10 @@ type Missions interface {
 	// repo's) until stop closes, and says on Seen when it has: a commit
 	// in a capsule reaches its pages then, not at the next poll.
 	WatchGit(stop <-chan struct{}, logf func(string, ...any))
+	// Following says who's following what (the missions whose pages are
+	// open, the worktrees followed in Files): what's kept of their
+	// capsules is kept current while they are.
+	Following(follow func() (missions, worktrees []string))
 	// BundleFile is a file of one of a mission's bundles: where it is, and
 	// its content type.
 	BundleFile(slug, id, name string) (path, media string, err error)
@@ -77,6 +82,32 @@ type viewCache struct {
 	mu    sync.Mutex // held while one's built, so those asking at once wait for one build
 	views map[string]*keptView
 	built map[string]int // how many times each has been built: what a test counts
+	// versions is each view's version: it moves when a build comes to
+	// something other than the last (last), not when it's built the same.
+	// They start from when the daemon did, so a later daemon's are later.
+	versions map[string]int64
+	last     map[string][]byte
+}
+
+// versionOf is the view at key's version: 0 before it's been built.
+func (c *viewCache) versionOf(key string) int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.versions[key]
+}
+
+// built notes a build of the view at key, moving its version if it's other
+// than the last. c.mu is held.
+func (c *viewCache) noteBuilt(key string, data []byte) {
+	if c.versions == nil {
+		c.versions, c.last = map[string]int64{}, map[string][]byte{}
+	}
+	if c.versions[key] == 0 {
+		c.versions[key] = time.Now().UnixMilli()
+	} else if !bytes.Equal(c.last[key], data) {
+		c.versions[key]++
+	}
+	c.last[key] = data
 }
 
 type keptView struct {
@@ -121,6 +152,7 @@ func (c *viewCache) get(s *Server, key string, stampOf func() string, build func
 		return nil, err
 	}
 	c.views[key] = &keptView{stamp: stamp, app: app, at: time.Now(), data: data}
+	c.noteBuilt(key, data)
 	return data, nil
 }
 
@@ -146,6 +178,17 @@ func (c *viewCache) mission(s *Server, slug string) ([]byte, error) {
 // runs is the Runs page's view as GET /api/runs serves it.
 func (c *viewCache) runs(s *Server) ([]byte, error) {
 	return c.get(s, topicRuns, s.runsStamp, func() (any, error) { return s.runsInfo() })
+}
+
+// kept is the view at key as last built, however long ago, and its
+// version, if it's kept.
+func (c *viewCache) kept(key string) ([]byte, int64, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if v := c.views[key]; v != nil {
+		return v.data, c.versions[key], true
+	}
+	return nil, 0, false
 }
 
 // forget drops what's kept: what it was built from has changed in a way

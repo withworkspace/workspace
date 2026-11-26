@@ -76,12 +76,31 @@ func newTeamServer(t *testing.T) (*Server, *int) {
 	return s, &asks
 }
 
+// readTeam is the Team page's view once the repos have been read: the
+// first ask answers at once, reading, and the look's behind it.
+func readTeam(t *testing.T, s *Server, path string) TeamView {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		var v TeamView
+		if code := getInto(t, s, path, &v); code != 200 {
+			t.Fatalf("team: %d", code)
+		}
+		if !v.Reading {
+			return v
+		}
+	}
+	t.Fatal("the repos were never read")
+	return TeamView{}
+}
+
 func TestTeamAPI(t *testing.T) {
 	s, asks := newTeamServer(t)
 	var v TeamView
-	if code := getInto(t, s, "/api/team", &v); code != 200 {
-		t.Fatalf("team: %d", code)
+	// Nothing's been read: the first ask doesn't wait for it.
+	if code := getInto(t, s, "/api/team", &v); code != 200 || !v.Reading || len(v.Days) != 0 {
+		t.Fatalf("first ask: %d, reading %v, %d days", code, v.Reading, len(v.Days))
 	}
+	v = readTeam(t, s, "/api/team")
 	if len(v.Days) != 3 || v.Days[0].Date != "2026-11-10" || !v.GitHub || v.Repos["api"].Label != "API" {
 		t.Fatalf("view: %d days, repos %+v", len(v.Days), v.Repos)
 	}
@@ -123,7 +142,7 @@ func TestTeamNarrateAPI(t *testing.T) {
 		return "gist: Tokens are cached.\nknow: none", nil
 	}
 	var v TeamView
-	getInto(t, s, "/api/team", &v)
+	v = readTeam(t, s, "/api/team")
 	if v.Narrative == nil || !v.Narrative.On || v.Narrative.Unwritten != 2 || v.Days[0].Items[0].Narrative != "unwritten" {
 		t.Fatalf("before: %+v, %+v", v.Narrative, v.Days[0].Items[0])
 	}
@@ -180,7 +199,7 @@ func TestTeamSummariseAPI(t *testing.T) {
 		}).StatusCode
 	}
 	var v TeamView
-	getInto(t, s, "/api/team", &v)
+	v = readTeam(t, s, "/api/team")
 	if v.Summary == nil || v.Summary.Can != 0 || v.Summary.At != nil {
 		t.Fatalf("before anything's read: %+v", v.Summary)
 	}
@@ -220,7 +239,7 @@ func TestTeamSummariseAPI(t *testing.T) {
 func TestTeamSeenAndNear(t *testing.T) {
 	s, _ := newTeamServer(t)
 	var v TeamView
-	getInto(t, s, "/api/team", &v)
+	v = readTeam(t, s, "/api/team")
 	if v.Seen != nil || len(v.Days[0].Items[0].Near) != 0 {
 		t.Fatalf("before: seen %v, near %+v", v.Seen, v.Days[0].Items[0].Near)
 	}

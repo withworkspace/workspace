@@ -46,6 +46,9 @@ func (w *Workspace) ReviewsService() *pulls.Service {
 	// once and sent behind.
 	if w.opts.Outbox != nil {
 		svc.SendBehind(w.opts.Outbox)
+		// And the pages of pull requests yours, or asking for your
+		// review, are read as the list is: they're there when opened.
+		svc.ReadYours = true
 	}
 	return svc
 }

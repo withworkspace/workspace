@@ -71,9 +71,21 @@ func (w *Workspace) refsKnown(ctx context.Context, trees, writing bool) *ref.Kno
 		} else {
 			k.Repos[repo] = nil
 		}
+		k.Branches[repo] = map[string]string{}
+		if trees, kept := w.caps.worktrees(repo, false); kept {
+			for _, t := range trees {
+				if t.Ground {
+					continue
+				}
+				k.Capsules[repo] = append(k.Capsules[repo], t.Name)
+				if t.Branch != "" && t.Branch != "HEAD" {
+					k.Branches[repo][t.Branch] = t.Name
+				}
+			}
+			continue
+		}
 		capsules, _ := workspace.ListWorktrees(ws.RepoDir(repo))
 		k.Capsules[repo] = capsules
-		k.Branches[repo] = map[string]string{}
 		for _, c := range capsules {
 			// Read from git's own files (branchOf): what there is to name
 			// is asked for on every pin and every address read, and a git

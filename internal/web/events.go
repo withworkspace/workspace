@@ -23,6 +23,8 @@ type hub struct {
 	// has passed since it last did (for what a stamp can't see).
 	stamp func() string
 	floor time.Duration
+	// version, if set, is what it's told it's now at (told.Version).
+	version func() int64
 
 	mu        sync.Mutex
 	subs      map[chan told]struct{}
@@ -38,6 +40,9 @@ type hub struct {
 type told struct {
 	Name string
 	Op   any
+	// Version is the version of what's changed it's now at, where it has
+	// one (the workspace's view): 0 for none.
+	Version int64
 }
 
 // The topics pages follow: the workspace (its missions, conversations,
@@ -123,6 +128,10 @@ func (h *hub) run(ctx context.Context) {
 			continue // nothing it's built from has moved
 		}
 		fp := h.fingerprint()
+		var version int64
+		if h.version != nil {
+			version = h.version()
+		}
 		h.mu.Lock()
 		h.lastStamp, h.lastFull = stamp, time.Now()
 		changed := fp != h.last
@@ -130,7 +139,7 @@ func (h *hub) run(ctx context.Context) {
 		if changed {
 			for ch := range h.subs {
 				select {
-				case ch <- told{Name: h.name}:
+				case ch <- told{Name: h.name, Version: version}:
 				default: // a page that's this far behind will refetch anyway
 				}
 			}

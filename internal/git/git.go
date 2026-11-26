@@ -12,7 +12,11 @@ import (
 	"os/exec"
 	"strings"
 	"sync/atomic"
+
+	"github.com/withworkspace/workspace/internal/cost"
 )
+
+func init() { cost.CountGits(Started) }
 
 // Error is git failing: the subcommand, and what it said on stderr. It
 // unwraps to the *exec.ExitError, for its exit code.
@@ -84,6 +88,14 @@ func (c Cmd) command() *exec.Cmd {
 	return cmd
 }
 
+// sub is its subcommand, for counting.
+func (c Cmd) sub() string {
+	if len(c.Args) == 0 {
+		return ""
+	}
+	return c.Args[0]
+}
+
 // Command is it as a process not yet started, for one that's talked to
 // as it runs (cat-file --batch).
 func (c Cmd) Command() *exec.Cmd { return c.command() }
@@ -92,6 +104,7 @@ func (c Cmd) Command() *exec.Cmd { return c.command() }
 // when it fails (some commands say how in their exit code, and print all
 // the same). A failure is an *Error.
 func (c Cmd) Output() ([]byte, error) {
+	defer cost.BeginWhat(cost.Git, c.sub())()
 	cmd := c.command()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -106,6 +119,7 @@ func (c Cmd) Output() ([]byte, error) {
 // would see them; a failure is git's own error, for the caller to put the
 // output with.
 func (c Cmd) Combined() (string, error) {
+	defer cost.BeginWhat(cost.Git, c.sub())()
 	out, err := c.command().CombinedOutput()
 	return string(out), err
 }

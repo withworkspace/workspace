@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/cost"
 	"github.com/withworkspace/workspace/internal/ref"
 )
 
@@ -156,12 +157,15 @@ func (db *DB) Close() error {
 // mustn't Write again, which would wait for itself.
 func (db *DB) Write(ctx context.Context, fn func(*Tx) error) (err error) {
 	if db.own != nil {
+		waited := cost.Begin(cost.SQLTurn)
 		release, err := db.own.turn(ctx)
+		waited()
 		if err != nil {
 			return err
 		}
 		defer release()
 	}
+	defer cost.Begin(cost.SQLWrite)()
 	stx, err := db.write.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -193,6 +197,7 @@ func (db *DB) Write(ctx context.Context, fn func(*Tx) error) (err error) {
 // Read runs fn on the records as they stood when it began. Reads don't
 // wait for writes, or for each other.
 func (db *DB) Read(ctx context.Context, fn func(*Tx) error) error {
+	defer cost.Begin(cost.SQLRead)()
 	stx, err := db.read.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return err
@@ -212,16 +217,19 @@ func (db *DB) Seq(ctx context.Context) (seq int64, err error) {
 
 // Exec runs a statement that returns no rows.
 func (tx *Tx) Exec(query string, args ...any) (sql.Result, error) {
+	cost.Stmt()
 	return tx.tx.Exec(query, args...)
 }
 
 // Query runs a statement that returns rows.
 func (tx *Tx) Query(query string, args ...any) (*sql.Rows, error) {
+	cost.Stmt()
 	return tx.tx.Query(query, args...)
 }
 
 // QueryRow runs a statement that returns at most one row.
 func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
+	cost.Stmt()
 	return tx.tx.QueryRow(query, args...)
 }
 

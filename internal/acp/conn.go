@@ -9,6 +9,8 @@ import (
 	"io"
 	"strconv"
 	"sync"
+
+	"github.com/withworkspace/workspace/internal/cost"
 )
 
 // message is any JSON-RPC message: a request (ID and Method), a
@@ -243,6 +245,7 @@ func (c *Conn) write(m message) error {
 // not nil). If ctx ends first, it tells the other side it's given up
 // ($/cancel_request) and returns ctx's error.
 func (c *Conn) Call(ctx context.Context, method string, params, result any) error {
+	defer cost.Begin(cost.RPC)()
 	data, err := json.Marshal(params)
 	if err != nil {
 		return err

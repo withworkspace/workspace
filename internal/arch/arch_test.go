@@ -29,13 +29,14 @@ var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls
 // store, which ranks what's said by words, and keys what's named as ref
 // names it; events, which keeps what ws did in the store; and outbox,
 // which keeps there what's still to be sent somewhere slow) and hold no
-// rule of anyone's.
-var leaves = []string{"git", "slug", "events", "execlog", "job", "outbox", "ref", "release", "store", "words"}
+// rule of anyone's. cost is what measures them, when the daemon's asked to.
+var leaves = []string{"cost", "git", "slug", "events", "execlog", "job", "outbox", "ref", "release", "store", "words"}
 
 // allowed is what each package may import, of ws's own, beyond the leaves.
 // A package that isn't listed may import only the leaves.
 var allowed = map[string][]string{
-	"store":        {"words", "ref"},
+	"store":        {"words", "ref", "cost"},
+	"git":          {"cost"}, // counted, when the daemon's measuring
 	"outbox":       {"store"},
 	"events":       {"store"},
 	"notification": {"events"},

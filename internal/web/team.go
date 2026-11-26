@@ -23,6 +23,9 @@ type TeamView struct {
 	// why they couldn't be.
 	Stale bool   `json:"stale,omitempty"`
 	Error string `json:"error,omitempty"`
+	// Reading: what's asked for hasn't been read yet (nothing has, or not
+	// as far back), and is being: the page's told when it has.
+	Reading bool `json:"reading,omitempty"`
 }
 
 // TeamRepo is how a repo is shown: its name as ws labels it, and its
@@ -62,10 +65,23 @@ func (s *Server) teamView(w http.ResponseWriter, r *http.Request) {
 	}
 	var snap *team.Snapshot
 	var err error
+	reading := false
 	if q.Get("refresh") != "" {
 		snap, err = s.Team.Look(true, since)
 	} else if snap = s.Team.Peek(); snap == nil || (!since.IsZero() && since.Before(snap.Since)) {
-		snap, err = s.Team.Look(false, since)
+		// Nothing's read till it's asked for, and the asking doesn't wait:
+		// it's answered with what there is, the repos are read behind, and
+		// the page's told when they have been.
+		reading = true
+		go func() {
+			s.Team.Look(false, since) //nolint:errcheck // the page reads what the look kept, or its error, when told
+			if h := s.topics[topicTeam]; h != nil {
+				h.nudge()
+			}
+		}()
+		if snap == nil {
+			snap = &team.Snapshot{At: s.now(), Since: since}
+		}
 	}
 	if snap == nil {
 		msg := "the repos couldn't be read"
@@ -80,7 +96,8 @@ func (s *Server) teamView(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		out.Error = err.Error()
 	}
-	out.Stale = s.now().Sub(snap.At) > teamFresh
+	out.Stale = !reading && s.now().Sub(snap.At) > teamFresh
+	out.Reading = reading
 	for _, repo := range s.App.Repos() {
 		out.Repos[repo.Name] = TeamRepo{Label: repo.Label, Color: repo.Color}
 	}

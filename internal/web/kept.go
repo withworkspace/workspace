@@ -74,6 +74,10 @@ type soonRead struct {
 	// kept, or that it's unread), so it's told if the read finds other.
 	owed  bool
 	asked time.Time
+	// dir and read are what it's of and how it's read, for reading it
+	// again when its capsule moves (refresh).
+	dir  string
+	read func() (any, error)
 }
 
 type keptRead struct {
@@ -113,7 +117,7 @@ func (k *keptReads) soon(key, dir string, read func() (any, error)) (v any, unre
 		e = &soonRead{}
 		k.soons[key] = e
 	}
-	e.asked = now
+	e.asked, e.dir, e.read = now, dir, read
 	fresh := e.value != nil && stamp != "" && e.stamp == stamp && now.Sub(e.at) < readFloor
 	failed := e.value == nil && e.err != nil && e.stamp == stamp && now.Sub(e.at) < readFloor
 	switch {
@@ -153,6 +157,31 @@ func (k *keptReads) soon(key, dir string, read func() (any, error)) (v any, unre
 	}
 	e.owed = true
 	return nil, true, nil
+}
+
+// refreshFor is how long after a page last asked for a tree or summary
+// it's read again when its capsule moves.
+var refreshFor = time.Minute
+
+// refresh reads again, behind, each tree and summary a page has asked for
+// lately whose capsule has moved since it was read: the daemon's told
+// when one has (a commit, something staged), and the next ask is
+// answered with it as it is, not as it was. The page showing it is told
+// if it's changed.
+func (k *keptReads) refresh() {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.init()
+	now := time.Now()
+	for _, e := range k.soons {
+		if e.read == nil || e.looking != nil || now.Sub(e.asked) > refreshFor {
+			continue
+		}
+		if stamp := ops.CapsuleStamp(e.dir); stamp != e.stamp {
+			e.owed = e.value != nil // a page was shown it as it was
+			k.look(e, stamp, e.read)
+		}
+	}
 }
 
 // peek is a tree or summary as kept, read or not: nothing's read for it.

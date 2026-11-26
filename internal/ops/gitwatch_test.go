@@ -16,7 +16,7 @@ func watchedGit(t *testing.T, w *Workspace) (moved func() int, watching func(n i
 	t.Cleanup(func() { close(stop) })
 	said := make(chan struct{}, 64)
 	folders := make(chan int, 64)
-	go w.watchGit(stop, t.Logf, func() { said <- struct{}{} }, func(n int) {
+	go w.watchGit(stop, t.Logf, func([]string) { said <- struct{}{} }, func(n int) {
 		select {
 		case folders <- n:
 		default:

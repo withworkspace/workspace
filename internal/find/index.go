@@ -54,6 +54,12 @@ type Index struct {
 	RepoAt func(owner, name string) (string, bool)
 	// Now is the time (tests set it).
 	Now func() time.Time
+	// Moved, if set, is told when a ground's read finds its files other
+	// than they were (Seen moves).
+	Moved func()
+	// HeadOf, if set, is the commit a ground's HEAD is at, without asking
+	// git (ok false where it can't say): git's asked where it isn't.
+	HeadOf func(dir string) (string, bool)
 
 	mu       sync.Mutex
 	listed   time.Time
@@ -136,10 +142,16 @@ func nulSplit(out []byte) []string {
 
 // readGround reads a ground's paths, unless it's still at the commit was
 // has.
-func readGround(ctx context.Context, wt Worktree, was *groundData) (*groundData, error) {
-	head, err := git.ReadLine(ctx, wt.Dir, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
-	if err != nil {
-		return nil, err
+func readGround(ctx context.Context, wt Worktree, was *groundData, headOf func(string) (string, bool)) (*groundData, error) {
+	head, ok := "", false
+	if headOf != nil {
+		head, ok = headOf(wt.Dir)
+	}
+	if !ok {
+		var err error
+		if head, err = git.ReadLine(ctx, wt.Dir, "rev-parse", "--verify", "--quiet", "HEAD^{commit}"); err != nil {
+			return nil, err
+		}
 	}
 	if was != nil && was.head == head && was.dir == wt.Dir {
 		return was, nil
@@ -291,18 +303,23 @@ func (ix *Index) groundDue(wt Worktree, now time.Time) chan struct{} {
 		was := e.data
 		go func() {
 			c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			data, err := readGround(c, wt, was)
+			data, err := readGround(c, wt, was, ix.HeadOf)
 			cancel()
 			ix.mu.Lock()
+			moved := false
 			if err == nil {
 				if data != was {
 					ix.seen.Add(1)
+					moved = ix.Moved != nil
 				}
 				e.data = data
 			}
 			e.checked, e.job = ix.now(), nil
 			ix.mu.Unlock()
 			close(job)
+			if moved {
+				ix.Moved()
+			}
 		}()
 	}
 	return e.job

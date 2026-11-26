@@ -3,6 +3,7 @@ package ops
 import (
 	"context"
 	"fmt"
+	"github.com/withworkspace/workspace/internal/config"
 	"hash/fnv"
 	"io/fs"
 	"maps"
@@ -66,8 +67,15 @@ func (w *Workspace) Stamp() string {
 		}
 	}
 	// Each capsule's HEAD, what's staged, and its HEAD's log (a commit,
-	// a checkout), as its repo's bare clone keeps them.
+	// a checkout), as its repo's bare clone keeps them: as the daemon keeps
+	// them, or looked at here.
+	if kept, ok := w.caps.stamp(); ok {
+		fmt.Fprintln(h, kept)
+	}
 	for _, repo := range w.WS().RepoNames {
+		if w.caps.keeping.Load() {
+			break
+		}
 		trees := filepath.Join(w.WS().BareDir(repo), "worktrees")
 		entries, _ := os.ReadDir(trees)
 		for _, e := range entries {
@@ -105,6 +113,16 @@ func (w *Workspace) Stamp() string {
 // brief, files/, reviews, a run's output) and its capsules' HEAD, index
 // and HEAD's log. A few dozen stats, for a mission someone has open.
 func (w *Workspace) MissionStamp(slug string) string {
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		m = nil
+	}
+	return w.missionStamp(slug, m)
+}
+
+// missionStamp is MissionStamp of m as it was just read (nil: it couldn't
+// be).
+func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 	h := fnv.New64a()
 	note := func(path string) {
 		if info, err := os.Stat(path); err == nil {
@@ -128,19 +146,23 @@ func (w *Workspace) MissionStamp(slug string) string {
 		}
 		return nil
 	})
-	if m, err := w.Missions.Load(slug); err == nil {
+	if m != nil {
 		// What GitHub says of its repos' pull requests, when it's said
 		// something different (asked behind the page's read: PRCache).
 		for _, repo := range MissionRepos([]*mission.Mission{m}) {
 			fmt.Fprintf(h, "prs %s %d\n", repo, w.opts.PRs.Changes(repo))
 		}
 		for _, c := range m.Capsules {
-			trees := filepath.Join(w.WS().BareDir(c.Repo), "worktrees", c.Name)
-			for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD")} {
-				note(filepath.Join(trees, f))
-			}
 			dir := filepath.Join(w.WS().RepoDir(c.Repo), c.Name)
-			note(dir) // made, or burned
+			if kept, ok := w.caps.factsOf(dir); ok {
+				fmt.Fprintln(h, dir, kept) // as the daemon keeps it
+			} else {
+				trees := filepath.Join(w.WS().BareDir(c.Repo), "worktrees", c.Name)
+				for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD")} {
+					note(filepath.Join(trees, f))
+				}
+				note(dir) // made, or burned
+			}
 			// Its runs: one started, up, ended (its process gone too) or
 			// cleared away (runs.Store.StampIn).
 			fmt.Fprintln(h, w.runStore().StampIn(c.Repo, c.Name))
@@ -162,6 +184,48 @@ func (w *Workspace) ConversationStamp(scope, id string) string {
 		return ""
 	}
 	return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
+}
+
+// stampFolders are the folders Stamp looks in: the workspace's own (its
+// config), .ws, and every folder under it Stamp walks.
+func (w *Workspace) stampFolders() []string {
+	root := w.Root()
+	ws := filepath.Join(root, ".ws")
+	out := []string{root}
+	inPlay, known := w.Missions.InPlaySlugs()
+	add := func(dir string, skipMissions bool) {
+		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || !d.IsDir() {
+				return nil
+			}
+			rel, _ := filepath.Rel(ws, path)
+			if rel != "." && (skipDir(rel) || skipMissions && rel == "missions") {
+				return filepath.SkipDir
+			}
+			out = append(out, path)
+			return nil
+		})
+	}
+	add(ws, known)
+	if known {
+		for _, slug := range slices.Sorted(maps.Keys(inPlay)) {
+			add(filepath.Join(ws, "missions", slug), false)
+		}
+	}
+	return out
+}
+
+// stampHeeds is whether a file written at path moves what Stamp says: in
+// the workspace's own folder only its config does, and under .ws what
+// Stamp doesn't skip.
+func (w *Workspace) stampHeeds(path string) bool {
+	root := w.Root()
+	if filepath.Dir(path) == root {
+		name := filepath.Base(path)
+		return name == config.FileName || name == config.LocalFileName
+	}
+	rel, err := filepath.Rel(filepath.Join(root, ".ws"), path)
+	return err == nil && !skipFile(filepath.Base(path)) && !isArtifactVersion(rel)
 }
 
 // skipDir is what under .ws no page's view is built from, or is kept by a

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // Who's asked you, by name, to review: what needs you of the pull requests
@@ -22,7 +20,7 @@ import (
 // is "pull requests that you have directly been asked to review". One a
 // team's assignment gave to you is among them: it asks you by name.
 func AskedByName(org string) ([]PRRef, error) {
-	stdOut, stdErr, err := gh.Exec(
+	stdOut, stdErr, err := ghExec(
 		"search", "prs",
 		"--state=open",
 		"--draft=false",
@@ -88,7 +86,7 @@ func (s *Stub) AskedByName(org string) ([]PRRef, error) {
 
 // DropReviewRequest takes login off the people asked to review a PR.
 func DropReviewRequest(org, repo string, number int, login string) error {
-	stdOut, stdErr, err := gh.Exec("api", "--method", "DELETE",
+	stdOut, stdErr, err := ghExec("api", "--method", "DELETE",
 		fmt.Sprintf("repos/%s/%s/pulls/%d/requested_reviewers", org, repo, number),
 		"-f", "reviewers[]="+login)
 	if err != nil {
