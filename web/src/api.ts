@@ -1819,6 +1819,7 @@ export interface TeamView {
   problems?: string[];
   stale?: boolean;
   error?: string;
+  reading?: boolean; // nothing's been read yet (or not as far back): the page's told when it has
   // The period's account: what the team's been working on, as a few
   // topics, written by an agent when asked. stale: the period has changed
   // since; can: how many changes there are to write it from.
