@@ -599,3 +599,123 @@ func waitCame(w waitFor, list []events.Event, now time.Time, ours func(events.Ev
 	b, _ := json.Marshal(came)
 	return string(b), true
 }
+
+// ThingInfo is one of a plugin's things as things() gives it a script:
+// its ref and kind (jira:issue), its title, where it stands, when it
+// last changed (as its plugin says: an issue's updated), and its fields.
+type ThingInfo struct {
+	Ref      string            `json:"ref"`
+	Kind     string            `json:"kind"`
+	Title    string            `json:"title,omitempty"`
+	Standing string            `json:"standing,omitempty"`
+	Changed  time.Time         `json:"changed"`
+	Fields   map[string]string `json:"fields"`
+}
+
+// thingsBuiltin is things(kind, unchanged_for = "5d", field = value or
+// [values], …): the things of a plugin's kind ws keeps, those whose
+// fields are as asked (a value, a pattern, or a list of either), and,
+// with unchanged_for, those that haven't changed in so long. Each is
+// .ref, .kind, .title, .standing, .changed, .idle_days (how many days
+// since it changed) and .fields.
+func (r *run) thingsBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf(`things takes its kind first, as things("jira:issue", status = ["In Review", "Blocked"], unchanged_for = "5d")`)
+	}
+	kind, ok := starlark.AsString(args[0])
+	if !ok || !strings.Contains(kind, ":") {
+		return nil, fmt.Errorf(`things: its kind is a plugin's, as "jira:issue"`)
+	}
+	var idle time.Duration
+	want := map[string][]string{}
+	for _, kv := range kwargs {
+		key, _ := starlark.AsString(kv[0])
+		if key == "unchanged_for" {
+			s, _ := starlark.AsString(kv[1])
+			d, err := lengthOf(s)
+			if err != nil {
+				return nil, fmt.Errorf("things: unchanged_for: %v", err)
+			}
+			idle = d
+			continue
+		}
+		switch v := kv[1].(type) {
+		case starlark.String:
+			want[key] = []string{string(v)}
+		case *starlark.List, starlark.Tuple:
+			iter := starlark.Iterate(v)
+			var x starlark.Value
+			for iter.Next(&x) {
+				s, ok := starlark.AsString(x)
+				if !ok {
+					iter.Done()
+					return nil, fmt.Errorf("things: %s's values are strings", key)
+				}
+				want[key] = append(want[key], s)
+			}
+			iter.Done()
+		default:
+			return nil, fmt.Errorf("things: %s is a %s: a string, or a list of them", key, kv[1].Type())
+		}
+	}
+	got, err := r.read("things", func() (any, error) {
+		out := []map[string]any{}
+		if r.e.Hooks.Things == nil {
+			return out, nil
+		}
+		list, err := r.e.Hooks.Things(kind)
+		if err != nil {
+			return nil, err
+		}
+		now := r.e.now()
+		for _, t := range list {
+			if idle > 0 && (t.Changed.IsZero() || now.Sub(t.Changed) < idle) {
+				continue
+			}
+			if !fieldsAre(t, want) {
+				continue
+			}
+			fields := map[string]any{}
+			for k, v := range t.Fields {
+				fields[k] = v
+			}
+			days := 0.0
+			if !t.Changed.IsZero() {
+				days = float64(int(now.Sub(t.Changed).Hours()/24*10)) / 10
+			}
+			out = append(out, map[string]any{"ref": t.Ref, "kind": t.Kind, "title": t.Title, "standing": t.Standing, "changed": t.Changed.UTC().Format(time.RFC3339), "idle_days": days, "fields": fields})
+		}
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if got == nil {
+		return starlark.NewList(nil), nil
+	}
+	return valueOf(got), nil
+}
+
+// fieldsAre is whether t's fields are as want asks: each any of its
+// values (a pattern), its case aside.
+func fieldsAre(t ThingInfo, want map[string][]string) bool {
+	for key, values := range want {
+		have := ""
+		for k, v := range t.Fields {
+			if strings.EqualFold(k, key) {
+				have = v
+			}
+		}
+		matched := false
+		for _, v := range values {
+			if like(v, have) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}

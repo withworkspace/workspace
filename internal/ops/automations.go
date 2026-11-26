@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/report"
 	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -60,6 +61,7 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 		},
 		Report: w.runReports,
 		Repos:  w.automationRepos,
+		Things: w.automationThings,
 		RefsIn: func(text string) [][2]string {
 			known := w.namesKnown()
 			if known == nil {
@@ -146,6 +148,24 @@ func (w *Workspace) automationRepos() []automation.RepoInfo {
 		out = append(out, info)
 	}
 	return out
+}
+
+// automationThings are a plugin's things of a kind (jira:issue), as
+// things() gives them.
+func (w *Workspace) automationThings(kind string) ([]automation.ThingInfo, error) {
+	name, what, ok := strings.Cut(kind, ":")
+	if !ok {
+		return nil, &Invalid{Reason: kind + " isn't a plugin's kind, as jira:issue"}
+	}
+	list, titled, err := plugin.Things(w.Root(), name, what)
+	if err != nil {
+		return nil, err
+	}
+	out := []automation.ThingInfo{}
+	for _, r := range list {
+		out = append(out, automation.ThingInfo{Ref: r.Ref, Kind: kind, Title: r.Fields[titled], Standing: r.Standing, Changed: r.Changed, Fields: r.Fields})
+	}
+	return out, nil
 }
 
 // acceptAutomation adds a proposed automation, on, from the next event:

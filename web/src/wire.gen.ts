@@ -636,6 +636,11 @@ export interface AutomationDryRun {
      */
     steps?: AutomationStepCount[];
     failures?: Record<string, number>;
+    /**
+     * Output is what it'd show now (output()): its last run's, the card's
+     * preview of it.
+     */
+    output?: AutomationOutput;
 }
 
 // From web/automations.go
@@ -701,6 +706,19 @@ export interface AutomationOutlineStep {
 export interface AutomationOutlineWhen {
     match: string;
     pace?: string;
+}
+
+// From automation/output.go
+/**
+ * Output is a version of what an automation shows.
+ */
+export interface AutomationOutput {
+    name: string;
+    version: number;
+    at: string;
+    event: number;
+    format: string;
+    body: string;
 }
 
 // From web/automations.go

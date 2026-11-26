@@ -159,3 +159,49 @@ func TestTasks_DryRun(t *testing.T) {
 		t.Errorf("a dry run asked for %+v", tasks)
 	}
 }
+
+const stuck = `# Jira issues in review or blocked with no movement for 5 days, each weekday morning.
+when = every("weekday 09:00")
+may = ["output", "notify"]
+
+def run(e):
+    issues = things("jira:issue", status = ["In Review", "Blocked"], unchanged_for = "5d")
+    rows = ["| %s | %s | %s | %d days |" % (t.ref, t.title, t.fields.status, int(t.idle_days)) for t in issues]
+    output("| Issue | Title | Status | Still for |\n|---|---|---|---|\n" + "\n".join(rows))
+    if issues:
+        notify("%d issues haven't moved in 5 days" % len(issues))
+`
+
+// things() is a plugin's things, as ws keeps them: those whose fields are
+// as asked, and that haven't changed in so long.
+func TestThings_Stuck(t *testing.T) {
+	e, got := engine(t)
+	later := clock(e)
+	e.Hooks.Things = func(kind string) ([]ThingInfo, error) {
+		now := e.now()
+		if kind != "jira:issue" {
+			return nil, nil
+		}
+		issue := func(ref, status string, idle time.Duration) ThingInfo {
+			return ThingInfo{Ref: ref, Kind: kind, Title: "Issue " + ref, Changed: now.Add(-idle), Fields: map[string]string{"status": status}}
+		}
+		return []ThingInfo{
+			issue("RAM-1", "In Review", 9*24*time.Hour),
+			issue("RAM-2", "Blocked", 6*24*time.Hour),
+			issue("RAM-3", "In Review", 2*24*time.Hour), // moved lately
+			issue("RAM-4", "Done", 30*24*time.Hour),     // not a status asked for
+		}, nil
+	}
+	if _, err := e.Add("stuck", []byte(stuck)); err != nil {
+		t.Fatal(err)
+	}
+	later(4 * 24 * time.Hour) // a weekday morning's in there
+	e.RunDue()
+	if len(got.notified) != 1 || got.notified[0] != "stuck: 2 issues haven't moved in 5 days " {
+		t.Fatalf("notified %q", got.notified)
+	}
+	shown, _, _ := Outputs(e.Root, "stuck", 0)
+	if !strings.Contains(shown.Body, "| RAM-1 | Issue RAM-1 | In Review | 9 days |") || !strings.Contains(shown.Body, "RAM-2") || strings.Contains(shown.Body, "RAM-3") {
+		t.Errorf("output %q", shown.Body)
+	}
+}

@@ -45,6 +45,9 @@ type Hooks struct {
 	Report func(ref string, n int) map[string]map[string]any
 	// Repos is the workspace's repos, as repos() gives them.
 	Repos func() []RepoInfo
+	// Things are a plugin's things of a kind (jira:issue), as things()
+	// gives them.
+	Things func(kind string) ([]ThingInfo, error)
 }
 
 // Engine runs a workspace's automations on its events.
@@ -522,6 +525,11 @@ func (r *run) builtins() starlark.StringDict {
 		"wait_any": starlark.NewBuiltin("wait_any", r.placed(r.waitMany(true))),
 		"run_task": starlark.NewBuiltin("run_task", r.placed(r.runTask)),
 		"repos":    starlark.NewBuiltin("repos", r.placed(r.repos)),
+		"keep":     starlark.NewBuiltin("keep", r.placed(r.keepBuiltin)),
+		"kept":     starlark.NewBuiltin("kept", r.placed(r.keptBuiltin)),
+		"output":   starlark.NewBuiltin("output", r.placed(r.outputBuiltin)),
+		"chart":    starlark.NewBuiltin("chart", chartBuiltin),
+		"things":   starlark.NewBuiltin("things", r.placed(r.thingsBuiltin)),
 	}
 }
 

@@ -18,6 +18,10 @@ export function stepLook(kind: string): { icon: IconName; words: string } {
       return { icon: "eye", words: "Read" };
     case "run":
       return { icon: "play", words: "Run" };
+    case "output":
+      return { icon: "file", words: "Write" };
+    case "keep":
+      return { icon: "archive", words: "Keep" };
     case "log":
       return { icon: "list", words: "Log" };
     case "if":

@@ -43,6 +43,9 @@ type DryRun struct {
 	// outline.
 	Steps    []StepCount    `json:"steps,omitempty"`
 	Failures map[string]int `json:"failures,omitempty"`
+	// Output is what it'd show now (output()): its last run's, the card's
+	// preview of it.
+	Output *Output `json:"output,omitempty"`
 }
 
 // DryLine is one run a dry run had, or one held back.
@@ -73,6 +76,10 @@ type dryRun struct {
 	did []string
 	// tasks are the tasks it asked for, by their (made up) handles.
 	tasks map[int64]taskHandle
+	// kept is what the dry run's kept (keep), across its runs; output the
+	// last it'd have shown.
+	kept   map[string][]Point
+	output *Output
 }
 
 // DryRun is what a would have done over the events of the last back.
@@ -88,7 +95,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 	out.Events = len(list)
 	var did *dryRun
 	dry := &Engine{Root: e.Root, Now: e.Now, Timeout: e.Timeout, Hooks: Hooks{
-		Show: e.Hooks.Show, RefsIn: e.Hooks.RefsIn, Repos: e.Hooks.Repos,
+		Show: e.Hooks.Show, RefsIn: e.Hooks.RefsIn, Repos: e.Hooks.Repos, Things: e.Hooks.Things,
 		Notify: func(_ *Automation, text string, refs []string) error {
 			did.did = append(did.did, "notify: "+text)
 			return nil
@@ -100,6 +107,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 	}}
 	lines := []DryLine{}
 	ranAt := map[string][]time.Time{} // each key's runs, for at_most
+	kept := map[string][]Point{}      // what it's kept, across its runs
 	counts := map[string]*StepCount{}
 	var countOrder []string
 	counted := func(at, builtin string) *StepCount {
@@ -137,7 +145,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			}
 		}
 		ranAt[key] = append(ranAt[key], ev.At)
-		did = &dryRun{steps: map[int][2]string{}, at: map[int][2]string{}, tasks: map[int64]taskHandle{}}
+		did = &dryRun{steps: map[int][2]string{}, at: map[int][2]string{}, tasks: map[int64]taskHandle{}, kept: kept}
 		for {
 			r := &run{e: dry, a: a, ev: ev, batch: batch, dry: did}
 			err := r.do()
@@ -171,6 +179,9 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			did.steps[n] = [2]string{"done", result}
 		}
 		line.Did = did.did
+		if did.output != nil {
+			out.Output = did.output
+		}
 		for n, st := range did.steps {
 			if at, ok := did.at[n]; ok {
 				counted(at[0], at[1]).count(st[0], st[1], 1)

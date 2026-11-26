@@ -59,7 +59,7 @@ type OutlineBranch struct {
 }
 
 // reads are the builtins that read, kept as steps.
-var reads = map[string]bool{"show": true, "events": true, "refs_in": true, "repos": true, "kept": true}
+var reads = map[string]bool{"show": true, "events": true, "refs_in": true, "repos": true, "kept": true, "things": true}
 
 // OutlineOf is a's outline.
 func OutlineOf(a *Automation) (Outline, error) {
@@ -277,6 +277,18 @@ func (o *outliner) builtin(name string, c *syntax.CallExpr) (OutlineStep, bool) 
 		}
 	case reads[name]:
 		step.Kind, step.Text = "read", name+"("+o.argsSource(c)+")"
+	case name == "output":
+		step.Kind, step.Text = "output", "its page"
+		if html := kw["html"]; html != nil {
+			step.Detail = "as HTML"
+		}
+	case name == "keep":
+		step.Kind, step.Text = "keep", o.words(first())
+		if len(args) > 1 {
+			step.Detail = o.source(args[1])
+		} else if v := kw["value"]; v != nil {
+			step.Detail = o.source(v)
+		}
 	case name == "log" || name == "print":
 		step.Kind, step.Text = "log", o.words(first())
 	default:

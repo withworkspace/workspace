@@ -204,7 +204,7 @@ var ErrNotFound = errors.New("there's no automation by that name")
 
 // forget lets go of what's kept of name.
 func forget(tx *store.Tx, name string) error {
-	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`, `DELETE FROM automation_tasks WHERE name = ? AND state = 'queued'`} {
+	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`, `DELETE FROM automation_tasks WHERE name = ? AND state = 'queued'`, `DELETE FROM automation_series WHERE name = ?`, `DELETE FROM automation_outputs WHERE name = ?`} {
 		if _, err := tx.Exec(q, name); err != nil {
 			return err
 		}
