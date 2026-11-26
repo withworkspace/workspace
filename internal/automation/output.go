@@ -323,3 +323,12 @@ func pointsOf(v starlark.Value) ([][2]any, error) {
 	}
 	return out, nil
 }
+
+// LatestOutput is the version of name's output that's shown, 0 for none.
+func LatestOutput(root, name string) int {
+	var v sql.NullInt64
+	_ = read(root, func(tx *store.Tx) error {
+		return tx.QueryRow(`SELECT max(version) FROM automation_outputs WHERE name = ?`, name).Scan(&v)
+	})
+	return int(v.Int64)
+}

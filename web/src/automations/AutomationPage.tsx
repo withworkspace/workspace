@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import {
   type AutomationDryRun,
   type AutomationPage as AutomationInfo,
+  type AutomationOutputInfo,
   dryRunAutomation,
   getAutomation,
+  getAutomationOutput,
+  runAutomationNow,
   removeAutomation,
   setAutomationOn,
   useEvents,
@@ -21,12 +24,13 @@ import { Icon } from "../ui/Icon";
 import { PageHead } from "../ui/PageHead";
 import { Skeleton } from "../ui/Skeleton";
 import { Switch } from "../ui/Switch";
-import { Text } from "../ui/Text";
+import { Text, textClass } from "../ui/Text";
 import { Time } from "../ui/Time";
 import { toast } from "../ui/toast";
 import { useTitle } from "../ui/useTitle";
 import { AutomationFacts } from "./AutomationFacts";
 import { AutomationFlow } from "./AutomationFlow";
+import { AutomationOutputView } from "./AutomationOutputView";
 import { AutomationRunItem } from "./AutomationRunItem";
 import { AutomationRuns } from "./AutomationRuns";
 import { AutomationScript } from "./AutomationScript";
@@ -50,6 +54,16 @@ export function AutomationPage() {
   const [dryError, setDryError] = useState("");
   const [drying, setDrying] = useState(false);
   const gone = error && !info;
+  const latest = info?.automation.output ?? 0;
+  const { value: shown } = useLoaded<AutomationOutputInfo>(latest ? () => getAutomationOutput(name) : null, [name, latest], { keep: true });
+  const [running, setRunning] = useState(false);
+  const runNow = () => {
+    setRunning(true);
+    runAutomationNow(name)
+      .then(() => toast(`${name} runs now`))
+      .catch((e: Error) => toast(`Couldn't run ${name}: ${e.message}`, { tone: "danger" }))
+      .finally(() => setRunning(false));
+  };
 
   const turn = (on: boolean) => {
     setBusy(true);
@@ -100,6 +114,11 @@ export function AutomationPage() {
         actions={
           a && (
             <>
+              {a.scheduled && (
+                <Button onClick={runNow} disabled={running || !a.on || !!a.broken} title={a.on ? "Run it now, as if its time had come" : "Turn it on to run it"}>
+                  <Icon name="play" size={11} /> Run now
+                </Button>
+              )}
               <Switch on={a.on} onChange={turn} disabled={busy || !!a.broken} aria-label={`${name} on`} />
               <Text dim>{a.on ? "On" : "Off"}</Text>
               <Button variant="ghost" onClick={remove} disabled={busy}>
@@ -127,6 +146,17 @@ export function AutomationPage() {
               <Time iso={a.added} />
             </dd>
           </AutomationFacts>
+          {shown?.output && (
+            <AutomationsSection>
+              <GroupHead>
+                Its page{" "}
+                <Link to={`/automations/${encodeURIComponent(name)}/output`} className={textClass("dim")}>
+                  open on its own
+                </Link>
+              </GroupHead>
+              <AutomationOutputView name={name} output={shown.output} versions={shown.versions.map((v) => v.version)} />
+            </AutomationsSection>
+          )}
           {info.outline && (
             <AutomationsSection>
               <GroupHead>What it does</GroupHead>

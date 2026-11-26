@@ -203,6 +203,11 @@ type AutomationItem struct {
 	Broken string           `json:"broken,omitempty"`
 	Tally  automation.Tally `json:"tally"`
 	Last   *AutomationRun   `json:"last,omitempty"`
+	// Output is the version of its output that's shown (0 for none), and
+	// Scheduled whether it runs by the clock (every()), which can be run
+	// now.
+	Output    int  `json:"output,omitempty"`
+	Scheduled bool `json:"scheduled,omitempty"`
 }
 
 // AutomationRun is one run of an automation: the event it ran on (its
@@ -274,7 +279,8 @@ func (w *Workspace) Automations() ([]AutomationItem, error) {
 }
 
 func automationItem(root string, a *automation.Automation, st automation.State, t automation.Tally) AutomationItem {
-	item := AutomationItem{Name: a.Name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), On: st.On, Added: st.Added, Failed: st.Failed, Tally: t}
+	item := AutomationItem{Name: a.Name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), On: st.On, Added: st.Added, Failed: st.Failed, Tally: t,
+		Output: automation.LatestOutput(root, a.Name), Scheduled: len(a.Schedules()) > 0}
 	if runs, _ := automationRuns(root, a.Name, 1); len(runs) > 0 {
 		item.Last = &runs[0]
 	}
@@ -379,14 +385,44 @@ func didOf(st automation.Step) AutomationDid {
 			}
 			break
 		}
-		var ev events.Event
-		if st.Result == "null" || st.Result == "" {
-			d.Text = "its time was up"
-		} else if json.Unmarshal([]byte(st.Result), &ev) == nil {
-			d.Text = ev.Ref() + ": " + ev.Says()
-		}
+		d.Text = waitedFor(json.RawMessage(st.Result))
 	}
 	return d
+}
+
+// waitedFor is what a wait came to, in words: an event (e12: what it
+// says), a task (demo's coverage: passed), its time up, or each of a
+// wait_all's.
+func waitedFor(raw json.RawMessage) string {
+	s := strings.TrimSpace(string(raw))
+	if s == "" || s == "null" {
+		return "its time was up"
+	}
+	if strings.HasPrefix(s, "[") {
+		var each []json.RawMessage
+		if json.Unmarshal(raw, &each) != nil {
+			return ""
+		}
+		var said []string
+		for _, one := range each {
+			said = append(said, waitedFor(one))
+		}
+		return strings.Join(said, "; ")
+	}
+	var task struct {
+		Task   int64  `json:"task"`
+		Repo   string `json:"repo"`
+		Recipe string `json:"recipe"`
+		Status string `json:"status"`
+	}
+	if json.Unmarshal(raw, &task) == nil && task.Task != 0 {
+		return task.Repo + "'s " + task.Recipe + ": " + task.Status
+	}
+	var ev events.Event
+	if json.Unmarshal(raw, &ev) == nil {
+		return ev.Ref() + ": " + ev.Says()
+	}
+	return ""
 }
 
 // SetAutomationOn turns one of yours on (from the next event) or off.
@@ -434,6 +470,23 @@ func (w *Workspace) RunAutomationNow(name string) (events.Event, error) {
 		return ev, &Invalid{Reason: err.Error()}
 	}
 	return ev, err
+}
+
+// AutomationOutput is a version of what one of yours shows (0 for the
+// latest), and every version kept, the latest first, without their
+// bodies.
+func (w *Workspace) AutomationOutput(name string, version int) (automation.Output, []automation.Output, error) {
+	if !automation.ValidName(name) {
+		return automation.Output{}, nil, automation.ErrNotFound
+	}
+	shown, all, err := automation.Outputs(w.Root(), name, version)
+	if errors.Is(err, automation.ErrNoOutput) {
+		return shown, all, ErrNotFound
+	}
+	if all == nil {
+		all = []automation.Output{}
+	}
+	return shown, all, err
 }
 
 // AutomationsStamp names where your automations stand, cheaply.

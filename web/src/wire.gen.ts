@@ -723,6 +723,19 @@ export interface AutomationOutput {
 
 // From web/automations.go
 /**
+ * AutomationOutputInfo is what GET /api/automations/{name}/output serves:
+ * a version of what it shows (?version=, the latest without), and every
+ * version kept, the latest first, without their bodies. An HTML one's
+ * body isn't sent: it's shown from its frame
+ * (/frame/automations/{name}/output/{version}).
+ */
+export interface AutomationOutputInfo {
+    output?: AutomationOutput;
+    versions: AutomationOutput[];
+}
+
+// From web/automations.go
+/**
  * AutomationPage is what GET /api/automations/{name} serves: one, as
  * listed, with its script and latest runs.
  */
@@ -3041,6 +3054,13 @@ export interface OpsAutomationItem {
     broken?: string;
     tally: AutomationTally;
     last?: OpsAutomationRun;
+    /**
+     * Output is the version of its output that's shown (0 for none), and
+     * Scheduled whether it runs by the clock (every()), which can be run
+     * now.
+     */
+    output?: number;
+    scheduled?: boolean;
 }
 
 // From ops/automations.go
