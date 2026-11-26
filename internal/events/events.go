@@ -43,6 +43,13 @@ const (
 	DocAdded         = "doc.added"
 	DocAmended       = "doc.amended"
 	DecisionMade     = "decision.made"
+	CrewStarted      = "crew.started"
+	CrewDone         = "crew.done"  // crew handed their work over
+	CrewAsked        = "crew.asked" // crew asked you something
+	MissionFlagged   = "mission.flagged"
+	MissionWaiting   = "mission.waiting" // on something outside it
+	BundleHanded     = "bundle.handed"   // a verification bundle, for you
+	ChecksJudged     = "checks.judged"   // a step's checks, run and judged
 
 	// Heard of: what the daemon found had moved.
 	CommitsLanded      = "commits.landed"       // a repo's default branch moved: its commits
@@ -69,7 +76,8 @@ const (
 var Kinds = []string{
 	CapsuleLanded, CapsuleBurned, CommitsLanded,
 	PROpened, PRReviewRequested, PRApproved, PRChangesRequested, PRChecksFailed, PRChecksPassed, PRMerged, PRClosed,
-	MissionStarted, MissionEnded,
+	MissionStarted, MissionFlagged, MissionWaiting, MissionEnded,
+	CrewStarted, CrewAsked, CrewDone, BundleHanded, ChecksJudged,
 	ArtifactAdded, ArtifactPromoted,
 	DocAdded, DocAmended, DocChanged,
 	ThingAdded, ThingChanged,
