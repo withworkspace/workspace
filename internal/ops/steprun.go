@@ -88,7 +88,7 @@ func (w *Workspace) StartStep(slug string, repos []string, by Actor) (string, er
 	if err := w.Missions.StartStep(m.Slug, cur.N, by.By(), named); err != nil {
 		return "", wrap(err)
 	}
-	w.Missions.CloseStepTasks(m.Slug, cur.N)
+	w.closeStepTasks(m.Slug, cur.N)
 	w.youActed(m.Slug, by)
 	if m, err = w.Missions.Load(m.Slug); err != nil {
 		return "", err
@@ -129,7 +129,7 @@ func (w *Workspace) Skip(slug, why string, by Actor) (string, error) {
 	if err := w.Missions.SkipStep(m.Slug, cur.N, by.By(), why); err != nil {
 		return "", wrap(err)
 	}
-	w.Missions.CloseStepTasks(m.Slug, cur.N)
+	w.closeStepTasks(m.Slug, cur.N)
 	w.youActed(m.Slug, by)
 	m, err = w.Missions.Load(m.Slug)
 	if err != nil {
@@ -229,7 +229,7 @@ func (w *Workspace) startInstances(m *mission.Mission, st mission.StageState, on
 			said = append(said, "no capsule in "+in.Repo)
 			continue
 		}
-		w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false)
+		logFailed(w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false))
 		if m2, err := w.Missions.Load(m.Slug); err == nil {
 			m = m2
 			st, _ = currentStep(w.Missions, m)
@@ -249,7 +249,7 @@ func (w *Workspace) oneDispatch(slug string, launched *int, said string) {
 		return
 	}
 	if *launched > 0 {
-		w.Missions.ReleaseDispatch(slug)
+		logFailed(w.Missions.ReleaseDispatch(slug))
 	}
 	*launched++
 }
@@ -271,7 +271,7 @@ func (w *Workspace) carryOnInstances(m *mission.Mission, from, st mission.StageS
 				id = c.ID
 			}
 		}
-		w.Missions.SetInstance(m.Slug, st.N, in.Repo, in.Capsule, false)
+		logFailed(w.Missions.SetInstance(m.Slug, st.N, in.Repo, in.Capsule, false))
 		m2, err := w.Missions.Load(m.Slug)
 		if err != nil {
 			continue
@@ -428,7 +428,7 @@ func (w *Workspace) queueNextRun(slug string) string {
 		if !ok {
 			continue
 		}
-		w.Missions.SetInstance(slug, cur.N, in.Repo, capsule, false)
+		logFailed(w.Missions.SetInstance(slug, cur.N, in.Repo, capsule, false))
 		if m, err = w.Missions.Load(slug); err != nil {
 			return ""
 		}

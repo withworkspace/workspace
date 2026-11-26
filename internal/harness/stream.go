@@ -153,7 +153,7 @@ func readCursorStream(out string) Report {
 					Args   json.RawMessage            `json:"args"`
 					Result map[string]json.RawMessage `json:"result"`
 				}
-				json.Unmarshal(raw, &tc)
+				_ = json.Unmarshal(raw, &tc) // a call it can't read is as one without args or result
 				i, seen := at[e.CallID]
 				if !seen {
 					at[e.CallID] = len(rep.Calls)
@@ -171,14 +171,14 @@ func readCursorStream(out string) Report {
 					var er struct {
 						Message string `json:"errorMessage"`
 					}
-					json.Unmarshal(tc.Result["error"], &er)
+					_ = json.Unmarshal(tc.Result["error"], &er) // an error it can't read is as none said
 					c.Error, c.Result = true, ClipHead(er.Message, resultMax, "…")
 				case tc.Result["success"] != nil:
 					var ok struct {
 						Stdout  string `json:"stdout"`
 						Content string `json:"content"`
 					}
-					json.Unmarshal(tc.Result["success"], &ok)
+					_ = json.Unmarshal(tc.Result["success"], &ok) // a success it can't read is as none said
 					c.Result = ClipHead(strings.TrimSpace(ok.Stdout+ok.Content), resultMax, "…")
 				}
 			}
@@ -264,7 +264,7 @@ func readPiStream(out string) Report {
 				Type string `json:"type"`
 				Text string `json:"text"`
 			}
-			json.Unmarshal(e.Message.Content, &blocks)
+			_ = json.Unmarshal(e.Message.Content, &blocks) // content that isn't blocks has no text to take
 			var parts []string
 			for _, b := range blocks {
 				if b.Type == "text" && strings.TrimSpace(b.Text) != "" {
@@ -365,7 +365,7 @@ func readClaudeStream(out string) Report {
 			Content json.RawMessage `json:"content"`
 			IsError bool            `json:"is_error"`
 		}
-		json.Unmarshal(e.Message.Content, &blocks) // a user message's content may be a plain string
+		_ = json.Unmarshal(e.Message.Content, &blocks) // a user message's content may be a plain string
 		switch e.Type {
 		case "assistant":
 			for _, b := range blocks {
@@ -444,7 +444,7 @@ func resultText(raw json.RawMessage) string {
 	var blocks []struct {
 		Text string `json:"text"`
 	}
-	json.Unmarshal(raw, &blocks)
+	_ = json.Unmarshal(raw, &blocks) // content that isn't blocks has no text to take
 	var parts []string
 	for _, b := range blocks {
 		parts = append(parts, b.Text)

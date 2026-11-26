@@ -69,10 +69,10 @@ func (w *Workspace) writtenPR(m *mission.Mission, c mission.Capsule, step int, o
 	title, body, who, err := w.writePR(m, c, step)
 	if err != nil {
 		title, body = w.prDraft(m, capsule, step)
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Repo: c.Repo, Capsule: c.Name,
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Repo: c.Repo, Capsule: c.Name,
 			Text: fmt.Sprintf("the PR writer couldn't write %s's pull request (%s): ws titled it as the mission is", capsule, strings.TrimSuffix(oneLine(err.Error()), "."))})
 	} else {
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Repo: c.Repo, Capsule: c.Name,
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Repo: c.Repo, Capsule: c.Name,
 			Text: fmt.Sprintf("%s wrote %s's pull request: %s", who, capsule, title)})
 	}
 	o.Title = title
@@ -292,7 +292,7 @@ func (w *Workspace) OpenWrittenPR(slug, capsule string) string {
 	if !ok {
 		return ""
 	}
-	defer w.Missions.EndWritingPR(slug, capsule)
+	defer func() { logFailed(w.Missions.EndWritingPR(slug, capsule)) }()
 	by := actorBy(p.By)
 	if by.Kind == WS {
 		cur, ok := currentStep(w.Missions, m)
@@ -308,7 +308,7 @@ func (w *Workspace) OpenWrittenPR(slug, capsule string) string {
 	opened, err := w.openPR(slug, capsule, NewPullRequest{Draft: p.Draft, Quiet: true, inJob: true}, by)
 	if err != nil {
 		text := fmt.Sprintf("ws couldn't open %s's pull request, which %s asked for: %s. Put it right and open it (Open pull request on the capsule, or ws mission open-pr).", capsule, by.By(), strings.TrimSuffix(oneLine(err.Error()), "."))
-		w.Missions.Ask(slug, text, "ws")
+		logFailed(w.Missions.Ask(slug, text, "ws"))
 		return "couldn't open it: " + err.Error()
 	}
 	if by.Kind == Crew {

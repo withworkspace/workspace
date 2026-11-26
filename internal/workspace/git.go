@@ -144,7 +144,7 @@ func GitAheadBehind(dir string) (int, int) {
 		return 0, 0
 	}
 	var ahead, behind int
-	fmt.Sscanf(strings.TrimSpace(out), "%d\t%d", &ahead, &behind)
+	_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d\t%d", &ahead, &behind) // what can't be read is none
 	return ahead, behind
 }
 
@@ -156,7 +156,7 @@ func GitCommitsSince(dir, base string) int {
 		return 0
 	}
 	var n int
-	fmt.Sscanf(strings.TrimSpace(out), "%d", &n)
+	_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d", &n) // what can't be read is none
 	return n
 }
 
@@ -168,7 +168,7 @@ func GitCommitsBehindRef(dir, ref string) int {
 		return 0
 	}
 	var n int
-	fmt.Sscanf(strings.TrimSpace(out), "%d", &n)
+	_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d", &n) // what can't be read is none
 	return n
 }
 
@@ -212,20 +212,30 @@ func ListAllWorktrees(repoDir string) ([]string, error) {
 	return capsules, nil
 }
 
-func DisableWorkspaceGit(root string) {
+// DisableWorkspaceGit puts the root's git away (.git-disabled), so nothing
+// in the workspace mistakes the root for a repo of its own.
+func DisableWorkspaceGit(root string) error {
 	gitDir := filepath.Join(root, ".git")
 	disabled := filepath.Join(root, ".git-disabled")
 	if info, err := os.Stat(gitDir); err == nil && info.IsDir() {
-		os.Rename(gitDir, disabled)
+		if err := os.Rename(gitDir, disabled); err != nil {
+			return fmt.Errorf("putting the workspace's git away: %w", err)
+		}
 	}
+	return nil
 }
 
-func EnableWorkspaceGit(root string) {
+// EnableWorkspaceGit brings the root's git back out. If it can't, git run
+// in the root would find whatever repo is above it, so it's an error.
+func EnableWorkspaceGit(root string) error {
 	gitDir := filepath.Join(root, ".git")
 	disabled := filepath.Join(root, ".git-disabled")
 	if info, err := os.Stat(disabled); err == nil && info.IsDir() {
-		os.Rename(disabled, gitDir)
+		if err := os.Rename(disabled, gitDir); err != nil {
+			return fmt.Errorf("bringing the workspace's git out: %w", err)
+		}
 	}
+	return nil
 }
 
 // GitRecentCommits returns the last n commits as one-line summaries.

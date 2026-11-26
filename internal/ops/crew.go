@@ -242,7 +242,7 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 	})
 	if err != nil {
 		if counted {
-			w.Missions.ReleaseDispatch(m.Slug) // nothing started: the allowance isn't used up
+			logFailed(w.Missions.ReleaseDispatch(m.Slug)) // nothing started: the allowance isn't used up
 		}
 		if carryOn {
 			w.Missions.SetResumeWith(m.Slug, resume, "") //nolint:errcheck // a message for a resume that didn't happen
@@ -273,7 +273,7 @@ func (w *Workspace) LaunchQueued(slug string, by Actor) (Launched, error) {
 	if err != nil {
 		return l, err
 	}
-	w.Missions.QueueDispatch(m.Slug, nil)
+	logFailed(w.Missions.QueueDispatch(m.Slug, nil))
 	// A step that runs in several repos queues its runs' crew one at a
 	// time: the next is queued now.
 	w.queueNextRun(m.Slug)
@@ -424,12 +424,12 @@ func (w *Workspace) endHandedBack(m *mission.Mission, capsule string) (ended, mi
 	}
 	if len(ended) > 0 {
 		text := fmt.Sprintf("ended %s's session in %s: it had handed back its work, and new crew start there (its page resumes it)", strings.Join(ended, ", "), capsule)
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
 		execlog.Note(w.Root(), "crew "+m.Slug, "%s", text)
 	}
 	if len(missed) > 0 {
 		text := fmt.Sprintf("couldn't reach %s in %s to end its session, though it had handed back its work: new crew start there all the same", strings.Join(missed, ", "), capsule)
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
 		execlog.Note(w.Root(), "crew "+m.Slug, "%s", text)
 	}
 	return ended, missed

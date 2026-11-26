@@ -112,7 +112,7 @@ func (s Store) end(r Run, why string) error {
 		return fmt.Errorf("%s isn't a run's folder", r.Path)
 	}
 	if r.IsTask() && r.State == Running {
-		os.WriteFile(filepath.Join(r.Path, stoppedFile), []byte(why+"\n"), 0o644)
+		_ = os.WriteFile(filepath.Join(r.Path, stoppedFile), []byte(why+"\n"), 0o644) // how it ended is a note: it's stopped either way
 		s.stop(r)
 		return s.runStop(r)
 	}

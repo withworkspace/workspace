@@ -142,7 +142,7 @@ func run() {
 			}
 			protocol := 1
 			if v := os.Getenv(envProtocol); v != "" {
-				fmt.Sscan(v, &protocol)
+				_, _ = fmt.Sscan(v, &protocol) // what can't be read is none
 			}
 			return map[string]any{"protocol": protocol, "registration": reg}, nil
 		case "config/changed":

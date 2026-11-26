@@ -385,7 +385,7 @@ func (r Run) ReportsDir() string { return filepath.Join(r.Path, reportsDir) }
 func (r Run) ReportFiles(name string) []string {
 	var out []string
 	root := filepath.Join(r.ReportsDir(), name)
-	filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error { // its walk passes over what it can't read
 		if err == nil && !d.IsDir() {
 			out = append(out, p)
 		}

@@ -79,7 +79,7 @@ func askAheadBehind(dir string) answer[aheadAndBehind] {
 	out, err := git.Combined(dir, "rev-list", "--left-right", "--count", "HEAD...@{u}")
 	var ab aheadAndBehind
 	if err == nil {
-		fmt.Sscanf(strings.TrimSpace(out), "%d\t%d", &ab.ahead, &ab.behind)
+		_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d\t%d", &ab.ahead, &ab.behind) // what can't be read is none ahead or behind
 	}
 	return asked(ab, err)
 }
@@ -88,7 +88,7 @@ func askCommitsSince(dir, base string) answer[int] {
 	out, err := git.Combined(dir, "rev-list", "--count", base+"..HEAD")
 	var n int
 	if err == nil {
-		fmt.Sscanf(strings.TrimSpace(out), "%d", &n)
+		_, _ = fmt.Sscanf(strings.TrimSpace(out), "%d", &n) // what can't be read is none
 	}
 	return asked(n, err)
 }

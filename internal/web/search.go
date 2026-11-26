@@ -97,7 +97,7 @@ func (s *Server) codeSearch(w http.ResponseWriter, r *http.Request) {
 			end["problem"] = err.Error()
 		}
 	}
-	line(end)
+	_ = line(end) // a client that's gone isn't told
 }
 
 // rgProblem is what ripgrep said of its error, or that it failed.

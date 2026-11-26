@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"maps"
 	"strings"
 	"sync"
@@ -190,7 +191,7 @@ func (s *Service) freshen(repo string, number int, pg *page) {
 	if busy || !s.pageStale(pg) {
 		return
 	}
-	go s.readPage(repo, number)
+	go func() { _, _ = s.readPage(repo, number) }() // read behind: the page it keeps says how it went
 }
 
 // pageStale: what's kept of a page should be read again. It's been a
@@ -271,7 +272,7 @@ func (s *Service) read(repo string, number int) (*page, error) {
 				return nil, err
 			}
 		} else if stale {
-			go s.List(false)
+			go func() { _, _ = s.List(false) }() // read behind: the list it keeps says how it went
 		}
 	} else {
 		l, err := s.List(false)
@@ -464,7 +465,9 @@ func (s *Service) persist(repo string, number int, pg *page) {
 	diffs := make(map[string]*Diffed, len(pg.Diffs))
 	maps.Copy(diffs, pg.Diffs)
 	s.mu.Unlock()
-	keepPage(s.Root, repo, number, pg, diffs)
+	if err := keepPage(s.Root, repo, number, pg, diffs); err != nil {
+		log.Printf("%s: couldn't keep the page read: %v", Key(repo, number), err)
+	}
 }
 
 // samePage: two reads of a page found the same, whenever they were.

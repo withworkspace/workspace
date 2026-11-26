@@ -64,7 +64,7 @@ func write(v any) {
 		return
 	}
 	outMu.Lock()
-	out.Write(append(b, '\n'))
+	_, _ = out.Write(append(b, '\n')) // a cost line not written is only not counted
 	outMu.Unlock()
 }
 

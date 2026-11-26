@@ -166,7 +166,9 @@ func spawn(root string) error {
 	if err != nil {
 		return err
 	}
-	os.MkdirAll(dirOf(LogPath(root)), 0o755)
+	if err := os.MkdirAll(dirOf(LogPath(root)), 0o755); err != nil {
+		return err
+	}
 	logf, err := os.OpenFile(LogPath(root), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
@@ -307,7 +309,7 @@ func (c *Client) call(req request) (message, error) {
 
 // send queues a request without waiting for its reply (input, resizes).
 func (c *Client) send(req request) {
-	c.enqueue(req, nil)
+	_ = c.enqueue(req, nil) // a closed connection says so at its next call
 }
 
 // Close disconnects. Crew keep running on the server.
@@ -520,7 +522,7 @@ func (t *Term) mirrorRaw(p []byte) {
 	w := t.mirror
 	t.mu.Unlock()
 	if w != nil {
-		w.Write(p)
+		_, _ = w.Write(p) // a mirror that's gone isn't shown more
 	}
 }
 
@@ -585,7 +587,7 @@ func (t *Term) SetMirror(w io.Writer) {
 	t.mu.Lock()
 	t.mirror = w
 	t.mu.Unlock()
-	t.c.call(request{Op: "mirror", Crew: t.key, On: w != nil})
+	_, _ = t.c.call(request{Op: "mirror", Crew: t.key, On: w != nil}) // a closed connection says so at its next call
 }
 
 func (t *Term) Resize(w, h int) {

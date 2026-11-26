@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/termpane"
 )
@@ -93,7 +94,9 @@ func (h *LocalHost) Launch(s Spec) (int, error) {
 		if leaving {
 			exit = "stopped: " + exit
 		}
-		Finish(h.Store, s, exit, p.Transcript(), HowEnded(t.stopped.Load(), leaving), h.OnEnded)
+		if err := Finish(h.Store, s, exit, p.Transcript(), HowEnded(t.stopped.Load(), leaving), h.OnEnded); err != nil {
+			execlog.Note(h.Store.Root, "crew "+s.Slug+"/"+s.CrewID, "couldn't record its end: %v", err)
+		}
 	})
 	// The prompt's typer and the trust dialog's watch end with the crew,
 	// and Leave waits for them as it does for the end's record: neither

@@ -172,7 +172,7 @@ func (d disk) prune(max int64) {
 	}
 	var files []file
 	var total int64
-	filepath.WalkDir(filepath.Join(d.dir, version), func(p string, e fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(filepath.Join(d.dir, version), func(p string, e fs.DirEntry, err error) error { // its walk passes over what it can't read
 		if err != nil || e.IsDir() {
 			return nil
 		}

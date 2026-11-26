@@ -3,6 +3,7 @@ package pulls
 import (
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"slices"
 	"strings"
@@ -304,7 +305,7 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 	w := outgoing{Repo: repo, Number: number, Review: r.ID, Posting: p, Was: was}
 	if _, err := s.Outbox.Add(reviewLane(repo, number, st), sendReview, "your review of "+Key(repo, number), w); err != nil {
 		// It can't be kept to send, so it isn't submitted: a draft again.
-		s.takeBack(w)
+		_ = s.takeBack(w) // the outbox's error is the one to say
 		return nil, err
 	}
 	s.bump(repo, number)
@@ -324,13 +325,17 @@ func (s *Service) keepReview(repo string, number int, l *layer, base string, p *
 	}
 	prints, _ := review.Fingerprints(l.dir, base, p.Commit)
 	release := s.lockRepo(repo)
-	Keep(l.dir, ReviewedRef(number, r.ID), p.Commit)
+	if err := Keep(l.dir, ReviewedRef(number, r.ID), p.Commit); err != nil {
+		log.Printf("%s: couldn't keep the commit reviewed: %v", Key(repo, number), err)
+	}
 	release()
 	var was *Reviewed
-	Update(s.Root, repo, number, func(rec *Record) {
+	if _, err := Update(s.Root, repo, number, func(rec *Record) {
 		was = rec.Reviewed
 		rec.Reviewed = &Reviewed{ID: r.ID, Verdict: verdict, Head: p.Commit, Base: base, At: at, URL: url, Prints: prints}
-	})
+	}); err != nil {
+		log.Printf("%s: couldn't record the review: %v", Key(repo, number), err)
+	}
 	s.settle(repo, number) // it doesn't ask for your review any more
 	return r, was, nil
 }
@@ -362,11 +367,13 @@ func (s *Service) postReview(w outgoing) error {
 
 // reviewAt keeps where a review sent behind is on GitHub.
 func (s *Service) reviewAt(w outgoing, url string) {
-	Update(s.Root, w.Repo, w.Number, func(rec *Record) {
+	if _, err := Update(s.Root, w.Repo, w.Number, func(rec *Record) {
 		if rec.Reviewed != nil && rec.Reviewed.ID == w.Review {
 			rec.Reviewed.URL = url
 		}
-	})
+	}); err != nil {
+		log.Printf("%s: couldn't keep where the review is: %v", Key(w.Repo, w.Number), err)
+	}
 }
 
 // states are GitHub's names for a review as it stands, by the event that

@@ -120,7 +120,7 @@ func scanKept(sc interface{ Scan(...any) error }) (*kept, error) {
 	if err := sc.Scan(&k.id, &k.n, &k.title, &k.version, &k.size, &k.changed, &k.removed, &meta); err != nil {
 		return nil, err
 	}
-	json.Unmarshal([]byte(meta), &k.meta) // what can't be read is as nothing kept
+	_ = json.Unmarshal([]byte(meta), &k.meta) // what can't be read is as nothing kept
 	return &k, nil
 }
 
@@ -228,7 +228,7 @@ func (s Store) IDs() []string {
 		return nil
 	}
 	var out []string
-	db.Read(context.Background(), func(tx *store.Tx) error {
+	_ = db.Read(context.Background(), func(tx *store.Tx) error { // a read it can't make is as none
 		listed, err := listedIn(tx)
 		for _, k := range listed {
 			out = append(out, k.id)
@@ -541,7 +541,7 @@ func (s Store) Remove(id string) error {
 		return tx.Forget(origin(id))
 	})
 	if err != nil && moved {
-		os.Rename(s.Path(id)+".removed", s.Path(id)) // its row still lists it
+		_ = os.Rename(s.Path(id)+".removed", s.Path(id)) // its row still lists it
 	}
 	return err
 }
@@ -549,7 +549,7 @@ func (s Store) Remove(id string) error {
 // Meta is what's kept of a page beside its text: nothing, for most.
 func (s Store) Meta(id string) Meta {
 	var m Meta
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		if k, _, err := keptIn(tx, id); err == nil && k != nil {
 			m = k.meta
 		}
@@ -577,7 +577,7 @@ func (s Store) SetMeta(id string, m Meta) error {
 // repo/capsule:path), if one is: the latest changed, of several.
 func (s Store) TiedTo(ref string) string {
 	var ids []string
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		rows, err := tx.Query(`SELECT id FROM pages WHERE tied = ? AND removed = '' ORDER BY changed DESC, n DESC`, ref)
 		if err != nil {
 			return err

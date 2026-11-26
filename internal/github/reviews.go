@@ -392,7 +392,7 @@ func SubmitReview(org, repo string, number int, r ReviewSubmission) (string, err
 	var res struct {
 		URL string `json:"html_url"`
 	}
-	json.Unmarshal(stdOut.Bytes(), &res)
+	_ = json.Unmarshal(stdOut.Bytes(), &res) // it's posted either way: without its link if gh's answer can't be read
 	return res.URL, nil
 }
 

@@ -57,7 +57,7 @@ func (w *Workspace) saveDocument(m *mission.Mission, ref, base, text, message st
 		ref: ref, place: place, store: conversation.For(w.WS().Root, m.Slug),
 		body:    fmt.Sprintf("Edited in ws's web UI, on mission %s.", m.Slug),
 		subject: place.kindSubject(w.WS(), []byte(text)),
-		drop:    func() { doc.Drafts{Root: w.WS().Root, Scope: doc.OfMission(m.Slug)}.Drop(ref) },
+		drop:    func() { logFailed(doc.Drafts{Root: w.WS().Root, Scope: doc.OfMission(m.Slug)}.Drop(ref)) },
 	}, base, text, message)
 }
 
@@ -101,7 +101,7 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 		}
 		if clashes > 0 {
 			// To settle and save again, from what's there now.
-			store.KeepVersion(now)
+			logFailed(store.KeepVersion(now))
 			return &DocSaved{Version: nowV, Conflict: &DocConflict{Text: string(got), Clashes: clashes}}, nil
 		}
 		out, merged = got, true
@@ -132,7 +132,7 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 			body += " Merged with the changes made to it while it was being edited."
 		}
 		if cmd, err := git.Combined(place.CapsuleDir, "commit", "-q", "-m", subject, "-m", body, "--", place.Rel); err != nil {
-			os.WriteFile(place.File, now, info.Mode().Perm()) // as it was
+			_ = os.WriteFile(place.File, now, info.Mode().Perm()) // as it was
 			return nil, fmt.Errorf("committing it in %s: %v: %s", place.Capsule, err, clipString(cmd, 300))
 		}
 		saved.Commit, _ = git.Line(place.CapsuleDir, "rev-parse", "HEAD")
@@ -209,7 +209,7 @@ func (w *Workspace) saveWorkspaceDoc(ref, base, text, subject, body string, drop
 		return nil, fmt.Errorf("%s isn't a document to edit: only markdown is", d.Ref)
 	}
 	store := conversation.ForWorkspace(w.WS().Root)
-	drop := func() { doc.Drafts{Root: w.WS().Root, Scope: doc.Workspace}.Drop(d.Ref) }
+	drop := func() { logFailed(doc.Drafts{Root: w.WS().Root, Scope: doc.Workspace}.Drop(d.Ref)) }
 	if !dropDraft {
 		drop = func() {}
 	}
@@ -259,7 +259,7 @@ func (w *Workspace) saveOnDefaultBranch(d *DocFile, store conversation.Store, ba
 			return nil, err
 		}
 		if clashes > 0 {
-			store.KeepVersion(now)
+			logFailed(store.KeepVersion(now))
 			l.undo()
 			return &DocSaved{Version: nowV, Conflict: &DocConflict{Text: string(got), Clashes: clashes}}, nil
 		}
@@ -323,7 +323,7 @@ func (w *Workspace) liftForDefaultBranch(repo, branch string) (*lifted, error) {
 
 // undo leaves nothing of it: no capsule, no branch.
 func (l *lifted) undo() {
-	l.w.Burn(l.repo, l.capsule, BurnOptions{Force: true, DropBranch: true, quiet: true})
+	_, _ = l.w.Burn(l.repo, l.capsule, BurnOptions{Force: true, DropBranch: true, quiet: true}) // undoing: the error that called for it is the one returned
 }
 
 // commitAndLand commits the file rel (slash-separated; add: a new one) as
@@ -362,7 +362,7 @@ func (l *lifted) commitAndLand(rel, subject, body, what string, add bool) (*DocS
 		return nil, err
 	}
 	// The capsule's burned: its branch has nothing left to say.
-	git.Run(w.WS().BareDir(l.repo), "branch", "-q", "-D", l.branch)
+	logFailed(git.Run(w.WS().BareDir(l.repo), "branch", "-q", "-D", l.branch))
 	saved.Commit, saved.Ref = res.Landed.Head, l.repo+":"+rel
 	saved.Message = fmt.Sprintf("%s: landed on %s (%s)", what, onto, shortSHA(saved.Commit))
 	if res.Landed.Ground != nil {

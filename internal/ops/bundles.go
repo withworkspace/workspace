@@ -429,7 +429,7 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 	if checks != nil {
 		// What ws asked of its checks is answered: kept for the
 		// orchestrator, the task closing as the step passes.
-		w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: approved %s", mission.ChecksPass, b.ID), by.By(), true)
+		logFailed(w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: approved %s", mission.ChecksPass, b.ID), by.By(), true))
 	}
 	acc, err := w.AcceptStage(m.Slug, AsYou, why)
 	if err != nil {
@@ -487,7 +487,7 @@ func (w *Workspace) SendBackBundle(slug, id string, notes []mission.BundleNote, 
 	}
 	text := bundleBackText(b)
 	if cur, _, checks, waits := w.waitsOn(m, b.ID); waits && checks != nil && cur.N == st.N && cur.Step.Type == mission.StepWork {
-		w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: %s isn't right yet", mission.ChecksSendBack, b.ID), by.By(), false)
+		logFailed(w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: %s isn't right yet", mission.ChecksSendBack, b.ID), by.By(), false))
 		text += fmt.Sprintf(" Then report done again with a handoff (ws mission done): ws runs step %d's checks again.", st.N)
 	}
 	said, err := w.carryOn(m, st, b.Crew, text, by)

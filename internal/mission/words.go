@@ -162,7 +162,7 @@ func (s Store) filesOf(slug string) []fileStamp {
 	}
 	out := []fileStamp{brief}
 	files := filepath.Join(dir, MissionFilesDir)
-	filepath.WalkDir(files, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(files, func(p string, d fs.DirEntry, err error) error { // its walk passes over what it can't read
 		if err != nil {
 			return nil
 		}

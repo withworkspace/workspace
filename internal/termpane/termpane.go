@@ -110,14 +110,14 @@ func (p *Pane) pumpOutput() {
 		n, err := p.pty.Read(buf)
 		if n > 0 {
 			p.emuMu.Lock()
-			p.emu.Write(buf[:n])
+			_, _ = p.emu.Write(buf[:n]) // the screen takes all it's given
 			if h := hashText(p.emu.String()); h != p.screenHash {
 				p.screenHash, p.lastChange = h, time.Now()
 			}
 			p.emuMu.Unlock()
 			p.mirrorMu.Lock()
 			if p.mirror != nil {
-				p.mirror.Write(buf[:n])
+				_, _ = p.mirror.Write(buf[:n]) // a mirror that's gone isn't shown more
 			}
 			p.mirrorMu.Unlock()
 			p.notify()
@@ -234,7 +234,7 @@ func (p *Pane) Resize(width, height int) {
 	p.screenHash = hashText(p.emu.String())
 	p.emuMu.Unlock()
 	if !p.Exited() {
-		pty.Setsize(p.pty, &pty.Winsize{Cols: uint16(width), Rows: uint16(height)})
+		_ = pty.Setsize(p.pty, &pty.Winsize{Cols: uint16(width), Rows: uint16(height)}) // a pane that's ended has no size
 	}
 	p.notify()
 }
@@ -358,7 +358,7 @@ func (p *Pane) WriteRaw(b []byte) {
 	if p.Exited() || len(b) == 0 {
 		return
 	}
-	defer func() { recover() }() // toPty closed as the program exits
+	defer func() { _ = recover() }() // toPty closed as the program exits
 	p.toPty <- append([]byte(nil), b...)
 }
 

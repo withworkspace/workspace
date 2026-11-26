@@ -119,10 +119,10 @@ func (w *Workspace) dockQuietly(pr *pulls.PR) (string, error) {
 		return "", fmt.Errorf("docking %s: %w", pr.Ref(), err)
 	}
 	capsule := c.Name
-	pulls.Update(w.WS().Root, pr.Repo, pr.Number, func(r *pulls.Record) {
+	logFailed(pulls.Update(w.WS().Root, pr.Repo, pr.Number, func(r *pulls.Record) {
 		r.Title, r.Branch = pr.Title, pr.Branch
 		r.Docked = &pulls.Docked{Capsule: capsule, Branch: pr.Branch, By: pulls.ByWS, At: time.Now()}
-	})
+	}))
 	return capsule, nil
 }
 
@@ -191,10 +191,10 @@ func (w *Workspace) openHere(svc *pulls.Service, repo string, number int) (strin
 		return "", err
 	}
 	mine := func(capsule string) {
-		pulls.Update(w.WS().Root, repo, number, func(r *pulls.Record) {
+		logFailed(pulls.Update(w.WS().Root, repo, number, func(r *pulls.Record) {
 			r.Title, r.Branch = pr.Title, pr.Branch
 			r.Docked = &pulls.Docked{Capsule: capsule, Branch: pr.Branch, By: pulls.ByYou, At: time.Now()}
-		})
+		}))
 		svc.Stale()
 	}
 	if capsule := w.CapsuleOnBranch(repo, pr.Branch); capsule != "" {
@@ -235,13 +235,13 @@ func (w *Workspace) TidyDocked() {
 	for _, k := range docked {
 		d := k.Record.Docked
 		forget := func(by string) {
-			pulls.Update(w.WS().Root, k.Repo, k.Number, func(r *pulls.Record) {
+			logFailed(pulls.Update(w.WS().Root, k.Repo, k.Number, func(r *pulls.Record) {
 				if by == "" {
 					r.Docked = nil
 				} else if r.Docked != nil {
 					r.Docked.By = by
 				}
-			})
+			}))
 		}
 		path := filepath.Join(w.WS().RepoDir(k.Repo), d.Capsule)
 		if info, err := os.Stat(path); err != nil || !info.IsDir() {

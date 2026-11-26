@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          # All of main too: the lint of new code only looks at what's changed since it.
-          fetch-depth: 0
 
       - uses: actions/setup-go@v6
         with:
@@ -24,9 +21,6 @@ jobs:
 
       - name: Lint
         run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run ./...
-
-      - name: Lint what's changed since main (errcheck)
-        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --enable-only errcheck --new-from-merge-base origin/main ./...
 
       - name: Check formatting
         run: |

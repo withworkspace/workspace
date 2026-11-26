@@ -191,7 +191,7 @@ func (w *Workspace) OpenAppAt(p AppPlace, name string, by Actor) (AppView, error
 	if err != nil {
 		return AppView{}, err
 	}
-	w.runStore().LookedRun(up.Run, time.Now())
+	logFailed(w.runStore().LookedRun(up.Run, time.Now()))
 	return w.AppAt(p, name)
 }
 

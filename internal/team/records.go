@@ -192,7 +192,7 @@ func keepLook(tx *store.Tx, snap *Snapshot, prs []PR) (string, error) {
 // never have.
 func (s *Service) Seen() time.Time {
 	var at string
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		return tx.QueryRow(`SELECT at FROM team_seen WHERE id = 1`).Scan(&at)
 	})
 	t, _ := time.Parse(store.Stamp, at)
@@ -217,7 +217,7 @@ func (s *Service) gistsOf(strands []string) map[string]Gist {
 		return out
 	}
 	list, _ := json.Marshal(strands)
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		gists, err := scanAll[Gist](tx, `SELECT gist FROM team_gists WHERE strand IN (SELECT value FROM json_each(?))`, string(list))
 		for _, g := range gists {
 			out[g.Strand] = g
@@ -266,7 +266,7 @@ func putGist(tx *store.Tx, g Gist) error {
 // summaryOf is the account kept of a period, by what it's called.
 func (s *Service) summaryOf(period string) (Summary, bool) {
 	var list []Summary
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		var err error
 		list, err = scanAll[Summary](tx, `SELECT summary FROM team_summaries WHERE period = ?`, period)
 		return err

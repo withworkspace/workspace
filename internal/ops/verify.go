@@ -119,7 +119,7 @@ func (w *Workspace) settleVerify(m *mission.Mission, st mission.StageState, crew
 	by := "the verifier (" + crewID + ")"
 	results := make([]mission.CheckResult, len(st.Step.Checks))
 	run := w.checkRound(m.Slug, st, crewID, nil)
-	defer w.Missions.ClearChecking(m.Slug, st.N) // recording the round clears it; failing to, this does
+	defer func() { logFailed(w.Missions.ClearChecking(m.Slug, st.N)) }() // recording the round clears it; failing to, this does
 	for i, c := range st.Step.Checks {
 		switch {
 		case c.Run() && dir == "":
@@ -260,6 +260,6 @@ func (w *Workspace) verifyAgain(m *mission.Mission, crewID string) string {
 		return ""
 	}
 	// What ws asked the user of the last round is moot: it's verified again.
-	w.Missions.CloseStepTasks(m.Slug, cur.N)
+	w.closeStepTasks(m.Slug, cur.N)
 	return fmt.Sprintf("step %d verifies it again: %s", cur.N, w.startVerifier(m, cur))
 }

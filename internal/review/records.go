@@ -176,7 +176,7 @@ func (s Store) changed(tx *store.Tx) {
 // changed, or zero.
 func (s Store) Changed() time.Time {
 	var at sql.NullString
-	s.read(func(tx *store.Tx) error {
+	_ = s.read(func(tx *store.Tx) error { // a read it can't make is as none
 		return tx.QueryRow(`SELECT max(changed) FROM reviews WHERE scope = ?`, s.scope()).Scan(&at)
 	})
 	return timeOf(at.String)
