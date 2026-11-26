@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/events"
@@ -70,6 +71,8 @@ type dryRun struct {
 	// at is where each step was called from, and its builtin.
 	at  map[int][2]string
 	did []string
+	// tasks are the tasks it asked for, by their (made up) handles.
+	tasks map[int64]taskHandle
 }
 
 // DryRun is what a would have done over the events of the last back.
@@ -85,7 +88,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 	out.Events = len(list)
 	var did *dryRun
 	dry := &Engine{Root: e.Root, Now: e.Now, Timeout: e.Timeout, Hooks: Hooks{
-		Show: e.Hooks.Show, RefsIn: e.Hooks.RefsIn,
+		Show: e.Hooks.Show, RefsIn: e.Hooks.RefsIn, Repos: e.Hooks.Repos,
 		Notify: func(_ *Automation, text string, refs []string) error {
 			did.did = append(did.did, "notify: "+text)
 			return nil
@@ -134,7 +137,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			}
 		}
 		ranAt[key] = append(ranAt[key], ev.At)
-		did = &dryRun{steps: map[int][2]string{}, at: map[int][2]string{}}
+		did = &dryRun{steps: map[int][2]string{}, at: map[int][2]string{}, tasks: map[int64]taskHandle{}}
 		for {
 			r := &run{e: dry, a: a, ev: ev, batch: batch, dry: did}
 			err := r.do()
@@ -151,28 +154,20 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			if !ok {
 				break
 			}
-			m, err := events.ParseMatch(w.Match)
-			if err != nil {
+			// What a task asked for comes to is unknown: a dry run runs
+			// nothing.
+			dryTask := func(id int64) (Task, bool) {
+				h := did.tasks[id]
+				return Task{ID: id, Repo: h.repo, Recipe: h.recipe, State: TaskEnded, Status: "unknown: a dry run runs nothing"}, true
+			}
+			notOurs := func(later events.Event) bool { return later.By == events.ByWorkflow(a.Name) }
+			result, done := waitCame(w, list, e.now(), notOurs, dryTask)
+			if !done {
+				line.Waited = append(line.Waited, "would be waiting still, for "+waitSaid(w, did.tasks))
+				out.Waiting++
 				break
 			}
-			result := ""
-			for _, later := range list {
-				if later.N > w.After && !later.At.After(w.Due) && m.Matches(later) {
-					b, _ := json.Marshal(later)
-					result = string(b)
-					line.Waited = append(line.Waited, fmt.Sprintf("waited %s for %s (%s)", shortDuration(later.At.Sub(ev.At).Round(time.Minute)), later.Ref(), later.Says()))
-					break
-				}
-			}
-			if result == "" {
-				if e.now().Before(w.Due) {
-					line.Waited = append(line.Waited, "would be waiting still, for "+w.Match)
-					out.Waiting++
-					break
-				}
-				result = "null"
-				line.Waited = append(line.Waited, "waited "+shortDuration(w.Due.Sub(ev.At))+" for "+w.Match+", and its time was up")
-			}
+			line.Waited = append(line.Waited, waitedSaid(w, result, ev, did.tasks))
 			did.steps[n] = [2]string{"done", result}
 		}
 		line.Did = did.did
@@ -275,6 +270,40 @@ func withSlots(list, slots []events.Event, name string) []events.Event {
 	out = append(out, slots...)
 	sort.SliceStable(out, func(i, j int) bool { return out[i].At.Before(out[j].At) })
 	return out
+}
+
+// waitSaid is what a wait waits for, in words.
+func waitSaid(w waitFor, tasks map[int64]taskHandle) string {
+	if len(w.Items) == 0 {
+		return w.Match
+	}
+	var parts []string
+	for _, it := range w.Items {
+		if it.Task != 0 {
+			h := tasks[it.Task]
+			parts = append(parts, h.recipe+" on "+h.repo)
+		} else {
+			parts = append(parts, it.Match)
+		}
+	}
+	which := "all of "
+	if w.Any {
+		which = "any of "
+	}
+	return which + strings.Join(parts, ", ")
+}
+
+// waitedSaid is what a wait came to, in words, for a run on ev.
+func waitedSaid(w waitFor, result string, ev events.Event, tasks map[int64]taskHandle) string {
+	if len(w.Items) > 0 {
+		return "waited for " + waitSaid(w, tasks) + " (what a task comes to is unknown in a dry run)"
+	}
+	if result == "null" {
+		return "waited " + shortDuration(w.Due.Sub(ev.At)) + " for " + w.Match + ", and its time was up"
+	}
+	var later events.Event
+	_ = json.Unmarshal([]byte(result), &later)
+	return fmt.Sprintf("waited %s for %s (%s)", shortDuration(later.At.Sub(ev.At).Round(time.Minute)), later.Ref(), later.Says())
 }
 
 // waiting is the step a dry run's parked at, if it is.

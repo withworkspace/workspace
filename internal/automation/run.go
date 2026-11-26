@@ -36,6 +36,15 @@ type Hooks struct {
 	Show func(ref string) (map[string]any, error)
 	// RefsIn are the refs a text names, each its name and its kind.
 	RefsIn func(text string) [][2]string
+	// RunTask starts a repo's task (its recipe) on its ground, for a, and
+	// says the run's ref and which run of the task it is; chain is the
+	// automations that led to it, which its events carry.
+	RunTask func(a *Automation, repo, recipe string, chain []string) (ref string, n int, err error)
+	// Report is what a task's run's reports say (internal/report), by
+	// report: each one's summary, or {"error": why}.
+	Report func(ref string, n int) map[string]map[string]any
+	// Repos is the workspace's repos, as repos() gives them.
+	Repos func() []RepoInfo
 }
 
 // Engine runs a workspace's automations on its events.
@@ -46,6 +55,8 @@ type Engine struct {
 	Timeout time.Duration
 	// Now is the clock (time.Now unset).
 	Now func() time.Time
+	// MaxTasks is how many tasks automations run at once (MaxTasks unset).
+	MaxTasks int
 
 	mu    sync.Mutex // one pass at a time
 	cache map[string]cached
@@ -141,7 +152,7 @@ func (e *Engine) RunDue() []string {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	var said []string
+	said := e.tasksPass()
 	for _, name := range names {
 		st := states[name]
 		if !st.On {
@@ -201,7 +212,8 @@ func (e *Engine) RunDue() []string {
 			}
 		}
 	}
-	return said
+	// What a pass asked for is started now, as there's room.
+	return append(said, e.tasksPass()...)
 }
 
 // resume picks up a's runs parked at a wait(): one whose event's come
@@ -214,24 +226,10 @@ func (e *Engine) resume(a *Automation, st *State, ours func(events.Event) bool) 
 	}
 	var said []string
 	for _, w := range waits {
-		m, err := events.ParseMatch(w.w.Match)
-		if err != nil {
-			continue
-		}
-		result := ""
-		list, _ := events.List(e.Root, events.Filter{After: w.w.After, Kinds: []string{m.Kind}})
-		for _, ev := range list {
-			if m.Matches(ev) && !ours(ev) {
-				b, _ := json.Marshal(ev)
-				result = string(b)
-				break
-			}
-		}
-		if result == "" && e.now().Before(w.w.Due) {
+		list, _ := events.List(e.Root, events.Filter{After: w.w.After})
+		result, done := waitCame(w.w, list, e.now(), ours, func(id int64) (Task, bool) { return taskByID(e.Root, id) })
+		if !done {
 			continue // still waiting
-		}
-		if result == "" {
-			result = "null" // its time's up
 		}
 		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result, ""); err != nil {
 			continue
@@ -520,6 +518,10 @@ func (r *run) builtins() starlark.StringDict {
 		"events":   starlark.NewBuiltin("events", r.placed(r.events)),
 		"refs_in":  starlark.NewBuiltin("refs_in", r.placed(r.refsIn)),
 		"wait":     starlark.NewBuiltin("wait", r.placed(r.wait)),
+		"wait_all": starlark.NewBuiltin("wait_all", r.placed(r.waitMany(false))),
+		"wait_any": starlark.NewBuiltin("wait_any", r.placed(r.waitMany(true))),
+		"run_task": starlark.NewBuiltin("run_task", r.placed(r.runTask)),
+		"repos":    starlark.NewBuiltin("repos", r.placed(r.repos)),
 	}
 }
 
@@ -685,24 +687,6 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if d > maxWait {
 		return nil, fmt.Errorf("wait: timeout: at most %s", shortDuration(maxWait))
 	}
-	r.steps++
-	n := r.steps
-	state, result, err := r.stepState(n)
-	switch {
-	case err != nil:
-		return nil, err
-	case state == "done":
-		if result == "null" || result == "" {
-			return starlark.None, nil
-		}
-		var ev events.Event
-		if err := json.Unmarshal([]byte(result), &ev); err != nil {
-			return nil, err
-		}
-		return eventValue(ev), nil
-	case state == "waiting":
-		return nil, errParked
-	}
 	// It waits for what comes after the event it's run on: what happened
 	// while the daemon was catching up counts, as a dry run has it. Its time
 	// is from now, or in a dry run, from when that event was.
@@ -710,11 +694,7 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if r.dry != nil {
 		due = r.ev.At.Add(d)
 	}
-	kept, _ := json.Marshal(waitFor{Match: m.m.String(), After: after, Due: due})
-	if err := r.keepStep(n, "wait", "waiting", string(kept)); err != nil {
-		return nil, err
-	}
-	return nil, errParked
+	return r.parkOn(waitFor{Match: m.m.String(), After: after, Due: due})
 }
 
 // maxWait is the longest a run may wait.

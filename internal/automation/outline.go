@@ -59,7 +59,7 @@ type OutlineBranch struct {
 }
 
 // reads are the builtins that read, kept as steps.
-var reads = map[string]bool{"show": true, "events": true, "refs_in": true}
+var reads = map[string]bool{"show": true, "events": true, "refs_in": true, "repos": true, "kept": true}
 
 // OutlineOf is a's outline.
 func OutlineOf(a *Automation) (Outline, error) {
@@ -259,6 +259,22 @@ func (o *outliner) builtin(name string, c *syntax.CallExpr) (OutlineStep, bool) 
 		}
 	case name == "wait":
 		return o.wait(c), true
+	case name == "wait_all" || name == "wait_any":
+		step.Kind = "wait"
+		which := "all of "
+		if name == "wait_any" {
+			which = "the first of "
+		}
+		step.Text = which + o.source(first())
+		if t := kw["timeout"]; t != nil {
+			step.Detail = "up to " + o.words(t)
+		}
+	case name == "run_task":
+		step.Kind = "run"
+		step.Text = o.words(first())
+		if repo := kw["repo"]; repo != nil {
+			step.Text += " on " + o.words(repo)
+		}
 	case reads[name]:
 		step.Kind, step.Text = "read", name+"("+o.argsSource(c)+")"
 	case name == "log" || name == "print":

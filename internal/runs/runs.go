@@ -209,6 +209,10 @@ type Record struct {
 	// Check is the check of a mission's step it was run for, if it was:
 	// the mission's slug, the step's number and the check's, from 1.
 	Check *CheckOf `json:"check,omitempty"`
+	// Chain is the automations that led to it, for one an automation
+	// started (By workflow:<name>): its events carry it, so what it sets
+	// off can't loop.
+	Chain []string `json:"chain,omitempty"`
 }
 
 // Report is a file, or the files a pattern matches, that a task's command

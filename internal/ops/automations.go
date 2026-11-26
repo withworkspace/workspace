@@ -3,7 +3,14 @@ package ops
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/withworkspace/workspace/internal/report"
+	"github.com/withworkspace/workspace/internal/runs"
+	"github.com/withworkspace/workspace/internal/workspace"
+	"maps"
 	"os"
+	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -48,6 +55,11 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 			}
 			return c.ID, nil
 		},
+		RunTask: func(a *automation.Automation, repo, recipe string, chain []string) (string, int, error) {
+			return w.runAutomationTask(a.Name, repo, recipe, chain)
+		},
+		Report: w.runReports,
+		Repos:  w.automationRepos,
 		RefsIn: func(text string) [][2]string {
 			known := w.namesKnown()
 			if known == nil {
@@ -70,6 +82,70 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 			return out
 		},
 	}
+}
+
+// runAutomationTask starts a repo's task on its ground (its default
+// branch, as it stands), for an automation: by workflow:<name>, its
+// events carrying chain. A task that's running there already is that one.
+func (w *Workspace) runAutomationTask(name, repo, recipe string, chain []string) (string, int, error) {
+	if !w.recipes(repo, workspace.GroundDir)[recipe].IsTask() {
+		return "", 0, fmt.Errorf("%s has no task %s on its ground", repo, recipe)
+	}
+	dir, err := w.worktreeOf(repo, workspace.GroundDir)
+	if err != nil {
+		return "", 0, err
+	}
+	r, err := w.runUp(RunAsk{
+		Repo: repo, Worktree: workspace.GroundDir, Dir: dir, Recipe: recipe,
+		Owner: runs.Owner{Kind: runs.ByNone}, TTL: runs.DefaultTTL,
+		By: events.ByWorkflow(name), Chain: chain,
+	})
+	if err != nil {
+		return "", 0, err
+	}
+	return r.Ref(), r.N, nil
+}
+
+// runReports is what a task's run's reports say, each by its format
+// (internal/report), or why it can't be said.
+func (w *Workspace) runReports(ref string, n int) map[string]map[string]any {
+	r, err := w.runByRef(fmt.Sprintf("%s#%d", ref, n))
+	if err != nil {
+		return nil
+	}
+	out := map[string]map[string]any{}
+	for _, rp := range r.Reports {
+		s, err := report.Summary(rp.Format, filepath.Join(r.Path, "reports", rp.Name))
+		if err != nil {
+			s = map[string]any{"error": err.Error()}
+		}
+		out[rp.Name] = s
+	}
+	return out
+}
+
+// automationRepos is the workspace's repos as repos() gives them: each
+// with its group and the tasks on its ground, with their reports.
+func (w *Workspace) automationRepos() []automation.RepoInfo {
+	ws, cfg := w.WS(), w.Config()
+	var out []automation.RepoInfo
+	for _, name := range ws.RepoNames {
+		rc := cfg.Repos[name]
+		info := automation.RepoInfo{Name: name, Group: rc.Group, Display: rc.DisplayName, Branch: firstNonEmpty(ws.DefaultBranch, "main"), Tasks: []automation.TaskInfo{}}
+		tasks := w.runTables(name, workspace.GroundDir).Task
+		for _, t := range slices.Sorted(maps.Keys(tasks)) {
+			ti := automation.TaskInfo{Name: t}
+			for rn, rp := range tasks[t].Reports {
+				if ti.Reports == nil {
+					ti.Reports = map[string]string{}
+				}
+				ti.Reports[rn] = rp.Format
+			}
+			info.Tasks = append(info.Tasks, ti)
+		}
+		out = append(out, info)
+	}
+	return out
 }
 
 // acceptAutomation adds a proposed automation, on, from the next event:
