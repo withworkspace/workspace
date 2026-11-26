@@ -367,8 +367,10 @@ func TestCursor_Orchestrate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(l.Args, " "); got != "/bin/ca -p --trust --mode ask --output-format stream-json --model auto -- Read /w/p.md." || l.Stream != StreamCursor || filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") {
-		t.Errorf("launch = %q in %s", got, l.Dir)
+	// The whole prompt, on stdin: a long command line gets cursor-agent
+	// killed where an endpoint-security agent reads command lines.
+	if got := strings.Join(l.Args, " "); got != "/bin/ca -p --trust --mode ask --output-format stream-json --model auto" || l.Stdin != "the whole prompt" || l.Stream != StreamCursor || filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") {
+		t.Errorf("launch = %q, stdin %q, in %s", got, l.Stdin, l.Dir)
 	}
 	data, _ := os.ReadFile(filepath.Join(l.Dir, ".cursor", "cli.json"))
 	for _, want := range []string{"Shell(ws mission)", "Shell(gh pr view)", "Shell(git -C /w/repos/api/.ground log)"} {
@@ -908,8 +910,8 @@ func TestCursor_Converse(t *testing.T) {
 		t.Fatal(err)
 	}
 	args := strings.Join(l.Args, " ")
-	if args != "/bin/cursor-agent -p --trust --mode ask --output-format stream-json --model auto -- Answer t3." {
-		t.Errorf("args: %s", args)
+	if args != "/bin/cursor-agent -p --trust --mode ask --output-format stream-json --model auto" || l.Stdin != "Answer t3." {
+		t.Errorf("args: %s, stdin %q", args, l.Stdin)
 	}
 	if filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") || l.Stream != StreamCursor {
 		t.Errorf("launch = %+v", l)
