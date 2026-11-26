@@ -40,6 +40,15 @@ func TestMadeFromEvents(t *testing.T) {
 	if n := got[2]; n.Text != "Mission cache ended: landed, with all of Z met" || n.Ref() != "n1" || n.Read != nil {
 		t.Errorf("a mission that ended by itself: %+v", n)
 	}
+
+	// What it only heard of is nobody's to be told of: a teammate's pull
+	// request merging isn't one this ws opened.
+	if _, err := events.Emit(root, events.Event{Kind: events.PRMerged, Origin: events.Heard, By: events.ByPerson("brendan"), PR: "demo#9"}); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := List(root, Filter{}); len(after) != len(got) {
+		t.Errorf("a heard merge made a notification: %d, was %d", len(after), len(got))
+	}
 }
 
 func TestReadDismissAndMuted(t *testing.T) {
