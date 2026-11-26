@@ -1,5 +1,0 @@
-/* A crew's page (MissionCrewPage.tsx): its terminal, drawn at the crew's
-   size with its font scaled to fit, and its transcript. */
-.page:global(.page) {
-  max-width: 1040px;
-}
