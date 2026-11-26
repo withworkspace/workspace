@@ -278,8 +278,19 @@ func (s *Server) Start() error {
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
-	s.missions = newKeyedHub(missionTopic, s.Poll, func(slug string) string { return s.App.MissionStamp(slug) })
+	// A mission's page: told when a write to the records names it (below),
+	// and when what else it's built from moves (its stamp: its folder, its
+	// capsules, their runs, its repos' pull requests), which is kept in
+	// memory and nudged as it moves; looked at every sweep regardless, and
+	// built again every missionFloor, as a headline says how long things
+	// have taken. The page is built before it's told, and told only when
+	// what it's served has changed: then it's served as kept (mission).
+	s.missions = newKeyedHub(missionTopic, max(s.Poll, s.Sweep), func(slug string) string {
+		return s.App.MissionStamp(slug) + " " + strconv.FormatInt(s.now().UnixNano()/int64(missionFloor), 10)
+	})
 	s.missions.keep = func(slug string) { s.App.KeepMission(slug) }
+	s.missions.change = func(slug string, was any) (any, any) { return s.missionChange(slug, was) }
+	s.missions.version = func(slug string) int64 { return s.views.versionOf(missionTopic + slug) }
 	go s.missions.run(s.ctx)
 	// A conversation's agent writes its steps as it answers, which the
 	// records don't see: looked at every second while it's followed, as

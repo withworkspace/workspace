@@ -53,6 +53,9 @@ type keyedHub struct {
 	change func(key string, was any) (op, now any)
 	// gone, if set, is told a thing nobody follows any more.
 	gone func(key string)
+	// version, if set, is the version of a thing its followers are told
+	// it's now at (told.Version).
+	version func(key string) int64
 	// kick has it look now (nudge).
 	kick chan struct{}
 
@@ -154,6 +157,9 @@ func (h *keyedHub) tell(key string) {
 			t.Op = op
 		}
 	}
+	if h.version != nil {
+		t.Version = h.version(key)
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for ch, missed := range h.subs[key] {
@@ -168,6 +174,13 @@ func (h *keyedHub) tell(key string) {
 			h.subs[key][ch] = true
 		}
 	}
+}
+
+// follows is whether anyone follows key.
+func (h *keyedHub) follows(key string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.subs[key]) > 0
 }
 
 func (h *keyedHub) followed() []string {

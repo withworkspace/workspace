@@ -64,6 +64,9 @@ type Workspace struct {
 	// spaces is what's kept of the spaces of documents, for the pages that
 	// read them (spaces_kept.go).
 	spaces keptSpaces
+	// missions is what a mission's page is told by that's kept: the
+	// writes in its folder, and its record as last read (mission_kept.go).
+	missions keptMissions
 
 	// updates is one look for later releases, or one upgrade, at a time;
 	// plugins is one plugin added, updated or removed at a time.

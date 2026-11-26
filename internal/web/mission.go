@@ -1,28 +1,65 @@
 package web
 
 import (
+	"bytes"
 	"errors"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/ops"
 )
 
-// mission is the mission's page: everything about it.
+// missionFloor is how often a mission's page that's open is built again
+// when nothing it's built from has moved: a headline says how long things
+// have taken.
+var missionFloor = 30 * time.Second
+
+// mission is the mission's page: everything about it. While a page
+// follows it, its hub keeps it current (built when what it's built from
+// moves, before the page is told), so it's served as kept, built by
+// nobody's read. A write from a page forgets it, so that page reads what
+// it wrote.
 func (s *Server) mission(w http.ResponseWriter, r *http.Request) {
-	data, err := s.views.mission(s, r.PathValue("slug"))
+	slug := r.PathValue("slug")
+	key := missionTopic + slug
+	if s.missions != nil && s.missions.follows(slug) {
+		if data, version, ok := s.views.kept(key); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(versionHeader, strconv.FormatInt(version, 10))
+			w.Write(data)
+			return
+		}
+	}
+	data, err := s.views.mission(s, slug)
 	switch {
 	case errors.Is(err, ErrNotFound):
-		jsonError(w, http.StatusNotFound, "no mission "+r.PathValue("slug"))
+		jsonError(w, http.StatusNotFound, "no mission "+slug)
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(versionHeader, strconv.FormatInt(s.views.versionOf(key), 10))
 		w.Write(data)
 	}
+}
+
+// missionChange is how a mission's page has changed since was (what it
+// was last served as): built now, it's told to read it again only if it's
+// other than it was.
+func (s *Server) missionChange(slug string, was any) (op, now any) {
+	data, err := s.views.mission(s, slug)
+	if err != nil {
+		return reread, nil // and the next change is from nothing
+	}
+	if prev, ok := was.([]byte); ok && bytes.Equal(prev, data) {
+		return nil, data
+	}
+	return reread, data
 }
 
 // artifact is a readable artifact's text, by its reference: only the

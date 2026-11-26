@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/withworkspace/workspace/internal/config"
+	"hash"
 	"hash/fnv"
 	"io/fs"
 	"maps"
@@ -112,10 +113,19 @@ func (w *Workspace) Stamp() string {
 // don't say (they tell of their own changes): its folder's files (its
 // brief, files/, reviews, a run's output) and its capsules' HEAD, index
 // and HEAD's log. A few dozen stats, for a mission someone has open.
+//
+// In the daemon, nothing's walked or read: the writes in its folder are
+// counted as they're made, and its record is as its page last read it
+// (keptMissions).
 func (w *Workspace) MissionStamp(slug string) string {
-	m, err := w.Missions.Load(slug)
-	if err != nil {
-		m = nil
+	m, ok := w.missions.mission(slug)
+	if !ok {
+		var err error
+		if m, err = w.Missions.Load(slug); err != nil {
+			m = nil
+		} else {
+			w.missions.keep(slug, m)
+		}
 	}
 	return w.missionStamp(slug, m)
 }
@@ -130,6 +140,17 @@ func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 		}
 	}
 	dir := filepath.Join(w.Missions.Dir(), slug)
+	if files, ok := w.missions.filesOf(slug); ok {
+		fmt.Fprintln(h, files) // as the watch has counted them
+	} else {
+		w.walkMission(dir, note)
+	}
+	return w.capsulesStamp(h, m)
+}
+
+// walkMission notes each file in a mission's folder that its page is
+// built from.
+func (w *Workspace) walkMission(dir string, note func(path string)) {
 	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -146,6 +167,16 @@ func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 		}
 		return nil
 	})
+}
+
+// capsulesStamp adds what m's page shows of its capsules and its repos'
+// pull requests to h, and is the stamp it comes to.
+func (w *Workspace) capsulesStamp(h hash.Hash64, m *mission.Mission) string {
+	note := func(path string) {
+		if info, err := os.Stat(path); err == nil {
+			fmt.Fprintf(h, "%s %d %d\n", path, info.Size(), info.ModTime().UnixNano())
+		}
+	}
 	if m != nil {
 		// What GitHub says of its repos' pull requests, when it's said
 		// something different (asked behind the page's read: PRCache).
@@ -208,6 +239,9 @@ func (w *Workspace) stampFolders() []string {
 	}
 	add(ws, known)
 	if known {
+		// The missions' own folder, not below it: a mission's folder made
+		// is watched from then.
+		out = append(out, filepath.Join(ws, "missions"))
 		for _, slug := range slices.Sorted(maps.Keys(inPlay)) {
 			add(filepath.Join(ws, "missions", slug), false)
 		}

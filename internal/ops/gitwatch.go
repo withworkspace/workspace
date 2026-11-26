@@ -77,8 +77,13 @@ func (w *Workspace) WatchGit(stop <-chan struct{}, logf func(string, ...any)) {
 	// What else the pages are built from that's written to files: the
 	// workspace's config, and what's under .ws (Stamp's): a file a
 	// command writes there reaches the pages as it's written.
+	// A write in a mission's folder is counted for its page
+	// (keptMissions), which its stamp then says without walking it.
 	go watchFolders(stop, func(format string, args ...any) { logf("files: "+format, args...) },
-		w.stampFolders, w.stampHeeds, func([]string) { w.tellSeen() }, nil)
+		w.stampFolders, w.stampHeeds, func(dirs []string) {
+			w.missions.wrote(w.Missions.Dir(), dirs)
+			w.tellSeen()
+		}, func(n int) { w.missions.watching.Store(n > 0) })
 	moved := make(chan []string, 64)
 	kept := make(chan struct{})
 	go func() {
