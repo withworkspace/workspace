@@ -118,16 +118,7 @@ func ReadJudgeFixture(dir string) (JudgeFixture, error) {
 			return f, fmt.Errorf("%s: check %d expects %q: it's %s, %s or %s", path, i+1, c.Expect, mission.CheckMet, mission.CheckUnmet, mission.CheckCantTell)
 		}
 	}
-	_, hasWork := isDir(filepath.Join(dir, "work"))
-	switch {
-	case f.Git != nil && hasWork:
-		return f, fmt.Errorf("%s: both [git] and a work folder: the work is one or the other", path)
-	case f.Git != nil && (f.Git.Commit == "" || f.Git.Base == ""):
-		return f, fmt.Errorf("%s: [git] needs commit (the work) and base (where it left its default branch)", path)
-	case f.Git == nil && !hasWork:
-		return f, fmt.Errorf("%s: no work to judge: a work folder beside it, or [git]", path)
-	}
-	return f, nil
+	return f, checkWork(dir, path, f.Git)
 }
 
 func isDir(path string) (os.FileInfo, bool) {
@@ -312,10 +303,41 @@ func (w *Workspace) judgingOf(f JudgeFixture, e JudgeEval) (prompt.Judging, func
 	return j, done, nil
 }
 
-// layOut makes the folder f is judged in: named as its capsule is, in a
-// temporary folder of its own, never the fixture's (an agent told to
-// change nothing is still best kept from what's kept).
+// layOut makes the folder f is judged in.
 func (f JudgeFixture) layOut(e JudgeEval, branch string) (dir, commit string, done func(), err error) {
+	return fixtureWork{Dir: f.dir, Capsule: f.Capsule, Git: f.Git}.layOut(e.Repo, e.Keep, branch)
+}
+
+// fixtureWork is a fixture's work, which a folder is made from as a
+// capsule's is: its own folders (work, and base), or [git].
+type fixtureWork struct {
+	// Dir is the fixture's folder, and Capsule repo/name: the folder made
+	// takes its name.
+	Dir, Capsule string
+	Git          *JudgeFixtureGit
+}
+
+// checkWork says whether a fixture at path has its work one way, and only
+// one.
+func checkWork(dir, path string, git *JudgeFixtureGit) error {
+	_, hasWork := isDir(filepath.Join(dir, "work"))
+	switch {
+	case git != nil && hasWork:
+		return fmt.Errorf("%s: both [git] and a work folder: the work is one or the other", path)
+	case git != nil && (git.Commit == "" || git.Base == ""):
+		return fmt.Errorf("%s: [git] needs commit (the work) and base (where it left its default branch)", path)
+	case git == nil && !hasWork:
+		return fmt.Errorf("%s: no work: a work folder beside it, or [git]", path)
+	}
+	return nil
+}
+
+// layOut makes the folder the work's in: named as its capsule is, in a
+// temporary folder of its own, never the fixture's (an agent told to
+// change nothing is still best kept from what's kept). repo, if set, is
+// where [git]'s commits are, over the fixture's own; keep leaves the
+// folder when done.
+func (f fixtureWork) layOut(repo string, keep bool, branch string) (dir, commit string, done func(), err error) {
 	tmp, err := os.MkdirTemp("", "ws-eval-")
 	if err != nil {
 		return "", "", nil, err
@@ -325,13 +347,13 @@ func (f JudgeFixture) layOut(e JudgeEval, branch string) (dir, commit string, do
 		tmp = resolved
 	}
 	done = func() {
-		if !e.Keep {
+		if !keep {
 			os.RemoveAll(tmp)
 		}
 	}
 	dir = filepath.Join(tmp, filepath.Base(f.Capsule))
 	if f.Git != nil {
-		err = f.layOutGit(dir, firstNonEmpty(e.Repo, f.Git.Repo), branch)
+		err = f.layOutGit(dir, firstNonEmpty(repo, f.Git.Repo), branch)
 	} else {
 		err = f.layOutFolders(dir, branch)
 	}
@@ -355,14 +377,14 @@ func evalGit(dir string, args ...string) error {
 // layOutFolders makes dir from the fixture's folders: base as the default
 // branch had it (nothing, without one), then work as the capsule's one
 // commit on a branch of its name.
-func (f JudgeFixture) layOutFolders(dir, branch string) error {
+func (f fixtureWork) layOutFolders(dir, branch string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	if err := evalGit(dir, "init", "-q", "-b", branch); err != nil {
 		return err
 	}
-	if base := filepath.Join(f.dir, "base"); dirExists(base) {
+	if base := filepath.Join(f.Dir, "base"); dirExists(base) {
 		if err := os.CopyFS(dir, os.DirFS(base)); err != nil {
 			return err
 		}
@@ -379,7 +401,7 @@ func (f JudgeFixture) layOutFolders(dir, branch string) error {
 			return err
 		}
 	}
-	if err := os.CopyFS(dir, os.DirFS(filepath.Join(f.dir, "work"))); err != nil {
+	if err := os.CopyFS(dir, os.DirFS(filepath.Join(f.Dir, "work"))); err != nil {
 		return err
 	}
 	if err := evalGit(dir, "add", "-A"); err != nil {
@@ -401,12 +423,12 @@ func dirExists(path string) bool {
 // no tag, no object from after it, and no word of where repo is. A judge
 // that goes looking finds what the capsule had then, not the work as it
 // was finished later.
-func (f JudgeFixture) layOutGit(dir, repo, branch string) error {
+func (f fixtureWork) layOutGit(dir, repo, branch string) error {
 	if repo == "" {
 		return errors.New("its commits are in a repo on this machine: say which with --repo, or repo under [git]")
 	}
 	if !filepath.IsAbs(repo) {
-		repo = filepath.Join(f.dir, repo)
+		repo = filepath.Join(f.Dir, repo)
 	}
 	for _, c := range []string{f.Git.Commit, f.Git.Base} {
 		if gitOut(repo, "cat-file", "-t", c) != "commit" {

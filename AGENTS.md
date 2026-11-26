@@ -22,7 +22,7 @@ just story-fixtures         # take the stories' missions again, from tries seede
 just shots [all]            # take the README's pictures again (all: FEATURES.md's too), of a try seeded with marketing
 ```
 
-`ws eval` puts a role's prompt to fixtures, cases whose right answer is known, on a harness and model you name, and scores what comes back: for telling whether a change to a prompt, or another model in a role, does as well. It's off unless `WS_EVAL` is set, not listed and refused, and no agent ws starts is given the variable: it starts agents of its own, so it isn't for one to come on. It knows two roles (each one's `--help` says what a fixture is):
+`ws eval` puts a role's prompt to fixtures, cases whose right answer is known, on a harness and model you name, and scores what comes back: for telling whether a change to a prompt, or another model in a role, does as well. It's off unless `WS_EVAL` is set, not listed and refused, and no agent ws starts is given the variable: it starts agents of its own, so it isn't for one to come on. It knows four roles (each one's `--help` says what a fixture is):
 
 ```sh
 WS_EVAL=1 ws eval judge --pick claude:haiku internal/ops/testdata/judge/*    # the judge, on a step's work as its crew left it
@@ -30,7 +30,11 @@ WS_EVAL=1 ws eval orchestrator --pick claude:haiku \
   --before 'TRY_ROOT=$WS_EVAL_TMP scripts/try.sh up --no-build' \
   --after 'TRY_ROOT=$WS_EVAL_TMP scripts/try.sh down "$WS_EVAL_NAME"' \
   internal/ops/testdata/orchestrator/*    # the orchestrator, run for real on a mission a seed makes
+WS_EVAL=1 ws eval team --pick claude:haiku <fixture>...    # the Team page's gist of a change that landed
+WS_EVAL=1 ws eval pr-writer --pick claude:haiku internal/ops/testdata/prwriter/*    # the PR writer, on a capsule's work
 ```
+
+The Team page's writer and the PR writer write for people, and there's no one right wording: ws scores what has one (the form ws reads, the length, whether something's worth knowing, patterns a fixture names) and prints what was written, under `output` with `--json`, for a person or a grader to compare.
 
 The orchestrator's run is in a workspace made for it and removed after, which ws doesn't make: `--before` and `--after` are yours, and `scripts/try.sh` is what makes one here (`just build` first: `--no-build` uses `bin/workspace` as it is). A fixture's seed is a script as a try's is (`scripts/seeds`).
 

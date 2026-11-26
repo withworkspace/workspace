@@ -204,7 +204,7 @@ func TestReadJudgeFixture_Refuses(t *testing.T) {
 		"no checks":  {"step = \"1\"\n", "no [[check]]"},
 		"no text":    {"[[check]]\nexpect = \"met\"\n", "check 1 has no text"},
 		"bad expect": {"[[check]]\ntext = \"a\"\nexpect = \"pass\"\n", `expects "pass"`},
-		"no work":    {"[[check]]\ntext = \"a\"\n", "no work to judge"},
+		"no work":    {"[[check]]\ntext = \"a\"\n", "no work: a work folder"},
 		"half a git": {"[[check]]\ntext = \"a\"\n[git]\ncommit = \"abc\"\n", "[git] needs commit"},
 	} {
 		dir := t.TempDir()
