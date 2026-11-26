@@ -10,6 +10,7 @@ package ops
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -318,6 +319,15 @@ func (w *Workspace) load(slug string) (*mission.Mission, error) {
 		return nil, wrap(err)
 	}
 	return m, nil
+}
+
+// closeStepTasks takes step n's tasks out of the queue once what they asked
+// is done. What was done stands if they can't be: it's said on stderr (the
+// daemon's log), and the task is left for you to see.
+func (w *Workspace) closeStepTasks(slug string, n int) {
+	if err := w.Missions.CloseStepTasks(slug, n); err != nil {
+		log.Printf("mission %s: couldn't close step %d's tasks: %v", slug, n, err)
+	}
 }
 
 // youActed records that you stepped in on a mission: the orchestrator's

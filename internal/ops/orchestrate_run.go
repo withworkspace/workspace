@@ -135,7 +135,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		if retry {
 			start = "it ran no ws mission commands: running it again, told its shell works"
 		}
-		store.AppendLog(m.Slug, mission.Event{Kind: mission.EventOrchestrateRun, Crew: "orchestrator", Run: rec.ID, Text: start})
+		store.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventOrchestrateRun, Crew: "orchestrator", Run: rec.ID, Text: start})
 		var err error
 		run.Prompt = prompt
 		if run.Pointer, err = orchestrator.WritePrompt(store, m.Slug, rec.ID, prompt); err != nil {
@@ -147,7 +147,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		}
 		rep, runErr := orchestrator.Run(w.life(), l, rv.Name(), model, w.WS().Root, m.Slug, rec.ID)
 		summary := orchestrator.Summary(rep.Output, runErr)
-		store.AppendLog(m.Slug, mission.Event{Kind: mission.EventOrchestrate, Crew: "orchestrator", Run: rec.ID, Text: summary})
+		store.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventOrchestrate, Crew: "orchestrator", Run: rec.ID, Text: summary})
 		r.say("%s", summary)
 		acted := orchestratorActed(store, m.Slug, rec.ID)
 		rec.Ended, rec.Output, rec.Calls, rec.Acted = time.Now(), rep.Output, rep.Calls, acted

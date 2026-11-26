@@ -232,7 +232,7 @@ func (w *Workspace) acceptDocument(store conversation.Store, c *conversation.Con
 		return "", err
 	}
 	if !store.Workspace() {
-		w.Missions.AppendLog(store.Slug, mission.Event{Kind: mission.EventNote, Text: "added " + added.Ref + " from " + c.ID + ": " + added.Title})
+		w.Missions.AppendLogAfter(store.Slug, mission.Event{Kind: mission.EventNote, Text: "added " + added.Ref + " from " + c.ID + ": " + added.Title})
 	}
 	return "Added " + added.Ref + strings.TrimPrefix(added.Message, "Added"), nil
 }
@@ -260,7 +260,7 @@ func (w *Workspace) acceptAmend(store conversation.Store, c *conversation.Conver
 		return "", err
 	}
 	if !store.Workspace() {
-		w.Missions.AppendLog(store.Slug, mission.Event{Kind: mission.EventNote, Text: "amended " + ref + " from " + c.ID + ": " + p.Title})
+		w.Missions.AppendLogAfter(store.Slug, mission.Event{Kind: mission.EventNote, Text: "amended " + ref + " from " + c.ID + ": " + p.Title})
 	}
 	if rest, ok := strings.CutPrefix(saved.Message, "Saved"); ok {
 		return "Amended " + ref + rest, nil
@@ -331,11 +331,11 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 		return "", m.Slug, err
 	}
 	if !same {
-		ms.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "brief written, from " + c.ID})
+		ms.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "brief written, from " + c.ID})
 	}
 	said := []string{"Wrote the new brief."}
 	if plan != nil {
-		ms.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: fmt.Sprintf("plan written, from %s: %d %s", c.ID, len(plan.Steps), plural(len(plan.Steps), "step"))})
+		ms.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: fmt.Sprintf("plan written, from %s: %d %s", c.ID, len(plan.Steps), plural(len(plan.Steps), "step"))})
 		said = []string{fmt.Sprintf("Wrote the new brief, and its plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
 		if same {
 			said = []string{fmt.Sprintf("Wrote its plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
@@ -550,9 +550,9 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 		}
 	}
 	title := firstNonEmpty(c.Title, "“"+clipLine(c.Turns[0].Body, 80)+"”")
-	ms.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "came from conversation " + ref + ": " + title})
+	ms.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "came from conversation " + ref + ": " + title})
 	if !store.Workspace() {
-		ms.AppendLog(store.Slug, mission.Event{Kind: mission.EventNote, Text: "raised mission " + m.Slug + " from " + c.ID + ": " + p.Title})
+		ms.AppendLogAfter(store.Slug, mission.Event{Kind: mission.EventNote, Text: "raised mission " + m.Slug + " from " + c.ID + ": " + p.Title})
 	}
 	if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, m.Slug, conversation.You, time.Now()); err != nil {
 		return "", err
@@ -722,7 +722,7 @@ func isPRNumber(s string) (int, bool) {
 // orchestrator looks at the plan as it is now. It says what it did.
 func (w *Workspace) afterNewGoal(slug string, plan *mission.Plan, rev mission.Revision) string {
 	for _, l := range w.liftForPlan(slug, plan, rev.Fixed) {
-		w.Missions.AppendLog(slug, mission.Event{Kind: mission.EventNote, Text: l})
+		w.Missions.AppendLogAfter(slug, mission.Event{Kind: mission.EventNote, Text: l})
 	}
 	m, err := w.Missions.Load(slug)
 	if err != nil {

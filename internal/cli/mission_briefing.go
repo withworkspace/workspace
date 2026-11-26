@@ -198,7 +198,7 @@ briefing crew's WS_MISSION pointing nowhere).`,
 			}
 			if len(warnings) > 0 {
 				printWarnings(warnings)
-				store.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "at ready: " + strings.Join(warnings, "; ")})
+				store.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "at ready: " + strings.Join(warnings, "; ")})
 			}
 
 			// Record this briefing crew's end before it is hung up, so the

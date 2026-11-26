@@ -88,7 +88,7 @@ func (w *Workspace) StartStep(slug string, repos []string, by Actor) (string, er
 	if err := w.Missions.StartStep(m.Slug, cur.N, by.By(), named); err != nil {
 		return "", wrap(err)
 	}
-	w.Missions.CloseStepTasks(m.Slug, cur.N)
+	w.closeStepTasks(m.Slug, cur.N)
 	w.youActed(m.Slug, by)
 	if m, err = w.Missions.Load(m.Slug); err != nil {
 		return "", err
@@ -129,7 +129,7 @@ func (w *Workspace) Skip(slug, why string, by Actor) (string, error) {
 	if err := w.Missions.SkipStep(m.Slug, cur.N, by.By(), why); err != nil {
 		return "", wrap(err)
 	}
-	w.Missions.CloseStepTasks(m.Slug, cur.N)
+	w.closeStepTasks(m.Slug, cur.N)
 	w.youActed(m.Slug, by)
 	m, err = w.Missions.Load(m.Slug)
 	if err != nil {

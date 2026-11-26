@@ -176,7 +176,7 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	if out.Step > 0 {
 		at = fmt.Sprintf(", at step %d", out.Step)
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventOpened, Repo: c.Repo, Capsule: c.Name, Crew: by.By(),
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventOpened, Repo: c.Repo, Capsule: c.Name, Crew: by.By(),
 		Text: fmt.Sprintf("%s#%d opened%s: %s", c.Repo, pr.Number, at, o.Title)})
 	// It's seen as it's opened: the watch's first sighting isn't a change.
 	w.Missions.SeePR(m.Slug, out.Capsule, mission.SeenPR{Number: pr.Number, Draft: pr.IsDraft})

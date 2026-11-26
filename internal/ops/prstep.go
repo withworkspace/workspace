@@ -66,7 +66,7 @@ func (w *Workspace) WatchPRs(views []MissionView) {
 			}
 			events := append(mission.PRChanges(fmt.Sprintf("%s#%d", c.Repo, now.Number), was, now), said...)
 			for _, e := range events {
-				w.Missions.AppendLog(slug, mission.Event{Kind: mission.EventPR, What: e.What, Repo: c.Repo, Capsule: c.Name, By: "ws", Text: e.Text})
+				w.Missions.AppendLogAfter(slug, mission.Event{Kind: mission.EventPR, What: e.What, Repo: c.Repo, Capsule: c.Name, By: "ws", Text: e.Text})
 			}
 			if len(events) == 0 {
 				continue
@@ -412,7 +412,7 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	ready.Draft = false
 	w.Missions.SeePR(m.Slug, capsule, ready) // seen as it's marked: not news
 	ref := fmt.Sprintf("%s#%d", repo, seen.Number)
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventMarkedReadyBy, Repo: repo, Capsule: name, Crew: by.By(),
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventMarkedReadyBy, Repo: repo, Capsule: name, Crew: by.By(),
 		Text: fmt.Sprintf("%s marked ready for review, at step %d", ref, cur.N)})
 	if t, ok := m.StepTask(cur.N); ok && t.Verb == mission.TaskApprove {
 		w.Missions.CloseTask(m.Slug, t.N, by.By(), "")

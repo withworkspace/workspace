@@ -248,7 +248,7 @@ func (w *Workspace) Burn(repo, name string, o BurnOptions) (Burned, error) {
 	}
 	if owned {
 		out.Mission = owner.Slug
-		w.Missions.AppendLog(owner.Slug, mission.Event{Kind: mission.EventCapsuleBurned, Repo: repo, Capsule: name, By: o.By.By()})
+		w.Missions.AppendLogAfter(owner.Slug, mission.Event{Kind: mission.EventCapsuleBurned, Repo: repo, Capsule: name, By: o.By.By()})
 	} else if !o.quiet {
 		w.emit(events.Event{Kind: events.CapsuleBurned, Repo: repo, Capsule: name}, o.By)
 	}

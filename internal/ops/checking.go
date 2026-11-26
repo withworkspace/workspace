@@ -42,7 +42,7 @@ func (w *Workspace) checkRound(slug string, st mission.StageState, crewID string
 
 // log notes what happened to the step's checks on the mission's log.
 func (r *checkRound) log(format string, a ...any) {
-	r.w.Missions.AppendLog(r.slug, mission.Event{Kind: mission.EventChecks, Crew: "ws", Text: fmt.Sprintf(format, a...)})
+	r.w.Missions.AppendLogAfter(r.slug, mission.Event{Kind: mission.EventChecks, Crew: "ws", Text: fmt.Sprintf(format, a...)})
 }
 
 // command runs check i (from 0), a command, in dir: what's running is

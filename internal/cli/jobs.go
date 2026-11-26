@@ -54,7 +54,7 @@ func spawnPRWriter(root, slug, capsule string) {
 		execlog.Note(root, "pr-writer "+slug, "couldn't start for %s: %v", capsule, err)
 		store := mission.Store{Root: root}
 		store.EndWritingPR(slug, capsule)
-		store.AppendLog(slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("couldn't have %s's pull request written (%v): open it again", capsule, err)})
+		store.AppendLogAfter(slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("couldn't have %s's pull request written (%v): open it again", capsule, err)})
 	}
 }
 

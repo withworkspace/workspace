@@ -251,7 +251,7 @@ func (w *Workspace) mergeFirst(m *mission.Mission, st mission.StageState, capsul
 	if err != nil {
 		return "", fmt.Sprintf("opens a pull request from %s, which doesn't merge cleanly (%s), and ws couldn't send it back to %s (%v): merge origin/%s into it, then go on", capsule, why, crewID, err, base)
 	}
-	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Repo: repo, Capsule: name,
+	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Repo: repo, Capsule: name,
 		Text: fmt.Sprintf("didn't open %s's pull request at step %d: %s; sent it back to %s to merge origin/%s in first (round %d)", capsule, st.N, why, crewID, base, n)})
 	return fmt.Sprintf("step %d is ws's: %s doesn't merge cleanly (%s), so its pull request waits: %s", st.N, capsule, why, s), ""
 }
@@ -344,7 +344,7 @@ func (w *Workspace) RetryOpenPRStep(slug, capsule string) string {
 		// Open already: a draft waiting on this review is marked ready.
 		return w.readyOnApproval(m, cur, capsule)
 	}
-	w.Missions.CloseStepTasks(slug, cur.N) // what it asked of you is done
+	w.closeStepTasks(slug, cur.N) // what it asked of you is done
 	if _, ok := cur.Instance(capsule); ok {
 		said, ask := w.openPRIn(m, cur, capsule, false)
 		if ask != "" {
@@ -468,7 +468,7 @@ func (w *Workspace) tryPassStep(slug string, n int, by, why string, types ...str
 		return "", err
 	}
 	// What ws asked the user about the step is done.
-	w.Missions.CloseStepTasks(slug, n)
+	w.closeStepTasks(slug, n)
 	return fmt.Sprintf("passed step %d, and %s", n, w.afterAccept(slug, acc, states)), nil
 }
 

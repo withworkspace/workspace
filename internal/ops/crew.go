@@ -424,12 +424,12 @@ func (w *Workspace) endHandedBack(m *mission.Mission, capsule string) (ended, mi
 	}
 	if len(ended) > 0 {
 		text := fmt.Sprintf("ended %s's session in %s: it had handed back its work, and new crew start there (its page resumes it)", strings.Join(ended, ", "), capsule)
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
 		execlog.Note(w.Root(), "crew "+m.Slug, "%s", text)
 	}
 	if len(missed) > 0 {
 		text := fmt.Sprintf("couldn't reach %s in %s to end its session, though it had handed back its work: new crew start there all the same", strings.Join(missed, ", "), capsule)
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
 		execlog.Note(w.Root(), "crew "+m.Slug, "%s", text)
 	}
 	return ended, missed

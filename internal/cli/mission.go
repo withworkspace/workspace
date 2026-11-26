@@ -282,7 +282,7 @@ func noteOrigin(store mission.Store, slug, text string) {
 		m.From = from
 		return nil
 	})
-	store.AppendLog(parent, mission.Event{Kind: mission.EventNote, Text: "raised mission " + slug + ": " + text})
+	store.AppendLogAfter(parent, mission.Event{Kind: mission.EventNote, Text: "raised mission " + slug + ": " + text})
 }
 
 func openEditor(path string) error {

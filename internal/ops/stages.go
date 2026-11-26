@@ -88,7 +88,7 @@ func (w *Workspace) acceptStage(slug string, by Actor, why string) (Accepted, er
 	}
 	w.youActed(m.Slug, by)
 	// The step's done: what ws asked you about it is answered.
-	w.Missions.CloseStepTasks(m.Slug, acc.N)
+	w.closeStepTasks(m.Slug, acc.N)
 	out := Accepted{Slug: m.Slug, Stage: acc, Of: len(states), Implicit: acc.Implicit}
 	if !acc.Implicit {
 		out.Next = w.afterAccept(m.Slug, acc, states)
@@ -735,7 +735,7 @@ func (w *Workspace) Dismiss(slug string, by Actor) (Dismissed, error) {
 		if err := w.Missions.SetConclude(m.Slug, nil); err != nil {
 			return Dismissed{}, wrap(err)
 		}
-		w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "the ending suggested is put aside: it doesn't end yet"})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "the ending suggested is put aside: it doesn't end yet"})
 		w.youActed(m.Slug, by)
 		return Dismissed{Slug: m.Slug, What: "suggested ending"}, nil
 	case len(m.Tasks) > 0:

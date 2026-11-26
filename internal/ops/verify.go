@@ -260,6 +260,6 @@ func (w *Workspace) verifyAgain(m *mission.Mission, crewID string) string {
 		return ""
 	}
 	// What ws asked the user of the last round is moot: it's verified again.
-	w.Missions.CloseStepTasks(m.Slug, cur.N)
+	w.closeStepTasks(m.Slug, cur.N)
 	return fmt.Sprintf("step %d verifies it again: %s", cur.N, w.startVerifier(m, cur))
 }

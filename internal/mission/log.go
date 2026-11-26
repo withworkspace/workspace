@@ -2,6 +2,7 @@ package mission
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"time"
 
@@ -77,6 +78,15 @@ func (s Store) AppendLog(slug string, e Event) error {
 		return ErrNotFound
 	}
 	return s.write(func(tx *store.Tx) error { return s.appendLog(tx, slug, event(e)) })
+}
+
+// AppendLogAfter adds an event that records something already done. That
+// it couldn't be kept doesn't undo what was done, so it isn't returned:
+// it's said on stderr, which in the daemon is its log.
+func (s Store) AppendLogAfter(slug string, e Event) {
+	if err := s.AppendLog(slug, e); err != nil {
+		log.Printf("mission %s: couldn't log a %s event: %v", slug, e.Kind, err)
+	}
 }
 
 // event is e with what it doesn't say filled in: now, and the crew and the
