@@ -25,7 +25,7 @@ func (h *markedHost) Launch(crew.Spec) (int, error) {
 	m, _ := h.w.Missions.Load("cache")
 	c := m.Crew[len(m.Crew)-1] // the crew being started hold the launch's mark by now
 	h.moving = append(h.moving, m.Moving != nil && c.Starting != nil)
-	return 4242, nil
+	return deadPID, nil
 }
 func (h *markedHost) Stop(string) error                  { return crew.ErrNotRunning }
 func (h *markedHost) Say(string, string) (string, error) { return "", crew.ErrNotRunning }

@@ -16,7 +16,7 @@ import (
 // kept.
 type sayingHost struct{ said []string }
 
-func (h *sayingHost) Launch(crew.Spec) (int, error) { return 4242, nil }
+func (h *sayingHost) Launch(crew.Spec) (int, error) { return deadPID, nil }
 func (h *sayingHost) Stop(string) error             { return nil }
 func (h *sayingHost) Say(key, text string) (string, error) {
 	h.said = append(h.said, key+": "+text)
