@@ -128,7 +128,51 @@ The kinds: ` + strings.Join(events.Kinds, ", ") + ".",
 	cmd.Flags().BoolVar(&heard, "heard", false, "only what it heard of: what teammates did")
 	cmd.Flags().BoolVar(&did, "did", false, "only what this ws did")
 	cmd.Flags().StringVarP(&format, "format", "f", "", "text (the default) or json (one event per line)")
+	cmd.AddCommand(newEventsHearCmd())
 	return cmd
+}
+
+// ws events hear: hear now what the daemon hears by itself (for seeds, and
+// for looking without waiting on its loops).
+func newEventsHearCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "hear",
+		Short: "Hear now what the daemon hears by itself: what's landed on the grounds, and the Reviews list's moves",
+		Long: `Hears now what the daemon hears by itself, and prints what was heard:
+what's landed on each repo's ground since it was last heard of (its
+commits, and the documents and things they changed), and what's moved
+in the Reviews list since it was last read (GitHub's asked for it again).
+A ground heard of for the first time is only noted.`,
+		Hidden: true,
+		Args:   cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			heard, err := w.HearGrounds(cmd.Context())
+			if svc := w.PRService(); svc != nil {
+				before, _ := events.List(w.Root(), events.Filter{Limit: 1})
+				svc.Stale() // read again however lately it was
+				if _, lerr := svc.List(false); lerr == nil {
+					after := int64(0)
+					if len(before) > 0 {
+						after = before[0].N
+					}
+					more, _ := events.List(w.Root(), events.Filter{After: after, Origin: events.Heard, Only: true})
+					heard = append(heard, more...)
+				}
+			}
+			for _, e := range heard {
+				printEvent(ui.Stdout, e, "")
+			}
+			if len(heard) == 0 {
+				fmt.Fprintln(ui.Stderr, ui.Dim.Render("  nothing heard"))
+			}
+			return err
+		},
+	}
 }
 
 // sinceOf is when --since says: a length of time back (2h, 90m), or what
