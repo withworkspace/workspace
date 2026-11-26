@@ -13,6 +13,17 @@ export type SidebarPlace = "open" | "rail" | "hidden" | "drawer";
 export const narrowBelow = 860;
 export const narrowQuery = `(max-width: ${narrowBelow}px)`;
 
+// From this width a window has room for Beside next to the page, docked:
+// the open sidebar's column (244), Beside as it rests (420) and its inset,
+// and about 880 left for the page. It's the window's width alone, not
+// what the page is doing (a rail on a thing's page, the sidebar open on a
+// list), so going from page to page never moves it. A 13" or 14" laptop
+// is under it and Beside floats over the page; a 16" and a desktop's
+// screen dock it. Dragged wider than it rests, it takes from the page and
+// doesn't float.
+export const docksFrom = 1560;
+export const docksQuery = `(min-width: ${docksFrom}px)`;
+
 export interface ChromeState {
   // The sidebar is hidden. It's yours to choose and holds until you undo
   // it; a page never does it.
@@ -20,7 +31,9 @@ export interface ChromeState {
   // Beside: a peek at a second thing, next to the page.
   beside: {
     open: boolean;
-    // Over the page, not next to it: the page keeps its width.
+    // Over the page, not next to it: the page keeps its width. It's
+    // yours to choose where the window has room for it docked; where it
+    // hasn't, it's over the page whatever this says.
     over: boolean;
     width: number;
     // What's open there, each by its address, in the order opened.

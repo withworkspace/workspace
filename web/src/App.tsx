@@ -32,7 +32,7 @@ import { Confirmer } from "./ui/Confirm";
 import { Below } from "./chrome/Below";
 import { useBelowViews } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
-import { floatBeside, hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
+import { docksQuery, floatBeside, hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
 import { ConnectionBanner } from "./chrome/ConnectionBanner";
 import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
@@ -113,8 +113,16 @@ export function App() {
   // Beside: a peek at a second thing, next to the page. What you ask
   // about a page opens there (ask/AskBar.tsx), about that page; \ opens
   // and closes it.
+  // Docked where the window has room for it (chromeState's docksFrom),
+  // over the page where it hasn't.
+  const roomy = useMedia(docksQuery);
+  const setRoomy = useChromeStore((c) => c.setRoomy);
+  useLayoutEffect(() => setRoomy(roomy), [setRoomy, roomy]);
   const beside = useBeside();
-  useKeys({ "\\": () => beside.all.length > 0 && changeChrome(toggleBeside) });
+  // Its toggle's there while there's something to peek at here, or while
+  // it's there (docked, it stays with nothing here).
+  const besideToggles = beside.all.length > 0 || beside.shown;
+  useKeys({ "\\": () => besideToggles && changeChrome(toggleBeside) });
   // z peeks at what the pointer's on, there (chrome/usePeekKey.ts).
   usePeekKey();
   // C begins a conversation there, about nothing: the place to say the
@@ -276,7 +284,7 @@ export function App() {
               <>
                 <NotificationsBell />
                 {belowViews.length > 0 && <FootBelow open={belowShown} onPress={() => changeChrome(toggleBelow)} />}
-                {beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} over={beside.over} onOver={narrow ? undefined : (over) => changeChrome((c) => floatBeside(c, over))} />}
+                {besideToggles && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} over={beside.over} onOver={roomy ? (over) => changeChrome((c) => floatBeside(c, over)) : undefined} />}
               </>
             )
           }
