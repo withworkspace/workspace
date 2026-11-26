@@ -73,6 +73,11 @@ func gitWatchFolders(ws *workspace.Workspace) []string {
 // says why), the worktrees are kept by the keeper's own looks, and the
 // hubs' polls.
 func (w *Workspace) WatchGit(stop <-chan struct{}, logf func(string, ...any)) {
+	// What else the pages are built from that's written to files: the
+	// workspace's config, and what's under .ws (Stamp's): a file a
+	// command writes there reaches the pages as it's written.
+	go watchFolders(stop, func(format string, args ...any) { logf("files: "+format, args...) },
+		w.stampFolders, w.stampHeeds, func([]string) { w.tellSeen() }, nil)
 	moved := make(chan []string, 64)
 	kept := make(chan struct{})
 	go func() {
@@ -92,9 +97,19 @@ func (w *Workspace) WatchGit(stop <-chan struct{}, logf func(string, ...any)) {
 // written (once settled); watching, if set, is told how many folders are
 // watched each time they've been listed.
 func (w *Workspace) watchGit(stop <-chan struct{}, logf func(string, ...any), moved func(dirs []string), watching func(int)) {
+	watchFolders(stop, func(format string, args ...any) { logf("git: "+format, args...) },
+		func() []string { return gitWatchFolders(w.WS()) }, nil, moved, watching)
+}
+
+// watchFolders watches the folders folders lists (listed again every
+// gitFoldersEvery) until stop closes, telling moved which were written,
+// once settled; watching, if set, is told how many are watched each time
+// they've been listed. A file written that heed (if set) says isn't worth
+// telling is let be.
+func watchFolders(stop <-chan struct{}, logf func(string, ...any), folders func() []string, heed func(path string) bool, moved func(dirs []string), watching func(int)) {
 	fw, err := fsnotify.NewWatcher()
 	if err != nil {
-		logf("git: its folders can't be watched (%v): pages hear of a capsule that's moved at the next look", err)
+		logf("its folders can't be watched (%v): pages hear of what's moved at the next look", err)
 		return
 	}
 	defer fw.Close()
@@ -103,7 +118,7 @@ func (w *Workspace) watchGit(stop <-chan struct{}, logf func(string, ...any), mo
 	refused := map[string]bool{} // said once each
 	list := func() {
 		now := map[string]bool{}
-		for _, dir := range gitWatchFolders(w.WS()) {
+		for _, dir := range folders() {
 			now[dir] = true
 			if watched[dir] {
 				continue
@@ -111,7 +126,7 @@ func (w *Workspace) watchGit(stop <-chan struct{}, logf func(string, ...any), mo
 			if err := fw.Add(dir); err != nil {
 				if !refused[dir] {
 					refused[dir] = true
-					logf("git: %s can't be watched: %v", dir, err)
+					logf("%s can't be watched: %v", dir, err)
 				}
 				continue
 			}
@@ -145,7 +160,7 @@ func (w *Workspace) watchGit(stop <-chan struct{}, logf func(string, ...any), mo
 				return
 			}
 			// A file's mode or times alone: nothing git says has moved.
-			if ev.Op == fsnotify.Chmod {
+			if ev.Op == fsnotify.Chmod || heed != nil && !heed(ev.Name) {
 				continue
 			}
 			written[watchedFolder(ev.Name, watched)] = true
@@ -161,7 +176,7 @@ func (w *Workspace) watchGit(stop <-chan struct{}, logf func(string, ...any), mo
 			if !ok {
 				return
 			}
-			logf("git: watching its folders: %v", err)
+			logf("watching its folders: %v", err)
 		case <-due:
 			due, last = nil, time.Now()
 			dirs := slices.Sorted(maps.Keys(written))

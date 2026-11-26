@@ -494,3 +494,45 @@ func TestWorkspaceView_ServedAsKeptWhileFollowed(t *testing.T) {
 		t.Errorf("told it changed, a page was served %d missions, want 1", len(ws.Missions))
 	}
 }
+
+// What the workspace's view is built from says when it moves: a file a
+// command writes under .ws (a mission's brief) reaches a page that
+// follows the workspace as it's written, not at the view's next sweep.
+func TestWorkspaceView_ToldOfAFileAsItsWritten(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ms := mission.Store{Root: root}
+	m, err := ms.Create("Pushed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brief := filepath.Join(ms.Dir(), m.Slug, "brief.md")
+	os.MkdirAll(filepath.Dir(brief), 0o755)
+	os.WriteFile(brief, []byte("## Goal\nFirst.\n"), 0o644)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 50 * time.Millisecond, Sweep: time.Hour, Assets: testApp, listener: ln}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, c)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "workspace"})
+	if got := st.next(3 * time.Second); got != "following workspace" {
+		t.Fatalf("following: %q", got)
+	}
+	time.Sleep(300 * time.Millisecond) // the folders watched, and anything the start moved told
+	for st.next(100*time.Millisecond) != "(nothing)" {
+	}
+	os.WriteFile(brief, []byte("## Goal\nSecond, and longer.\n"), 0o644)
+	if got := st.next(3 * time.Second); got != "changed workspace" {
+		t.Fatalf("after the brief's written: %q", got)
+	}
+}

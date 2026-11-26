@@ -218,6 +218,9 @@ type PRCache struct {
 	// news is told when a page's fetch (Peek) comes back with something
 	// changed: the watcher acts on it then (News).
 	news chan struct{}
+	// changed, if set, is told whenever an answer isn't what was kept:
+	// the pages that show the repos' PRs look then.
+	changed func()
 }
 
 // News is told when GitHub's answer to a page's fetch isn't what the cache
@@ -350,6 +353,9 @@ func (c *PRCache) fetch(ws *workspace.Workspace, gh github.Client, repos []strin
 		delete(c.fetching, r)
 	}
 	c.fetched++
+	if changed && c.changed != nil {
+		go c.changed()
+	}
 	if changed && tell {
 		select {
 		case c.news <- struct{}{}:

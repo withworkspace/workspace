@@ -120,6 +120,11 @@ type Server struct {
 	// Poll is how often open pages are checked for changes to tell them
 	// about (default 2s).
 	Poll time.Duration
+	// Sweep is how often the workspace's view is looked at for what moved
+	// without saying (default 15s): what it's built from says when it
+	// moves (a records write, git, a file under .ws, GitHub), and it's
+	// looked at then.
+	Sweep time.Duration
 	// Assets is the app to serve (default Built()).
 	Assets fs.FS
 
@@ -202,7 +207,10 @@ func (s *Server) Start() error {
 	}
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.topics = map[string]*hub{}
-	ws := newHub(topicWorkspace, s.Poll, s.fingerprint)
+	if s.Sweep == 0 {
+		s.Sweep = 15 * time.Second
+	}
+	ws := newHub(topicWorkspace, max(s.Poll, s.Sweep), s.fingerprint)
 	// The view's built only when what it's built from has moved, and
 	// every half a minute regardless.
 	// What's kept for pages behind their reads (a capsule's tree and
@@ -223,6 +231,8 @@ func (s *Server) Start() error {
 			return listFingerprint(l, s.App.PassMarks(listHeads(l)))
 		}
 		s.topics[topicReviews] = h
+		// A list read moves what the workspace's view counts of it.
+		s.Reviews.Moved = ws.nudge
 		// A pull request's page: its page as kept is looked at as often as
 		// any page's, and read again behind when it's stale.
 		s.prs = newPRHub(s.Poll, func(r prRef) string {
@@ -304,6 +314,10 @@ func (s *Server) Start() error {
 		records = db
 	}
 	go watchRecords(s.ctx, records, func(topic string) {
+		// Whatever the records say changed, the workspace's view looks: it
+		// shows something of most of them, and finds what moved by its
+		// stamp.
+		ws.nudge()
 		if key, ok := topicKey(topic, missionTopic); ok {
 			s.missions.tell(key)
 		} else if key, ok := topicKey(topic, conversationTopic); ok {

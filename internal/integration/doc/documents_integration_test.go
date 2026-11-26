@@ -22,21 +22,26 @@ func TestDocuments_ChangedLatelyInFlightAndFresh(t *testing.T) {
 	ctx := context.Background()
 	o := testutil.OpsAt(w.Root, time.Now())
 	// What's kept is said at once, and read again behind the read where
-	// it's moved: the read after that look has what it found.
-	activity := func() (*ops.SpaceActivity, error) {
+	// it's moved: a read after that look has what it found. Seen says
+	// something's moved (the look's, or another: a ground read), so it's
+	// read again each time it does, till it has what's wanted.
+	activity := func(want func(*ops.SpaceActivity) bool) (*ops.SpaceActivity, error) {
 		t.Helper()
-		if _, err := o.SpaceActivity(ctx, "records"); err != nil {
-			return nil, err
+		a, err := o.SpaceActivity(ctx, "records")
+		deadline := time.After(10 * time.Second)
+		for err == nil && !want(a) {
+			select {
+			case <-o.Seen():
+			case <-time.After(200 * time.Millisecond):
+			case <-deadline:
+				return a, nil
+			}
+			a, err = o.SpaceActivity(ctx, "records")
 		}
-		select {
-		case <-o.Seen():
-		case <-time.After(10 * time.Second):
-			t.Fatal("the look behind the read found nothing")
-		}
-		return o.SpaceActivity(ctx, "records")
+		return a, err
 	}
 
-	a, err := activity()
+	a, err := activity(func(a *ops.SpaceActivity) bool { return len(a.Lately) > 0 })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +57,7 @@ func TestDocuments_ChangedLatelyInFlightAndFresh(t *testing.T) {
 	capsule := filepath.Join(w.Root, "repos", "records", "edit-plan")
 	os.WriteFile(filepath.Join(capsule, "docs", "plan.md"), []byte("# Plan\n\nKey it per tenant.\n"), 0o644)
 	os.WriteFile(filepath.Join(capsule, "docs", "note.md"), []byte("# A note\n"), 0o644)
-	if a, _ = activity(); len(a.InFlight) != 1 || a.InFlight[0].Capsule != "edit-plan" || len(a.InFlight[0].Docs) != 2 ||
+	if a, _ = activity(func(a *ops.SpaceActivity) bool { return len(a.InFlight) > 0 }); len(a.InFlight) != 1 || a.InFlight[0].Capsule != "edit-plan" || len(a.InFlight[0].Docs) != 2 ||
 		a.InFlight[0].Docs[0].Path != "docs/note.md" || a.InFlight[0].Docs[0].How != "added" || a.InFlight[0].Docs[0].Title != "A note" || a.InFlight[0].Docs[1].How != "changed" {
 		t.Fatalf("in flight: %+v", a.InFlight)
 	}

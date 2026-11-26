@@ -254,6 +254,7 @@ func (w *Workspace) newFindIndex() *find.Index {
 	// A ground's HEAD as the daemon keeps it, or as git's files say: a
 	// ground's looked at every couple of seconds while it's asked for, and
 	// a process apiece was one for every repo each time.
+	ix.Moved = w.tellSeen // the pages that name its files look again
 	ix.HeadOf = func(dir string) (string, bool) {
 		if head, ok := w.caps.headOfKept(dir); ok {
 			return head, true

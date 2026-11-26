@@ -3,6 +3,7 @@ package ops
 import (
 	"context"
 	"fmt"
+	"github.com/withworkspace/workspace/internal/config"
 	"hash/fnv"
 	"io/fs"
 	"maps"
@@ -183,6 +184,48 @@ func (w *Workspace) ConversationStamp(scope, id string) string {
 		return ""
 	}
 	return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
+}
+
+// stampFolders are the folders Stamp looks in: the workspace's own (its
+// config), .ws, and every folder under it Stamp walks.
+func (w *Workspace) stampFolders() []string {
+	root := w.Root()
+	ws := filepath.Join(root, ".ws")
+	out := []string{root}
+	inPlay, known := w.Missions.InPlaySlugs()
+	add := func(dir string, skipMissions bool) {
+		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || !d.IsDir() {
+				return nil
+			}
+			rel, _ := filepath.Rel(ws, path)
+			if rel != "." && (skipDir(rel) || skipMissions && rel == "missions") {
+				return filepath.SkipDir
+			}
+			out = append(out, path)
+			return nil
+		})
+	}
+	add(ws, known)
+	if known {
+		for _, slug := range slices.Sorted(maps.Keys(inPlay)) {
+			add(filepath.Join(ws, "missions", slug), false)
+		}
+	}
+	return out
+}
+
+// stampHeeds is whether a file written at path moves what Stamp says: in
+// the workspace's own folder only its config does, and under .ws what
+// Stamp doesn't skip.
+func (w *Workspace) stampHeeds(path string) bool {
+	root := w.Root()
+	if filepath.Dir(path) == root {
+		name := filepath.Base(path)
+		return name == config.FileName || name == config.LocalFileName
+	}
+	rel, err := filepath.Rel(filepath.Join(root, ".ws"), path)
+	return err == nil && !skipFile(filepath.Base(path)) && !isArtifactVersion(rel)
 }
 
 // skipDir is what under .ws no page's view is built from, or is kept by a

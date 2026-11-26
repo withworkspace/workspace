@@ -25,6 +25,8 @@ type Service struct {
 	// yours or asking for your review (readYours): the daemon's. Others'
 	// are read when they're first shown.
 	ReadYours bool
+	// Moved, if set, is told when a list's been read (Seen moves).
+	Moved func()
 
 	Root string
 	// Remote is where a repo is on GitHub, by its name here: the
@@ -188,6 +190,9 @@ func (s *Service) List(force bool) (*List, error) {
 	s.mu.Unlock()
 	if err == nil {
 		s.forgetGone(l)
+		if s.Moved != nil {
+			s.Moved()
+		}
 		if s.ReadYours {
 			s.readYours(l)
 		}

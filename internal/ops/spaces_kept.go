@@ -86,10 +86,16 @@ func (w *Workspace) Seen() <-chan struct{} {
 	w.spaces.mu.Lock()
 	defer w.spaces.mu.Unlock()
 	w.spaces.init()
-	// A capsule found other than a read was given is said here too.
+	// A capsule found other than a read was given is said here too, and
+	// GitHub saying something new of the missions' repos' PRs.
 	w.git.mu.Lock()
 	w.git.found = w.tellSeen
 	w.git.mu.Unlock()
+	if c := w.opts.PRs; c != nil {
+		c.mu.Lock()
+		c.changed = w.tellSeen
+		c.mu.Unlock()
+	}
 	return w.spaces.told
 }
 

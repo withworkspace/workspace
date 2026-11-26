@@ -54,6 +54,9 @@ type Index struct {
 	RepoAt func(owner, name string) (string, bool)
 	// Now is the time (tests set it).
 	Now func() time.Time
+	// Moved, if set, is told when a ground's read finds its files other
+	// than they were (Seen moves).
+	Moved func()
 	// HeadOf, if set, is the commit a ground's HEAD is at, without asking
 	// git (ok false where it can't say): git's asked where it isn't.
 	HeadOf func(dir string) (string, bool)
@@ -303,15 +306,20 @@ func (ix *Index) groundDue(wt Worktree, now time.Time) chan struct{} {
 			data, err := readGround(c, wt, was, ix.HeadOf)
 			cancel()
 			ix.mu.Lock()
+			moved := false
 			if err == nil {
 				if data != was {
 					ix.seen.Add(1)
+					moved = ix.Moved != nil
 				}
 				e.data = data
 			}
 			e.checked, e.job = ix.now(), nil
 			ix.mu.Unlock()
 			close(job)
+			if moved {
+				ix.Moved()
+			}
 		}()
 	}
 	return e.job
