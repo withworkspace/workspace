@@ -88,6 +88,10 @@ import type {
   RepoGroup,
   TalkModel,
   ConversationModel,
+  AutomationDryRun,
+  AutomationPage,
+  AutomationProposed,
+  AutomationsInfo,
 } from "./wire.gen";
 export type {
   CommandLabel,
@@ -301,7 +305,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | "automations" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -1204,47 +1208,34 @@ export interface TalkProposal {
   result?: string; // a mission's slug, slug:d3, a document's ref (an edit's: where it was saved), or an artifact's version (a3.v1); "" for a decision kept with the conversation; a superseded one's, the later one's number
 }
 
-// ProposedAutomation is an automation a conversation proposed: its name,
-// the user's words (about), when it runs and what it may do, and what it
-// would have done over the last 30 days; replaces, whether there's one by
-// its name already. Mirrors internal/automation.Proposed.
-export interface ProposedAutomation {
-  name: string;
-  about?: string;
-  when: string;
-  may: string[];
-  dryRun: AutomationDryRun;
-  replaces?: boolean;
-}
+// What a conversation proposes (ProposedAutomation), and what the
+// Automations page shows: generated from internal/automation, ops and web.
+export type ProposedAutomation = AutomationProposed;
+export type {
+  AutomationDryLine,
+  AutomationDryRun,
+  AutomationPage,
+  AutomationsInfo,
+  AutomationTally,
+  OpsAutomationDid as AutomationDid,
+  OpsAutomationItem as AutomationItem,
+  OpsAutomationRun as AutomationRun,
+} from "./wire.gen";
 
-// AutomationDryRun is what an automation would have done over the events
-// since then: how many it looked at and was for, its runs, those held
-// back, failing or still waiting; and its latest runs (lines).
-export interface AutomationDryRun {
-  since: string;
-  events: number;
-  matched: number;
-  ran: number;
-  held?: number;
-  failed?: number;
-  waiting?: number;
-  settling?: number;
-  lines: AutomationDryLine[] | null;
-}
-
-// AutomationDryLine is one run of a dry run: the event (its ref, when,
-// what it says, how many settled into it), and what it would have done,
-// what its waits came to, why it was held back or failed.
-export interface AutomationDryLine {
-  event: string;
-  at: string;
-  says: string;
-  batch?: number;
-  did?: string[];
-  waited?: string[];
-  held?: string;
-  error?: string;
-}
+// getAutomations is each of yours; getAutomation one, with its script and
+// latest runs. Mirrors internal/web/automations.go.
+export const getAutomations = () => getJSON<AutomationsInfo>("/api/automations");
+export const getAutomation = (name: string) => getJSON<AutomationPage>(`/api/automations/${encodeURIComponent(name)}`);
+// setAutomationOn turns one on (from the next event) or off.
+export const setAutomationOn = (name: string, on: boolean) =>
+  send<{ on: boolean }>("POST", `/api/automations/${encodeURIComponent(name)}/on`, { on });
+// removeAutomation takes one away: its file and its runs.
+export const removeAutomation = (name: string) =>
+  send<{ removed: string }>("DELETE", `/api/automations/${encodeURIComponent(name)}`);
+// dryRunAutomation is what one would have done over the last 30 days,
+// done again now.
+export const dryRunAutomation = (name: string) =>
+  send<AutomationDryRun>("POST", `/api/automations/${encodeURIComponent(name)}/dry-run`);
 
 // PluginProposalItem is one thing a plugin's proposal does, as the plugin
 // drafted it: what it's called, the thing it changes (on), what it'll be

@@ -1,6 +1,11 @@
 package ops
 
 import (
+	"encoding/json"
+	"errors"
+	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -81,4 +86,235 @@ func (w *Workspace) acceptAutomation(store conversation.Store, c *conversation.C
 		return "", err
 	}
 	return a.Name, nil
+}
+
+// The Automations page: each of yours, how it stands and what its runs
+// did, turned on or off, taken away, and dry-run again. The same as ws
+// automation list, runs, on, off, rm and add --propose say.
+
+// AutomationItem is an automation as the Automations page lists it: what
+// it's for (in your words), when it runs and what it may do; whether it's
+// on, what it last failed with, or why its file can't be read (broken);
+// how its runs stand, and its latest.
+type AutomationItem struct {
+	Name   string           `json:"name"`
+	About  string           `json:"about,omitempty"`
+	When   string           `json:"when,omitempty"`
+	May    []string         `json:"may"`
+	On     bool             `json:"on"`
+	Added  time.Time        `json:"added"`
+	Failed string           `json:"failed,omitempty"`
+	Broken string           `json:"broken,omitempty"`
+	Tally  automation.Tally `json:"tally"`
+	Last   *AutomationRun   `json:"last,omitempty"`
+}
+
+// AutomationRun is one run of an automation: the event it ran on (its
+// ref, what it says, when), how it went (ran, failed, unsure, waiting,
+// held, running) and why it failed, its per key, the lines it logged,
+// and what it did.
+type AutomationRun struct {
+	N     int64           `json:"n"`
+	Event string          `json:"event"`
+	Says  string          `json:"says,omitempty"`
+	At    time.Time       `json:"at"`
+	State string          `json:"state"`
+	Error string          `json:"error,omitempty"`
+	Key   string          `json:"key,omitempty"`
+	Log   []string        `json:"log,omitempty"`
+	Did   []AutomationDid `json:"did,omitempty"`
+}
+
+// AutomationDid is a step a run took that reached outside it: a
+// notification (its text), a conversation started (its id), a wait (what
+// for, or the event it got), or a read (show, events, refs_in). Started
+// is a step begun and never said done.
+type AutomationDid struct {
+	What         string `json:"what"`
+	Text         string `json:"text,omitempty"`
+	Conversation string `json:"conversation,omitempty"`
+	Started      bool   `json:"started,omitempty"`
+	Waiting      bool   `json:"waiting,omitempty"`
+}
+
+// AutomationDetail is one automation on its page: as listed, its script,
+// and its latest runs.
+type AutomationDetail struct {
+	Automation AutomationItem  `json:"automation"`
+	Source     string          `json:"source"`
+	Runs       []AutomationRun `json:"runs"`
+}
+
+// automationRunsShown is the most runs an automation's page shows.
+const automationRunsShown = 50
+
+// Automations is yours, by name.
+func (w *Workspace) Automations() ([]AutomationItem, error) {
+	root := w.Root()
+	list, bad := automation.List(root)
+	states, err := automation.States(root)
+	if err != nil {
+		return nil, err
+	}
+	tallies, err := automation.Tallies(root)
+	if err != nil {
+		return nil, err
+	}
+	out := []AutomationItem{}
+	for _, a := range list {
+		out = append(out, automationItem(root, a, states[a.Name], tallies[a.Name]))
+	}
+	for name, err := range bad {
+		st := states[name]
+		out = append(out, AutomationItem{Name: name, May: []string{}, On: st.On, Added: st.Added, Broken: err.Error(), Tally: tallies[name]})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
+
+func automationItem(root string, a *automation.Automation, st automation.State, t automation.Tally) AutomationItem {
+	item := AutomationItem{Name: a.Name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), On: st.On, Added: st.Added, Failed: st.Failed, Tally: t}
+	if runs, _ := automationRuns(root, a.Name, 1); len(runs) > 0 {
+		item.Last = &runs[0]
+	}
+	return item
+}
+
+// Automation is one of yours, with its script and latest runs.
+func (w *Workspace) Automation(name string) (AutomationDetail, error) {
+	root := w.Root()
+	if !automation.ValidName(name) {
+		return AutomationDetail{}, automation.ErrNotFound
+	}
+	src, err := os.ReadFile(automation.Path(root, name))
+	if err != nil {
+		return AutomationDetail{}, automation.ErrNotFound
+	}
+	states, err := automation.States(root)
+	if err != nil {
+		return AutomationDetail{}, err
+	}
+	tallies, err := automation.Tallies(root)
+	if err != nil {
+		return AutomationDetail{}, err
+	}
+	st := states[name]
+	var item AutomationItem
+	if a, err := automation.Load(root, name); err != nil {
+		item = AutomationItem{Name: name, May: []string{}, On: st.On, Added: st.Added, Broken: err.Error(), Tally: tallies[name]}
+	} else {
+		item = automationItem(root, a, st, tallies[name])
+	}
+	runs, err := automationRuns(root, name, automationRunsShown)
+	if err != nil {
+		return AutomationDetail{}, err
+	}
+	return AutomationDetail{Automation: item, Source: string(src), Runs: runs}, nil
+}
+
+// automationRuns is name's latest runs, at most limit, each with the event
+// it ran on and what it did.
+func automationRuns(root, name string, limit int) ([]AutomationRun, error) {
+	runs, err := automation.Runs(root, name, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := []AutomationRun{}
+	if len(runs) == 0 {
+		return out, nil
+	}
+	var ns []int64
+	for _, r := range runs {
+		ns = append(ns, r.Event)
+	}
+	evs := map[int64]events.Event{}
+	for _, ev := range automation.EventsNumbered(root, ns) {
+		evs[ev.N] = ev
+	}
+	steps, err := automation.StepsOf(root, name, ns)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range runs {
+		ar := AutomationRun{N: r.N, Event: "e" + strconv.FormatInt(r.Event, 10), At: r.At, State: r.State, Error: r.Error, Key: r.Key}
+		if ev, ok := evs[r.Event]; ok {
+			ar.Event, ar.Says = ev.Ref(), ev.Says()
+		}
+		if r.Log != "" {
+			ar.Log = strings.Split(r.Log, "\n")
+		}
+		for _, st := range steps[r.Event] {
+			ar.Did = append(ar.Did, didOf(st))
+		}
+		out = append(out, ar)
+	}
+	return out, nil
+}
+
+// didOf is a step as a run's page says it.
+func didOf(st automation.Step) AutomationDid {
+	d := AutomationDid{What: st.Builtin, Started: st.State == "started", Waiting: st.State == "waiting"}
+	switch st.Builtin {
+	case "notify":
+		d.Text = st.Result
+	case "converse":
+		d.Conversation = st.Result
+	case "wait":
+		if d.Waiting {
+			var w struct {
+				Match string    `json:"match"`
+				Due   time.Time `json:"due"`
+			}
+			if json.Unmarshal([]byte(st.Result), &w) == nil {
+				d.Text = "for " + w.Match + ", till " + w.Due.Local().Format("Jan 2 15:04")
+			}
+			break
+		}
+		var ev events.Event
+		if st.Result == "null" || st.Result == "" {
+			d.Text = "its time was up"
+		} else if json.Unmarshal([]byte(st.Result), &ev) == nil {
+			d.Text = ev.Ref() + ": " + ev.Says()
+		}
+	}
+	return d
+}
+
+// SetAutomationOn turns one of yours on (from the next event) or off.
+func (w *Workspace) SetAutomationOn(name string, on bool) error {
+	return automation.SetOn(w.Root(), name, on)
+}
+
+// RemoveAutomation takes one of yours away: its file, and its runs.
+func (w *Workspace) RemoveAutomation(name string) error {
+	if !automation.ValidName(name) {
+		return automation.ErrNotFound
+	}
+	return (&automation.Engine{Root: w.Root()}).Remove(name)
+}
+
+// DryRunAutomation is what one of yours would have done over the last 30
+// days, done again now: show is ws show's, where there's one.
+func (w *Workspace) DryRunAutomation(name string, show func(ref string) (map[string]any, error)) (automation.DryRun, error) {
+	if !automation.ValidName(name) {
+		return automation.DryRun{}, automation.ErrNotFound
+	}
+	a, err := automation.Load(w.Root(), name)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return automation.DryRun{}, automation.ErrNotFound
+		}
+		return automation.DryRun{}, &Invalid{Reason: err.Error()}
+	}
+	hooks := w.AutomationHooks()
+	hooks.Show = show
+	return (&automation.Engine{Root: w.Root(), Hooks: hooks}).DryRun(a, automationDryRunBack)
+}
+
+// automationDryRunBack is how far back a dry run looks.
+const automationDryRunBack = 30 * 24 * time.Hour
+
+// AutomationsStamp names where your automations stand, cheaply.
+func (w *Workspace) AutomationsStamp() string {
+	return automation.Stamp(w.Root())
 }

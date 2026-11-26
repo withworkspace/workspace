@@ -85,7 +85,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			return "", nil
 		},
 	}}
-	var lines []DryLine
+	lines := []DryLine{}
 	ranAt := map[string][]time.Time{} // each key's runs, for at_most
 	runOne := func(ev events.Event, pace Pace, batch []events.Event) {
 		line := DryLine{Event: ev.Ref(), At: ev.At, Says: ev.Says()}

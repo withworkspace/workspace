@@ -1,5 +1,5 @@
 /* A proposed automation, on its card (AutomationProposed.tsx): its words,
-   when and what it may, its dry run's runs, and its script folded. */
+   then its facts, dry run and script (automations/'s parts). */
 
 .automation {
   display: grid;
@@ -8,75 +8,4 @@
 
 .about {
   margin: 0;
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 4px 12px;
-  margin: 0;
-  font-size: var(--text-sm);
-}
-
-.facts dt {
-  color: var(--dim);
-}
-
-.facts dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.dry {
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  background: var(--well);
-  font-size: var(--text-sm);
-}
-
-.dryHead {
-  margin-bottom: 6px;
-}
-
-.lines {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.event {
-  overflow-wrap: anywhere;
-}
-
-.did {
-  margin: 2px 0 0;
-  padding-left: 16px;
-  color: var(--fg);
-}
-
-.held .did {
-  color: var(--dim);
-}
-
-.failed .did {
-  color: var(--red);
-}
-
-.script summary {
-  cursor: pointer;
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-.script pre {
-  margin: 6px 0 0;
-  padding: 8px 12px;
-  overflow-x: auto;
-  border-radius: var(--radius);
-  background: var(--well);
-  font-family: var(--mono);
-  font-size: var(--text-sm);
 }

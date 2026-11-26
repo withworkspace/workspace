@@ -183,7 +183,7 @@ func (e *Engine) RunDue() []string {
 		// What's settled, run once on its last event, with all of them.
 		done, _ := settled(e.Root, name, e.now())
 		for _, s := range done {
-			batch := eventsNumbered(e.Root, s.events)
+			batch := EventsNumbered(e.Root, s.events)
 			if len(batch) == 0 {
 				continue
 			}
@@ -229,7 +229,7 @@ func (e *Engine) resume(a *Automation, st *State, ours func(events.Event) bool) 
 		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result); err != nil {
 			continue
 		}
-		evs := eventsNumbered(e.Root, []int64{w.event})
+		evs := EventsNumbered(e.Root, []int64{w.event})
 		if len(evs) == 0 {
 			continue
 		}
@@ -250,8 +250,8 @@ func keyOf(p Pace, ev events.Event) string {
 	return events.FieldOf(ev, p.Per)
 }
 
-// eventsNumbered are the events numbered ns, in that order, as kept.
-func eventsNumbered(root string, ns []int64) []events.Event {
+// EventsNumbered are the events numbered ns, in that order, as kept.
+func EventsNumbered(root string, ns []int64) []events.Event {
 	if len(ns) == 0 {
 		return nil
 	}
@@ -376,7 +376,7 @@ type run struct {
 func (r *run) do() error {
 	if r.a.run == nil {
 		_, err := r.step("notify", func() (string, error) {
-			return "", r.e.Hooks.Notify(r.a, r.ev.Says(), r.ev.Refs())
+			return r.ev.Says(), r.e.Hooks.Notify(r.a, r.ev.Says(), r.ev.Refs())
 		})
 		return err
 	}
@@ -485,7 +485,8 @@ func (r *run) notify(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		all = append(all, open)
 	}
 	all = append(all, stringsOf(refs)...)
-	_, err := r.step("notify", func() (string, error) { return "", r.e.Hooks.Notify(r.a, text, all) })
+	// What it said is kept, for its runs on the Automations page.
+	_, err := r.step("notify", func() (string, error) { return text, r.e.Hooks.Notify(r.a, text, all) })
 	return starlark.None, err
 }
 

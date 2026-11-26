@@ -96,5 +96,5 @@ export const Failing: Story = {
 };
 
 export const NothingYet: Story = {
-  args: { script: drawing, a: base({ replaces: true, dryRun: { since: "2026-10-27T10:00:00Z", events: 412, matched: 0, ran: 0, lines: null } }) },
+  args: { script: drawing, a: base({ replaces: true, dryRun: { since: "2026-10-27T10:00:00Z", events: 412, matched: 0, ran: 0, lines: [] } }) },
 };

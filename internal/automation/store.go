@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/store"
@@ -105,12 +106,19 @@ func timeOf(s string) time.Time {
 	return t
 }
 
+// Topic is what a write to what's kept of the automations says it changed
+// (store.Tx.Changed): the Automations page follows it.
+const Topic = "automations"
+
 func write(root string, fn func(tx *store.Tx) error) error {
 	db, err := store.Open(root)
 	if err != nil {
 		return err
 	}
-	return db.Write(context.Background(), fn)
+	return db.Write(context.Background(), func(tx *store.Tx) error {
+		tx.Changed(Topic)
+		return fn(tx)
+	})
 }
 
 func read(root string, fn func(tx *store.Tx) error) error {
@@ -429,4 +437,128 @@ func setFailed(root, name, why string) error {
 		_, err := tx.Exec(`UPDATE automations SET failed = ? WHERE name = ?`, why, name)
 		return err
 	})
+}
+
+// Stamp names where what's kept of the automations stands, cheaply: it
+// moves with each write to it. An automation's file changed by hand isn't
+// in it.
+func Stamp(root string) string {
+	var seq int64
+	err := read(root, func(tx *store.Tx) error {
+		var err error
+		seq, err = tx.ChangedAt(Topic)
+		return err
+	})
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	return strconv.FormatInt(seq, 10)
+}
+
+// Tally is how an automation's runs stand: how many it's had (held ones
+// aside), held, failed, waiting at a wait(), and its batches settling.
+type Tally struct {
+	Runs     int `json:"runs"`
+	Held     int `json:"held,omitempty"`
+	Failed   int `json:"failed,omitempty"`
+	Waiting  int `json:"waiting,omitempty"`
+	Settling int `json:"settling,omitempty"`
+}
+
+// Tallies is each automation's tally, by name.
+func Tallies(root string) (map[string]Tally, error) {
+	out := map[string]Tally{}
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT name, state, count(*) FROM automation_runs GROUP BY name, state`)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var name, state string
+			var n int
+			if err := rows.Scan(&name, &state, &n); err != nil {
+				rows.Close()
+				return err
+			}
+			t := out[name]
+			switch state {
+			case Held:
+				t.Held += n
+			case Failed, Unsure:
+				t.Failed += n
+				t.Runs += n
+			case Waiting:
+				t.Waiting += n
+				t.Runs += n
+			default:
+				t.Runs += n
+			}
+			out[name] = t
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows, err = tx.Query(`SELECT name, count(*) FROM automation_settling GROUP BY name`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			var n int
+			if err := rows.Scan(&name, &n); err != nil {
+				return err
+			}
+			t := out[name]
+			t.Settling = n
+			out[name] = t
+		}
+		return rows.Err()
+	})
+	return out, err
+}
+
+// Step is a step a run took that reached outside it: its builtin
+// (notify, converse, wait, show…), where it stands (started, done,
+// waiting) and what it came to (notify: what it said; converse: the
+// conversation it started; wait: what it waits for, or the event it got).
+type Step struct {
+	N       int    `json:"n"`
+	Builtin string `json:"builtin"`
+	State   string `json:"state"`
+	Result  string `json:"result,omitempty"`
+}
+
+// StepsOf is the steps of name's runs on events, by event, in order.
+func StepsOf(root, name string, evs []int64) (map[int64][]Step, error) {
+	out := map[int64][]Step{}
+	if len(evs) == 0 {
+		return out, nil
+	}
+	want := map[int64]bool{}
+	lo, hi := evs[0], evs[0]
+	for _, n := range evs {
+		want[n] = true
+		lo, hi = min(lo, n), max(hi, n)
+	}
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT event, step, builtin, state, result FROM automation_steps WHERE name = ? AND event BETWEEN ? AND ? ORDER BY event, step`, name, lo, hi)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var ev int64
+			var st Step
+			if err := rows.Scan(&ev, &st.N, &st.Builtin, &st.State, &st.Result); err != nil {
+				return err
+			}
+			if want[ev] {
+				out[ev] = append(out[ev], st)
+			}
+		}
+		return rows.Err()
+	})
+	return out, err
 }

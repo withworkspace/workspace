@@ -575,6 +575,122 @@ export interface ArtifactsFound {
     found: ArtifactFound[];
 }
 
+// From automation/dryrun.go
+/**
+ * DryLine is one run a dry run had, or one held back.
+ */
+export interface AutomationDryLine {
+    event: string; // e1203
+    at: string;
+    says: string; // what the event says
+    /**
+     * Batch is how many events settled into it (settle), 0 for one.
+     */
+    batch?: number;
+    /**
+     * Did is what it would have done (notify: …, converse: …), Waited what
+     * each wait() came to, Held why it would have been held, Error why it
+     * would have failed.
+     */
+    did?: string[];
+    waited?: string[];
+    held?: string;
+    error?: string;
+}
+
+// From automation/dryrun.go
+/**
+ * DryRun is what a dry run came to.
+ */
+export interface AutomationDryRun {
+    /**
+     * Since is how far back it looked, and Events how many events it
+     * looked at.
+     */
+    since: string;
+    events: number;
+    /**
+     * Matched is how many of them it's for; Ran how many runs it'd have
+     * had (one a settled batch), Held how many at_most would have held,
+     * Failed how many would have failed, Waiting how many would be waiting
+     * still.
+     */
+    matched: number;
+    ran: number;
+    held?: number;
+    failed?: number;
+    waiting?: number;
+    /**
+     * Settling is how many batches are settling still: their events
+     * haven't been quiet as long as settle says yet.
+     */
+    settling?: number;
+    /**
+     * Lines are its runs, the latest last: at most DryLines of them.
+     */
+    lines: AutomationDryLine[];
+}
+
+// From web/automations.go
+/**
+ * AutomationOn is what POST /api/automations/{name}/on takes: on or off.
+ */
+export interface AutomationOn {
+    on: boolean;
+}
+
+// From web/automations.go
+/**
+ * AutomationPage is what GET /api/automations/{name} serves: one, as
+ * listed, with its script and latest runs.
+ */
+export interface AutomationPage {
+    automation: OpsAutomationItem;
+    source: string;
+    runs: OpsAutomationRun[];
+}
+
+// From automation/dryrun.go
+/**
+ * Proposed is an automation as a conversation proposes it, for the card:
+ * what it's called, the user's words, when and what it may do, and what
+ * it would have done lately. Its script is the proposal's text.
+ */
+export interface AutomationProposed {
+    name: string;
+    about?: string;
+    when: string;
+    may: string[];
+    dryRun: AutomationDryRun;
+    /**
+     * Replaces is whether there's one by its name already, which accepting
+     * it replaces.
+     */
+    replaces?: boolean;
+}
+
+// From automation/store.go
+/**
+ * Tally is how an automation's runs stand: how many it's had (held ones
+ * aside), held, failed, waiting at a wait(), and its batches settling.
+ */
+export interface AutomationTally {
+    runs: number;
+    held?: number;
+    failed?: number;
+    waiting?: number;
+    settling?: number;
+}
+
+// From web/automations.go
+/**
+ * AutomationsInfo is what GET /api/automations serves: each of yours, by
+ * name.
+ */
+export interface AutomationsInfo {
+    automations: OpsAutomationItem[];
+}
+
 // From web/api.go
 /**
  * Bundle is a verification bundle, as the mission's Verify tab shows it:
@@ -1371,8 +1487,7 @@ export interface ConversationProposal {
      * Automation is a proposed automation, as its card shows it (its
      * script is Text).
      */
-    // external type "github.com/withworkspace/workspace/internal/automation.Proposed", to include this type the package must be explicitly included in the parsing
-    automation?: unknown;
+    automation?: AutomationProposed;
     warnings?: string[];
     /**
      * A plugin's: the plugin (Plugin), which of what it proposes (Proposes,
@@ -2768,6 +2883,60 @@ export interface NotificationsCount {
 export interface NotificationsMark {
     ns?: number[];
     all?: boolean;
+}
+
+// From ops/automations.go
+/**
+ * AutomationDid is a step a run took that reached outside it: a
+ * notification (its text), a conversation started (its id), a wait (what
+ * for, or the event it got), or a read (show, events, refs_in). Started
+ * is a step begun and never said done.
+ */
+export interface OpsAutomationDid {
+    what: string;
+    text?: string;
+    conversation?: string;
+    started?: boolean;
+    waiting?: boolean;
+}
+
+// From ops/automations.go
+/**
+ * AutomationItem is an automation as the Automations page lists it: what
+ * it's for (in your words), when it runs and what it may do; whether it's
+ * on, what it last failed with, or why its file can't be read (broken);
+ * how its runs stand, and its latest.
+ */
+export interface OpsAutomationItem {
+    name: string;
+    about?: string;
+    when?: string;
+    may: string[];
+    on: boolean;
+    added: string;
+    failed?: string;
+    broken?: string;
+    tally: AutomationTally;
+    last?: OpsAutomationRun;
+}
+
+// From ops/automations.go
+/**
+ * AutomationRun is one run of an automation: the event it ran on (its
+ * ref, what it says, when), how it went (ran, failed, unsure, waiting,
+ * held, running) and why it failed, its per key, the lines it logged,
+ * and what it did.
+ */
+export interface OpsAutomationRun {
+    n: number;
+    event: string;
+    says?: string;
+    at: string;
+    state: string;
+    error?: string;
+    key?: string;
+    log?: string[];
+    did?: OpsAutomationDid[];
 }
 
 // From ops/space_activity.go

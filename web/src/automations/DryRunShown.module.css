@@ -1,0 +1,39 @@
+/* An automation's dry run (DryRunShown.tsx): what it'd have done over the
+   last 30 days, in a well, a line an event. */
+
+.dry {
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--well);
+  font-size: var(--text-sm);
+}
+
+.head {
+  margin-bottom: 6px;
+}
+
+.lines {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event {
+  overflow-wrap: anywhere;
+}
+
+.did {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  color: var(--fg);
+}
+
+.held .did {
+  color: var(--dim);
+}
+
+.failed .did {
+  color: var(--red);
+}

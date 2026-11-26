@@ -37,6 +37,7 @@ func (d *daemon) newWeb() *web.Server {
 		Names:      func() []string { return webNames(root) },
 		Silos:      d.siloStates,
 		ResyncSilo: d.resyncSilo,
+		Show:       d.showView(),
 	}
 }
 
