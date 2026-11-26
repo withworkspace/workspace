@@ -296,7 +296,7 @@ func (h *Host) start(name string) (*proc, error) {
 	}
 	defer logFile.Close() // the plugin has its own handle on it once it's started
 
-	cmd := exec.Command(m.Command[0], m.Command[1:]...)
+	cmd := exec.Command(m.Command[0], m.Command[1:]...) //nolint:noctx // a plugin runs until the host stops it
 	cmd.Dir = app
 	cmd.Stderr = logFile
 	stdin, err := cmd.StdinPipe()

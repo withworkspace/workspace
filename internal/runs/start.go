@@ -236,7 +236,7 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	for _, rp := range o.Reports {
 		args = append(args, rp.Name, rp.Path)
 	}
-	cmd := exec.Command("/bin/sh", args...)
+	cmd := exec.Command("/bin/sh", args...) //nolint:noctx // a run outlives whoever started it: its owner or its time ends it
 	cmd.Dir = o.Dir
 	env := o.Env
 	if env == nil {
@@ -379,7 +379,7 @@ func (r Run) Up() bool {
 		path = "/" + path
 	}
 	client := http.Client{Timeout: time.Second, Transport: Loopback}
-	resp, err := client.Get(r.Link() + path)
+	resp, err := client.Get(r.Link() + path) //nolint:noctx // the client's Timeout bounds it
 	if err != nil {
 		return false
 	}

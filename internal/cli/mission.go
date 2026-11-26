@@ -300,7 +300,7 @@ func editorCmd(path string) *exec.Cmd {
 	if len(editor) == 0 {
 		editor = []string{"vim"}
 	}
-	return exec.Command(editor[0], append(editor[1:], path)...)
+	return exec.Command(editor[0], append(editor[1:], path)...) //nolint:noctx // the person editing ends it
 }
 
 // --- list ---

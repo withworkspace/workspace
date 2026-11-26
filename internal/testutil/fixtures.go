@@ -49,7 +49,7 @@ func WithStdin(t *testing.T, text string) {
 // GitOut is what git prints in dir.
 func GitOut(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
+	out, err := exec.CommandContext(t.Context(), "git", append([]string{"-C", dir}, args...)...).Output()
 	if err != nil {
 		t.Fatal(err)
 	}

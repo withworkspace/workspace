@@ -240,7 +240,7 @@ func (e orchestratorEval) run(f ops.OrchestratorFixture) (res ops.EvalResult) {
 	}
 	seedEnv := append(crew.Env(dir, "", ""), handed...)
 	seedEnv = append(seedEnv, "TRY_DIR="+dir, "TRY_WS="+wsPath, evalDir+"="+dir, evalTmp+"="+tmp, evalFixture+"="+f.Name)
-	seed := exec.Command("bash", f.SeedPath())
+	seed := exec.Command("bash", f.SeedPath()) //nolint:noctx // no context comes through an eval yet
 	seed.Dir, seed.Env = dir, seedEnv
 	if out, err := seed.CombinedOutput(); err != nil {
 		return fail("its seed failed: %v: %s", err, clipTailLines(string(out), 8))
@@ -311,7 +311,7 @@ func mergeRuns(runs []orchestrator.RunRecord, before map[string]bool) *orchestra
 // and returns what it printed: its stdout, or with an error, what it said
 // on stderr too.
 func (e orchestratorEval) hook(command string, env []string) (string, error) {
-	cmd := exec.Command("sh", "-c", command)
+	cmd := exec.Command("sh", "-c", command) //nolint:noctx // no context comes through an eval yet
 	cmd.Dir, cmd.Env = e.From, env
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr

@@ -117,14 +117,14 @@ func runStep(ctx context.Context, root string, db *sql.DB, name string, i int, s
 	defer stx.Rollback()
 	// A step names nothing (asked): it runs as the file's taken, before
 	// there's a workspace to ask what there is to name.
-	tx := &Tx{tx: stx, root: root, write: true, asked: true}
+	tx := &Tx{tx: stx, ctx: ctx, root: root, write: true, asked: true}
 	if err := step(tx); err != nil {
 		return err
 	}
 	if err := tx.noteChanges(); err != nil {
 		return err
 	}
-	if _, err := stx.Exec(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`, "layout/"+name, i+1); err != nil {
+	if _, err := stx.ExecContext(ctx, `INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`, "layout/"+name, i+1); err != nil {
 		return err
 	}
 	if err := stx.Commit(); err != nil {

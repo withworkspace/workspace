@@ -130,7 +130,7 @@ func (rt *Router) serve(ctx context.Context, l net.Listener, port int) {
 // WhoIs asks what holds port on this machine: a router of ws, and which.
 func WhoIs(port int) (Hello, bool) {
 	c := http.Client{Timeout: time.Second}
-	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%d%s", port, path))
+	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%d%s", port, path)) //nolint:noctx // the client's Timeout bounds it
 	if err != nil {
 		return Hello{}, false
 	}
@@ -145,7 +145,7 @@ func WhoIs(port int) (Hello, bool) {
 func (rt *Router) askYield(port int) {
 	c := http.Client{Timeout: time.Second}
 	body := strings.NewReader(fmt.Sprintf(`{"router":%d}`, Version))
-	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%d%s/yield", port, path), "application/json", body)
+	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%d%s/yield", port, path), "application/json", body) //nolint:noctx // the client's Timeout bounds it
 	if err == nil {
 		resp.Body.Close()
 	}

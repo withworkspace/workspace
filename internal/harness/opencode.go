@@ -302,7 +302,7 @@ func sessionInDB(path, id string) (bool, error) {
 	}
 	defer db.Close()
 	var one int
-	switch err := db.QueryRow("SELECT 1 FROM session WHERE id = ?", id).Scan(&one); {
+	switch err := db.QueryRow("SELECT 1 FROM session WHERE id = ?", id).Scan(&one); { //nolint:noctx // a read-only lookup: busy_timeout bounds it
 	case errors.Is(err, sql.ErrNoRows):
 		return false, nil
 	case err != nil:
