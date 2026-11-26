@@ -140,7 +140,7 @@ func TestParsePlanReadsAWaitsUntil(t *testing.T) {
 		t.Errorf("checks = %+v", c)
 	}
 	for plan, want := range map[string]string{
-		"1. Wait: x\n   - until: pr.mergd pr=api#212\n": `"pr.mergd" isn't a kind of event`,
+		"1. Wait: x\n   - until: pr.mergd pr=api#212\n":  `"pr.mergd" isn't a kind of event`,
 		"1. Wait: x\n   - until: pr.merged colour=red\n": `"colour" isn't a field pr.merged events say`,
 		"1. Work: x\n   - until: pr.merged pr=api#1\n":   "until: isn't something a Work step takes",
 	} {

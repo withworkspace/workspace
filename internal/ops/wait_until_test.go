@@ -64,4 +64,3 @@ func TestWaitUntilStandsAlready(t *testing.T) {
 		t.Errorf("what showed it: %+v", r)
 	}
 }
-
