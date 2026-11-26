@@ -55,6 +55,11 @@ type Missions interface {
 	// repo's) until stop closes, and says on Seen when it has: a commit
 	// in a capsule reaches its pages then, not at the next poll.
 	WatchGit(stop <-chan struct{}, logf func(string, ...any))
+	// WatchRuns keeps where every run stands until stop closes, telling
+	// moved when one starts, comes up, ends or is cleared away: the
+	// runs' stamps (RunsStamp, AppStamp, MissionStamp's) are then read
+	// from what's kept.
+	WatchRuns(stop <-chan struct{}, logf func(string, ...any), moved func())
 	// Following says who's following what (the missions whose pages are
 	// open, the worktrees followed in Files): what's kept of their
 	// capsules is kept current while they are.

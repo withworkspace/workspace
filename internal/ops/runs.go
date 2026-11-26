@@ -373,7 +373,13 @@ func (w *Workspace) RunLogSized(ref string, n int) (text string, size int64, pat
 
 // RunsStamp names where the workspace's runs stand, cheaply
 // (runs.Store.Stamp): what the Runs page shows moves only when it does.
-func (w *Workspace) RunsStamp() string { return w.runStore().Stamp() }
+// In the daemon it's what's kept (WatchRuns).
+func (w *Workspace) RunsStamp() string {
+	if s, ok := w.runsKept.Stamp(); ok {
+		return s
+	}
+	return w.runStore().Stamp()
+}
 
 // Names is whether ws.local.toml's [router] gives the workspace names
 // under .localhost, and the name it asks for (its folder's, unset), as the

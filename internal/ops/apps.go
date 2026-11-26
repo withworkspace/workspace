@@ -96,12 +96,11 @@ func (w *Workspace) App(name string) (AppView, error) { return w.AppAt(AtWorkspa
 // until it's up), and whether it's reached at its name yet (the router's
 // published it), which its page waits for too.
 func (w *Workspace) AppStamp(p AppPlace, name string) string {
-	st := w.runStore()
-	stamp := st.StampIn(p.Repo, p.Worktree)
-	if out, starting := st.Starting(p.Repo, p.Worktree, name); starting {
+	stamp := w.runsStampIn(p.Repo, p.Worktree)
+	if out, starting := w.startingKept(p.Repo, p.Worktree, name); starting {
 		stamp += " starting " + out
 	}
-	if r, ok := st.Running(p.Repo, p.Worktree, name); ok {
+	if r, ok := w.runningKept(p.Repo, p.Worktree, name); ok {
 		stamp += fmt.Sprintf(" reached %v", w.reachable(r))
 	}
 	return stamp

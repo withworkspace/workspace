@@ -293,7 +293,9 @@ func (s *Server) Start() error {
 	go s.talks.run(s.ctx)
 	s.transcripts = s.transcriptHub()
 	go s.transcripts.run(s.ctx)
-	s.filesFollowed = newKeyedHub(worktreeTopic, s.Poll, func(string) string { return s.App.RunsStamp() })
+	// A worktree's runs in Files: told when the runs move (WatchRuns,
+	// below), its poll only for what that missed.
+	s.filesFollowed = newKeyedHub(worktreeTopic, max(s.Poll, s.Sweep), func(string) string { return s.App.RunsStamp() })
 	go s.filesFollowed.run(s.ctx)
 	s.runLogs = s.runLogHub()
 	go s.runLogs.run(s.ctx)
@@ -333,6 +335,14 @@ func (s *Server) Start() error {
 	// And what git writes in a capsule or a repo is looked at as it's
 	// written: the hubs' polls are for what that can't see.
 	go s.App.WatchGit(s.ctx.Done(), s.Log.Printf)
+	// And a run that starts, comes up, ends or is cleared away reaches the
+	// pages that show runs as it does: their stamps read what's kept.
+	go s.App.WatchRuns(s.ctx.Done(), s.Log.Printf, func() {
+		runsHub.nudge()
+		s.filesFollowed.nudge()
+		s.apps.nudge()
+		s.missions.nudge()
+	})
 	// What's followed is what the daemon keeps current: a mission's page
 	// open, a capsule in Files.
 	s.App.Following(func() (missions, worktrees []string) {

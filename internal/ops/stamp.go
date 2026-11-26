@@ -165,7 +165,7 @@ func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 			}
 			// Its runs: one started, up, ended (its process gone too) or
 			// cleared away (runs.Store.StampIn).
-			fmt.Fprintln(h, w.runStore().StampIn(c.Repo, c.Name))
+			fmt.Fprintln(h, w.runsStampIn(c.Repo, c.Name))
 			// Found dirty, or clean, since the page was last told (keptGit).
 			fmt.Fprint(h, w.git.dirtyMoved(dir))
 		}
