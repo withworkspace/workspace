@@ -148,6 +148,7 @@ func (w *Workspace) makeCapsule(repo, branch string, o CapsuleOptions, create fu
 	if out.Mission = o.Mission; o.Mission != "" {
 		_, out.AttachErr = w.Attach(o.Mission, repo, out.Name, false, o.By)
 	}
+	w.emit(events.Event{Kind: events.CapsuleLifted, Repo: repo, Capsule: out.Name, Mission: o.Mission, Branch: branch}, o.By)
 	return out, nil
 }
 

@@ -15,26 +15,33 @@ import (
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
-// ws events: what this ws did, as it's kept (internal/events).
+// ws events: what this ws did, and heard of, as it's kept (internal/events).
 
 func newEventsCmd() *cobra.Command {
 	var since, format, slug string
 	var kinds []string
-	var follow bool
+	var follow, heard, did bool
 	var limit int
 	cmd := &cobra.Command{
 		Use:   "events",
-		Short: "What this ws did: capsules landed, pull requests opened, missions ended…",
+		Short: "What this ws did, and heard of: capsules landed, pull requests opened, commits landed…",
 		Long: `What this ws did, for you or for crew and the orchestrator on your missions,
 oldest first: a capsule landed or burned, a pull request opened, merged or
 failing its checks, a mission started or ended, an artifact added or
 promoted, a document added or amended, a decision made. Each says who did
-it, and what caused it where something did. Nothing here is a teammate's:
-each ws keeps only what it did. Events are kept for 90 days.
+it, and what caused it where something did.
+
+And what it heard of, marked heard: what teammates did, as the daemon
+found it moving what it keeps. Commits landing on a repo's default branch
+(with the documents and things they changed), a pull request asking for
+your review, approved or merged, a run starting or ending. Each says who
+did it, as a person where ws knows who (person:brendan). Only what this
+ws did makes a notification. Events are kept for 90 days.
 
   ws events                          the latest 50
   ws events --since 1d               since this time yesterday (today, monday, 7d, 2h, 2026-11-03…)
   ws events --kind capsule.landed    one kind (repeatable)
+  ws events --heard                  only what it heard of (--did: only what it did)
   ws events --follow                 and each new one as it's kept
   ws events -f json                  one event per line, as JSON
 
@@ -48,6 +55,14 @@ The kinds: ` + strings.Join(events.Kinds, ", ") + ".",
 			}
 			root := ctx.Root()
 			f := events.Filter{Kinds: kinds, Mission: slug, Limit: limit}
+			switch {
+			case heard && did:
+				return fmt.Errorf("--heard and --did each leave out the other: give neither, for both")
+			case heard:
+				f.Origin, f.Only = events.Heard, true
+			case did:
+				f.Origin, f.Only = events.Did, true
+			}
 			for _, k := range kinds {
 				if !events.Known(k) {
 					return fmt.Errorf("there's no event %q: they're %s", k, strings.Join(events.Kinds, ", "))
@@ -94,7 +109,7 @@ The kinds: ` + strings.Join(events.Kinds, ", ") + ".",
 					return nil
 				case <-tick.C:
 				}
-				more, err := events.List(root, events.Filter{After: last, Kinds: kinds, Mission: slug})
+				more, err := events.List(root, events.Filter{After: last, Kinds: kinds, Mission: slug, Origin: f.Origin, Only: f.Only})
 				if err != nil {
 					return err
 				}
@@ -110,8 +125,54 @@ The kinds: ` + strings.Join(events.Kinds, ", ") + ".",
 	cmd.Flags().StringVarP(&slug, "mission", "m", "", "those of this mission")
 	cmd.Flags().IntVarP(&limit, "limit", "n", 50, "the latest this many, without --since (0 for every one)")
 	cmd.Flags().BoolVar(&follow, "follow", false, "and each new one as it's kept, until interrupted")
+	cmd.Flags().BoolVar(&heard, "heard", false, "only what it heard of: what teammates did")
+	cmd.Flags().BoolVar(&did, "did", false, "only what this ws did")
 	cmd.Flags().StringVarP(&format, "format", "f", "", "text (the default) or json (one event per line)")
+	cmd.AddCommand(newEventsHearCmd())
 	return cmd
+}
+
+// ws events hear: hear now what the daemon hears by itself (for seeds, and
+// for looking without waiting on its loops).
+func newEventsHearCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "hear",
+		Short: "Hear now what the daemon hears by itself: what's landed on the grounds, and the Reviews list's moves",
+		Long: `Hears now what the daemon hears by itself, and prints what was heard:
+what's landed on each repo's ground since it was last heard of (its
+commits, and the documents and things they changed), and what's moved
+in the Reviews list since it was last read (GitHub's asked for it again).
+A ground heard of for the first time is only noted.`,
+		Hidden: true,
+		Args:   cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			heard, err := w.HearGrounds(cmd.Context())
+			if svc := w.PRService(); svc != nil {
+				before, _ := events.List(w.Root(), events.Filter{Limit: 1})
+				svc.Stale() // read again however lately it was
+				if _, lerr := svc.List(false); lerr == nil {
+					after := int64(0)
+					if len(before) > 0 {
+						after = before[0].N
+					}
+					more, _ := events.List(w.Root(), events.Filter{After: after, Origin: events.Heard, Only: true})
+					heard = append(heard, more...)
+				}
+			}
+			for _, e := range heard {
+				printEvent(ui.Stdout, e, "")
+			}
+			if len(heard) == 0 {
+				fmt.Fprintln(ui.Stderr, ui.Dim.Render("  nothing heard"))
+			}
+			return err
+		},
+	}
 }
 
 // sinceOf is when --since says: a length of time back (2h, 90m), or what
@@ -132,7 +193,7 @@ func printEvent(w io.Writer, e events.Event, format string) {
 		return
 	}
 	about := strings.Join(e.Refs(), " ")
-	text := e.Text
+	text := eventSays(e)
 	if text != "" {
 		text = " · " + text
 	}
@@ -140,8 +201,45 @@ func printEvent(w io.Writer, e events.Event, format string) {
 	if e.Cause != "" {
 		cause = ui.Dim.Render(" (" + e.Cause + ")")
 	}
-	fmt.Fprintf(w, "%s %s %-18s %s%s %s%s\n",
+	if n := len(e.Commits); n > 1 {
+		text += ui.Dim.Render(fmt.Sprintf(" (%d commits)", n))
+	}
+	mark := "      "
+	if e.IsHeard() {
+		mark = ui.Dim.Render("heard ")
+	}
+	fmt.Fprintf(w, "%s %s %s%-21s %s%s %s%s\n",
 		ui.Dim.Render(e.At.Local().Format("Jan 02 15:04")),
 		ui.Dim.Render(fmt.Sprintf("%-4s", e.Ref())),
-		e.Kind, e.By, cause, about, text)
+		mark, e.Kind, e.By, cause, about, text)
+}
+
+// eventSays is what an event says, in a line: what changed in a thing,
+// field by field; a document as it's called and what became of it; how a
+// run ended; else its text, or what it's about is called.
+func eventSays(e events.Event) string {
+	switch {
+	case len(e.Changes) > 0:
+		var cs []string
+		for _, c := range e.Changes {
+			switch {
+			case c.From == "" && c.To == "":
+				cs = append(cs, c.Field+" changed")
+			case c.From == "":
+				cs = append(cs, c.Field+" → "+c.To)
+			case c.To == "":
+				cs = append(cs, c.Field+" cleared (was "+c.From+")")
+			default:
+				cs = append(cs, c.Field+" "+c.From+" → "+c.To)
+			}
+		}
+		return strings.TrimPrefix(e.Title+": ", ": ") + strings.Join(cs, ", ")
+	case e.Kind == events.DocChanged && e.Status != "":
+		return e.Title + " (" + e.Status + ")"
+	case e.Kind == events.RunEnded && e.Status != "":
+		return e.Status
+	case e.Text != "":
+		return e.Text
+	}
+	return e.Title
 }

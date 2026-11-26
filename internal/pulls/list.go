@@ -219,6 +219,25 @@ func (l *List) Find(repo string, number int) (*PR, *Stack) {
 
 // Yours is each PR in the list that's yours or asks for your review: a
 // stack's layers each, as it is.
+// All is every open PR the list has, a stack's layers each.
+func (l *List) All() []PR {
+	if l == nil {
+		return nil
+	}
+	var out []PR
+	for _, sec := range l.Sections {
+		for _, r := range sec.Rows {
+			if r.PR != nil {
+				out = append(out, *r.PR)
+			}
+			if r.Stack != nil {
+				out = append(out, r.Stack.Layers...)
+			}
+		}
+	}
+	return out
+}
+
 func (l *List) Yours() []PR {
 	if l == nil {
 		return nil

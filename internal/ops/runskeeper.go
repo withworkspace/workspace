@@ -1,9 +1,12 @@
 package ops
 
 import (
+	"context"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/runs"
+	"github.com/withworkspace/workspace/internal/store"
 )
 
 // The daemon keeps where every run stands (runs.Keeper): the pages'
@@ -57,6 +60,7 @@ func (w *Workspace) WatchRuns(stop <-chan struct{}, logf func(string, ...any), m
 			changed = changed || probed
 			probe.Reset(next)
 		}
+		w.keepRunChanges(k.Changes())
 		if changed && moved != nil {
 			moved()
 		}
@@ -86,4 +90,52 @@ func (w *Workspace) startingKept(repo, worktree, recipe string) (string, bool) {
 		return out, ok
 	}
 	return w.runStore().Starting(repo, worktree, recipe)
+}
+
+// keepRunChanges keeps what's happened to the runs as events: a run
+// started, a service up, a run ended and how. They're what this ws did,
+// for you or for crew, and make no notification.
+func (w *Workspace) keepRunChanges(changes []runs.Change) {
+	if len(changes) == 0 {
+		return
+	}
+	db, err := w.Records()
+	if err != nil {
+		return
+	}
+	logFailed(db.Write(context.Background(), func(tx *store.Tx) error {
+		for _, c := range changes {
+			if _, err := events.Append(tx, runEvent(c)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}))
+}
+
+// runEvent is a run's change as an event.
+func runEvent(c runs.Change) events.Event {
+	r := c.Run
+	e := events.Event{At: c.At, Repo: r.Repo, Run: r.Ref(), Title: r.Name, Status: c.Status, Mission: r.Owner.Mission}
+	switch c.Kind {
+	case runs.Started:
+		e.Kind = events.RunStarted
+	case runs.Up:
+		e.Kind = events.RunUp
+	default:
+		e.Kind = events.RunEnded
+	}
+	switch {
+	case r.By == "" || r.By == "you":
+		e.By = events.ByYou
+	default:
+		e.By = events.ByCrew(r.By)
+	}
+	if r.Check != nil && e.Mission == "" {
+		e.Mission = r.Check.Mission
+	}
+	if r.Recipe != "" {
+		e.Text = r.Recipe
+	}
+	return e
 }

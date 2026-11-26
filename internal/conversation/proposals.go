@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -446,6 +447,9 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 		if err := s.add(tx, c, line{Propose: &p}); err != nil {
 			return err
 		}
+		if err := s.event(tx, c, events.Event{Kind: events.ProposalMade, By: byOf(p.By), At: p.At, Proposal: p.N, ProposalKind: p.kindNamed(), Title: oneLine(p.Says())}); err != nil {
+			return err
+		}
 		// What it takes the place of is nothing to confirm now.
 		at := p.At
 		if at.IsZero() {
@@ -620,8 +624,28 @@ func (s Store) SettleProposal(id string, n int, state, result, by string, at tim
 		default:
 			return fmt.Errorf("proposal %d in %s is %s already", n, id, p.State)
 		}
-		return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: state, Result: result, By: by, At: at}})
+		wasOpen := p.State == ProposalOpen
+		if err := s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: state, Result: result, By: by, At: at}}); err != nil {
+			return err
+		}
+		if !wasOpen {
+			return nil // settled already, and moved: said when it was
+		}
+		kind := events.ProposalAccepted
+		if state == ProposalDeclined {
+			kind = events.ProposalDeclined
+		}
+		return s.event(tx, c, events.Event{Kind: kind, By: events.ByYou, At: at, Proposal: n, ProposalKind: p.kindNamed(), Title: oneLine(p.Says()), Text: result})
 	})
+}
+
+// kindNamed is the proposal's kind as an event names it: a plugin's as
+// plugin:what (jira:issues).
+func (p *Proposal) kindNamed() string {
+	if p.Kind == ProposePlugin && p.Plugin != "" {
+		return p.Plugin + ":" + p.Proposes
+	}
+	return p.Kind
 }
 
 // LatestOpen is the latest proposal of a kind still open, or nil.

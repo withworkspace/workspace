@@ -1,18 +1,26 @@
-// Package events is what this ws did, kept: a capsule landed, a pull
-// request opened, an artifact promoted, a mission ended. Each is written
-// where ws does the thing (in ops), with who did it and what caused it,
-// and kept in the workspace's records for 90 days. It's what a notification
-// is made from, and what a workflow will wait for.
+// Package events is what this ws did, and what it heard of, kept: a
+// capsule landed, a pull request opened, an artifact promoted, a mission
+// ended; and commits landing on a repo's default branch, a teammate's
+// pull request asking for your review, a run ending. Each is written
+// where ws does the thing, or where the daemon keeps what it heard (in
+// ops), with who did it and what caused it, and kept in the workspace's
+// records for 90 days. It's what a notification is made from, and what
+// an automation will wait for.
 //
-// An event is only ever something this ws did, for you or for crew and the
-// orchestrator on your missions: nothing is shared, and no event is one
-// this ws only heard of. How something this ws did turns out (a pull
-// request it opened merging) is its too.
+// An event this ws did is done for you, or by crew and the orchestrator
+// on your missions; how something it did turns out (a pull request it
+// opened merging) is its too. Only those make notifications. An event it
+// heard of (Origin Heard) is what someone else did, as the daemon found
+// it when what it keeps moved: it's said by whom, a person where ws knows
+// who (ByPerson), and is nobody's to be told of unless an automation says
+// so.
 package events
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -24,6 +32,7 @@ import (
 // Kinds, named thing.happened.
 const (
 	CapsuleLanded    = "capsule.landed"
+	CapsuleLifted    = "capsule.lifted"
 	CapsuleBurned    = "capsule.burned"
 	PROpened         = "pr.opened"
 	PRMerged         = "pr.merged"
@@ -35,15 +44,51 @@ const (
 	DocAdded         = "doc.added"
 	DocAmended       = "doc.amended"
 	DecisionMade     = "decision.made"
+	CrewStarted      = "crew.started"
+	CrewDone         = "crew.done"  // crew handed their work over
+	CrewAsked        = "crew.asked" // crew asked you something
+	MissionFlagged   = "mission.flagged"
+	MissionWaiting   = "mission.waiting" // on something outside it
+	BundleHanded     = "bundle.handed"   // a verification bundle, for you
+	ChecksJudged     = "checks.judged"   // a step's checks, run and judged
+
+	ConversationAnswered = "conversation.answered" // its agent said something
+	ProposalMade         = "proposal.made"
+	ProposalAccepted     = "proposal.accepted"
+	ProposalDeclined     = "proposal.declined"
+
+	// Heard of: what the daemon found had moved.
+	CommitsLanded      = "commits.landed"       // a repo's default branch moved: its commits
+	DocChanged         = "doc.changed"          // a space's document changed on its default branch
+	ThingAdded         = "thing.added"          // a thing (a folder with a thing.toml) added to a space
+	ThingChanged       = "thing.changed"        // a space's thing changed
+	PRReviewRequested  = "pr.review_requested"  // your review asked for on a pull request
+	PRApproved         = "pr.approved"          // a pull request approved
+	PRChangesRequested = "pr.changes_requested" // changes asked for on a pull request
+	PRChecksPassed     = "pr.checks_passed"     // a pull request's checks went green
+	PRClosed           = "pr.closed"            // a pull request closed without merging
+	RunStarted         = "run.started"
+	RunUp              = "run.up" // a service answering on its port
+	RunEnded           = "run.ended"
+)
+
+// Origins: whether this ws did it, or heard of it.
+const (
+	Did   = ""
+	Heard = "heard"
 )
 
 // Kinds is every kind there is, in the order they're listed.
 var Kinds = []string{
-	CapsuleLanded, CapsuleBurned,
-	PROpened, PRMerged, PRChecksFailed,
-	MissionStarted, MissionEnded,
+	CapsuleLifted, CapsuleLanded, CapsuleBurned, CommitsLanded,
+	PROpened, PRReviewRequested, PRApproved, PRChangesRequested, PRChecksFailed, PRChecksPassed, PRMerged, PRClosed,
+	MissionStarted, MissionFlagged, MissionWaiting, MissionEnded,
+	CrewStarted, CrewAsked, CrewDone, BundleHanded, ChecksJudged,
+	ConversationAnswered, ProposalMade, ProposalAccepted, ProposalDeclined,
 	ArtifactAdded, ArtifactPromoted,
-	DocAdded, DocAmended,
+	DocAdded, DocAmended, DocChanged,
+	ThingAdded, ThingChanged,
+	RunStarted, RunUp, RunEnded,
 	DecisionMade,
 }
 
@@ -64,6 +109,9 @@ const (
 	ByYou          = "you"
 	ByOrchestrator = "orchestrator"
 	ByWS           = "ws"
+	// ByGitHub is for what GitHub says happened without saying who did
+	// it (your review asked for, a pull request approved).
+	ByGitHub = "github"
 )
 
 // ByCrew is crew id, as By says it.
@@ -71,6 +119,20 @@ func ByCrew(id string) string { return "crew:" + id }
 
 // ByWorkflow is a workflow, as By says it.
 func ByWorkflow(name string) string { return "workflow:" + name }
+
+// ByPerson is someone in the workspace's repos, by their key in its
+// roster (team.Person), as By says it: person:brendan.
+func ByPerson(key string) string { return "person:" + key }
+
+// ByPlugin is a plugin, as By says it, for what it told ws of without
+// saying who did it: plugin:jira.
+func ByPlugin(name string) string { return "plugin:" + name }
+
+// PersonOf is the person By names, or ok false for one it doesn't.
+func PersonOf(by string) (key string, ok bool) {
+	key, ok = strings.CutPrefix(by, "person:")
+	return key, ok && key != ""
+}
 
 // Event is one thing this ws did.
 type Event struct {
@@ -94,7 +156,61 @@ type Event struct {
 	About []string `json:"about,omitempty"`
 	// Text says what happened, in a few words.
 	Text string `json:"text,omitempty"`
+
+	// Origin is whether this ws did it (Did, as every event was before
+	// any was heard), or heard of it (Heard).
+	Origin string `json:"origin,omitempty"`
+	// Title is what it's about is called: a pull request's title, a
+	// thing's, a document's.
+	Title string `json:"title,omitempty"`
+	// Branch is the branch it's on: a default branch commits landed on.
+	Branch string `json:"branch,omitempty"`
+	// Commits are a default branch's new commits, oldest first, for
+	// commits.landed; and the commit a document or thing changed in, for
+	// theirs.
+	Commits []Commit `json:"commits,omitempty"`
+	// Paths are the files the commits touched (at most PathsMax).
+	Paths []string `json:"paths,omitempty"`
+	// Thing is a space's thing, by its path (records:sketches/flow/), and
+	// ThingKind its kind (sketch).
+	Thing     string `json:"thing,omitempty"`
+	ThingKind string `json:"thingKind,omitempty"`
+	// Run is a run's ref (web.ground.demo), and Status how it ended
+	// (passed, failed, stopped, gone) for run.ended.
+	Run    string `json:"run,omitempty"`
+	Status string `json:"status,omitempty"`
+	// Conversation is a conversation's id (t3), in Mission's scope or the
+	// workspace's; Proposal one of its proposals, by number, and its kind
+	// (a plan, a mission, jira:issues).
+	Conversation string `json:"conversation,omitempty"`
+	Proposal     int    `json:"proposal,omitempty"`
+	ProposalKind string `json:"proposalKind,omitempty"`
+	// Changes are what changed in a thing a plugin keeps, field by field,
+	// for thing.changed: a Jira issue's status, from In Progress to Done.
+	Changes []FieldChange `json:"changes,omitempty"`
 }
+
+// FieldChange is one field of a thing, as it was and as it is. A long
+// one (text, markdown) is said to have changed, without either.
+type FieldChange struct {
+	Field string `json:"field"`
+	From  string `json:"from,omitempty"`
+	To    string `json:"to,omitempty"`
+}
+
+// Commit is one commit an event's about.
+type Commit struct {
+	SHA     string `json:"sha"`
+	Subject string `json:"subject"`
+	// By is its author, as By says it: a person (ByPerson), or you.
+	By string `json:"by"`
+}
+
+// PathsMax is the most paths an event keeps.
+const PathsMax = 200
+
+// IsHeard is whether this ws heard of it, rather than did it.
+func (e Event) IsHeard() bool { return e.Origin == Heard }
 
 // Ref is how an event is named: e12.
 func (e Event) Ref() string { return fmt.Sprintf("e%d", e.N) }
@@ -107,7 +223,7 @@ func (e Event) Refs() []string {
 	} else if e.Repo != "" && e.PR == "" && e.Doc == "" {
 		out = append(out, e.Repo)
 	}
-	for _, r := range []string{e.PR, e.Doc, e.Artifact, e.Mission} {
+	for _, r := range []string{e.PR, e.Doc, e.Thing, e.Artifact, e.Run, e.Mission} {
 		if r != "" {
 			out = append(out, r)
 		}
@@ -130,6 +246,15 @@ func init() {
 		CREATE INDEX events_at ON events (at);
 		CREATE INDEX events_kind ON events (kind, n);
 		CREATE INDEX events_mission ON events (mission, n) WHERE mission != '';
+	`), store.SQL(`
+		-- What this ws heard of, besides what it did: origin is 'heard'
+		-- for those, '' for what it did.
+		ALTER TABLE events ADD COLUMN origin TEXT NOT NULL DEFAULT '';
+		CREATE INDEX events_origin ON events (origin, n);
+	`), store.SQL(`
+		-- Where what's heard of was last heard to: a ground's head, as the
+		-- commits that landed on it were written.
+		CREATE TABLE events_heard (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
 	`))
 }
 
@@ -145,15 +270,21 @@ func Append(tx *store.Tx, e Event) (Event, error) {
 		e.At = time.Now()
 	}
 	if e.By == "" {
+		if e.IsHeard() {
+			return e, fmt.Errorf("events: a heard %s says by whom", e.Kind)
+		}
 		e.By = ByYou
+	}
+	if e.Origin != Did && e.Origin != Heard {
+		return e, fmt.Errorf("events: no origin %q", e.Origin)
 	}
 	e.N = 0
 	line, err := json.Marshal(e)
 	if err != nil {
 		return e, err
 	}
-	res, err := tx.Exec(`INSERT INTO events (at, kind, by, cause, mission, event) VALUES (?, ?, ?, ?, ?, ?)`,
-		stampOf(e.At), e.Kind, e.By, e.Cause, e.Mission, string(line))
+	res, err := tx.Exec(`INSERT INTO events (at, kind, by, cause, mission, event, origin) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		stampOf(e.At), e.Kind, e.By, e.Cause, e.Mission, string(line), e.Origin)
 	if err != nil {
 		return e, err
 	}
@@ -201,6 +332,10 @@ type Filter struct {
 	Kinds []string  // any of these kinds; none for every kind
 	// Mission is a mission's own, by slug.
 	Mission string
+	// Origin is only what this ws did (Did, with Only set) or heard of
+	// (Heard); both when Only's unset.
+	Origin string
+	Only   bool
 	// Limit is the most listed, the latest; 0 for no limit.
 	Limit int
 }
@@ -241,6 +376,10 @@ func ListIn(tx *store.Tx, f Filter) ([]Event, error) {
 		where = append(where, "mission = ?")
 		args = append(args, f.Mission)
 	}
+	if f.Only {
+		where = append(where, "origin = ?")
+		args = append(args, f.Origin)
+	}
 	q := `SELECT n, event FROM events`
 	if len(where) > 0 {
 		q += " WHERE " + strings.Join(where, " AND ")
@@ -275,4 +414,23 @@ func ListIn(tx *store.Tx, f Filter) ([]Event, error) {
 		out[i], out[j] = out[j], out[i]
 	}
 	return out, nil
+}
+
+// HeardTo is where what's heard of under key was last heard to, in tx:
+// "" for never.
+func HeardTo(tx *store.Tx, key string) (string, error) {
+	var v string
+	err := tx.QueryRow(`SELECT value FROM events_heard WHERE key = ?`, key).Scan(&v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return v, err
+}
+
+// SetHeardTo says what's heard of under key has been heard to value, in
+// tx: written with the events it was heard as, so neither is without the
+// other.
+func SetHeardTo(tx *store.Tx, key, value string) error {
+	_, err := tx.Exec(`INSERT INTO events_heard (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`, key, value)
+	return err
 }

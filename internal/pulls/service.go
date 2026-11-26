@@ -27,6 +27,10 @@ type Service struct {
 	ReadYours bool
 	// Moved, if set, is told when a list's been read (Seen moves).
 	Moved func()
+	// Heard, if set, is told each list read from GitHub with the one it
+	// follows (as kept, whichever process read that), before Moved: what
+	// moved between them is heard of.
+	Heard func(prev, next *List)
 
 	Root string
 	// Remote is where a repo is on GitHub, by its name here: the
@@ -172,6 +176,9 @@ func (s *Service) List(force bool) (*List, error) {
 	s.loading = c
 	s.mu.Unlock()
 
+	s.mu.Lock()
+	prev := s.list // what this list is the next of, for Heard
+	s.mu.Unlock()
 	l, err := s.load()
 	s.mu.Lock()
 	s.loading = nil
@@ -190,6 +197,9 @@ func (s *Service) List(force bool) (*List, error) {
 	s.mu.Unlock()
 	if err == nil {
 		s.forgetGone(l)
+		if s.Heard != nil && prev != nil {
+			s.Heard(prev, l)
+		}
 		if s.Moved != nil {
 			s.Moved()
 		}

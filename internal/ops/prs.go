@@ -42,6 +42,8 @@ func (w *Workspace) ReviewsService() *pulls.Service {
 		},
 		BareDir: func(repo string) string { return filepath.Join(root, "repos", repo, ".bare") },
 		Local:   w.reviewsLocal,
+		// What moved since the last list is heard of (heard_prs.go).
+		Heard: w.hearPRs,
 	}
 	// In the daemon, what's said from a pull request's page is shown at
 	// once and sent behind.

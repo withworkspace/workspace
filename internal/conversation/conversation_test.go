@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/store/storetest"
@@ -516,5 +517,37 @@ func TestProposals_Superseded(t *testing.T) {
 	}
 	if _, err := ws.Propose("w2", Proposal{Kind: ProposeDocument, DocKind: "adr", To: "records:adr/0007-one-binary.md", Was: "# One binary\n", Text: "# One binary\n", By: Agent, At: at}); err == nil || !strings.Contains(err.Error(), "the document as it is") {
 		t.Errorf("an edit that changes nothing: %v", err)
+	}
+}
+
+// What's said in a conversation by its agent, and what's proposed and
+// settled in it, are the workspace's events, once each.
+func TestConversationEvents(t *testing.T) {
+	root := owned(t)
+	ws := ForWorkspace(root)
+	ws.OpenTalk(You, "A token cache?", at)
+	ws.Say("w1", Turn{By: Agent, Body: "Yes: per tenant.\nFor an hour.", At: at})
+	ws.Say("w1", Turn{By: You, Body: "Agreed.", At: at})
+	ws.Propose("w1", Proposal{Kind: ProposeDecision, What: "Key per tenant.", By: Agent, At: at})
+	ws.SettleProposal("w1", 1, ProposalAccepted, "", You, at)
+	ws.SettleProposal("w1", 1, ProposalAccepted, "token-cache:d1", You, at) // moved to its mission
+	got, err := events.List(root, events.Filter{Kinds: []string{events.ConversationAnswered, events.ProposalMade, events.ProposalAccepted, events.ProposalDeclined}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var said []string
+	for _, e := range got {
+		said = append(said, fmt.Sprintf("%s %s %s %d %s", e.Kind, e.By, e.Conversation, e.Proposal, e.ProposalKind))
+	}
+	want := []string{
+		"conversation.answered ws w1 0 ",
+		"proposal.made ws w1 1 decision",
+		"proposal.accepted you w1 1 decision",
+	}
+	if strings.Join(said, "\n") != strings.Join(want, "\n") {
+		t.Errorf("events:\n%s\nwant:\n%s", strings.Join(said, "\n"), strings.Join(want, "\n"))
+	}
+	if got[0].Text != "Yes: per tenant. For an hour." {
+		t.Errorf("answered: %q", got[0].Text)
 	}
 }

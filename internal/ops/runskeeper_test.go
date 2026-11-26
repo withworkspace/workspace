@@ -3,9 +3,11 @@ package ops
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/runs"
 )
 
@@ -85,5 +87,18 @@ func TestWatchRuns_SaysARunStartedAndEnded(t *testing.T) {
 	}
 	if _, ok := w.runningKept("frontend", "cache", "web"); ok {
 		t.Error("ended, and still kept as running")
+	}
+
+	// And each is an event, what this ws did: for you, on the mission.
+	list, err := events.List(w.Root(), events.Filter{Kinds: []string{events.RunStarted, events.RunEnded}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept []string
+	for _, e := range list {
+		kept = append(kept, e.Kind+" "+e.Run+" "+e.By+" "+e.Mission+" "+e.Status)
+	}
+	if want := "run.started web.cache.frontend you cache , run.ended web.cache.frontend you cache stopped"; strings.Join(kept, ", ") != want {
+		t.Errorf("events: %v\nwant %s", kept, want)
 	}
 }

@@ -2,6 +2,7 @@ package runs
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -118,5 +119,50 @@ func TestKeeper_Folders(t *testing.T) {
 	}
 	if !k.Heeds(r.Path + "/" + exitFile) {
 		t.Error("its exit isn't heeded")
+	}
+}
+
+// What happens to the runs is noted as it's seen, from the second look
+// on: a run started, a service up, and how each ended.
+func TestKeeper_Changes(t *testing.T) {
+	s, dir := setup(t)
+	before := task(t, s, dir, "lint", "true")
+	ended(t, s, before)
+	k := &Keeper{Store: s}
+	k.Look(time.Now())
+	if c := k.Changes(); len(c) != 0 {
+		t.Fatalf("the first look said what's there as changes: %+v", c)
+	}
+
+	r := start(t, s, dir, "web", listener()+" --port {port}", Owner{Kind: ByNone}, time.Hour)
+	k.Look(time.Now())
+	if ready, err := s.Wait(r, 10*time.Second); err != nil || !ready {
+		t.Fatalf("not up: %v", err)
+	}
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(ProbeStarting) {
+		k.Probe(time.Now())
+		if _, starting, _ := k.Starting("demo", "feat", ""); !starting {
+			break
+		}
+	}
+	if err := s.End(r); err != nil {
+		t.Fatal(err)
+	}
+	k.Look(time.Now())
+
+	lint := task(t, s, dir, "test", "true")
+	ended(t, s, lint)
+	k.Look(time.Now())
+
+	var got []string
+	for _, c := range k.Changes() {
+		got = append(got, c.Kind+" "+c.Run.Name+" "+c.Status)
+	}
+	want := []string{"started web ", "up web ", "ended web stopped", "started test ", "ended test passed"}
+	if strings.Join(got, ", ") != strings.Join(want, ", ") {
+		t.Errorf("changes:\n got %v\nwant %v", got, want)
+	}
+	if c := k.Changes(); len(c) != 0 {
+		t.Errorf("said twice: %+v", c)
 	}
 }

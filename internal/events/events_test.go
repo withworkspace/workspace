@@ -99,3 +99,42 @@ func TestAppendTellsPages(t *testing.T) {
 		t.Fatalf("topics: %v", topics)
 	}
 }
+
+// What this ws heard of is kept beside what it did, said by whom, and
+// listed apart from it when asked.
+func TestHeard(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	if _, err := Emit(root, Event{Kind: CommitsLanded, Origin: Heard, Repo: "demo"}); err == nil {
+		t.Error("a heard event that says nobody did it was kept")
+	}
+	if _, err := Emit(root, Event{Kind: CommitsLanded, Origin: "rumour", By: ByPerson("brendan")}); err == nil {
+		t.Error("an origin there's none of was kept")
+	}
+	Emit(root, Event{Kind: CapsuleLanded, Repo: "demo", Capsule: "fix"})
+	landed, err := Emit(root, Event{Kind: CommitsLanded, Origin: Heard, By: ByPerson("brendan"), Repo: "demo", Branch: "main",
+		Commits: []Commit{{SHA: "abc", Subject: "Add the flow", By: ByPerson("brendan")}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !landed.IsHeard() || landed.By != "person:brendan" {
+		t.Errorf("kept as %+v", landed)
+	}
+	if key, ok := PersonOf(landed.By); !ok || key != "brendan" {
+		t.Errorf("PersonOf(%q) = %q, %v", landed.By, key, ok)
+	}
+	if _, ok := PersonOf(ByYou); ok {
+		t.Error("you're a person by key")
+	}
+	heard, _ := List(root, Filter{Origin: Heard, Only: true})
+	if len(heard) != 1 || heard[0].Kind != CommitsLanded || len(heard[0].Commits) != 1 {
+		t.Errorf("heard: %+v", heard)
+	}
+	did, _ := List(root, Filter{Origin: Did, Only: true})
+	if len(did) != 1 || did[0].Kind != CapsuleLanded || did[0].IsHeard() {
+		t.Errorf("did: %+v", did)
+	}
+	if all, _ := List(root, Filter{}); len(all) != 2 {
+		t.Errorf("both: %d", len(all))
+	}
+}

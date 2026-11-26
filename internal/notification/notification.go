@@ -134,9 +134,10 @@ func init() {
 }
 
 // Of is the notification an event is, if it's one: something done for
-// you, not by you.
+// you, not by you. What this ws only heard of is nobody's to be told of
+// here (an automation says when it is).
 func Of(e events.Event) (Notification, bool) {
-	if e.By == events.ByYou {
+	if e.By == events.ByYou || e.IsHeard() {
 		return Notification{}, false
 	}
 	n := Notification{At: e.At, Kind: e.Kind, By: e.By, Event: e.N}

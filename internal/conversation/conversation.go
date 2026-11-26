@@ -25,8 +25,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
@@ -1329,7 +1331,13 @@ func (s Store) Say(id string, t Turn) (*Conversation, error) {
 			return fmt.Errorf("%s is resolved: only the user reopens it", id)
 		}
 		t.N = len(c.Turns) + 1
-		return s.add(tx, c, line{Turn: &t})
+		if err := s.add(tx, c, line{Turn: &t}); err != nil {
+			return err
+		}
+		if t.By == You {
+			return nil
+		}
+		return s.event(tx, c, events.Event{Kind: events.ConversationAnswered, By: byOf(t.By), At: t.At, Text: clipLine(oneLine(t.Body), 200)})
 	})
 	if err != nil {
 		return nil, err
@@ -1643,4 +1651,41 @@ func (s Store) SettleDraft(id, state, decision, by string, at time.Time) (*Conve
 		}
 		return s.add(tx, c, line{Drafted: &drafted{State: state, Decision: decision, By: by, At: at}})
 	})
+}
+
+// event keeps e as one of the workspace's events, of conversation c, in
+// tx: what this ws did, in its conversations. An ask that isn't kept
+// makes none.
+func (s Store) event(tx *store.Tx, c *Conversation, e events.Event) error {
+	if c.Ephemeral {
+		return nil
+	}
+	e.Conversation, e.Mission = c.ID, s.Slug
+	if e.Title == "" {
+		e.Title = c.Title
+	}
+	_, err := events.Append(tx, e)
+	return err
+}
+
+// byOf is who said something in a conversation, as an event says it.
+func byOf(by string) string {
+	switch by {
+	case "", You:
+		return events.ByYou
+	case Agent, WS:
+		return events.ByWS
+	}
+	return events.ByCrew(by)
+}
+
+// clipLine is s cut to at most n bytes, at a rune.
+func clipLine(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n] + "…"
 }

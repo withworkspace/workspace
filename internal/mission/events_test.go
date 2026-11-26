@@ -22,6 +22,14 @@ func TestLogSharesEvents(t *testing.T) {
 	s.AppendLog(m.Slug, Event{Kind: EventPR, What: PREventApproved, Repo: "demo", Capsule: "fix", By: "ws", Text: "demo#12 was approved"})
 	s.AppendLog(m.Slug, Event{Kind: EventPR, What: PREventChecksFailed, Repo: "demo", Capsule: "fix", By: "ws", Text: "demo#12's checks are failing"})
 	s.AppendLog(m.Slug, Event{Kind: EventPR, What: PREventMerged, Repo: "demo", Capsule: "fix", By: "ws", Text: "demo#12 merged"})
+	s.AppendLog(m.Slug, Event{Kind: EventCrewStarted, Crew: "c2", Text: "on step 2"})
+	s.AppendLog(m.Slug, Event{Kind: EventCrewAsked, Crew: "c2", Text: "Which tenant key?"})
+	s.AppendLog(m.Slug, Event{Kind: EventFlag, Crew: "c2", Text: "The schema's not what the brief says"})
+	s.AppendLog(m.Slug, Event{Kind: EventBundle, Crew: "c2", Repo: "demo", Capsule: "fix", Text: "b1 handed over"})
+	s.AppendLog(m.Slug, Event{Kind: EventBundle, Crew: "you", Repo: "demo", Capsule: "fix", Text: "b1 approved", What: "approve"})
+	s.AppendLog(m.Slug, Event{Kind: EventChecks, Crew: "ws", Text: "step 2's checks, round 1: passed"})
+	s.AppendLog(m.Slug, Event{Kind: EventCrewDone, Crew: "c2", Text: "done"})
+	s.AppendLog(m.Slug, Event{Kind: EventWaiting, By: "you", Text: "on the vendor's answer"})
 
 	got, err := events.List(s.Root, events.Filter{})
 	if err != nil {
@@ -40,6 +48,13 @@ func TestLogSharesEvents(t *testing.T) {
 		"pr.opened crew:c1 demo#12 o3",
 		"pr.checks_failed ws demo#12 ",
 		"pr.merged ws demo#12 ",
+		"crew.started crew:c2  ",
+		"crew.asked crew:c2  ",
+		"mission.flagged crew:c2  ",
+		"bundle.handed crew:c2  ",
+		"checks.judged ws  ",
+		"crew.done crew:c2  ",
+		"mission.waiting you  ",
 	}
 	if strings.Join(said, "\n") != strings.Join(want, "\n") {
 		t.Errorf("kept:\n%s\nwant:\n%s", strings.Join(said, "\n"), strings.Join(want, "\n"))

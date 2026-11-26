@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
 )
@@ -274,6 +275,13 @@ func PutThings(root, name string, things []protocol.Thing) (refused []protocol.T
 				kinds[k.Kind] = k
 			}
 		}
+		// A kind the plugin's told ws nothing of yet is being put for the
+		// first time (its first sync): what's there isn't news, and no
+		// event's made of it.
+		had, err := kindsHeld(tx, name)
+		if err != nil {
+			return err
+		}
 		for _, t := range things {
 			no := func(why string) {
 				refused = append(refused, protocol.ThingRefused{Kind: t.Kind, Ref: t.Ref, Why: why})
@@ -322,12 +330,21 @@ func PutThings(root, name string, things []protocol.Thing) (refused []protocol.T
 				since = t.Since.UTC().Format(store.Stamp)
 			}
 			var wasChanged, wasStanding, wasSince, wasFields string
+			isNew := false
 			switch err := tx.QueryRow(`SELECT changed, standing, since, fields FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, t.Kind, t.Ref).Scan(&wasChanged, &wasStanding, &wasSince, &wasFields); {
 			case errors.Is(err, sql.ErrNoRows):
+				isNew = true
 			case err != nil:
 				return err
 			case wasChanged == changed && wasStanding == t.Standing && wasSince == since && wasFields == string(told):
 				continue // as ws has it
+			}
+			if had[t.Kind] {
+				if e, ok := thingEvent(name, kind.Ref, t, fields, isNew, wasStanding, wasFields); ok {
+					if _, err := events.Append(tx, e); err != nil {
+						return err
+					}
+				}
 			}
 			if _, err := tx.Exec(`INSERT INTO plugin_things (plugin, kind, ref, changed, standing, since, fields) VALUES (?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (plugin, kind, ref) DO UPDATE SET changed = excluded.changed, standing = excluded.standing, since = excluded.since, fields = excluded.fields`,
@@ -451,4 +468,75 @@ func AnswerThings(root, who, method string, params json.RawMessage) (answer any,
 		return protocol.ThingListResult{Refs: refs}, true, err
 	}
 	return nil, false, nil
+}
+
+// kindsHeld are the kinds of a plugin's things ws keeps any of.
+func kindsHeld(tx *store.Tx, name string) (map[string]bool, error) {
+	rows, err := tx.Query(`SELECT DISTINCT kind FROM plugin_things WHERE plugin = ? AND found = ''`, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			return nil, err
+		}
+		out[k] = true
+	}
+	return out, rows.Err()
+}
+
+// thingEvent is what a plugin's put of a thing comes to as an event, heard
+// of: thing.added for one ws didn't have, thing.changed with what changed
+// field by field (its standing too) for one it did. ok is false where
+// nothing a person would see changed (only when it says it changed).
+func thingEvent(plugin string, kind protocol.Ref, t protocol.Thing, now map[string]string, isNew bool, wasStanding, wasFields string) (events.Event, bool) {
+	e := events.Event{
+		Origin: events.Heard, By: events.ByPlugin(plugin), At: t.Changed,
+		Thing: t.Ref, ThingKind: plugin + ":" + t.Kind, Title: now[kind.Typed(protocol.FieldTitle)],
+	}
+	if e.At.IsZero() {
+		e.At = time.Now()
+	}
+	if isNew {
+		e.Kind = events.ThingAdded
+		return e, true
+	}
+	e.Kind = events.ThingChanged
+	was := map[string]string{}
+	_ = json.Unmarshal([]byte(wasFields), &was) // none: every field is new
+	for _, f := range kind.Fields {
+		from, to := was[f.Name], now[f.Name]
+		if from == to {
+			continue
+		}
+		c := events.FieldChange{Field: f.Name}
+		switch f.Type {
+		case protocol.FieldMarkdown, protocol.FieldText:
+			if len(from) <= changeShown && len(to) <= changeShown {
+				c.From, c.To = from, to
+			}
+		default:
+			c.From, c.To = clip(from, changeShown), clip(to, changeShown)
+		}
+		e.Changes = append(e.Changes, c)
+	}
+	if standing := firstStanding(t.Standing); standing != firstStanding(wasStanding) {
+		e.Changes = append(e.Changes, events.FieldChange{Field: "standing", From: firstStanding(wasStanding), To: standing})
+	}
+	return e, len(e.Changes) > 0
+}
+
+// changeShown is the longest value a field's change says as it was and
+// is.
+const changeShown = 200
+
+// firstStanding is a standing as ws reads it: none is open.
+func firstStanding(s string) string {
+	if s == "" {
+		return protocol.StandingOpen
+	}
+	return s
 }

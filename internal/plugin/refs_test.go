@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/plugin/kitplugin"
 	"github.com/withworkspace/workspace/internal/store"
@@ -922,5 +923,77 @@ func TestAPluginsThingStandsAsItSays(t *testing.T) {
 	}
 	if g := stands()["RAM-2"]; g.Standing != store.InForce || !g.Since.IsZero() {
 		t.Errorf("RAM-2 reopened stands %+v", g)
+	}
+}
+
+// What a plugin tells ws of its things is heard as it changes: a thing
+// added, a field changed, as it was and is (a long one only said to have
+// changed). A kind's first put is its first sync, and none of it's news.
+func TestAPluginsThingsChangingAreHeard(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{issueKind}); err != nil {
+		t.Fatal(err)
+	}
+	put := func(things ...protocol.Thing) {
+		t.Helper()
+		if refused, err := plugin.PutThings(root, "jira", things); err != nil || len(refused) > 0 {
+			t.Fatalf("put: %v %+v", err, refused)
+		}
+	}
+	heard := func() []events.Event {
+		t.Helper()
+		got, err := events.List(root, events.Filter{Origin: events.Heard, Only: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	put(issue("RAM-1", map[string]string{"title": "Token refresh is flaky", "status": "In Progress", "body": "first"}))
+	if got := heard(); len(got) != 0 {
+		t.Fatalf("the first sync was news: %+v", got)
+	}
+
+	put(
+		issue("RAM-1", map[string]string{"title": "Token refresh is flaky", "status": "Done", "assignee": "Dana", "body": "second"}),
+		issue("RAM-2", map[string]string{"title": "Cache the sessions"}),
+	)
+	got := heard()
+	if len(got) != 2 {
+		t.Fatalf("heard %+v", got)
+	}
+	changed, added := got[0], got[1]
+	if changed.Kind != events.ThingChanged || changed.Thing != "RAM-1" || changed.ThingKind != "jira:issue" ||
+		changed.Title != "Token refresh is flaky" || changed.By != "plugin:jira" {
+		t.Errorf("changed: %+v", changed)
+	}
+	want := map[string]events.FieldChange{
+		"status":   {Field: "status", From: "In Progress", To: "Done"},
+		"assignee": {Field: "assignee", From: "", To: "Dana"},
+		"body":     {Field: "body", From: "first", To: "second"},
+	}
+	for _, c := range changed.Changes {
+		if c != want[c.Field] {
+			t.Errorf("%s: %+v, want %+v", c.Field, c, want[c.Field])
+		}
+		delete(want, c.Field)
+	}
+	if len(want) != 0 {
+		t.Errorf("not said: %v", want)
+	}
+	if added.Kind != events.ThingAdded || added.Thing != "RAM-2" || added.Title != "Cache the sessions" {
+		t.Errorf("added: %+v", added)
+	}
+
+	long := strings.Repeat("a long description ", 20)
+	put(issue("RAM-2", map[string]string{"title": "Cache the sessions", "body": long}))
+	got = heard()
+	if c := got[len(got)-1].Changes; len(c) != 1 || c[0].Field != "body" || c[0].From != "" || c[0].To != "" {
+		t.Errorf("a long field's change: %+v", c)
+	}
+	n := len(got)
+	put(issue("RAM-2", map[string]string{"title": "Cache the sessions", "body": long}))
+	if len(heard()) != n {
+		t.Error("the same told again was heard")
 	}
 }

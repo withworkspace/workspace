@@ -11,9 +11,10 @@ import (
 
 // What a mission's log shares with the workspace's events (events) is
 // written to both in the same transaction, from appendLog: the mission
-// started, a capsule of it landed or burned, a pull request of it opened,
-// merged or failing its checks, a decision made, the mission ended. The
-// rest of its log stays its own.
+// started, flagged, waiting or ended; crew started, asking you something
+// or done; a bundle handed over; a step's checks judged; a capsule of it
+// landed or burned; a pull request of it opened, merged or failing its
+// checks; a decision made. The rest of its log stays its own.
 
 // withdrawLine is a decision line that withdraws one ("d1 withdrawn: …").
 var withdrawLine = regexp.MustCompile(`^d\d+ withdrawn: `)
@@ -38,6 +39,23 @@ func shared(slug string, e Event) (events.Event, bool) {
 			return out, false
 		}
 		out.Kind = events.DecisionMade
+	case EventCrewStarted:
+		out.Kind = events.CrewStarted
+	case EventCrewDone:
+		out.Kind = events.CrewDone
+	case EventCrewAsked:
+		out.Kind = events.CrewAsked
+	case EventFlag:
+		out.Kind = events.MissionFlagged
+	case EventWaiting:
+		out.Kind = events.MissionWaiting
+	case EventChecks:
+		out.Kind = events.ChecksJudged
+	case EventBundle:
+		if e.What != "" { // your verdict on one, not one handed over
+			return out, false
+		}
+		out.Kind = events.BundleHanded
 	case EventPR:
 		switch e.What {
 		case PREventOpened:
