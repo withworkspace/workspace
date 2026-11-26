@@ -321,32 +321,39 @@ func settle(root, name, key string, event int64, due time.Time) error {
 }
 
 // settled are name's keys whose events have been quiet till now, taken
-// from what's settling.
+// from what's settling. With none, nothing's written: a pass with
+// nothing to do writes nothing, or the loop that runs them would be told
+// of its own write and pass again, for good.
 func settled(root, name string, now time.Time) ([]settling, error) {
 	var out []settling
-	err := write(root, func(tx *store.Tx) error {
+	err := read(root, func(tx *store.Tx) error {
 		rows, err := tx.Query(`SELECT key, due, events FROM automation_settling WHERE name = ? AND due <= ?`, name, stampOf(now))
 		if err != nil {
 			return err
 		}
+		defer rows.Close()
 		for rows.Next() {
 			var st settling
 			var due, evs string
 			if err := rows.Scan(&st.key, &due, &evs); err != nil {
-				rows.Close()
 				return err
 			}
 			st.due = timeOf(due)
 			_ = json.Unmarshal([]byte(evs), &st.events)
 			out = append(out, st)
 		}
-		rows.Close()
+		return rows.Err()
+	})
+	if err != nil || len(out) == 0 {
+		return nil, err
+	}
+	err = write(root, func(tx *store.Tx) error {
 		for _, st := range out {
 			if _, err := tx.Exec(`DELETE FROM automation_settling WHERE name = ? AND key = ?`, name, st.key); err != nil {
 				return err
 			}
 		}
-		return rows.Err()
+		return nil
 	})
 	return out, err
 }

@@ -1,6 +1,7 @@
 package automation
 
 import (
+	"github.com/withworkspace/workspace/internal/store/storetest"
 	"strings"
 	"testing"
 	"time"
@@ -161,5 +162,35 @@ func TestWorkflow_PaceRefused(t *testing.T) {
 	a, _ := Check("x", []byte(`when = event("pr.checks_failed", at_most = "1/h", per = "pr")`))
 	if a.WhenSaid() != "pr.checks_failed (at_most=1/1h per=pr)" {
 		t.Errorf("said as %q", a.WhenSaid())
+	}
+}
+
+// A pass with nothing to do writes nothing: the daemon's loop is told of
+// every write, its own too, so one that wrote would pass again, for good.
+func TestWorkflow_IdlePassWritesNothing(t *testing.T) {
+	root := t.TempDir()
+	db := storetest.Own(t, root)
+	e := &Engine{Root: root, Hooks: Hooks{Notify: func(*Automation, string, []string) error { return nil }}}
+	for name, src := range map[string]string{
+		"drawing": drawing,
+		"deploy":  deploy,
+		"settled": `when = event("thing.changed", kind = "sketch", settle = "10m", per = "thing")` + "\n",
+	} {
+		if _, err := e.Add(name, []byte(src)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	emit(t, root, events.Event{Kind: events.PRMerged, Origin: events.Heard, By: events.ByPerson("alice"), PR: "api#212"})
+	emit(t, root, events.Event{Kind: events.ThingChanged, Origin: events.Heard, By: events.ByPerson("ana-ortiz"), Thing: "records/sketches/q/", ThingKind: "sketch"})
+	e.RunDue() // the deploy parks at its wait; the sketch settles
+	told, stop := db.Watch()
+	defer stop()
+	for range 3 {
+		e.RunDue()
+	}
+	select {
+	case <-told:
+		t.Error("a pass with nothing to do wrote")
+	default:
 	}
 }
