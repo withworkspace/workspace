@@ -24,6 +24,16 @@ export const narrowQuery = `(max-width: ${narrowBelow}px)`;
 export const docksFrom = 1560;
 export const docksQuery = `(min-width: ${docksFrom}px)`;
 
+// From this width a page that wants the room has it with the sidebar
+// open, and Beside docked too: the sidebar's column (244), Beside as it
+// rests (432 with its inset), and over 1,200 left for a diff, the files'
+// explorer, a mission. So the sidebar stays open on every page and going
+// from a list to a thing doesn't move the page. A 16" laptop is under it
+// (Beside docks, the sidebar still folds where a page wants the room); a
+// desktop's screen is over it.
+export const keepsSidebarFrom = 1920;
+export const keepsSidebarQuery = `(min-width: ${keepsSidebarFrom}px)`;
+
 export interface ChromeState {
   // The sidebar is hidden. It's yours to choose and holds until you undo
   // it; a page never does it.
@@ -89,10 +99,11 @@ export const resting: ChromeState = {
 
 // sidebarPlace is where the sidebar is drawn. A drawer on a narrow
 // window, whatever else. Nowhere if you've hidden it; otherwise the page
-// says, as it has: a page that wants the room gets the rail.
-export function sidebarPlace(s: ChromeState, wantsRoom: boolean, narrow = false): SidebarPlace {
+// says, as it has: a page that wants the room gets the rail, unless the
+// window's wide enough that it has the room anyway (keepsSidebarFrom).
+export function sidebarPlace(s: ChromeState, wantsRoom: boolean, narrow = false, wide = false): SidebarPlace {
   if (narrow) return "drawer";
-  return s.hidden ? "hidden" : wantsRoom ? "rail" : "open";
+  return s.hidden ? "hidden" : wantsRoom && !wide ? "rail" : "open";
 }
 
 export const hideSidebar = (s: ChromeState, hidden: boolean): ChromeState => ({ ...s, hidden });

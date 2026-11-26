@@ -32,7 +32,7 @@ import { Confirmer } from "./ui/Confirm";
 import { Below } from "./chrome/Below";
 import { useBelowViews } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
-import { docksQuery, floatBeside, hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
+import { docksQuery, floatBeside, hideSidebar, keepsSidebarQuery, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
 import { ConnectionBanner } from "./chrome/ConnectionBanner";
 import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
@@ -98,7 +98,10 @@ export function App() {
   // that asks for the chrome expanded (ws:chrome-layout), while ws is on
   // that plugin's pages.
   const expandedFor = useFrameExpanded();
-  const room = (wantsRoom(location.pathname) || (expandedFor !== undefined && expandedFor === onPlugin)) && !arranging;
+  // On a window wide enough that the page has the room anyway, it stays
+  // open (chromeState's keepsSidebarFrom).
+  const wide = useMedia(keepsSidebarQuery);
+  const room = (wantsRoom(location.pathname) || (expandedFor !== undefined && expandedFor === onPlugin)) && !arranging && !wide;
   // How this window is arranged, kept in the browser: whether you've
   // hidden the sidebar. On a narrow window it's a drawer whatever else.
   // It's the window's (chrome/store.ts), kept for the workspace: until the

@@ -7,6 +7,12 @@ describe("where the sidebar is", () => {
     expect(sidebarPlace(resting, true)).toBe("rail");
   });
 
+  it("stays open on a window wide enough, whatever the page wants, and hidden if you hid it", () => {
+    expect(sidebarPlace(resting, true, false, true)).toBe("open");
+    expect(sidebarPlace(hideSidebar(resting, true), true, false, true)).toBe("hidden");
+    expect(sidebarPlace(resting, true, true, true)).toBe("drawer");
+  });
+
   it("stays hidden once you hide it, whatever the page wants", () => {
     const hidden = hideSidebar(resting, true);
     expect(sidebarPlace(hidden, false)).toBe("hidden");
