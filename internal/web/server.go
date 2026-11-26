@@ -810,6 +810,17 @@ func (s *Server) shutdown(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) workspace(w http.ResponseWriter, r *http.Request) {
+	// While a page follows the workspace, its hub keeps the view current
+	// (built again when what it's built from moves, and every half a
+	// minute): the view's served as it's kept, built by nobody's read. A
+	// write from a page forgets it, so that page reads what it wrote.
+	if h := s.topics[topicWorkspace]; h != nil && h.watching() {
+		if data, ok := s.views.kept("workspace"); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(data)
+			return
+		}
+	}
 	data, err := s.views.workspace(s)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())

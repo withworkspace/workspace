@@ -148,6 +148,16 @@ func (c *viewCache) runs(s *Server) ([]byte, error) {
 	return c.get(s, topicRuns, s.runsStamp, func() (any, error) { return s.runsInfo() })
 }
 
+// kept is the view at key as last built, however long ago, if it's kept.
+func (c *viewCache) kept(key string) ([]byte, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if v := c.views[key]; v != nil {
+		return v.data, true
+	}
+	return nil, false
+}
+
 // forget drops what's kept: what it was built from has changed in a way
 // its stamp doesn't say (a write a page made, a test's App changed in
 // place).

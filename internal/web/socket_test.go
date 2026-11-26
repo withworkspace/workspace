@@ -443,3 +443,54 @@ func TestAppTopicKey(t *testing.T) {
 		}
 	}
 }
+
+// While a page follows the workspace, its view is served as the hub keeps
+// it: a read builds nothing, however long since it was built, and however
+// many there are.
+func TestWorkspaceView_ServedAsKeptWhileFollowed(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 50 * time.Millisecond, Assets: testApp, listener: ln}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, c)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "workspace"})
+	if got := st.next(3 * time.Second); got != "following workspace" {
+		t.Fatalf("following: %q", got)
+	}
+	built := func() int {
+		s.views.mu.Lock()
+		defer s.views.mu.Unlock()
+		return s.views.built["workspace"]
+	}
+	before := built()
+	for range 5 {
+		time.Sleep(60 * time.Millisecond) // past a poll each time
+		do(t, s, "GET", "/api/workspace", true, nil).Body.Close()
+	}
+	if n := built() - before; n != 0 {
+		t.Errorf("reads built the view %d times, want none", n)
+	}
+	(mission.Store{Root: root}).Create("Pushed")
+	if got := st.next(3 * time.Second); got != "changed workspace" {
+		t.Fatalf("after a mission's made: %q", got)
+	}
+	res := do(t, s, "GET", "/api/workspace", true, nil)
+	var ws Workspace
+	json.NewDecoder(res.Body).Decode(&ws)
+	res.Body.Close()
+	if len(ws.Missions) != 1 {
+		t.Errorf("told it changed, a page was served %d missions, want 1", len(ws.Missions))
+	}
+}
