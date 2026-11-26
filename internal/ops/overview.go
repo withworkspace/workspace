@@ -133,30 +133,27 @@ func (w *Workspace) Overview() (*Overview, error) {
 		idx = w.opts.PRs.Peek(ws, gh, MissionRepos(missions))
 	}
 	off := !w.Config().OrchestratorEnabled()
-	for _, v := range buildMissionViews(&w.git, ws, idx, missions) {
-		it := MissionItem{MissionView: v, Updated: MissionUpdated(w.Missions, v.M.Slug), Heads: map[string]string{}}
-		rrs := ReReviews(ws, v.M)
-		for _, rr := range rrs {
-			it.ReReview = append(it.ReReview, rr.Capsule)
-		}
-		brief, _ := w.Missions.ReadBrief(v.M.Slug)
-		events, _ := w.Missions.ReadLog(v.M.Slug, logTail)
-		// Its conversations, read once: for where its documents' threads
-		// stand, and for those of its conversations that are your turn.
-		talks := conversation.For(ws.Root, v.M.Slug)
-		threads, _ := talks.List()
-		snap := MissionSnapshot(v, brief, events, rrs, docThreadCourt(ws, v, brief, talks, threads), off)
-		hs := mission.Resolve(snap)
-		it.Headline, it.At = hs[0], snap.Position()
-		it.Act = leadAct(snap, hs, talks)
-		it.YourTurn = yourTurns(threads)
-		for _, c := range v.Capsules {
-			if c.Exists {
-				it.Heads[c.Repo+"/"+c.Name] = c.Head
+	// Each mission's row as kept, where what it's built from hasn't moved
+	// (overview_kept.go): built again here only where it has.
+	following := w.overview.catchUp(w.Root())
+	inPlay := map[string]bool{}
+	for _, m := range missions {
+		inPlay[m.Slug] = true
+		key := ""
+		if following {
+			key = w.overview.keyOf(m.Slug, w.missionStamp(m.Slug, m), off)
+			if it, ok := w.overview.item(m.Slug, key); ok {
+				out.Missions = append(out.Missions, it)
+				continue
 			}
+		}
+		it := w.missionItem(ws, idx, m, off)
+		if following {
+			w.overview.keep(m.Slug, key, it)
 		}
 		out.Missions = append(out.Missions, it)
 	}
+	w.overview.forgetBut(inPlay)
 	past, err := w.Missions.Past()
 	if err != nil {
 		return nil, err
@@ -165,6 +162,38 @@ func (w *Workspace) Overview() (*Overview, error) {
 		out.Missions = append(out.Missions, pastItem(ws, p))
 	}
 	return out, nil
+}
+
+// missionItem is a mission in play's row in the workspace's view: where
+// its capsules stand, its headline and what's to do about it, read and
+// worked out now.
+func (w *Workspace) missionItem(ws *workspace.Workspace, idx PRIndex, m *mission.Mission, off bool) MissionItem {
+	w.overview.mu.Lock()
+	w.overview.built++
+	w.overview.mu.Unlock()
+	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
+	it := MissionItem{MissionView: v, Updated: MissionUpdated(w.Missions, v.M.Slug), Heads: map[string]string{}}
+	rrs := ReReviews(ws, v.M)
+	for _, rr := range rrs {
+		it.ReReview = append(it.ReReview, rr.Capsule)
+	}
+	brief, _ := w.Missions.ReadBrief(v.M.Slug)
+	events, _ := w.Missions.ReadLog(v.M.Slug, logTail)
+	// Its conversations, read once: for where its documents' threads
+	// stand, and for those of its conversations that are your turn.
+	talks := conversation.For(ws.Root, v.M.Slug)
+	threads, _ := talks.List()
+	snap := MissionSnapshot(v, brief, events, rrs, docThreadCourt(ws, v, brief, talks, threads), off)
+	hs := mission.Resolve(snap)
+	it.Headline, it.At = hs[0], snap.Position()
+	it.Act = leadAct(snap, hs, talks)
+	it.YourTurn = yourTurns(threads)
+	for _, c := range v.Capsules {
+		if c.Exists {
+			it.Heads[c.Repo+"/"+c.Name] = c.Head
+		}
+	}
+	return it
 }
 
 // leadAct is the act that moves a mission in your court on: its lead

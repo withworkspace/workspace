@@ -112,6 +112,16 @@ func (w *Workspace) Stamp() string {
 // brief, files/, reviews, a run's output) and its capsules' HEAD, index
 // and HEAD's log. A few dozen stats, for a mission someone has open.
 func (w *Workspace) MissionStamp(slug string) string {
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		m = nil
+	}
+	return w.missionStamp(slug, m)
+}
+
+// missionStamp is MissionStamp of m as it was just read (nil: it couldn't
+// be).
+func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 	h := fnv.New64a()
 	note := func(path string) {
 		if info, err := os.Stat(path); err == nil {
@@ -135,7 +145,7 @@ func (w *Workspace) MissionStamp(slug string) string {
 		}
 		return nil
 	})
-	if m, err := w.Missions.Load(slug); err == nil {
+	if m != nil {
 		// What GitHub says of its repos' pull requests, when it's said
 		// something different (asked behind the page's read: PRCache).
 		for _, repo := range MissionRepos([]*mission.Mission{m}) {
