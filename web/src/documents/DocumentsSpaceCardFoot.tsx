@@ -16,7 +16,7 @@ export function DocumentsSpaceCardFoot({ stands, inFlight, drafts }: { stands: S
       <span>
         {stands && "cloned" in stands ? (
           <>
-            <Icon name="box" size={12} /> <Text mono>ws setup {stands.repo}</Text> clones it
+            <Icon name="box" size={12} /> Not cloned: run <Text mono>ws setup {stands.repo}</Text>
           </>
         ) : stands && "behind" in stands ? (
           <span className={css.behind}>

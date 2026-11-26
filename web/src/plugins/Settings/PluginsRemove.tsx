@@ -20,14 +20,14 @@ export function PluginsRemove({ name, names, onClose, onRemove }: PluginsRemoveP
   return (
     <Dialog title={`Remove ${name}?`} onClose={onClose}>
       <DialogText>
-        It's stopped and taken out of the workspace: its view leaves the sidebar, its commands go
-        {names?.length ? `, and its things' names (${names.join(", ")}) are words again wherever they're written` : ""}. Its config in <code>ws.toml</code> and{" "}
-        <code>ws.local.toml</code> is yours to remove.
+        Stops the plugin and removes its sidebar view and commands
+        {names?.length ? `, and its refs (${names.join(", ")}) stop being links` : ""}. Config in{" "}
+        <code>ws.toml</code> and <code>ws.local.toml</code> stays: remove it yourself.
       </DialogText>
       <Checkbox className={css.data} checked={data} onChange={setData}>
         <span>
-          Remove what it kept for itself too: its data, and its secrets
-          <Text dim className={css.alone}> Left alone, adding it again picks up where it was.</Text>
+          Also remove data and secrets
+          <Text dim className={css.alone}> If kept, adding it again picks up where it left off.</Text>
         </span>
       </Checkbox>
       <DialogActions>
@@ -35,7 +35,7 @@ export function PluginsRemove({ name, names, onClose, onRemove }: PluginsRemoveP
           Cancel
         </Button>
         <Button variant="danger" onClick={() => onRemove(data)}>
-          {data ? "Remove, and what it kept" : "Remove"}
+          {data ? "Remove with data" : "Remove"}
         </Button>
       </DialogActions>
     </Dialog>

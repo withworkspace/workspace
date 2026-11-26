@@ -8,7 +8,7 @@ import type { StatusInfo } from "../ui/Status";
 export const periods: { since: string; label: string; title: string }[] = [
   { since: "today", label: "Today", title: "Today" },
   { since: "7d", label: "7 days", title: "The last 7 days" },
-  { since: "", label: "All", title: "As far back as ws has looked" },
+  { since: "", label: "All", title: "All loaded history" },
 ];
 
 export const stateInfo: Record<StrandState, StatusInfo> = {
@@ -20,10 +20,10 @@ export const stateInfo: Record<StrandState, StatusInfo> = {
 
 // What each kind of thing worth knowing is called, and drawn with.
 export const knowInfo: Record<KnowKind, { label: string; icon: IconName; title: string }> = {
-  contract: { label: "Contract", icon: "link", title: "Something other code calls or reads has changed shape" },
+  contract: { label: "Contract", icon: "link", title: "An API or data shape changed" },
   action: { label: "To do", icon: "alert", title: "Something you may have to do" },
   convention: { label: "How we work", icon: "book", title: "How things are done here has changed" },
-  removed: { label: "Removed", icon: "minus", title: "Something was taken away or deprecated" },
+  removed: { label: "Removed", icon: "minus", title: "Something removed or deprecated" },
   behaviour: { label: "Behaviour", icon: "eye", title: "What users or callers see has changed" },
 };
 
@@ -50,16 +50,16 @@ export function eventIcon(e: TeamEvent): IconName {
 export function eventWords(e: TeamEvent): string {
   switch (e.kind) {
     case "opened":
-      return "opened it";
+      return "opened";
     case "ready":
-      return "made it ready for review";
+      return "marked ready for review";
     case "reviewed":
-      return e.verdict === "approved" ? "approved it" : e.verdict === "changes" ? "asked for changes" : "commented";
+      return e.verdict === "approved" ? "approved" : e.verdict === "changes" ? "requested changes" : "commented";
     case "merged":
       return "landed it";
     case "closed":
       return "Closed without merging";
     default:
-      return `landed, straight on ${e.branch || "the default branch"}: `;
+      return `landed straight on ${e.branch || "the default branch"}: `;
   }
 }

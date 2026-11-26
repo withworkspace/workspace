@@ -10,7 +10,8 @@ export function WindowLost({ for: lost }: { for: string }) {
     <div className={css.lost} role="status">
       <Spinner />
       <span>
-        Lost the workspace's daemon {lost} ago. Reconnecting… What's here may be out of date; <code>ws web</code> starts it again.
+        Lost connection to Workspace {lost} ago. Reconnecting… This page may be out of date. Run{" "}
+        <code>ws web</code> to start it again.
       </span>
     </div>
   );

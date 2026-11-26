@@ -39,6 +39,6 @@ export const onRoute = (at: string) => /^(?:Step|Stage) \d+ of \d+/.exec(at)?.[0
 export const listKeys: [string, string][] = [
   ["j / k", "Next / previous mission"],
   ["g / G", "First / last"],
-  ["⏎ / o", "Open it"],
+  ["⏎ / o", "Open"],
   ["⇧A", "Show or hide past missions"],
 ];

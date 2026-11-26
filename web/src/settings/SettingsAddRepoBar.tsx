@@ -32,7 +32,7 @@ export function SettingsAddRepoBar({ owners, owner, another, naming, named, filt
   return (
     <div className={css.top}>
       {owners.length > 0 ? (
-        <Select aria-label="Whose repos" value={another ? ANOTHER : owner} onChange={(v) => (v === ANOTHER ? onAnother() : onOwner(v))}>
+        <Select aria-label="Owner" value={another ? ANOTHER : owner} onChange={(v) => (v === ANOTHER ? onAnother() : onOwner(v))}>
           {[
             ...owners.map((o) => (
               <Option key={o.login} value={o.login} note={o.you ? "you" : undefined}>
@@ -46,12 +46,12 @@ export function SettingsAddRepoBar({ owners, owner, another, naming, named, filt
         </Select>
       ) : null}
       {naming && <Input className={css.owner} placeholder="owner on GitHub" aria-label="Owner on GitHub" value={named} onChange={(e) => onNamed(e.target.value)} autoFocus />}
-      <Input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={filter} onChange={(e) => onFilter(e.target.value)} />
+      <Input className={css.filter} placeholder="Filter…" aria-label="Filter repos" value={filter} onChange={(e) => onFilter(e.target.value)} />
       <Text dim className={css.when}>
         {when}
         {!looking && (
           <Button variant="link" onClick={onLook}>
-            Look again
+            Refresh
           </Button>
         )}
       </Text>

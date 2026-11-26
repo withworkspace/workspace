@@ -28,7 +28,7 @@ export function PullRequestUnsent({ unsent, busy, onResend, onDiscard }: Props) 
           icon="alert"
           actions={
             <>
-              <Button size="small" disabled={busy === u.id} onClick={() => onResend(u)} title="Send it to GitHub again">
+              <Button size="small" disabled={busy === u.id} onClick={() => onResend(u)} title="Send to GitHub again">
                 Try again
               </Button>
               <Button
@@ -36,14 +36,14 @@ export function PullRequestUnsent({ unsent, busy, onResend, onDiscard }: Props) 
                 size="small"
                 disabled={busy === u.id}
                 onClick={() => onDiscard(u)}
-                title={u.draft ? "Make it your draft again, with its comments: it isn't posted" : "Let go of it: it isn't sent"}
+                title={u.draft ? "Restore as draft, with comments" : "Discard without sending"}
               >
-                {u.draft ? "Back to a draft" : "Discard"}
+                {u.draft ? "Restore draft" : "Discard"}
               </Button>
             </>
           }
         >
-          {capital(u.doing)} didn’t reach GitHub: {humanError(u.error)}
+          {capital(u.doing)} did not reach GitHub: {humanError(u.error)}
           {u.body && <span className={css.said}> “{clip(u.body, 140)}”</span>}
         </Banner>
       ))}

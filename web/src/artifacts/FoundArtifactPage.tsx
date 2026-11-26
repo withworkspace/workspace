@@ -49,7 +49,7 @@ export function FoundArtifactPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <ErrorCard error={error} retry={reload} keys="r" title={`Couldn't open ${name}`} />
+        <ErrorCard error={error} retry={reload} keys="r" title={`Could not open ${name}`} />
         <p>
           <Link to="/artifacts">Back to Artifacts</Link>
         </p>
@@ -69,10 +69,10 @@ export function FoundArtifactPage() {
             <Icon name="check-circle" size={11} />
             Promoted
           </Chip>
-          <ArtifactTitleRef text={d.where} title="Copy where it lives" />
+          <ArtifactTitleRef text={d.where} title="Copy folder path" />
         </ArtifactTitleLine>
         <ArtifactNote dim>
-          <Icon name="branch" size={12} /> It lives in {d.label}, at <Text mono>{d.where}</Text>
+          <Icon name="branch" size={12} /> Lives in {d.label}, at <Text mono>{d.where}</Text>
           {d.promoted ? (
             <>
               : v{d.promoted.version}, promoted <Time iso={d.promoted.at} as="relative" /> by {d.promoted.by}
@@ -82,7 +82,7 @@ export function FoundArtifactPage() {
               , last changed <Time iso={d.changed} as="relative" /> by {d.changedBy}
             </>
           ) : null}
-          . {filesWords(d.files.length, d.size)}. It isn't on this machine: it runs from the repo's files.
+          . {filesWords(d.files.length, d.size)}. Runs from the repo, not this machine.
         </ArtifactNote>
         {there?.note && (
           <ArtifactNote>
@@ -98,12 +98,12 @@ export function FoundArtifactPage() {
             ))}
           </Segmented>
           <ArtifactToolsEnd>
-            <Button variant="ghost" size="small" onClick={again} disabled={!page} title="Run it again, as the repo has it now" keys="r">
+            <Button variant="ghost" size="small" onClick={again} disabled={!page} title="Run again from the repo" keys="r">
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
             </Button>
             {page && (
-              <a className={buttonClass({ variant: "ghost" })} href={d.frame} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In a tab of its own, still sandboxed")}>
-                <Icon name="external" size={13} /> Open alone
+              <a className={buttonClass({ variant: "ghost" })} href={d.frame} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In new tab, still sandboxed")}>
+                <Icon name="external" size={13} /> Open in new tab
               </a>
             )}
           </ArtifactToolsEnd>
@@ -114,7 +114,7 @@ export function FoundArtifactPage() {
           {page ? (
             <ArtifactFrame src={d.frame} title={d.title} px={px} frameKey={`${d.version}#${run}`} />
           ) : (
-            <ArtifactEmpty icon="alert" title="There's no file to run">
+            <ArtifactEmpty icon="alert" title="No file to run">
               {d.where} has no index.html.
             </ArtifactEmpty>
           )}

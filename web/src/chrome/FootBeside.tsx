@@ -26,8 +26,8 @@ type FootBesideProps = {
 export function FootBeside({ open, waiting = 0, onPress, over = false, onOver }: FootBesideProps) {
   const marked = !open && waiting > 0;
   const menu = useContextMenu();
-  const says = open ? "Close Beside" : marked ? `Beside: ${waiting === 1 ? "something" : `${waiting} things`} to peek at` : "Beside: a peek at a second thing, next to the page";
-  const float = over ? "Dock it: the page makes room" : "Float it over the page";
+  const says = open ? "Close Beside" : marked ? `Beside: ${waiting === 1 ? "something" : `${waiting} things`} to peek at` : "Open Beside";
+  const float = over ? "Dock" : "Float over page";
   return (
     <FootItem
       on={open}

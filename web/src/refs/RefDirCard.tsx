@@ -25,11 +25,11 @@ export function RefDirCard({ r: named, known, pane }: { r: Extract<PageRef, { ki
       <RefCardHead icon="layers" title={`${r.path}/`} mono />
       <HoverCardLine dim>
         {r.repo}, {r.worktree === GROUND ? "default branch" : r.worktree}
-        {tree && !tree.unread ? `, ${names.length} ${names.length === 1 ? "thing" : "things"} in it` : ""}
+        {tree && !tree.unread ? `, ${names.length} ${names.length === 1 ? "thing" : "things"}` : ""}
       </HoverCardLine>
-      {tree?.unread && <HoverCardLine dim>Its files are still being read.</HoverCardLine>}
+      {tree?.unread && <HoverCardLine dim>Loading files…</HoverCardLine>}
       {gone && !tree?.unread && <RefGone r={named} there={names.length > 0} />}
-      {error && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
+      {error && <HoverCardLine dim>Could not read: {error}</HoverCardLine>}
       {names.length > 0 && (
         <RefExcerpt raised={pane} more={names.length > excerptRoom}>
           {names.slice(0, excerptRoom).map((n) => (
@@ -37,7 +37,7 @@ export function RefDirCard({ r: named, known, pane }: { r: Extract<PageRef, { ki
           ))}
         </RefExcerpt>
       )}
-      <RefGo to={refHref(r)}>Open it in Files</RefGo>
+      <RefGo to={refHref(r)}>Open in Files</RefGo>
     </>
   );
 }

@@ -12,7 +12,7 @@ export function TweaksToggle({ told, shown, onToggle, keys }: { told: Told | und
   if (!hasTweaks(told)) return null;
   const n = changed(told).length;
   return (
-    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it" keys={keys}>
+    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="Show or hide tweaks" keys={keys}>
       <Icon name="sliders" size={13} /> Tweaks
       {n ? <Count>{n}</Count> : null} {keys && <Keys k={keys} />}
     </ToggleButton>

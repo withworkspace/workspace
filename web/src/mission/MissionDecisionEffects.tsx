@@ -6,12 +6,12 @@ import css from "./MissionDecisionEffects.module.css";
 
 type Mark = { icon: IconName; tone: string; words: string };
 const marks: Record<string, Mark> = {
-  met: { icon: "check-circle", tone: css.met, words: "judged met with it" },
-  unmet: { icon: "x-circle", tone: css.unmet, words: "judged unmet, with it named" },
+  met: { icon: "check-circle", tone: css.met, words: "met, citing this decision" },
+  unmet: { icon: "x-circle", tone: css.unmet, words: "unmet, citing this decision" },
 };
 // A check that came out some other way (can't tell), and a step passed.
-const other: Mark = { icon: "question", tone: css.open, words: "judged with it named" };
-const passed: Mark = { icon: "check", tone: css.met, words: "passed on it" };
+const other: Mark = { icon: "question", tone: css.open, words: "judged, citing this decision" };
+const passed: Mark = { icon: "check", tone: css.met, words: "passed on this decision" };
 
 // MissionDecisionEffects is where a decision was reckoned with, a line
 // each: a step's check whose verdict names it, with how the check came
@@ -19,7 +19,7 @@ const passed: Mark = { icon: "check", tone: css.met, words: "passed on it" };
 export function MissionDecisionEffects({ effects }: { effects: DecisionEffect[] }) {
   if (!effects.length) return null;
   return (
-    <ul className={css.effects} aria-label="Where it was reckoned with">
+    <ul className={css.effects} aria-label="Where applied">
       {effects.map((e) => {
         const m = e.check ? (marks[e.result ?? ""] ?? other) : passed;
         return (

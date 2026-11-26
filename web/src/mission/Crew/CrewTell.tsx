@@ -45,25 +45,25 @@ export function CrewTell({ slug, id, crew, live, working, field }: { slug: strin
       onSend={send}
       tallest={280}
       aria-label={`Message ${id}`}
-      placeholder={live ? (working ? `Tell ${id} something: it reads it when this step's done` : `Tell ${id} what's next…`) : `Resume ${id} with a message…`}
+      placeholder={live ? (working ? `Message ${id}: read after this step` : `Tell ${id} what's next…`) : `Resume ${id} with a message…`}
       hint={
         live && crew?.structured ? (
           <>
-            <Icon name="message" size={12} /> Sent to it as a message{working ? ", for when this turn ends" : ""}.
+            <Icon name="message" size={12} /> Sent as a message{working ? ", for when this turn ends" : ""}.
           </>
         ) : live ? (
           <>
-            <Icon name="terminal" size={12} /> Typed into its terminal and sent, as if you'd typed it there.
+            <Icon name="terminal" size={12} /> Typed into the terminal.
           </>
         ) : (
           <>
-            <Icon name="rotate" size={12} /> It's ended: this starts it again, in its capsule, with your message.
+            <Icon name="rotate" size={12} /> Ended: sending resumes with your message.
           </>
         )
       }
       also={
         working && (
-          <Button variant="ghost" onClick={interrupt} title="Stop what it's doing now (its turn), not the crew">
+          <Button variant="ghost" onClick={interrupt} title="Stop current turn">
             <Icon name="stop" size={12} /> Interrupt
           </Button>
         )

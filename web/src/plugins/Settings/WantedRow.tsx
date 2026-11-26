@@ -23,7 +23,7 @@ export function WantedRow({ w, reload, onFailed }: { w: WantedPlugin; reload: Re
       })
       .catch(async (e: Error) => {
         await reload();
-        onFailed(failed(`Couldn't add ${w.name}`, e));
+        onFailed(failed(`Could not add ${w.name}`, e));
       })
       .finally(() => setBusy(false));
   };
@@ -35,7 +35,7 @@ export function WantedRow({ w, reload, onFailed }: { w: WantedPlugin; reload: Re
       version={w.version}
       source={w.source}
       actions={
-        <Button size="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
+        <Button size="small" onClick={add} disabled={busy || !w.source} title={`Install from ${w.source}`}>
           {busy ? <Spinner size={11} /> : <Icon name="plus" size={11} />} {busy ? "Adding…" : "Add"}
         </Button>
       }

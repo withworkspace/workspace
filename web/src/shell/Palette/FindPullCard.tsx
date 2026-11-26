@@ -19,7 +19,7 @@ export function FindPullCard({ pull: p }: { pull: PullFound }) {
         <HoverCardTitle>{p.asks ? `${p.repo}#${p.number}` : p.title}</HoverCardTitle>
       </HoverCardHead>
       {p.asks ? (
-        <HoverCardLine dim>It isn't among the open pull requests here. Choosing it asks GitHub.</HoverCardLine>
+        <HoverCardLine dim>Not among open pull requests. Choose to fetch from GitHub.</HoverCardLine>
       ) : (
         <>
           <HoverCardLine dim>

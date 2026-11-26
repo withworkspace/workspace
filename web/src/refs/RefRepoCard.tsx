@@ -24,8 +24,8 @@ export function RefRepoCard({ r, label }: { r: Extract<PageRef, { kind: "repo" }
           {capsules.length === 0 ? "No capsules" : `${capsules.length} ${capsules.length === 1 ? "capsule" : "capsules"}: ${capsules.map((c) => c.name).join(", ")}`}
         </HoverCardLine>
       )}
-      {error && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
-      <RefGo to={refHref(r)}>Open it in Files</RefGo>
+      {error && <HoverCardLine dim>Could not read: {error}</HoverCardLine>}
+      <RefGo to={refHref(r)}>Open in Files</RefGo>
     </>
   );
 }

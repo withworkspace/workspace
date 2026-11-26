@@ -21,7 +21,7 @@ type MissionVerifyCheckProps = {
 // it came to, what was said of it, and what shows it.
 export function MissionVerifyCheck({ verdict, meta, title, said, points, children, yours }: MissionVerifyCheckProps) {
   return (
-    <article className={css.check} aria-label="The check, and what shows it">
+    <article className={css.check} aria-label="Check and evidence">
       <header>
         <div className={css.top}>
           {verdict}

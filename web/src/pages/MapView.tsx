@@ -97,10 +97,10 @@ export function MapView({ map, passes, toPass, goTo, openCell }: { map: MapData;
         </PageMapSection>
       )}
       {map.sources.length > 0 && (
-        <PageMapSection title="Rests on">
+        <PageMapSection title="Sources">
           {map.sources.map(({ src, cells }) => {
             const name = sourceName(src);
-            const title = `${name}${src.state === "gone" ? ": gone since" : src.state ? ": changed since" : ""}${cells > 1 ? ` (${cells} cells)` : ""}`;
+            const title = `${name}${src.state === "gone" ? ": deleted since" : src.state ? ": changed since" : ""}${cells > 1 ? ` (${cells} cells)` : ""}`;
             return (
               <li key={src.path}>
                 <PageMapItem to={sourceHref(src)} look={src.state ? "moved" : undefined} title={title}>

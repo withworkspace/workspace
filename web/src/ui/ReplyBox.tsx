@@ -43,7 +43,7 @@ export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "R
         <Button variant="ghost" size="small" onClick={onCancel} title="Cancel" keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title="Send it" keys={sendKeys(key)}>
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title="Send" keys={sendKeys(key)}>
           {send}
         </Button>
       </div>

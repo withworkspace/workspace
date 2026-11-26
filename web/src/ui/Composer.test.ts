@@ -23,8 +23,8 @@ describe("Composer", () => {
   });
 
   it("has a bar under the words, with the keys that send before what's pressed", () => {
-    const out = html({ hint: "It changes nothing." }, "Send");
-    expect(out).toMatch(/<\/textarea><div[^>]*><span[^>]*>It changes nothing\.<\/span><span class="[^"]*"><kbd>[^<]*⏎<\/kbd><\/span>Send<\/div>/);
+    const out = html({ hint: "No changes." }, "Send");
+    expect(out).toMatch(/<\/textarea><div[^>]*><span[^>]*>No changes\.<\/span><span class="[^"]*"><kbd>[^<]*⏎<\/kbd><\/span>Send<\/div>/);
   });
 
   it("shows ⏎ alone where that's what sends", () => {

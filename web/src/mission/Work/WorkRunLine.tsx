@@ -50,7 +50,7 @@ export function WorkRunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; st
       }
       action={
         live && (
-          <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="End it now">
+          <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="Stop now">
             {busy ? <Spinner size={11} /> : <Icon name="stop" size={11} />} Stop
           </Button>
         )
@@ -58,7 +58,7 @@ export function WorkRunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; st
     >
       <RunName title={r.command}>{r.name}</RunName>
       {live ? (
-        <RunLink href={r.link} title={`${r.up ? "Open it" : "Nothing's listening on its port yet"}${r.link !== r.local ? `: ${r.local.replace(/^https?:\/\//, "")}` : ""}`}>
+        <RunLink href={r.link} title={`${r.up ? "Open" : "Not up yet"}${r.link !== r.local ? `: ${r.local.replace(/^https?:\/\//, "")}` : ""}`}>
           {r.link.replace(/^https?:\/\//, "").replace(/\/$/, "")}
         </RunLink>
       ) : (

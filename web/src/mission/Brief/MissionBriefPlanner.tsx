@@ -41,14 +41,14 @@ export function MissionBriefPlanner({ label, centre, reading, talk, action, onFo
         <TurnAvatar by="agent" />
         <span className={css.name}>Planner</span>
         {talk && (
-          <Link to={talk.to} className={css.id} title="The whole conversation, on its own page">
+          <Link to={talk.to} className={css.id} title="Open full conversation">
             <Icon name="message" size={11} /> {talk.id}
           </Link>
         )}
         <span className={css.spacer} />
         {action}
         {onFold && (
-          <Button variant="ghost" square type="button" onClick={onFold} title="Fold the planner away" keys="p" aria-label="Fold the planner away">
+          <Button variant="ghost" square type="button" onClick={onFold} title="Hide planner" keys="p" aria-label="Hide planner">
             <Icon name="panel" size={14} />
           </Button>
         )}

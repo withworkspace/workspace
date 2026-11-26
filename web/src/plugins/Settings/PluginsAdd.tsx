@@ -29,7 +29,7 @@ export function PluginsAdd({ value, onChange, busy, onAdd }: PluginsAddProps) {
         <Input
           type="text"
           value={value}
-          placeholder="owner/repo, or a folder on this machine"
+          placeholder="owner/repo or local folder"
           spellCheck={false}
           autoComplete="off"
           autoCapitalize="off"
@@ -42,9 +42,9 @@ export function PluginsAdd({ value, onChange, busy, onAdd }: PluginsAddProps) {
         {busy ? <Spinner size={12} /> : <Icon name="plus" size={12} />} {busy ? "Adding…" : "Add"}
       </Button>
       <p id="plugins-add-about" className={css.about}>
-        A repo on GitHub is installed from its latest release (<code>owner/repo@v1.2.0</code> for another), checked against the release's checksums; one with no build for
-        this machine is built here from its source. A folder is copied in, by its whole path or from <code>~</code>. A plugin is a program that runs as you: add one as
-        you'd install any other.
+        GitHub repos install from their latest release (<code>owner/repo@v1.2.0</code> for another), verified
+        by checksum, or build from source. Folders, by full path or from <code>~</code>, are copied in.
+        Plugins run as you: only add ones you trust.
       </p>
     </form>
   );

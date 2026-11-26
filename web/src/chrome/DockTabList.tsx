@@ -33,7 +33,7 @@ export function DockTabList({ lots }: DockTabListProps) {
     <Menu
       className={css.pop}
       placement="bottom end"
-      aria-label="Every tab"
+      aria-label="All tabs"
       trigger={
         <Button variant="bare" data-field aria-label={`All ${count} tabs`} className={css.button}>
           <span className={css.count}>{count}</span>

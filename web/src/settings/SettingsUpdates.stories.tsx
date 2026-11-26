@@ -48,7 +48,7 @@ export const Updates: StoryObj = {
 export const Facts: StoryObj = {
   render: () => (
     <div style={{ maxWidth: 824, margin: "0 auto", padding: 32 }}>
-      <SettingsBlock title="ws">
+      <SettingsBlock title="Workspace">
         <SettingsFacts>
           <SettingsFact term="Version">
             <Text mono>v0.15.0</Text>

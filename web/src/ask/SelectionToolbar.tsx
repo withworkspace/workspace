@@ -24,17 +24,17 @@ type SelectionToolbarProps = {
 // selection (and the focus) where they are.
 export function SelectionToolbar({ left, top, onAsk, askTitle = "Ask about this passage", onExplain, onLink, ref }: SelectionToolbarProps) {
   return (
-    <div ref={ref} className={css.tool} role="toolbar" aria-label="The passage picked out" style={{ left, top }} onMouseDown={(e) => e.preventDefault()}>
+    <div ref={ref} className={css.tool} role="toolbar" aria-label="Selection" style={{ left, top }} onMouseDown={(e) => e.preventDefault()}>
       <Button type="button" onClick={onAsk} title={askTitle} keys="a">
         <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
       </Button>
       {onExplain && (
-        <Button type="button" onClick={onExplain} title="Ask for this passage to be explained">
+        <Button type="button" onClick={onExplain} title="Explain passage">
           <Icon name="quote" size={12} /> Explain
         </Button>
       )}
       {onLink && (
-        <Button type="button" onClick={onLink} title="Copy a link to where it is: its section">
+        <Button type="button" onClick={onLink} title="Copy link to section">
           <Icon name="link" size={12} /> Link
         </Button>
       )}

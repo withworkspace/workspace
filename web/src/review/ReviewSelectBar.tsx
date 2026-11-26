@@ -17,12 +17,12 @@ export function ReviewSelectBar({ label, onComment, onAsk }: { label: string; on
         </Button>
       )}
       {onAsk && (
-        <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here" keys="a">
+        <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines" keys="a">
           Ask <Keys k="a" />
         </Button>
       )}
       <Text dim>
-        <Keys k="esc" /> clears
+        <Keys k="esc" /> to clear
       </Text>
     </div>
   );

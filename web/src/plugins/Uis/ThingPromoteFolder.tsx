@@ -21,8 +21,8 @@ export function ThingPromoteFolder({ label, under, group, onUnder, folders, busy
   return (
     <div className={css.field}>
       <label>
-        <Text dim>In a folder there, if you like</Text>
-        <Input type="text" className={textClass("mono")} value={under} placeholder="cross-stack" aria-label={`A folder of ${label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => onUnder(e.currentTarget.value)} />
+        <Text dim>Folder (optional)</Text>
+        <Input type="text" className={textClass("mono")} value={under} placeholder="cross-stack" aria-label={`Folder in ${label}`} list="thing-ui-groups" disabled={busy} onChange={(e) => onUnder(e.currentTarget.value)} />
       </label>
       <datalist id="thing-ui-groups">
         {folders.map((g) => (
@@ -30,7 +30,7 @@ export function ThingPromoteFolder({ label, under, group, onUnder, folders, busy
         ))}
       </datalist>
       {folders.length > 0 && (
-        <div className={css.folders} role="group" aria-label="The folders in use there">
+        <div className={css.folders} role="group" aria-label="Existing folders">
           {folders.slice(0, 8).map((g) => (
             <button key={g} type="button" className={chipClass(undefined, css.folder)} aria-pressed={group === g} disabled={busy} onClick={() => onUnder(group === g ? "" : g)}>
               {g}

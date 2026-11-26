@@ -28,7 +28,7 @@ export function MissionVerifyBundle({ id, title, standing, left = 0, selected, o
       <span className={css.title}>{title}</span>
       {standing}
       {left > 0 && (
-        <Count tone="attention" title={`${left} of its checks ${left === 1 ? "is" : "are"} left for you`}>
+        <Count tone="attention" title={`${left} of the checks ${left === 1 ? "is" : "are"} left for you`}>
           {left}
         </Count>
       )}

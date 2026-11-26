@@ -34,7 +34,7 @@ export function MissionLead({
   children?: ReactNode;
 }) {
   return (
-    <section className={cx(css.lead, toneClass(tone))} role={tone === "danger" ? "alert" : undefined} aria-label="Where it stands">
+    <section className={cx(css.lead, toneClass(tone))} role={tone === "danger" ? "alert" : undefined} aria-label="Status">
       <div className={css.main}>
         <div className={css.body}>
           {step && <div className={css.step}>{step}</div>}

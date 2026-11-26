@@ -66,9 +66,9 @@ describe("what a plugin's page has asked ws to show", () => {
 
   it("says why, for one ws hasn't, and for one that isn't given what it takes", () => {
     const { uis } = frame();
-    expect(uis.open({ id: 1, ui: "date-picker", with: {} })).toBe("This ws has no UI called date-picker. Update ws.");
+    expect(uis.open({ id: 1, ui: "date-picker", with: {} })).toBe("Workspace has no UI called date-picker. Update Workspace.");
     // A name that's something of every object's is still no UI.
-    expect(uis.open({ id: 2, ui: "toString", with: {} })).toBe("This ws has no UI called toString. Update ws.");
+    expect(uis.open({ id: 2, ui: "toString", with: {} })).toBe("Workspace has no UI called toString. Update Workspace.");
     expect(uis.open({ id: 3, ui: "thing-remote-save", with: {} })).toBe("thing-remote-save is asked for with a thing.");
     expect(uis.opened()).toEqual([]);
     expect(uis.hovered()).toBeUndefined();
@@ -93,8 +93,8 @@ describe("what a plugin's page has asked ws to show", () => {
     expect(uis.opened().map((o) => o.ui)).toEqual(["thing-promote", "thing-save"]);
     expect(uis.hovered()).toBeUndefined();
     // A thing is its kind and the plugin's name for it: without them, why not is said.
-    expect(uis.open({ id: 3, ui: "thing-save", with: { kind: "sketch" } })).toMatch(/thing-save is asked for with the thing's kind and the plugin's name for it/);
-    expect(uis.open({ id: 4, ui: "thing-promote", with: { ref: "sketch-12", kind: " " } })).toMatch(/thing-promote is asked for with/);
+    expect(uis.open({ id: 3, ui: "thing-save", with: { kind: "sketch" } })).toMatch(/thing-save needs the thing's kind and the plugin's ref for it/);
+    expect(uis.open({ id: 4, ui: "thing-promote", with: { ref: "sketch-12", kind: " " } })).toMatch(/thing-promote needs the thing's kind/);
     // ws is done with one: the page is told what came of it, and nothing for one dismissed.
     const there = { thing: { name: "records/sketches/release-flow/", repo: "records", path: "sketches/release-flow/", title: "Release flow", version: "3f9c2a" }, changed: true };
     uis.done(1, there);

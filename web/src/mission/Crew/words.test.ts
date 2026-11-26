@@ -16,8 +16,8 @@ describe("wantsTo", () => {
   it("reads it off crew's screen when the transcript hasn't the step", () => {
     const screen = { title: "Bash command: Do you want to make this edit to greet_test.go?", context: ["greet_test.go"], options: [] };
     expect(wantsTo(undefined, screen, screen.context)).toBe("make this edit to greet_test.go");
-    expect(wantsTo(undefined, screen, [])).toBe("go on");
-    expect(wantsTo(undefined, undefined, undefined)).toBe("go on");
+    expect(wantsTo(undefined, screen, [])).toBe("continue");
+    expect(wantsTo(undefined, undefined, undefined)).toBe("continue");
   });
 });
 

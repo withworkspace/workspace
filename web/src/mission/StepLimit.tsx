@@ -6,14 +6,14 @@ import { MissionPlanNote } from "./MissionPlanNote";
 export function StepLimit({ s }: { s: Stage }) {
   if (s.outOfTime) {
     return (
-      <MissionPlanNote icon="clock" late title={`Its limit (${s.limit}) ran out while its crew were at it`}>
+      <MissionPlanNote icon="clock" late title={`Limit (${s.limit}) ran out mid-work`}>
         out of time
       </MissionPlanNote>
     );
   }
   const at = s.deadline ? new Date(s.deadline) : null;
   return (
-    <MissionPlanNote icon="clock" title={`Its limit: ${s.limit}. ws holds the clock from when crew start on it.`}>
+    <MissionPlanNote icon="clock" title={`Limit: ${s.limit}, from when crew start.`}>
       {at ? `until ${at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : (s.limit ?? "").split(/[,;]/)[0]}
     </MissionPlanNote>
   );

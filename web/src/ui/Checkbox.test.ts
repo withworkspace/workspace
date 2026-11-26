@@ -3,14 +3,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Checkbox } from "./Checkbox";
 
-const html = (props: Partial<Parameters<typeof Checkbox>[0]> = {}) => renderToStaticMarkup(h(Checkbox, { checked: false, onChange: () => {}, children: "Open it as a draft", ...props }));
+const html = (props: Partial<Parameters<typeof Checkbox>[0]> = {}) => renderToStaticMarkup(h(Checkbox, { checked: false, onChange: () => {}, children: "Open as draft", ...props }));
 
 describe("Checkbox", () => {
   it("is a label over a checkbox, with its words", () => {
     const out = html();
     expect(out).toMatch(/^<label /);
     expect(out).toMatch(/<input [^>]*type="checkbox"/);
-    expect(out).toContain("Open it as a draft");
+    expect(out).toContain("Open as draft");
   });
 
   it("says whether it's ticked", () => {

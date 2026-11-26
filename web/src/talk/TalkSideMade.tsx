@@ -12,9 +12,9 @@ export function TalkSideMade({ onWhere, children }: { onWhere?: () => void; chil
     <li className={css.made}>
       {children}
       {onWhere && (
-        <Button variant="ghost" square className={css.where} onClick={onWhere} title="Where it was proposed, in the conversation">
+        <Button variant="ghost" square className={css.where} onClick={onWhere} title="Show proposal in conversation">
           <Icon name="arrow-up" size={12} />
-          <SrOnly>Where it was proposed</SrOnly>
+          <SrOnly>Show proposal</SrOnly>
         </Button>
       )}
     </li>

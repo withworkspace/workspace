@@ -30,9 +30,9 @@ export function cellState(cell: PageCell, root: string): CellState {
   if (cell.queued) return { status: "starting", note: "To be written" };
   if (cell.answering) {
     const step = cell.run?.calls.at(-1);
-    return { status: "filling", note: step ? doing(step, root) : askingNow(cell) ? "Answering…" : versions(cell).length ? "Writing it again…" : "Starting…" };
+    return { status: "filling", note: step ? doing(step, root) : askingNow(cell) ? "Answering…" : versions(cell).length ? "Rewriting…" : "Starting…" };
   }
-  if (last?.by === "ws") return { status: "failed", note: askingNow(cell) ? "Couldn't answer this" : "Couldn't fill this" };
+  if (last?.by === "ws") return { status: "failed", note: askingNow(cell) ? "Could not answer" : "Could not fill" };
   if (last?.by === "you") return { status: "starting", note: "Not started" };
   // A question, answered: it holds nothing, and says there's an answer.
   if (!versions(cell).length) return { status: "filled", note: "Answered" };
@@ -42,11 +42,11 @@ export function cellState(cell: PageCell, root: string): CellState {
   if (cell.moved) return { status: "stale", note: `${besideChanged(cell)} since` };
   // What its agent had to say of it is beside it: its head says there's
   // something.
-  return { status: "filled", note: versions(cell).at(-1)?.notes ? "With a note from its agent" : undefined };
+  return { status: "filled", note: versions(cell).at(-1)?.notes ? "With agent note" : undefined };
 }
 
 // besideChanged says what a cell was written beside that's changed.
-export const besideChanged = (cell: PageCell) => (cell.moved === "page" ? "The page has changed" : "A cell above has changed");
+export const besideChanged = (cell: PageCell) => (cell.moved === "page" ? "Page changed" : "A cell above changed");
 
 // outOfDate is why a cell's out of date, in a sentence's start, or "".
 export function outOfDate(cell: PageCell): string {
@@ -71,8 +71,8 @@ export const baseName = (s: CellSource) => (s.file ?? s.path).split("/").pop() ?
 // sourcesChanged says what's changed, in a few words: "main.go has
 // changed", "3 files have changed".
 export function sourcesChanged(moved: CellSource[]): string {
-  if (moved.length > 1) return `${moved.length} files have changed`;
-  return `${baseName(moved[0])} ${moved[0].state === "gone" ? "has gone" : "has changed"}`;
+  if (moved.length > 1) return `${moved.length} files changed`;
+  return `${baseName(moved[0])} ${moved[0].state === "gone" ? "deleted" : "changed"}`;
 }
 
 // sourceHref is where a source can be read: the Files page, for one in a

@@ -22,11 +22,11 @@ describe("viewEvent: who said a message to crew", () => {
 describe("how crew ended", () => {
   it("says a stop logged before ws said how, not its raw exit", () => {
     expect(viewEvent(ev({ kind: "crew_ended", text: "c5 ended (stopped: exit 129)", by: "c5" })).text).toBe("was stopped");
-    expect(viewEvent(ev({ kind: "crew_ended", text: "c4 ended (exit 129)", by: "c4" })).text).toBe("ended: its terminal closed");
+    expect(viewEvent(ev({ kind: "crew_ended", text: "c4 ended (exit 129)", by: "c4" })).text).toBe("ended: terminal closed");
   });
   it.each([
-    [{ how: "interrupted" as const, exit: "stopped: exit 129" }, "stopped by a daemon restart"],
-    [{ how: "handed-back" as const, exit: "exit 129" }, "closed: it had handed its work back"],
+    [{ how: "interrupted" as const, exit: "stopped: exit 129" }, "stopped by a Workspace restart"],
+    [{ how: "handed-back" as const, exit: "exit 129" }, "closed: work handed back"],
     [{ how: "stopped" as const, exit: "exit 129" }, "stopped"],
     [{ exit: "exit 1" }, "stopped with an error"],
   ])("%o reads %s", (c, words) => expect(endedWords(c)).toBe(words));

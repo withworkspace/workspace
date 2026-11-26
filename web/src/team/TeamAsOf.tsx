@@ -7,10 +7,10 @@ import { Text } from "../ui/Text";
 // looked at, or that they're being looked at now.
 export function TeamAsOf({ at, looking }: { at: string; looking?: boolean }) {
   return (
-    <Text dim className={css.asOf} title="When git and GitHub were last looked at. While this page is open they're looked at every couple of minutes.">
+    <Text dim className={css.asOf} title="Last refreshed. Refreshes every few minutes while open.">
       {looking ? (
         <>
-          <Spinner size={12} /> Looking…
+          <Spinner size={12} /> Refreshing…
         </>
       ) : (
         <>

@@ -65,7 +65,7 @@ export function ModelPanel({
         <Input
           autoFocus
           value={query}
-          placeholder="Find a model, or say high, fast…"
+          placeholder="Find a model, or type high, fast…"
           aria-label="Find a model"
           role="combobox"
           aria-expanded="true"
@@ -127,7 +127,7 @@ export function ModelPanel({
         ))}
         {!rows.length && (
           <li role="presentation" className={css.none}>
-            {busy ? "Asking for its models…" : "No model has all of that."}
+            {busy ? "Loading models…" : "No matching models."}
           </li>
         )}
       </ul>

@@ -20,7 +20,7 @@ export function FootSends({ sending = 0, failed = 0, to = "/reviews" }: Props) {
   if (failed > 0) {
     const words = `${failed} didn’t reach GitHub`;
     return (
-      <FootItem to={to} className={css.failed} title={`${words}: go to where it says which, to send again or let go of`}>
+      <FootItem to={to} className={css.failed} title={`${words}: open to retry or dismiss`}>
         <Icon name="alert" size={13} />
         <span>{words}</span>
       </FootItem>
@@ -28,7 +28,7 @@ export function FootSends({ sending = 0, failed = 0, to = "/reviews" }: Props) {
   }
   if (sending <= 0) return null;
   return (
-    <FootItem to={to} title="What you've said on pull requests is on its way to GitHub">
+    <FootItem to={to} title="Sending your comments to GitHub">
       <Spinner size={11} />
       <span>Sending {sending} to GitHub</span>
     </FootItem>

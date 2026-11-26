@@ -5,7 +5,7 @@ import { came, type Said } from "./runRows";
 
 // shownAs is what a service's recipe is for, and how it's shown.
 export function shownAs(rc: RecipeInfo): string {
-  return `${rc.kind === "tool" ? "A tool" : "An app"}, ${rc.render === "tab" ? "opened in a tab of its own" : "framed here"}`;
+  return `${rc.kind === "tool" ? "A tool" : "An app"}, ${rc.render === "tab" ? "opens in new tab" : "shown here"}`;
 }
 
 // standing is where a run stands, in words: up on its port, what a task

@@ -29,12 +29,12 @@ export function PRDiscussion({
     <>
       <h2>On GitHub</h2>
       {error ? (
-        <Text as="p" dim>What's been said on GitHub couldn't be read: {humanError(error)}</Text>
+        <Text as="p" dim>Could not load GitHub discussion: {humanError(error)}</Text>
       ) : !discussion ? (
-        <Text as="p" dim>Reading what's been said…</Text>
+        <Text as="p" dim>Loading discussion…</Text>
       ) : (
         <>
-          {discussion.items.length === 0 && <Text as="p" dim>Nothing's been said on the pull request itself yet. Comments on lines are in the changes.</Text>}
+          {discussion.items.length === 0 && <Text as="p" dim>No comments on the pull request yet. Line comments are in the changes.</Text>}
           <SaidList>
             {discussion.items.map((it) => (
               <SaidItem key={it.id} head={<SaidHead it={it} />} body={it.body} bot={it.bot} />

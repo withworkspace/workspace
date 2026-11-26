@@ -6,7 +6,7 @@ import css from "./MissionBriefOutline.module.css";
 // leading to its place in the documents.
 export function MissionBriefOutline({ children }: { children: ReactNode }) {
   return (
-    <aside className={css.outline} aria-label="What the brief and plan are made of">
+    <aside className={css.outline} aria-label="Outline">
       {children}
     </aside>
   );

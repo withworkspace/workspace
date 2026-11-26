@@ -14,8 +14,8 @@ export function ChangeBox({
   onClose,
   onAsk,
   placeholder = "What should change here? Tighten it, make it a table, add what's missing…",
-  hint = "They become a cell: an agent writes them again, and your words are kept to put back.",
-  label = "Ask for these words to be changed",
+  hint = "Becomes a cell for an agent to rewrite. Your original is kept.",
+  label = "Ask for a change",
 }: {
   top: number;
   onClose: () => void;
@@ -38,7 +38,7 @@ export function ChangeBox({
   return (
     <PagePanel ref={panel} at={{ top, left: 0 }} label={label}>
       <PageComposer field={box} value={text} onChange={setText} onSend={ask} tallest={160} placeholder={placeholder} aria-label={label} escape={onClose}>
-        <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask} title="Send it" keys={sendKeys(sendKey)}>
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask} title="Send" keys={sendKeys(sendKey)}>
           Ask <SendKeys />
         </Button>
       </PageComposer>

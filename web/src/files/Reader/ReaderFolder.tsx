@@ -69,10 +69,10 @@ export function ReaderFolder({ shelves, id, here, on, anchor, column, openIn, go
   };
   const where = openIn(shelf);
   return (
-    <div className={css.menu} ref={box} role="dialog" aria-label={`What's in ${shelf.name}`} onKeyDown={keys} style={pos ? { top: pos.top, left: pos.left } : { visibility: "hidden" }}>
+    <div className={css.menu} ref={box} role="dialog" aria-label={`Contents of ${shelf.name}`} onKeyDown={keys} style={pos ? { top: pos.top, left: pos.left } : { visibility: "hidden" }}>
       <div className={css.head}>
         {shelf.up !== undefined && (
-          <button type="button" className={css.up} {...keyProps("u", "Up a folder: ⌫ too, with nothing typed", up)} aria-label="Up a folder">
+          <button type="button" className={css.up} {...keyProps("u", "Up a folder (or ⌫ with empty filter)", up)} aria-label="Up a folder">
             <Icon name="arrow-up" size={12} />
           </button>
         )}

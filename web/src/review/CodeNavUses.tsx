@@ -55,15 +55,15 @@ export function CodeNavUses({
           </Text>
         </div>
       )}
-      {!groups.length && <Text as="div" dim className={css.none}>Nothing else uses it.</Text>}
+      {!groups.length && <Text as="div" dim className={css.none}>No other uses.</Text>}
       {groups.map((g) => (
         <section key={g.title}>
           {g.named && <h3 className={css.title}>{g.title}</h3>}
           <CodeNavList rows={rows(g.uses)} />
           {g.maybes.length > 0 && (
             <>
-              <Button variant="ghost" size="small" className={css.maybes} onClick={() => onMaybes(g.title)} title="Uses that weren't followed to it, but could be it: one of several by that name, or an interface's method it may satisfy">
-                {g.open ? "Hide" : "Show"} {g.maybes.length} that may be
+              <Button variant="ghost" size="small" className={css.maybes} onClick={() => onMaybes(g.title)} title="Possible uses: same name, or an interface method it may satisfy">
+                {g.open ? "Hide" : "Show"} {g.maybes.length} possible
               </Button>
               {g.open && <CodeNavList maybes rows={rows(g.maybes)} />}
             </>

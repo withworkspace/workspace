@@ -21,16 +21,15 @@ export function ArrangePanel({ sidebar, menu, onReset, onCancel, onDone }: Arran
   return (
     // data-field: keys typed in it are its own, not the page's (keys.ts).
     <div className={css.panel} data-field>
-      <div className={css.head}>Arrange the sidebar</div>
+      <div className={css.head}>Arrange sidebar</div>
       {sidebar}
       <div className={cx(css.head, css.menuHead)}>
-        <Icon name="chevron-down" size={12} />
-        In the workspace's menu
+        <Icon name="chevron-down" size={12} />In workspace menu
       </div>
       {menu}
       <div className={css.actions}>
         {onReset && (
-          <Button variant="ghost" size="small" onClick={onReset} title="Take your arrangement away: the team's, or as ws has it">
+          <Button variant="ghost" size="small" onClick={onReset} title="Reset to default layout">
             Reset
           </Button>
         )}

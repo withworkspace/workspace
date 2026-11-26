@@ -36,17 +36,17 @@ export function SettingsAddRepoForm({ as, invalid, hint, onAs, group, team, onTe
       }}
     >
       <div className={css.field}>
-        <label htmlFor="add-repo-as">Its name here</label>
+        <label htmlFor="add-repo-as">Local name</label>
         <Input id="add-repo-as" className={textClass("mono")} value={as} onChange={(e) => onAs(e.target.value)} aria-invalid={invalid} />
         <Text dim className={css.hint}>{hint}</Text>
       </div>
       <div className={css.field}>
-        <span className={css.label}>Its group</span>
+        <span className={css.label}>Group</span>
         <span>{group}</span>
       </div>
       <fieldset className={css.field}>
-        <legend>Whose</legend>
-        <RadioGroup className={css.whose} value={team ? "team" : "me"} onChange={(v) => onTeam(v === "team")} aria-label="Whose">
+        <legend>Add for</legend>
+        <RadioGroup className={css.whose} value={team ? "team" : "me"} onChange={(v) => onTeam(v === "team")} aria-label="Add for">
           <Radio value="me">
             <span>
               Just me <Text dim>— in ws.local.toml</Text>

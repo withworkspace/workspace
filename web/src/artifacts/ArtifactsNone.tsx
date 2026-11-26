@@ -8,7 +8,7 @@ export function ArtifactsNone({ shown }: { shown?: Shown }) {
   if (!shown) {
     return (
       <Empty icon="artifact" title="No artifacts yet">
-        An artifact is a sketch to look at and use: a page, alone or with the files it loads beside it, in versions you can step through. Crew add them with{" "}
+        Artifacts are versioned prototype pages to look at and use. Crew add them with{" "}
         <code>ws artifact add</code>, and so can you.
       </Empty>
     );

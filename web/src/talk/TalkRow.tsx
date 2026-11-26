@@ -53,7 +53,7 @@ export function TalkRow({
             {yourTurn && <Chip tone="attention">Your turn</Chip>}
             {!!proposed && <Chip tone="attention">{proposed} to confirm</Chip>}
             {pr && (
-              <Chip tone="quiet" title="The pull request it's about">
+              <Chip tone="quiet" title="Pull request">
                 <Icon name="pr" size={11} />
                 {pr}
               </Chip>
@@ -65,7 +65,7 @@ export function TalkRow({
               </Chip>
             )}
             {became && (
-              <Chip tone="quiet" title="The mission it became">
+              <Chip tone="quiet" title="Resulting mission">
                 <Icon name="flag" size={11} />
                 {became}
               </Chip>

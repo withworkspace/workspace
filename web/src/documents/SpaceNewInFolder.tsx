@@ -38,7 +38,7 @@ export function SpaceNewInFolder({ repo, label, root, folders, busy, onStart, on
       <div className={css.fields}>
         <label>
           <span>Folder</span>
-          <Input list="space-folders" value={folder} placeholder="(its top)" aria-label="Folder" onChange={(e) => setFolder(e.target.value)} />
+          <Input list="space-folders" value={folder} placeholder="(top level)" aria-label="Folder" onChange={(e) => setFolder(e.target.value)} />
           <datalist id="space-folders">
             {folders.filter(Boolean).map((f) => (
               <option key={f} value={f} />
@@ -50,7 +50,7 @@ export function SpaceNewInFolder({ repo, label, root, folders, busy, onStart, on
           <Input
             autoFocus
             value={title}
-            placeholder="What it's about"
+            placeholder="What's this about?"
             aria-label="Title"
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
@@ -63,14 +63,15 @@ export function SpaceNewInFolder({ repo, label, root, folders, busy, onStart, on
         </label>
       </div>
       <Text as="p" dim className={css.what}>
-        Once it's written, <em>File as…</em> files it at <Text mono>{`${repo} · ${root}${clean}${name}.md`}</Text>, as {label} lands its changes.
+        When ready, use <em>File as…</em> to file it at{" "}
+        <Text mono>{`${repo} · ${root}${clean}${name}.md`}</Text>.
       </Text>
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={go} disabled={busy || !title.trim()} title="Start the page" keys="⏎">
-          Start it <Keys k="⏎" />
+        <Button variant="primary" onClick={go} disabled={busy || !title.trim()} title="Create page" keys="⏎">
+          Create <Keys k="⏎" />
         </Button>
       </DialogActions>
     </Dialog>

@@ -19,8 +19,8 @@ export function ModelRow({ id, row, on, chosen, onPress, onUse }: { id: string; 
       {row.default && <span className={css.note}>default</span>}
       <span className={css.has}>
         {range && <span className={css.efforts}>{range}</span>}
-        {row.thinking.includes(true) && <Icon name="sparkle" size={13} className={css.mark} title="Thinks" />}
-        {row.fast.includes(true) && <Icon name="bolt" size={13} className={css.mark} title="Has a fast way" />}
+        {row.thinking.includes(true) && <Icon name="sparkle" size={13} className={css.mark} title="Thinking" />}
+        {row.fast.includes(true) && <Icon name="bolt" size={13} className={css.mark} title="Fast mode" />}
       </span>
       <span className={css.tick}>{chosen && <Icon name="check" size={14} />}</span>
     </li>

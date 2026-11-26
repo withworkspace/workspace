@@ -13,7 +13,7 @@ import type { InSpace } from "./happening";
 export function InFlight({ flights, spaceOf, flat }: { flights: InSpace<SpaceFlight>[]; spaceOf?: (repo: string) => Space | undefined; flat?: boolean }) {
   if (!flights.length) return null;
   return (
-    <DocumentsActivitySection label="In flight" heading="In flight" count={flights.length} flat={flat} title="Capsules with changes to the documents: yours and others', and the pull requests open from them">
+    <DocumentsActivitySection label="In flight" heading="In flight" count={flights.length} flat={flat} title="Document changes in capsules, with their pull requests">
       <Rows>
         {flights.map((f) => {
           const space = spaceOf?.(f.repo);

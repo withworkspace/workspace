@@ -121,7 +121,7 @@ export function ArtifactPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <ErrorCard error={error} retry={reload} title={`Couldn't open ${id}`} />
+        <ErrorCard error={error} retry={reload} title={`Could not open ${id}`} />
         <p>
           <Link to="/artifacts">Back to Artifacts</Link>
         </p>
@@ -146,7 +146,7 @@ export function ArtifactPage() {
             <Icon name={st.icon} size={11} />
             {st.words}
           </Chip>
-          <ArtifactTitleRef text={v ? `${d.id}.v${v.n}` : d.id} title="Copy its ref" />
+          <ArtifactTitleRef text={v ? `${d.id}.v${v.n}` : d.id} title="Copy ref" />
           <PagePin r={{ kind: "artifact", id: d.id }} end />
         </ArtifactTitleLine>
         {v && <VersionLine d={d} v={v} />}
@@ -199,7 +199,7 @@ export function ArtifactPage() {
             compare={
               comparing && {
                 to: compareHref(comparing),
-                title: comparing[0].id === d.id ? `v${comparing[0].n} and v${comparing[1].n}, side by side: two frames, or their source diff` : `Beside ${comparing[0].id}, side by side: two frames, or their source diff`,
+                title: comparing[0].id === d.id ? `Compare v${comparing[0].n} and v${comparing[1].n}` : `Compare with ${comparing[0].id}`,
               }
             }
             alone={runnable ? frameURL(d.id, n, opensAs) : undefined}
@@ -211,18 +211,18 @@ export function ArtifactPage() {
       <ArtifactBody>
         <ArtifactStage>
           {missing ? (
-            <ArtifactEmpty icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
-              Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
+            <ArtifactEmpty icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Latest: v{d.latest?.n}</Link>}>
+              Versions: {d.all.map((x) => `v${x.n}`).join(", ")}.
             </ArtifactEmpty>
           ) : !runnable ? (
-            <ArtifactEmpty icon="alert" title="There's no file to run">
-              {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s files aren't in ${d.where}.`}
+            <ArtifactEmpty icon="alert" title="No file to run">
+              {d.gone ? `Folder gone from ${d.where.replace(/[^/]+\/$/, "")}. Only the record remains.` : `v${n}'s files are missing from ${d.where}.`}
             </ArtifactEmpty>
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)} keys="x">Run it</Button>}>
-              The frame's unloaded, and its scripts with it.
+            <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)} keys="x">Run</Button>}>
+              Frame and scripts unloaded.
             </ArtifactEmpty>
           ) : (
             <ArtifactFrame src={frameSrc} title={`${d.title}, v${n}`} px={px} frameKey={`${d.id}.v${n}#${run}`} frameRef={tweaks.frame} />
@@ -231,8 +231,8 @@ export function ArtifactPage() {
         {framed && tray && hasTweaks(told) && (
           <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)} keys="t">
             {changed(told).length > 0 && (
-              <Link className={textClass("link")} to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="The same version twice, side by side: as it opens, and as it's set here">
-                <Icon name="split" size={12} /> Compare with how it opens
+              <Link className={textClass("link")} to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="Side by side: defaults and current tweaks">
+                <Icon name="split" size={12} /> Compare with defaults
               </Link>
             )}
           </TweaksTray>

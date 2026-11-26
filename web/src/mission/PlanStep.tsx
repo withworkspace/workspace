@@ -47,7 +47,7 @@ export function PlanStep({ s, d, card, brief }: { s: Stage; d?: MissionDetail; c
       {!opened && (yours || late || unmet || (current && !!s.crew?.length)) && (
         <>
           {yours && (
-            <MissionPlanNote icon="user" yours title="Yours: only you pass it">
+            <MissionPlanNote icon="user" yours title="Yours: only you can pass">
               yours
             </MissionPlanNote>
           )}

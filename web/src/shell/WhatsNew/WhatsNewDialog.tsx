@@ -38,7 +38,7 @@ export function WhatsNewDialog({ title, version, lede, releases, onClose, childr
         <Text dim>
           {releases && (
             <>
-              There's more from further back than this ws keeps: it's on{" "}
+              For older changes, see{" "}
               <a className={textClass("link")} href={releases} target="_blank" rel="noopener noreferrer">
                 the releases page
               </a>

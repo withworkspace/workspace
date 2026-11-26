@@ -28,9 +28,9 @@ export function RefPRCard({ r }: { r: Extract<PageRef, { kind: "pr" }> }) {
           </HoverCardLine>
         </>
       )}
-      {error && <HoverCardLine dim>GitHub wasn't asked, or has no such pull request here.</HoverCardLine>}
-      {!pr && !error && <HoverCardLine dim>Asking…</HoverCardLine>}
-      <RefGo to={refHref(r)}>Review it</RefGo>
+      {error && <HoverCardLine dim>Not loaded from GitHub, or not found.</HoverCardLine>}
+      {!pr && !error && <HoverCardLine dim>Loading…</HoverCardLine>}
+      <RefGo to={refHref(r)}>Review</RefGo>
     </>
   );
 }

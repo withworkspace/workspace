@@ -37,7 +37,7 @@ export function SettingsGroupRow({ name, label, repos, hidden, chosen, teamHidde
       </td>
       <Text as="td" dim className={settingsTableQuietClass}>{repos}</Text>
       <td>
-        <Segmented value={hidden ? "hidden" : "shown"} onChange={(v) => onSet(v === "hidden")} disabled={busy} aria-label={`${name}: shown or hidden`}>
+        <Segmented value={hidden ? "hidden" : "shown"} onChange={(v) => onSet(v === "hidden")} disabled={busy} aria-label={`${name} visibility`}>
           <Segment value="shown">Shown</Segment>
           <Segment value="hidden">Hidden</Segment>
         </Segmented>
@@ -51,7 +51,7 @@ export function SettingsGroupRow({ name, label, repos, hidden, chosen, teamHidde
             </Button>
           </>
         ) : (
-          "as the team has it"
+          "team default"
         )}
       </Text>
     </tr>

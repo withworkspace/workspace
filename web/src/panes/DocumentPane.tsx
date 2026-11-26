@@ -36,8 +36,8 @@ export function DocumentPane({ to, docRef }: DocumentPaneProps) {
   return (
     <DockBody label={title} pad>
       <PaneHead title={title} to={to} />
-      {error && !a && <ErrorCard title="Couldn't read the document" error={humanError(error)} retry={() => void reload()} />}
-      {!a && !error && <Loading what="Reading the document…" />}
+      {error && !a && <ErrorCard title="Could not load document" error={humanError(error)} retry={() => void reload()} />}
+      {!a && !error && <Loading what="Loading document…" />}
       {of && (
         <DocumentPeek repo={of.repo} capsule={of.capsule} path={of.path} words={of.words} mission={of.mission}>
           <Markdown text={of.text} at={place} />

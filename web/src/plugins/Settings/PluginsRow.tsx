@@ -61,7 +61,7 @@ export function PluginsRow({ kind, icon, name, to, version, state, out, about, f
             </Chip>
           )}
           {out && (
-            <a className={chipClass("attention", css.out)} href={out.href} target="_blank" rel="noopener noreferrer" title="What's in it, on GitHub">
+            <a className={chipClass("attention", css.out)} href={out.href} target="_blank" rel="noopener noreferrer" title="View on GitHub">
               {out.label}
               <Icon name="arrow-up-right" size={10} />
             </a>

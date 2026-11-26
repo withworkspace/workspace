@@ -13,7 +13,7 @@ export function TalkProposalFrame({ src, caption, title }: { src: string; captio
     <figure className={css.frame}>
       {caption && <Text as="figcaption" dim>{caption}</Text>}
       <iframe src={src} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" title={title} />
-      <a href={src} target="_blank" rel="noopener noreferrer" className={buttonClass({}, css.open)} title="Open it alone, in a tab of its own (still sandboxed)">
+      <a href={src} target="_blank" rel="noopener noreferrer" className={buttonClass({}, css.open)} title="Open in new tab (sandboxed)">
         <Icon name="external" size={12} /> Open larger
       </a>
     </figure>

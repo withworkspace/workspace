@@ -11,7 +11,7 @@ export function TeamGist({ text, reading }: { text?: string; reading?: boolean }
   if (!reading) return null;
   return (
     <Text dim className={cx(css.gist, css.reading)}>
-      <Spinner size={11} /> Reading the change…
+      <Spinner size={11} /> Summarising…
     </Text>
   );
 }

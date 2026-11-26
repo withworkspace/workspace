@@ -26,7 +26,7 @@ export function FilesChanged({ files, count, onOpen }: { files: ChangedFile[]; c
               <FilesMark status={f.status} uncommitted={f.uncommitted} />
               <FileIcon path={f.path} />
               <Text mono>{f.path}</Text>
-              {f.uncommitted && <Chip tone="attention">Not committed</Chip>}
+              {f.uncommitted && <Chip tone="attention">Uncommitted</Chip>}
             </Button>
           </li>
         ))}

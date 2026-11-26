@@ -41,7 +41,7 @@ export function ThingMenu({ to }: { to: string }) {
   return (
     <>
       {acts.length > 0 && (
-        <MenuSection aria-label="What can be done to it">
+        <MenuSection aria-label="Actions">
           {acts.map((it) => (
             <MenuItem key={it.id} id={it.id} textValue={it.title} onAction={() => perform(it)}>
               <Icon name={it.icon ?? "play"} />

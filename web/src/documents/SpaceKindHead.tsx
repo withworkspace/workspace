@@ -30,7 +30,7 @@ export function SpaceKindHead({ title, count, states, stand, setStand, sorts, so
     <GroupHead className={css.head}>
       {title} <Count>{count}</Count>
       {states.length > 0 && (
-        <Segmented size="small" className={css.stands} value={stand || everyStand} onChange={(v) => setStand(v === everyStand ? "" : v)} aria-label={`Where each ${title} stands`}>
+        <Segmented size="small" className={css.stands} value={stand || everyStand} onChange={(v) => setStand(v === everyStand ? "" : v)} aria-label={`Filter ${title} by status`}>
           <Segment value={everyStand}>All</Segment>
           {states.map(([s, n]) => (
             <Segment key={s} value={s}>
@@ -42,7 +42,7 @@ export function SpaceKindHead({ title, count, states, stand, setStand, sorts, so
       <Spacer />
       <Text as="label" dim className={css.sort}>
         <Icon name="list" size={12} />
-        <Select size="tiny" value={sort} onChange={setSort} aria-label={`Sort the ${title} list`}>
+        <Select size="tiny" value={sort} onChange={setSort} aria-label={`Sort ${title}`}>
           {sorts.map(([v, label]) => (
             <Option key={v} value={v}>
               {label}

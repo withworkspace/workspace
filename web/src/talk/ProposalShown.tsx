@@ -28,7 +28,7 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
     case "mission":
       return (
         <>
-          {p.brief ? <TalkProposalWhole text={p.brief} /> : <Text as="div" dim>An idea, to brief later: a briefing agent starts from this conversation.</Text>}
+          {p.brief ? <TalkProposalWhole text={p.brief} /> : <Text as="div" dim>Idea to brief later, starting from this conversation.</Text>}
           <TalkProposalMeta items={[p.about?.length ? `About ${p.about.join(", ")}` : undefined, p.capsules?.length ? `Lifts ${p.capsules.join(", ")}` : undefined]} />
         </>
       );
@@ -53,21 +53,21 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
               <Markdown text={p.plan ?? ""} />
             </Prose>
           )}
-          {p.step ? <TalkProposalMeta items={[`Written at step ${p.step}, the planner's: accepting it passes that step`]} /> : null}
+          {p.step ? <TalkProposalMeta items={[`For step ${p.step}: accepting passes that step`]} /> : null}
         </>
       );
     case "dispatch":
       return (
         <>
           <TalkProposalWhat said>{p.text}</TalkProposalWhat>
-          <TalkProposalMeta items={[p.capsule ? `In ${p.capsule}` : "In a capsule no crew is in", p.reads?.length ? `Reading ${p.reads.join(", ")}` : undefined]} />
+          <TalkProposalMeta items={[p.capsule ? `In ${p.capsule}` : "In a capsule with no crew", p.reads?.length ? `Reading ${p.reads.join(", ")}` : undefined]} />
         </>
       );
     case "replan":
       return (
         <>
           <TalkProposalWhat said>{p.text}</TalkProposalWhat>
-          {p.state === "open" && <Text as="div" dim>Confirming asks the mission's planner this, as you: it revises the plan in its own conversation, or says why not.</Text>}
+          {p.state === "open" && <Text as="div" dim>Confirming sends this to the planner as you.</Text>}
         </>
       );
     case "comment":

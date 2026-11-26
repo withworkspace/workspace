@@ -64,9 +64,9 @@ describe("the queue of a mission's bundles", () => {
   });
   it("says where they stand when none is left to approve", () => {
     expect(nothingLeftWords(bundles.filter((b) => bundleGroup(b) !== "todo"))).toBe(
-      "You've approved its one standing bundle. 1 is back with its crew: what they hand over next will wait for you. 3 were replaced or have gone stale.",
+      "Bundle approved. 1 sent back to crew: the next one will wait for you. 3 replaced or stale.",
     );
-    expect(nothingLeftWords([bundle({ id: "b1", verdict: "approved" }), bundle({ id: "b2", verdict: "approved" })])).toBe("You've approved all 2 of its standing bundles.");
+    expect(nothingLeftWords([bundle({ id: "b1", verdict: "approved" }), bundle({ id: "b2", verdict: "approved" })])).toBe("All 2 bundles approved.");
   });
   it("has no group that's empty", () => {
     expect(queued([bundle({ id: "b1", verdict: "approved" })]).map((g) => g.group)).toEqual(["approved"]);
@@ -86,7 +86,7 @@ describe("a bundle's checks", () => {
   });
   it("names each among the page's items", () => expect(rowKey(browser, rows[0])).toBe("v:b3:c3"));
   it("says each in a line", () => {
-    expect(rows.map((r) => rowLine(browser, r))).toEqual(["Can't tell, c1", "Met, c1: the lines it's done in. The judge says unmet", "Met, c1: 2 images, 1 recording", "Met, ws ran it"]);
+    expect(rows.map((r) => rowLine(browser, r))).toEqual(["Can't tell, c1", "Met, c1: the relevant lines. The judge says unmet", "Met, c1: 2 images, 1 recording", "Met, run by Workspace"]);
   });
   it("is titled by its own claim where the step has no checks", () => {
     expect(checkRows(bundle({ checks: [{ n: 1, verdict: "unmet", said: "dark keeps the old accent" }] }))[0].title).toBe("dark keeps the old accent");

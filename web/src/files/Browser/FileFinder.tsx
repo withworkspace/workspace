@@ -23,7 +23,7 @@ export function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPi
     return out.sort((a, b) => b.score - a.score).slice(0, 60);
   }, [files, q]);
   return (
-    <Finder aria-label="Find a file" placeholder="Find a file by a few of its letters…" value={q} onChange={setQ} count={matches.length} onPick={(i) => onPick(matches[i].f.path)} onClose={onClose}>
+    <Finder aria-label="Find a file" placeholder="Search by file name…" value={q} onChange={setQ} count={matches.length} onPick={(i) => onPick(matches[i].f.path)} onClose={onClose}>
       {matches.map((m, i) => (
         <FilesFinderRow key={m.f.path} index={i} path={m.f.path} runs={marked(m.f.path, m.at)} status={m.f.status} uncommitted={m.f.uncommitted} />
       ))}

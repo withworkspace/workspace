@@ -11,7 +11,7 @@ type FootBelowProps = {
 
 // FootBelow is Below's toggle, at the foot's end before Beside's: the
 // two in the order their docks are in the window.
-export function FootBelow({ open, title = "Below: what's going on, under the page", onPress }: FootBelowProps) {
+export function FootBelow({ open, title = "Open Below", onPress }: FootBelowProps) {
   return (
     <FootItem on={open} label="Below" title={open ? "Close Below" : title} onPress={onPress}>
       <Icon name="fold" size={13} />

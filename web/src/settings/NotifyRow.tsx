@@ -16,8 +16,8 @@ export function NotifyRow() {
       about={
         <>
           <Marked text={words.notify.about} />
-          {!notify.supported && " This browser has none."}
-          {blocked && " The browser has them blocked for this page: allow them in its own settings first."}
+          {!notify.supported && " Not supported in this browser."}
+          {blocked && " Blocked by the browser: allow notifications in browser settings."}
         </>
       }
       source={<BrowserSource />}

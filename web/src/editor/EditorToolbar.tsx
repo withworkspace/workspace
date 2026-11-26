@@ -26,7 +26,7 @@ export function EditorToolbar({ compact, placed, source = false, onSource, child
     <div className={cx("doc-toolbar", css.toolbar, compact && css.compact, placed && css.placed)} role="toolbar" aria-label="Formatting">
       {children}
       <span className={css.spacer} />
-      <ToggleButton variant="ghost" size="small" pressed={source} onChange={onSource} title={source ? "Back to the document as it reads" : "Edit the markdown itself"}>
+      <ToggleButton variant="ghost" size="small" pressed={source} onChange={onSource} title={source ? "Show formatted" : "Edit markdown"}>
         <Icon name="hash" size={12} /> Markdown
       </ToggleButton>
     </div>

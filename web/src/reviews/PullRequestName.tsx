@@ -12,7 +12,7 @@ export function PullRequestName({ title, at, layer, whole }: { title: string; at
       {whole ? (
         <>
           {title}
-          <Chip tone="quiet" className={css.chip} title="Every layer's changes together: where the stack ends up">
+          <Chip tone="quiet" className={css.chip} title="All layers' changes combined">
             <Icon name="layers" size={11} /> the whole stack · {whole.layers} layers
           </Chip>
         </>
@@ -20,7 +20,7 @@ export function PullRequestName({ title, at, layer, whole }: { title: string; at
         <>
           {title} <Text dim className={css.ref}>{at}</Text>
           {layer ? (
-            <Chip tone="quiet" className={css.chip} title="Where this layer sits in its stack: 1 is the bottom">
+            <Chip tone="quiet" className={css.chip} title="Position in stack, from the bottom">
               <Icon name="layers" size={11} /> {layer.n} of {layer.of}
             </Chip>
           ) : null}

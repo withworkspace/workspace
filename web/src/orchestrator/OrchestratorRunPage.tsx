@@ -43,17 +43,17 @@ export function OrchestratorRunPage() {
         <>
           <OrchestratorRunMeta on={lookedAt(d)} started={d.started} took={duration(d.started, d.ended)} agent={agentOf(d)} />
           {d.retry && (
-            <Callout tone="quiet" icon="rotate" title="A second try">
-              The run before it ran no <code>ws mission</code> commands, so it was run again and told its shell works.
+            <Callout tone="quiet" icon="rotate" title="Retried">
+              Previous run ran no <code>ws mission</code> commands, so this one was retried.
             </Callout>
           )}
           {d.error && (
-            <Callout tone="danger" title="It failed">
+            <Callout tone="danger" title="Failed">
               <Inline text={d.error} />
             </Callout>
           )}
           <section>
-            <GroupHead>What it said</GroupHead>
+            <GroupHead>Reply</GroupHead>
             {d.output ? (
               <Prose>
                 <Markdown text={d.output} />
@@ -63,8 +63,8 @@ export function OrchestratorRunPage() {
             )}
           </section>
           <section>
-            <GroupHead count={d.log.length}>What it ran</GroupHead>
-            {d.log.length === 0 ? <OrchestratorNone>No calls recorded: only Claude Code reports them.</OrchestratorNone> : <Calls calls={d.log} root={root} open />}
+            <GroupHead count={d.log.length}>Commands</GroupHead>
+            {d.log.length === 0 ? <OrchestratorNone>No commands recorded: only Claude Code reports them.</OrchestratorNone> : <Calls calls={d.log} root={root} open />}
           </section>
           <section>
             <OrchestratorPrompt text={d.prompt} />

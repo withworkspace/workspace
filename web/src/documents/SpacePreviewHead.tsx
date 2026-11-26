@@ -22,7 +22,7 @@ export function SpacePreviewHead({ chips, made, docRef, where, title, meta, acti
       <div className={css.where}>
         {chips}
         {made && <Text mono>{made}</Text>}
-        <Copyable text={docRef} className={css.ref} title="Copy its ref">
+        <Copyable text={docRef} className={css.ref} title="Copy ref">
           {where}
         </Copyable>
       </div>

@@ -21,12 +21,12 @@ export function TalkAbout({
   return (
     <div className={css.about}>
       {mission && (
-        <Link to={mission.href} className={css.thing} title="The mission it's about">
+        <Link to={mission.href} className={css.thing} title="Mission">
           <Icon name="flag" size={11} /> {mission.title}
         </Link>
       )}
       {pr && (
-        <Link to={pr.href} className={css.thing} title="The pull request it's about">
+        <Link to={pr.href} className={css.thing} title="Pull request">
           <Icon name="pr" size={11} /> {pr.pr}
           {pr.path && (
             <Text mono>
@@ -38,7 +38,7 @@ export function TalkAbout({
         </Link>
       )}
       {doc && (
-        <Link to={doc.href} className={css.thing} title={`The document it's about${doc.section ? ", at the section it was asked of" : ""}`}>
+        <Link to={doc.href} className={css.thing} title={`Document${doc.section ? ", at the section it was asked of" : ""}`}>
           <Icon name="book" size={11} /> <Text mono>{doc.path}</Text>
           {doc.section && <span> · § {doc.section}</span>}
         </Link>

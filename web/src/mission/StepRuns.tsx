@@ -7,7 +7,7 @@ export function StepRuns({ s }: { s: Stage }) {
   const runs = s.runs ?? [];
   if (!runs.length) {
     return (
-      <MissionPlanNote icon="layers" title={`In each ${s.inEach}: the orchestrator names the repos when it starts`}>
+      <MissionPlanNote icon="layers" title={`In each ${s.inEach}: repos picked at start`}>
         in each {s.inEach}
       </MissionPlanNote>
     );

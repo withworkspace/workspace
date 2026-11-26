@@ -18,17 +18,18 @@ export function ClearExpired({ all }: { all: ArtifactInfo[] }) {
       title: `Clear ${expired.length} expired ${expired.length === 1 ? "artifact" : "artifacts"}?`,
       body: (
         <>
-          {expired.map((a) => a.id).join(", ")} {expired.length === 1 ? "is" : "are"} discarded, as the daemon would within the day. Each can be restored.
+          {expired.map((a) => a.id).join(", ")} {expired.length === 1 ? "is" : "are"} discarded now, instead
+          of later today. Each can be restored.
         </>
       ),
-      confirm: "Clear them",
+      confirm: "Clear",
       danger: true,
     });
     if (!yes) return;
     setBusy(true);
     try {
       const c = await clearExpiredArtifacts();
-      toast(c.local.length ? `Cleared ${c.local.join(", ")}` : "Nothing's expired now", { tone: "done", ms: 6000 });
+      toast(c.local.length ? `Cleared ${c.local.join(", ")}` : "Nothing expired", { tone: "done", ms: 6000 });
     } catch (e) {
       toast(humanError((e as Error).message), { tone: "danger", ms: 8000 });
     } finally {
@@ -36,7 +37,7 @@ export function ClearExpired({ all }: { all: ArtifactInfo[] }) {
     }
   };
   return (
-    <Button variant="ghost" size="small" onClick={clear} disabled={busy} title="Discard every expired artifact now">
+    <Button variant="ghost" size="small" onClick={clear} disabled={busy} title="Discard all expired">
       <Icon name="clock" size={13} /> {busy ? "Clearing…" : `Clear expired ${expired.length}`}
     </Button>
   );

@@ -24,13 +24,13 @@ export function MissionBriefStart({ request, busy, onBrief, onOwn }: MissionBrie
       </span>
       <h2>Waiting to be briefed</h2>
       {request && <blockquote className={css.request}>{request}</blockquote>}
-      <Text as="p" dim>Its planner reads round what you asked for, asks what it needs to, and writes the brief and a plan with you. They're here to read, change and confirm.</Text>
+      <Text as="p" dim>A planner asks what it needs and writes the brief and plan with you. Review, edit and confirm them here.</Text>
       <div className={css.act}>
         <Button variant="primary" type="button" onClick={onBrief} disabled={busy} aria-busy={busy}>
-          {busy ? <Spinner /> : <Icon name="pencil" />} Brief it
+          {busy ? <Spinner /> : <Icon name="pencil" />} Brief mission
         </Button>
         <Button variant="ghost" type="button" onClick={onOwn}>
-          Write it yourself
+          Write the brief yourself
         </Button>
       </div>
     </div>

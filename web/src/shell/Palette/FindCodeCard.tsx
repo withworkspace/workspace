@@ -16,7 +16,7 @@ export function FindCodeCard({ path, line, repo, worktree }: { path: string; lin
       </HoverCardHead>
       <HoverCardLine dim>
         Line {line} in {repo}
-        {worktree === ".ground" ? ", its default branch" : `, capsule ${worktree}`}
+        {worktree === ".ground" ? ", default branch" : `, capsule ${worktree}`}
       </HoverCardLine>
     </>
   );

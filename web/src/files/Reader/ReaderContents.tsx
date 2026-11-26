@@ -21,8 +21,8 @@ export function ReaderContents({ title, sections, at, anchor, go, copy, close }:
       <div className={css.head}>
         <Icon name="list" size={12} />
         <b>{title}</b>
-        <Button variant="link" className={css.action} type="button" onClick={copy} title="Copy a link to it">
-          Copy its link <Icon name="link" size={12} />
+        <Button variant="link" className={css.action} type="button" onClick={copy} title="Copy link">
+          Copy link <Icon name="link" size={12} />
         </Button>
       </div>
       <nav className={css.list}>

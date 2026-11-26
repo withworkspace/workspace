@@ -11,13 +11,13 @@ import { Text } from "../ui/Text";
 export function SettingsAddRepoOption({ repo: r }: { repo: AddableRepo }) {
   const here = !!r.here;
   return (
-    <ListBoxOption value={r.name} textValue={r.name} disabled={here} className={css.repo} title={here ? `Here already, as ${r.here}` : undefined}>
+    <ListBoxOption value={r.name} textValue={r.name} disabled={here} className={css.repo} title={here ? `Already added as ${r.here}` : undefined}>
       <span className={css.line}>
         <Text mono>{r.name}</Text>
         {r.private && <Chip>private</Chip>}
         {r.fork && <Chip>fork</Chip>}
         {r.archived && <Chip tone="quiet">archived</Chip>}
-        {here && <Chip tone="done">here{r.here !== r.name ? ` as ${r.here}` : ""}</Chip>}
+        {here && <Chip tone="done">added{r.here !== r.name ? ` as ${r.here}` : ""}</Chip>}
         {r.pushedAt && <Text dim className={css.pushed}>pushed {relative(r.pushedAt)}</Text>}
       </span>
       {r.description && <Text dim className={css.about}>{r.description}</Text>}

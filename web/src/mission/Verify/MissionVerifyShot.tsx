@@ -21,7 +21,7 @@ export function MissionVerifyShot({ kind, url, what, label, children }: MissionV
       {kind === "video" ? (
         <video src={url} controls preload="metadata" aria-label={what} />
       ) : kind === "image" ? (
-        <img src={url} alt={label ? `${label}: ${what}` : what} data-viewable={label ? `${label}: ${what}` : what} title="Open it larger" />
+        <img src={url} alt={label ? `${label}: ${what}` : what} data-viewable={label ? `${label}: ${what}` : what} title="Open larger" />
       ) : (
         children
       )}

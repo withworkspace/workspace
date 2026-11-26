@@ -62,7 +62,7 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
         tags={
           <>
             {c.branch && c.branch !== c.name && (
-              <Chip tone="quiet" title="Its branch">
+              <Chip tone="quiet" title="Branch">
                 <Icon name="branch" size={11} />
                 {c.branch}
               </Chip>
@@ -74,12 +74,12 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
           <>
             {open && canOpenPR(d, c) && <OpenPR d={d} c={c} reload={reload} />}
             {c.exists && (
-              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} {...keyProps("f", "Browse its files")}>
+              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} {...keyProps("f", "Browse files")}>
                 <Icon name="file" size={12} /> Files <Keys k="f" />
               </Link>
             )}
             {c.exists && (!sum || sum.commitCount > 0) && (
-              <Button size="small" onClick={() => review(c)} title="Review its changes" keys="v">
+              <Button size="small" onClick={() => review(c)} title="Review changes" keys="v">
                 <Icon name="eye" /> Review <Keys k="v" />
               </Button>
             )}
@@ -93,7 +93,7 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
                 Landed straight on the default branch <Time iso={c.landed} />, and burned
               </span>
             )}
-            {!c.exists && !c.landed && <span>Burned: its worktree is gone</span>}
+            {!c.exists && !c.landed && <span>Burned: capsule deleted</span>}
             {sum &&
               (sum.base ? (
                 <>
@@ -106,11 +106,11 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
                   <MissionWorkLoose loose={loose > 0}>{loose ? `${count(loose, "file")} not committed` : "nothing uncommitted"}</MissionWorkLoose>
                 </>
               ) : (
-                <span>Can't tell what's changed: {sum.baseRef} isn't fetched here.</span>
+                <span>Could not compare changes: {sum.baseRef} not fetched.</span>
               ))}
             {!!c.behind && <span title={`${c.behind} commits behind the default branch`}>{c.behind} behind</span>}
             {c.exists && (
-              <Copyable text={c.path} title="Copy its folder">
+              <Copyable text={c.path} title="Copy folder path">
                 {shortPath(c.path)}
               </Copyable>
             )}
@@ -120,7 +120,7 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
       />
       <MissionWorkBody fills files={files.length > 0 && <WorkFiles d={d} c={c} files={files} more={sum?.changedMore} committed={sum?.commitCount ?? 0} />}>
         {x.now && <WorkNow d={d} x={x} review={review} />}
-        {error && !sum && <ErrorCard title="Couldn't read what's changed" error={error} />}
+        {error && !sum && <ErrorCard title="Could not load changes" error={error} />}
         {x.crew.length > 0 && (
           <>
             <MissionWorkHeading fills count={x.crew.length}>Crew here</MissionWorkHeading>
@@ -159,9 +159,9 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
           </>
         )}
         {quiet && c.exists && (
-          <MissionWorkEmpty icon="box" title="Nothing's changed here yet">
-            {sum?.base ? `It's level with ${sum.baseRef.replace(/^origin\//, "")}` : "It's as it was lifted"}
-            {c.head ? ` at ${c.head.slice(0, 7)}` : ""}.{x.steps[0] ? ` Step ${x.steps[0].n}, ${x.steps[0].title}, is the first in it.` : ""}
+          <MissionWorkEmpty icon="box" title="No changes yet">
+            {sum?.base ? `Up to date with ${sum.baseRef.replace(/^origin\//, "")}` : "Unchanged since lifted"}
+            {c.head ? ` at ${c.head.slice(0, 7)}` : ""}.{x.steps[0] ? ` Step ${x.steps[0].n}, ${x.steps[0].title}, is first here.` : ""}
           </MissionWorkEmpty>
         )}
         {!sum && !error && c.exists && <Skeleton rows={3} />}

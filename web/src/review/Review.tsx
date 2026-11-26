@@ -83,7 +83,7 @@ export function Review() {
     // Since your last review, when there's been work since.
     sinceOf: (latest) => (latest && current.head && latest.head !== current.head ? latest.head : undefined),
     getDiff: (since) => getDiff(api, since),
-    movedWords: "The capsule has new commits since this loaded",
+    movedWords: "Capsule has new commits",
     empty: "No committed changes yet.",
     browse: `/missions/${slug}/files/${repo}/${name}?only=changed`,
     // A repo with no pull requests: this is the only review there is, and
@@ -99,7 +99,7 @@ export function Review() {
     ),
     submitted: (r) => (
       <Callout tone="done" title={`Submitted ${r.id}: ${verdictWords[r.verdict!]}`}>
-        It's the mission's now: the orchestrator is deciding what happens next.
+        The orchestrator is deciding what's next.
       </Callout>
     ),
   };

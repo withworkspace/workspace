@@ -5,7 +5,7 @@ import css from "./ReaderFilePath.module.css";
 export function ReaderFilePath({ path }: { path: string }) {
   return (
     <p className={css.path}>
-      <Copyable text={path} title="Copy where it is" />
+      <Copyable text={path} title="Copy path" />
     </p>
   );
 }

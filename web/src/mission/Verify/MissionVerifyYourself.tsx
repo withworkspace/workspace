@@ -6,7 +6,7 @@ import css from "./MissionVerifyYourself.module.css";
 export function MissionVerifyYourself({ items }: { items: ReactNode[] }) {
   return (
     <div className={css.yourself}>
-      <h4>To see it yourself</h4>
+      <h4>Try it yourself</h4>
       <ul>
         {items.map((x, i) => (
           <li key={i}>{x}</li>

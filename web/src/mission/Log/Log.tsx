@@ -37,7 +37,7 @@ export function Log({
           <Events events={[...events].reverse()} />
         ) : (
           <Empty icon="search" title={d.events.length ? "Nothing matches" : "Nothing yet"}>
-            {d.events.length ? "Try another filter or search." : "What happens on the mission shows here as it happens."}
+            {d.events.length ? "Try another filter or search." : "Mission activity shows here."}
           </Empty>
         )}
       </section>
@@ -48,11 +48,10 @@ export function Log({
               Crew are on{" "}
               <MoreLink onClick={toWork} keys="3">
                 Work
-              </MoreLink>
-              , with the capsule each worked in.{" "}
+              </MoreLink>, by capsule.{" "}
             </>
           )}
-          {elsewhere.length > 0 && "These worked in none of the mission's capsules."}
+          {elsewhere.length > 0 && "These worked outside the mission's capsules."}
         </MissionLogMoved>
       )}
       {elsewhere.length > 0 && (

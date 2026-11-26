@@ -24,7 +24,7 @@ type BriefWhatProps = {
 // draft or an edit proposed, your edits not saved, written and to
 // confirm, or as written, with the step the mission's at.
 export function BriefWhat({ ended, briefing, proposal: p, draft, changed, confirmable, now, steps }: BriefWhatProps) {
-  if (ended) return <MissionBriefWhat icon="check-circle">Ended: as it was written</MissionBriefWhat>;
+  if (ended) return <MissionBriefWhat icon="check-circle">Ended: as written</MissionBriefWhat>;
   if (p) {
     const said = { briefing, kind: p.kind, draft, plan: !!p.plan };
     return (
@@ -39,12 +39,12 @@ export function BriefWhat({ ended, briefing, proposal: p, draft, changed, confir
   if (changed)
     return (
       <MissionBriefWhat icon="pencil" tone="attention">
-        Your edits, not saved
+        Unsaved edits
       </MissionBriefWhat>
     );
   if (confirmable)
     return (
-      <MissionBriefWhat icon="check-circle" title="Its brief and plan are written: confirming them starts it">
+      <MissionBriefWhat icon="check-circle" title="Confirm to start the mission">
         Written
       </MissionBriefWhat>
     );

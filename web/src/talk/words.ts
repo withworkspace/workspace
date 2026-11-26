@@ -7,17 +7,17 @@ import type { StatusInfo } from "../ui/Status";
 // stands, its keys, and the icon each kind of proposal has.
 
 export const talksKeys: [string, string][] = [
-  ["n", "Start a new conversation"],
+  ["n", "New conversation"],
   ["j / k", "Next / previous"],
-  ["⏎ / o", "Open it"],
-  ["⇧A", "Show or hide resolved ones"],
+  ["⏎ / o", "Open"],
+  ["⇧A", "Show or hide resolved"],
 ];
 
 export const talkKeys: [string, string][] = [
   ["mod+⏎", "Send"],
-  ["r", "Write a reply"],
-  ["x", "Resolve, or reopen"],
-  ["esc", "Back to the conversations"],
+  ["r", "Reply"],
+  ["x", "Resolve or reopen"],
+  ["esc", "Back to conversations"],
 ];
 
 export const talkName = (t: { title?: string; opening?: string }) => t.title || t.opening || "New conversation";

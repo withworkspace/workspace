@@ -87,7 +87,7 @@ export function TalkList({
   const placeholder = slug
     ? "Think about this mission: is the plan still right, what should happen next, what about…"
     : fresh
-      ? "Describe the mission you have in mind: what, and why. The agent reads the code and proposes a brief."
+      ? "Describe the mission: what, and why. The agent reads the code and proposes a brief."
       : "What are you thinking about? An idea, a problem, a question about the code…";
   return (
     <>
@@ -106,8 +106,8 @@ export function TalkList({
           <>
             <Icon name="eye" size={12} />
             {slug
-              ? "The agent reads the mission and everything around it and changes nothing. It can propose a decision, a brief, crew, a replan or a follow-up."
-              : `The agent reads the repos, the missions and GitHub, and changes nothing. It can propose a mission${docs ? ", a decision or a document" : " or a decision"}.`}
+              ? "Read-only. The agent can propose a decision, a brief, crew, a replan or a follow-up."
+              : `Read-only. The agent can propose a mission${docs ? ", a decision or a document" : " or a decision"}.`}
           </>
         }
       >
@@ -118,7 +118,7 @@ export function TalkList({
       {talks.length === 0 ? (
         all.length ? (
           <Empty icon="check-circle" title="Nothing open">
-            Every conversation's resolved.{" "}
+            All conversations resolved.{" "}
             {onToggleResolved && (
               <MoreLink onClick={onToggleResolved} keys={keys ? "⇧A" : undefined}>
                 Show them

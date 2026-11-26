@@ -69,7 +69,7 @@ export function WorktreeSwitch({ repo, current, open, setOpen }: { repo: Repo; c
       open={open}
       onToggle={() => setOpen(!open)}
       menu={
-        <FilesSwitchMenu label={`${repo.label}'s ground and capsules`} none={wts && wts.length <= 1 && <>No capsules yet: ws lift {repo.name} &lt;name&gt; makes one.</>}>
+        <FilesSwitchMenu label={`${repo.label}'s ground and capsules`} none={wts && wts.length <= 1 && <>No capsules yet: run ws lift {repo.name} &lt;name&gt;</>}>
           {list.map((w, i) => (
             <FilesSwitchItem
               key={w.name}

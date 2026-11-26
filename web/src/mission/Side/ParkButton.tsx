@@ -25,7 +25,7 @@ export function ParkButton({ d, reload }: { d: MissionDetail; reload: Reload }) 
       .finally(() => setBusy(false));
   };
   return (
-    <Button variant="ghost" size="small" disabled={busy} onClick={run} title={parked ? "Take it off parked" : "Put it aside until you unpark it"}>
+    <Button variant="ghost" size="small" disabled={busy} onClick={run} title={parked ? "Unpark" : "Set aside until you unpark"}>
       <Icon name={parked ? "play" : "pause"} size={12} /> {parked ? "Unpark" : "Park"}
     </Button>
   );

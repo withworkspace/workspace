@@ -25,7 +25,7 @@ export function Source({ id, n }: { id: string; n: number }) {
     return ready && ls.length <= 20000 ? highlightLines(ls, languageOf(value.file)) : ls.map(escapeHTML);
   }, [value, ready]);
   if (error && !value) return <ErrorCard error={error} />;
-  if (!value) return <Loading what="Reading its source…" />;
+  if (!value) return <Loading what="Loading source…" />;
   const many = value.files.length > 1;
   return (
     <ArtifactSource
@@ -43,7 +43,7 @@ export function Source({ id, n }: { id: string; n: number }) {
         <ErrorCard error={error} />
       ) : value.binary ? (
         <ArtifactEmpty icon="file" title={`${value.file} isn't text`}>
-          It's {sizeWords(value.size)}, and the page shows it where it uses it.
+          {sizeWords(value.size)}, shown where the page uses it.
         </ArtifactEmpty>
       ) : (
         <ArtifactSourceCode lines={lines} path={value.file} />

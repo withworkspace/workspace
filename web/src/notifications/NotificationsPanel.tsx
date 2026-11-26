@@ -43,15 +43,15 @@ export function NotificationsPanel({ notifications, unread, error, onOpen, onRea
       </header>
       <div className={css.feed}>
         {error && <p className={css.error}>{error}</p>}
-        {!error && !notifications && <Loading what="Reading the feed…" />}
+        {!error && !notifications && <Loading what="Loading…" />}
         {notifications && notifications.length === 0 && (
-          <Empty icon="bell" title="Nothing's happened yet">
-            What ws does for you is said here as it happens.
+          <Empty icon="bell" title="No notifications yet">
+            What Workspace does for you shows here.
           </Empty>
         )}
         {notifications && notifications.length > 0 && fresh?.length === 0 && (
           <Empty icon="check" title="You're caught up">
-            What you've read is under All notifications.
+            Read notifications are under All notifications.
           </Empty>
         )}
         {fresh && fresh.length > 0 && <NotificationFeed notifications={fresh} onOpen={onOpen} onRead={onRead} onDismiss={onDismiss} compact />}

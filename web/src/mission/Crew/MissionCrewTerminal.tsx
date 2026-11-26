@@ -24,7 +24,7 @@ export function MissionCrewTerminal({ id, state, children }: { id: string; state
       )}
       {state === "ended" && (
         <div className={cx(css.bar, css.ended)}>
-          <Icon name="info" size={12} /> {id} has ended: this is its last screen.
+          <Icon name="info" size={12} /> {id} has ended. Last screen shown.
         </div>
       )}
     </div>

@@ -47,8 +47,8 @@ type CrewConversationViewProps = {
 // (Calls), a harness's notice, and its plan on top; with what it's
 // stopped on and the box to tell it what's next docked under them.
 export function CrewConversationView({ slug, id, crew, live, t, error, reload, root, fileLink, onNewer, onTerminal, field }: CrewConversationViewProps) {
-  if (error && !t) return <ErrorCard title="Couldn't read the transcript" error={error} retry={reload} />;
-  if (!t) return <Loading what="Reading the transcript…" />;
+  if (error && !t) return <ErrorCard title="Could not load transcript" error={error} retry={reload} />;
+  if (!t) return <Loading what="Loading transcript…" />;
   if (!t.available && !live)
     return (
       <Empty icon="message" title="No transcript">
@@ -66,8 +66,8 @@ export function CrewConversationView({ slug, id, crew, live, t, error, reload, r
       plan={plan && <CrewPlan todos={plan} live={live} />}
       note={
         !t.available && (
-          <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal} keys="t">Watch its terminal</Button>}>
-            {t.why} You can still send it a message below.
+          <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal} keys="t">Open terminal</Button>}>
+            {t.why} You can still send a message below.
           </Empty>
         )
       }
@@ -109,7 +109,7 @@ export function CrewConversationView({ slug, id, crew, live, t, error, reload, r
         })}
         {!t.entries.length && t.available && (
           <Empty icon="message" title="Nothing yet">
-            What {id} is sent, says and does shows here as it happens.
+            {id}'s messages and actions appear here live.
           </Empty>
         )}
         {working && !asking && (

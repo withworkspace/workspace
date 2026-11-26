@@ -24,9 +24,9 @@ import { Text } from "../ui/Text";
 // listed in Documents (documents/), where each will live.
 
 export const pageKeys: [string, string][] = [
-  [">> then ⏎", "Ask for something there: an agent fills it in"],
-  [">? then ⏎", "Ask a question there: it's answered beside the page, and put in it only if you say"],
-  ["mod+⏎", "In a cell: ask for a change, or see what it read. Elsewhere: ask for the words there to be changed"],
+  [">> then ⏎", "Ask an agent to fill in here"],
+  [">? then ⏎", "Ask a question, answered beside the page"],
+  ["mod+⏎", "In a cell: change or see sources. Elsewhere: change the text"],
   ["esc", "Close a cell's panel"],
 ];
 
@@ -36,7 +36,7 @@ const Inner = lazy(() => import("./Page"));
 
 export function PagePage({ id, back }: { id?: string; back?: Back }) {
   return (
-    <Suspense fallback={<Loading what="Opening the page…" />}>
+    <Suspense fallback={<Loading what="Opening page…" />}>
       <Inner id={id} back={back} />
     </Suspense>
   );
@@ -69,7 +69,7 @@ export function PageRow({ page: p, kinds, selected, onHover, note }: { page: Pag
       id={p.id}
       title={p.title}
       to={pageAddress(p)}
-      kind={p.kind ? { title: kind?.title ?? p.kind, hint: kind ? kindHint(kind) : `A kind the workspace no longer has (${p.kind})` } : undefined}
+      kind={p.kind ? { title: kind?.title ?? p.kind, hint: kind ? kindHint(kind) : `Kind no longer exists (${p.kind})` } : undefined}
       file={p.source && { name: p.source.ref.replace(/^[^:]*:/, "").split("/").pop() ?? "", ref: p.source.ref }}
       filling={p.filling}
       cells={p.cells}
@@ -126,7 +126,7 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
           <Input
             autoFocus
             value={title}
-            placeholder={k ? `What the ${k.title} is about` : "Its title"}
+            placeholder={k ? `What the ${k.title} is about` : "Title"}
             aria-label="Title"
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
@@ -140,15 +140,18 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
       </PageFields>
       {k && (
         <PageFileWhat>
-          Its agents are told how one's written{k.guide ? <> (<Text mono>{k.guide.split("/").slice(-3).join("/")}</Text>)</> : null}, and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <Text mono>{whereItGoes(k, title)}</Text>.
+          Agents follow this kind's guide
+          {k.guide ? <> (<Text mono>{k.guide.split("/").slice(-3).join("/")}</Text>)</> : null}, and{" "}
+          <em>Draft</em> lays out the page to match. When written, <em>File as…</em> files to{" "}
+          <Text mono>{whereItGoes(k, title)}</Text>.
         </PageFileWhat>
       )}
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()} title="Start the page" keys="⏎">
-          Start it <Keys k="⏎" />
+        <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()} title="Start page" keys="⏎">
+          Start <Keys k="⏎" />
         </Button>
       </DialogActions>
     </Dialog>

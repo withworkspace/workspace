@@ -32,11 +32,11 @@ import { Text } from "../ui/Text";
 export const reviewsKeys: [string, string][] = [
   ["j / k", "Next / previous pull request"],
   ["g / G", "First / last"],
-  ["⏎", "Open the review (a stack: at the lowest layer that needs you; yours: its mission, or GitHub)"],
-  ["o", "Open it on GitHub"],
-  ["l", "Fold or unfold a stack's layers"],
+  ["⏎", "Open review"],
+  ["o", "Open on GitHub"],
+  ["l", "Expand / collapse stack"],
   ["/", "Filter by text, repo or author"],
-  ["r", "Ask GitHub again"],
+  ["r", "Refresh"],
 ];
 
 const stateInfo: Record<PRState, { icon: IconName; tone: Tone }> = {
@@ -178,7 +178,7 @@ export function ReviewsPage() {
         <>
           {list && <ReviewsAsOf at={list.at} asking={loading} />}
           <ReviewsFilter ref={filter} value={q} onChange={setQ} />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again" keys="r">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Refresh from GitHub" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>
@@ -195,7 +195,7 @@ export function ReviewsPage() {
             {humanError(error)}
           </Empty>
         ) : (
-          <Loading what="Asking GitHub for the open pull requests…" />
+          <Loading what="Loading pull requests…" />
         )}
       </div>
     );
@@ -206,12 +206,12 @@ export function ReviewsPage() {
     <div className="page">
       {head}
       {(error || list.error) && (
-        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
-          {humanError(error ?? list.error ?? "")} What's here is as of <Time iso={list.at} as="relative" />.
+        <Callout tone="attention" title="Could not reach GitHub" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
+          {humanError(error ?? list.error ?? "")} Last updated <Time iso={list.at} as="relative" />.
         </Callout>
       )}
       {!!list.problems?.length && (
-        <Callout tone="quiet" icon="info" title={`${list.problems.length === 1 ? "One thing" : `${list.problems.length} things`} couldn't be read`}>
+        <Callout tone="quiet" icon="info" title={`${list.problems.length === 1 ? "One thing" : `${list.problems.length} things`} could not be loaded`}>
           {list.problems.map((p) => (
             <div key={p}>{p}</div>
           ))}
@@ -219,7 +219,7 @@ export function ReviewsPage() {
       )}
       {!total && (
         <Empty icon="pr" title="No open pull requests">
-          Nothing is open in this workspace's repos. Your teammates' pull requests show here when there are some, by what each asks of you, and yours below them.
+          Nothing open in this workspace's repos. Teammates' pull requests show here, then yours.
         </Empty>
       )}
       {total > 0 && !sections.length && <Text as="p" dim>Nothing matches “{q}”.</Text>}

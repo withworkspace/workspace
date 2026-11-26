@@ -18,7 +18,7 @@ export function WindowUpdated({ version, onReload }: { version: string; onReload
         </Button>
       }
     >
-      ws was updated to {version} while this page was open: reload it to use the new one.
+      Workspace updated to {version}. Reload to use the new version.
     </Banner>
   );
 }

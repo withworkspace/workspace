@@ -38,8 +38,8 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
           </>
         }
         actions={
-          <Button size="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it" : "Open it"} keys="⏎">
-            <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open its page" : "Open it"} <Keys k="⏎" />
+          <Button size="small" onClick={() => open(a)} title={reads ? "Open page to comment or edit" : "Open"} keys="⏎">
+            <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open page" : "Open"} <Keys k="⏎" />
           </Button>
         }
         title={handoff ? (desc ?? title) : title}
@@ -63,12 +63,12 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
         }
       />
       <MissionWorkBody fills>
-        {error && !doc && <ErrorCard title="Couldn't read it" error={error} />}
+        {error && !doc && <ErrorCard title="Could not load" error={error} />}
         {reads && !doc && !error && <Skeleton rows={6} />}
         {doc &&
           (doc.media ? (
-            <MissionWorkEmpty icon="file" title="It's an image or a video">
-              Its page shows it as it is.
+            <MissionWorkEmpty icon="file" title="Image or video">
+              Open page to view.
             </MissionWorkEmpty>
           ) : doc.markdown ? (
             <MissionWorkProse>
@@ -78,7 +78,7 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
             <MissionWorkProse code>{doc.text}</MissionWorkProse>
           ))}
         {!reads && (
-          <MissionWorkEmpty icon={isArtifact(a) ? "artifact" : "external"} title={isArtifact(a) ? "An artifact: it runs on its own page" : a.url ? "It's kept elsewhere" : "There's nothing of it to read here"}>
+          <MissionWorkEmpty icon={isArtifact(a) ? "artifact" : "external"} title={isArtifact(a) ? "Artifact: open page to view" : a.url ? "Stored elsewhere" : "Nothing to show here"}>
             {desc}
           </MissionWorkEmpty>
         )}

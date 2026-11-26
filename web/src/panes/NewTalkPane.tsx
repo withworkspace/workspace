@@ -50,7 +50,7 @@ export function NewTalkPane({ to }: NewTalkPaneProps) {
         <PaneHead title="New conversation" />
         <p className={css.says}>What are you thinking about? An idea, a problem, a question about the code.</p>
         <p className={css.kept}>
-          Nothing's kept until you say something (<Keys k="mod+⏎" />): then it's a conversation, in Conversations.
+          Saved to Conversations once you send (<Keys k="mod+⏎" />).
         </p>
       </DockBody>
       <Composer field={field} placeholder="Say the first thing…" text={text} onText={setText} onSay={begin} />

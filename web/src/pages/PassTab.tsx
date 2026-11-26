@@ -83,15 +83,15 @@ export function PassTab({
           <>
             {pass.skill ? (
               <>
-                Its agent follows the workspace's skill <Text mono>{pass.skill}</Text>
-                {pass.args ? <>, asked “{pass.args}”</> : null}, and reads what it needs of the workspace.{" "}
+                Agent follows the workspace skill <Text mono>{pass.skill}</Text>
+                {pass.args ? <>, asked “{pass.args}”</> : null}, and reads the workspace as needed.{" "}
               </>
             ) : pass.cold ? (
-              "Its agent is given the page and nothing else. "
+              "Agent sees only the page. "
             ) : (
-              "Its agent reads the page and what it needs of the workspace. "
+              "Agent reads the page and the workspace as needed. "
             )}
-            What it says is kept here, beside the page: none of it is written into the page.
+            Results stay here; nothing is written into the page.
           </>
         }
         unavailable={pass.unavailable}
@@ -113,7 +113,7 @@ export function PassTab({
           </Button>
         }
       />
-      {pass.failed && !pass.running && <Banner>The last run couldn't finish. {pass.failed}</Banner>}
+      {pass.failed && !pass.running && <Banner>Last run could not finish. {pass.failed}</Banner>}
       {pass.moved && !pass.running && !!pass.runs && (
         <Banner
           tone="attention"
@@ -123,11 +123,11 @@ export function PassTab({
             </Button>
           }
         >
-          The page has changed since this ran: what's below is of the page as it was.
+          Page changed since this ran: results below are for the earlier version.
         </Banner>
       )}
       {pass.running && (
-        <PagePassRunning words={pass.runs ? "Reading the page again" : "Reading the page"}>
+        <PagePassRunning words={pass.runs ? "Rereading page" : "Reading page"}>
           <Calls calls={liveCalls(pass.run)} root={root} open live />
         </PagePassRunning>
       )}
@@ -150,7 +150,7 @@ export function PassTab({
               <Markdown text={pass.summary} />
             </PagePassSummary>
           )}
-          {open.length === 0 && put.length === 0 && <Text as="p" dim>It found nothing to raise.</Text>}
+          {open.length === 0 && put.length === 0 && <Text as="p" dim>Nothing found.</Text>}
           <PageFindings>
             {open.map((f) => {
               const q = asked(f);
@@ -159,20 +159,20 @@ export function PassTab({
                   <FindingBody f={f} lost={lost.has(f.key)} onWords={() => onWords(f)} />
                   <PageFindingActs>
                     {f.suggest && f.quote && !lost.has(f.key) && (
-                      <Button variant="primary" size="small" onClick={() => onTake(f)} title="Put these words on the page in place of those quoted">
+                      <Button variant="primary" size="small" onClick={() => onTake(f)} title="Replace quoted text with these words">
                         Use these words
                       </Button>
                     )}
-                    <Button size="small" onClick={() => onSettle(f, "done")} title="It's answered, or dealt with">
+                    <Button size="small" onClick={() => onSettle(f, "done")} title="Mark as done">
                       <Icon name="check" size={12} /> Done
                     </Button>
                     {!q && (
-                      <Button variant="ghost" size="small" onClick={() => onFindOut(f)} title="Ask an agent to find this out: it answers here, under the finding, and nothing's put in the page">
+                      <Button variant="ghost" size="small" onClick={() => onFindOut(f)} title="Ask an agent; answers here without changing the page">
                         Find out
                       </Button>
                     )}
                     <PageDismissAs whys={dismissWhys} onDismiss={(why) => onSettle(f, "dismissed", why)} />
-                    {lost.has(f.key) && <Text dim>Its words aren't on the page any more.</Text>}
+                    {lost.has(f.key) && <Text dim>Text no longer on the page.</Text>}
                   </PageFindingActs>
                   {q && <FoundOut cell={q} root={root} onAsk={(body) => onAsk(q, body)} onPut={(body) => onPut(f, q, body)} onCell={() => onCell(q)} />}
                 </PageFinding>
@@ -192,7 +192,7 @@ export function PassTab({
                       <PageFindingActs>
                         <Text dim>{f.state === "done" ? "Done" : `Dismissed${f.why ? `: ${dismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}</Text>
                         <Button variant="ghost" size="small" onClick={() => onSettle(f, "open")}>
-                          Open it again
+                          Reopen
                         </Button>
                       </PageFindingActs>
                     </PageFinding>

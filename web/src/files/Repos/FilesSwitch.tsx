@@ -26,12 +26,12 @@ type FilesSwitchProps = {
 export function FilesSwitch({ repo, color, name, ground, dirty, open, onToggle, menu, ref }: FilesSwitchProps) {
   return (
     <div className={css.switch} ref={ref}>
-      <button className={css.title} aria-haspopup="listbox" aria-expanded={open} {...keyProps("w", `${ground ? "The default branch, as it's checked out" : "A capsule"}. Switch to the ground or another capsule`, onToggle)}>
+      <button className={css.title} aria-haspopup="listbox" aria-expanded={open} {...keyProps("w", `Switch to ground or a capsule`, onToggle)}>
         <RepoDot color={color} />
         <span className={cx(css.repo, css.cut)}>{repo}</span>
         <span className={css.sep}>/</span>
         <span className={cx(css.name, css.cut)}>{ground ? "ground" : name}</span>
-        {dirty && !ground && <DirtyDot title="Changes not committed" />}
+        {dirty && !ground && <DirtyDot title="Uncommitted changes" />}
         <Icon name="chevron-down" size={13} className={css.chevron} />
       </button>
       {open && menu}

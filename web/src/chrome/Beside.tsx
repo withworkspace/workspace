@@ -99,7 +99,7 @@ export function Beside({ sheet }: BesideProps) {
     );
   }
   const said = (t: string) => tabOf({ conversations, missions }, paneAt(t)!, paneAt(t)!.kind === "conversation" ? talkName(talks[t]?.detail) : names[t]);
-  const passing = (t: string) => (paneAt(t)?.kind === "new" ? "not begun: it's a conversation once you've said something" : t === peek ? "a peek, which the next takes the place of" : undefined);
+  const passing = (t: string) => (paneAt(t)?.kind === "new" ? "not started until you send a message" : t === peek ? "peek, replaced by the next" : undefined);
   const pick = (t: string) => {
     change((s) => pickBeside(s, t, here));
     setPicks((n) => n + 1); // the one that's in front already is brought back into sight

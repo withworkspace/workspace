@@ -21,7 +21,7 @@ export function CrewModelSwitch({ slug, crew }: { slug: string; crew: Crew }) {
       value={crew.model ?? ""}
       placeholder={`${crew.harness}'s default`}
       busy={busy}
-      unavailable={working ? `${crew.id} is working: its model is typed into its terminal, so switch it once its turn ends` : undefined}
+      unavailable={working ? `${crew.id} is working: switch model when the turn ends` : undefined}
       aria-label={`${crew.id}'s model`}
       onSwitch={(model) => {
         setBusy(true);

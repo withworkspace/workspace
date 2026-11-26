@@ -9,10 +9,10 @@ import { has, useSetting, without } from "./useSetting";
 export function Source({ s, brief }: { s: Setting; brief?: boolean }) {
   const { reset } = useSetting(s);
   if (s.source === "default") return null;
-  if (s.source === "team") return <SettingsSource title="From the team's ws.toml: changed there">the team's</SettingsSource>;
+  if (s.source === "team") return <SettingsSource title="Set in the team's ws.toml">the team's</SettingsSource>;
   const over = has(s.team) ? `the team's is ${valueSaid(s, s.team)}` : has(s.default) ? `default ${valueSaid(s, s.default)}` : "";
   return (
-    <SettingsSource yours title={`From your ws.local.toml${brief && over ? `: ${over}` : ""}`} onReset={reset} resetTitle={`Back to ${without(s)}`}>
+    <SettingsSource yours title={`From your ws.local.toml${brief && over ? `: ${over}` : ""}`} onReset={reset} resetTitle={`Reset to ${without(s)}`}>
       yours{!brief && over ? ` · ${over}` : ""}
     </SettingsSource>
   );

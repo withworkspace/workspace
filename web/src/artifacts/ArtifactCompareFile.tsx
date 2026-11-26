@@ -35,7 +35,7 @@ export function ArtifactCompareFile({ path, status, binary, deletions, additions
           </span>
         )}
         {binary ? (
-          <Text dim>It isn't text: it {status === "modified" ? "differs" : `was ${diffStatusWords[status] ?? status}`}.</Text>
+          <Text dim>Not text: {status === "modified" ? "differs" : `was ${diffStatusWords[status] ?? status}`}.</Text>
         ) : (
           <>
             <span>

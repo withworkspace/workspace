@@ -22,11 +22,12 @@ type ArtifactHomeProps = {
 export function ArtifactHome({ where, repo, version, commit, put }: ArtifactHomeProps) {
   return (
     <Text as="div" dim className={css.home}>
-      <Icon name="branch" size={12} /> It lives in <Copyable text={where} className={css.where} title="Copy its folder: how it's named for other people" /> too, for everyone with {repo}: v{version} is there
-      {commit ? ` (${commit.slice(0, 7)})` : ""}.
+      <Icon name="branch" size={12} /> Lives in{" "}
+      <Copyable text={where} className={css.where} title="Copy folder path" /> too, for everyone with {repo}:
+      v{version} is there{commit ? ` (${commit.slice(0, 7)})` : ""}.
       {put ? (
-        <Button variant="ghost" size="small" className={css.action} onClick={put.onPress} disabled={put.busy} title={`Promote v${put.n}: it takes v${version}'s place there, in one commit`}>
-          <Icon name="check-circle" size={12} /> {put.busy ? "Landing…" : `Put v${put.n} there`}
+        <Button variant="ghost" size="small" className={css.action} onClick={put.onPress} disabled={put.busy} title={`Replace v${version} with v${put.n}, in one commit`}>
+          <Icon name="check-circle" size={12} /> {put.busy ? "Landing…" : `Replace with v${put.n}`}
         </Button>
       ) : null}
     </Text>

@@ -30,7 +30,7 @@ export function ModelChoices({
           {row.efforts.length > 1 && (
             <Segmented size="small" value={c.effort} onChange={(e) => onChoose("effort", e)} aria-label="Effort" className={css.effort}>
               {row.efforts.map((e) => (
-                <Segment key={e} value={e} title={e ? undefined : "The model's own effort"}>
+                <Segment key={e} value={e} title={e ? undefined : "Model default"}>
                   {effortWords[e]}
                 </Segment>
               ))}

@@ -56,7 +56,7 @@ export function ReviewComment({
           <>
             {!draft &&
               (note.url ? (
-                <NoteId href={note.url} title="Open it on GitHub">
+                <NoteId href={note.url} title="Open on GitHub">
                   GitHub
                 </NoteId>
               ) : (
@@ -77,13 +77,13 @@ export function ReviewComment({
       >
         {note.kind ? <span className={`kind k-${note.kind}`}>{capital(note.kind)}</span> : <span className="kind k-none">Comment</span>}
         {note.by && (
-          <span className={css.by} title={note.by === "agent" ? "An agent proposed it, and you added it to your review: it's yours to edit" : `${note.by} on GitHub`}>
+          <span className={css.by} title={note.by === "agent" ? "Proposed by an agent, added by you: yours to edit" : `${note.by} on GitHub`}>
             <Icon name={note.by === "agent" ? "sparkle" : "user"} size={11} /> {note.by === "agent" ? "Agent's" : note.by}
           </span>
         )}
         {draft ? <NoteStatus>Draft</NoteStatus> : <NoteStatus status={note.status}>{statusWords[note.status] ?? note.status}</NoteStatus>}
         {note.sending && (
-          <Text dim title="GitHub's being told">
+          <Text dim title="Sending to GitHub">
             Sending…
           </Text>
         )}
@@ -93,9 +93,9 @@ export function ReviewComment({
           {elsewhere && ` · made on ${note.commit.slice(0, 7)}, not in this diff`}
         </Text>
       </NoteHead>
-      {apart && note.excerpt?.length > 0 && !(resolved && !cursor) && <Excerpt lines={note.excerpt} from={note.line} title="The lines it's on, not showing above" />}
+      {apart && note.excerpt?.length > 0 && !(resolved && !cursor) && <Excerpt lines={note.excerpt} from={note.line} title="Commented lines, not shown above" />}
       {followup && !resolved && (
-        <div className={cx(css.followup, followup.kind === "addressed" && css.addressed, followup.blocks && css.blocks)} title="What the Follow-up pass said of this comment: whether what's been pushed since deals with it">
+        <div className={cx(css.followup, followup.kind === "addressed" && css.addressed, followup.blocks && css.blocks)} title="Follow-up pass: whether later pushes address this comment">
           <span className={css.pass}>
             <Icon name="sparkle" size={11} /> Follow-up
           </span>
@@ -112,7 +112,7 @@ export function ReviewComment({
               {note.thread.map((t, i) => (
                 <NoteTurn key={i} who={t.by === "you" ? "You" : t.by} said={t.body}>
                   {t.sending && (
-                    <Text dim title="It's on its way to GitHub">
+                    <Text dim title="Sending to GitHub">
                       Sending…
                     </Text>
                   )}

@@ -25,7 +25,7 @@ function grab(items: Parameters<ReturnType<typeof useContextMenu>>[1], provided:
   return { out, on };
 }
 
-const items = () => h(MenuItem, { id: "park", textValue: "Park it", children: "Park it" });
+const items = () => h(MenuItem, { id: "park", textValue: "Park", children: "Park" });
 
 describe("ContextMenu", () => {
   // Shut, there's nothing of it on the page but where it'll open by.

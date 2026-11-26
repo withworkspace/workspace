@@ -9,7 +9,7 @@ export function TalkAnchor({ excerpt, quote }: { excerpt?: { lines: string[]; fr
   if (excerpt) return <Excerpt className={css.anchor} lines={excerpt.lines} from={excerpt.from} title={excerpt.title} />;
   if (!quote) return null;
   return (
-    <blockquote className={cx(css.anchor, css.quote)} title="The passage it was asked of">
+    <blockquote className={cx(css.anchor, css.quote)} title="Quoted passage">
       {quote}
     </blockquote>
   );

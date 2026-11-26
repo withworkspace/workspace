@@ -73,7 +73,7 @@ export interface ActOn {
 }
 
 // wsActs are what ws itself does to any plugin's thing.
-export const wsActs: ActOn[] = [{ id: "mission", title: "Start a mission about it", hint: "new brief work", icon: "flag", ws: "mission" }];
+export const wsActs: ActOn[] = [{ id: "mission", title: "Start a mission about this", hint: "new brief work", icon: "flag", ws: "mission" }];
 
 // actsOn is what can be done to a thing of a kind: its kind's actions, as
 // its plugin registered them, then ws's own. One ws found in a space,
@@ -341,7 +341,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       id: "do:theme-system",
       group: "do",
       kind: "Do",
-      title: "Theme from the system",
+      title: "System theme",
       hint: "appearance",
       icon: "monitor",
       score: 0,
@@ -353,7 +353,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
             id: "do:upgrade",
             group: "do" as const,
             kind: "Do",
-            title: `Upgrade to ws ${w.later}`,
+            title: `Upgrade to Workspace ${w.later}`,
             hint: "update release version later",
             icon: "arrow-up" as const,
             score: 0,
@@ -365,7 +365,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       id: "do:shut-down",
       group: "do",
       kind: "Do",
-      title: "Shut down the daemon…",
+      title: "Shut down Workspace…",
       hint: "stop quit exit",
       icon: "power",
       score: 0,
@@ -375,7 +375,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       id: "do:keys",
       group: "do",
       kind: "Do",
-      title: "Show the keys",
+      title: "Keyboard shortcuts",
       hint: "shortcuts help",
       icon: "keyboard",
       score: 0,
@@ -878,8 +878,8 @@ export function codeItem(h: CodeHit, i: number): Item {
 export function codeNote(end: CodeEnd | undefined): string | undefined {
   if (!end) return undefined;
   if (end.problem) return end.problem;
-  if (end.capped === "matches") return `Stopped at the first ${end.matches} matches. There are more: say more of what you're after.`;
-  if (end.capped === "bytes") return `Stopped at ${end.matches} matches, as many as fit. There are more: say more of what you're after.`;
+  if (end.capped === "matches") return `Showing first ${end.matches} matches. Refine your search for more.`;
+  if (end.capped === "bytes") return `Showing ${end.matches} matches, the most that fit. Refine your search for more.`;
   return undefined;
 }
 
@@ -1172,7 +1172,7 @@ export function build(a: Assembly): Built {
     }
     into.more += g.more ?? 0;
     if (g.problem) into.note = g.problem;
-    else if (g.reading) into.note = `Reading ${g.reading} ${g.reading === 1 ? "capsule" : "capsules"}: their files may be missing.`;
+    else if (g.reading) into.note = `Reading ${g.reading} ${g.reading === 1 ? "capsule" : "capsules"}: results may be incomplete.`;
   }
   // A pull request, a page or an artifact listed already (an open pull
   // request, or a page or an artifact whose title has what's typed) isn't

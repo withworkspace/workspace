@@ -10,8 +10,8 @@ import { useChromeStore } from "../chrome/store";
 // menu, in Find, and on Settings, under About.
 export async function askShutDown() {
   const yes = await confirm({
-    title: "Shut down the daemon?",
-    body: "Every crew it holds is hung up, as ws daemon stop does, and this page closes with it. ws web starts it again.",
+    title: "Shut down Workspace?",
+    body: "Stops all crew and closes this page. Run ws web to start again.",
     confirm: "Shut down",
     danger: true,
   });
@@ -20,6 +20,6 @@ export async function askShutDown() {
     await shutDownDaemon();
     useChromeStore.getState().daemonClosed();
   } catch (e) {
-    toast(`Couldn't shut the daemon down: ${humanError(String(e))}`, { tone: "danger" });
+    toast(`Could not shut down Workspace: ${humanError(String(e))}`, { tone: "danger" });
   }
 }

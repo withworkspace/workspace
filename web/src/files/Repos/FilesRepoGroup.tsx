@@ -43,7 +43,7 @@ export function FilesRepoGroup({ kind, label, count, open, children }: FilesRepo
     );
   return (
     <details className={cx(css.group, css.documents)} open={open}>
-      <summary className={groupHeadClass(css.head)} title="Repos of documents: read in Documents, by their titles. Their files are here too.">
+      <summary className={groupHeadClass(css.head)} title="Document repos, also readable in Documents">
         In Documents <Count>{count}</Count>
         <Link to="/documents" className={css.link} title="Open Documents" onClick={(e) => e.stopPropagation()}>
           Open

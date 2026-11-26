@@ -8,8 +8,8 @@ import css from "./WindowNotFound.module.css";
 export function WindowNotFound() {
   return (
     <div className={css.page}>
-      <Empty icon="search" title="There's nothing here" action={<Link to="/" className={buttonClass()}>Back to missions</Link>}>
-        This page doesn't exist, or what it showed has gone.
+      <Empty icon="search" title="Nothing here" action={<Link to="/" className={buttonClass()}>Back to missions</Link>}>
+        This page does not exist, or has been removed.
       </Empty>
     </div>
   );

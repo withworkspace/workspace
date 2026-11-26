@@ -40,7 +40,7 @@ export function SpaceHead({ label, color, folder, count, fresh, actions }: Space
       }
       actions={actions}
     >
-      <span className={css.count} title="As on its default branch">
+      <span className={css.count} title="From the default branch">
         {count} {count === 1 ? "document" : "documents"}
       </span>
       {fresh}

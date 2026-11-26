@@ -19,7 +19,7 @@ export function MissionPeekCapsule({ name, gone, pr }: MissionPeekCapsuleInfo) {
   return (
     <li className={css.capsule}>
       <Icon name="branch" size={13} className={css.icon} />
-      <span className={gone ? css.gone : css.name} title={gone ? `${name}: it isn't here any more` : name}>
+      <span className={gone ? css.gone : css.name} title={gone ? `${name}: no longer exists` : name}>
         {name}
       </span>
       {pr && (

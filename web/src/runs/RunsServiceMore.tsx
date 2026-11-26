@@ -30,7 +30,7 @@ export function RunsServiceMore({ r, by }: { r: RunDetail; by?: string }) {
           {by && <> by {by}</>}
           {r.recipe && (
             <>
-              , from its{" "}
+              , from{" "}
               <code>
                 [run.{r.type === "task" ? "task" : "service"}.{r.recipe}]
               </code>

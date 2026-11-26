@@ -17,8 +17,9 @@ export function ArtifactDiscardedNote({ at, by, reason, erased, until }: Artifac
   return (
     <ArtifactNote dim>
       Discarded <Time iso={at} as="relative" /> by {by}
-      {reason ? `: ${reason}${/[.!?]$/.test(reason) ? "" : "."}` : "."} It's off the list, and takes no new versions.{" "}
-      {erased ? "Its files have been deleted for good." : `Its folder is kept in .ws/artifacts/.discarded until ${until}.`}
+      {reason ? `: ${reason}${/[.!?]$/.test(reason) ? "" : "."}` : "."} Removed from list and unable to create
+      new versions.{" "}
+      {erased ? "Files have been deleted." : `Folder is kept in .ws/artifacts/.discarded until ${until}.`}
     </ArtifactNote>
   );
 }

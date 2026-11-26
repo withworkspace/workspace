@@ -8,7 +8,7 @@ export function FilesRuns({ list, panel }: { list?: ReactNode; panel?: ReactNode
   return (
     <div className={css.runs}>
       {list && (
-        <aside className={css.list} aria-label="Its runs">
+        <aside className={css.list} aria-label="Runs">
           {list}
         </aside>
       )}

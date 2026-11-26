@@ -27,7 +27,7 @@ export function MissionLeadLaunch({
 }) {
   const others = picks?.allowed ?? [];
   const main = (
-    <Button variant={primary ? "primary" : undefined} disabled={busy} onClick={() => launch()} title={picks && others.length ? `On ${pickName(picks.default)}` : undefined}>
+    <Button variant={primary ? "primary" : undefined} disabled={busy} onClick={() => launch()} title={picks && others.length ? `Runs on ${pickName(picks.default)}` : undefined}>
       <Icon name="play" /> Launch {again ? "new " : ""}crew
     </Button>
   );
@@ -42,7 +42,7 @@ export function MissionLeadLaunch({
         aria-label="Launch crew on"
         onAction={(k) => launch(k === "0" ? undefined : all[Number(k)])}
         trigger={
-          <Button variant={primary ? "primary" : undefined} className={cx(css.toggle, primary && css.primary)} disabled={busy} aria-label="Launch crew on another agent or model" data-field>
+          <Button variant={primary ? "primary" : undefined} className={cx(css.toggle, primary && css.primary)} disabled={busy} aria-label="Choose agent or model" data-field>
             <Icon name="chevron-down" size={13} />
           </Button>
         }
@@ -53,7 +53,7 @@ export function MissionLeadLaunch({
               {p.harness}
               {p.model ? ` · ${p.model}` : ""}
             </Text>
-            {!p.model && <Text dim>its own model</Text>}
+            {!p.model && <Text dim>default model</Text>}
             {i === 0 && <Chip>default</Chip>}
           </MenuItem>
         ))}

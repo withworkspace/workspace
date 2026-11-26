@@ -11,7 +11,7 @@ export function MissionWorkCommits({ commits, more }: { commits: { sha: string; 
     <ul className={css.commits}>
       {commits.map((m) => (
         <li key={m.sha}>
-          <Copyable text={m.sha.slice(0, 7)} className={css.sha} title="Copy the commit" />
+          <Copyable text={m.sha.slice(0, 7)} className={css.sha} title="Copy commit" />
           <span className={css.subject} title={m.subject}>
             {m.subject}
           </span>

@@ -180,7 +180,7 @@ describe("planSteps", () => {
   it("keeps where the mission stands on a step ws has, and its checks while its name is the same", () => {
     const known = [
       { n: 1, title: "Write the proposal", text: "", state: "accepted" as const, checks: [{ text: "it says when an invoice is archived", result: "met" as const }] },
-      { n: 2, title: "Read it", text: "", state: "current" as const, crew: ["c2"] },
+      { n: 2, title: "Read", text: "", state: "current" as const, crew: ["c2"] },
     ];
     const now = planSteps(plan, known);
     expect(now[0]).toMatchObject({ state: "accepted", checks: [{ result: "met" }] });

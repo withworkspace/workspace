@@ -73,7 +73,7 @@ export function Mermaid({ code, data = {}, viewable = true, className, drawnClas
   if (drawn && "error" in drawn) {
     return (
       <div className={cx(css.error, className)} {...data} data-skip="">
-        <div>This diagram couldn't be drawn: {drawn.error.split("\n")[0]}</div>
+        <div>Could not draw diagram: {drawn.error.split("\n")[0]}</div>
         <CodeBlock className={codeClass}>{code}</CodeBlock>
       </div>
     );
@@ -84,6 +84,6 @@ export function Mermaid({ code, data = {}, viewable = true, className, drawnClas
         {code}
       </pre>
     );
-  const open = viewable ? { "data-viewable": "Diagram", title: "Open it larger" } : {};
+  const open = viewable ? { "data-viewable": "Diagram", title: "Enlarge" } : {};
   return <div className={cx(css.mermaid, drawnClass, className)} {...data} {...open} data-skip="" dangerouslySetInnerHTML={{ __html: drawn.svg }} />;
 }

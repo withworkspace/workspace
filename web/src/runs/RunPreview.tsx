@@ -27,25 +27,25 @@ export function RunPreview({ link, title, up, port, frameKey, waiting }: { link:
   return (
     <div className={css.preview}>
       <div className={css.bar}>
-        <Button variant="ghost" size="small" square disabled={!up} onClick={() => setLoads((n) => n + 1)} title="Load it again">
+        <Button variant="ghost" size="small" square disabled={!up} onClick={() => setLoads((n) => n + 1)} title="Reload">
           <Icon name="rotate" size={13} />
         </Button>
-        <a className={css.address} href={link} target="_blank" rel="noopener noreferrer" title={`${link}: open it in a tab of its own`}>
+        <a className={css.address} href={link} target="_blank" rel="noopener noreferrer" title={`Open ${link} in new tab`}>
           <span className={cx(css.dot, up && css.up)} aria-hidden />
           <span className={css.host}>{bare(link)}</span>
         </a>
-        <Segmented size="small" className={css.widths} value={width} onChange={setWidth} aria-label="How wide it's drawn">
-          <Segment value="fill" title="As wide as there's room for">
+        <Segmented size="small" className={css.widths} value={width} onChange={setWidth} aria-label="Preview width">
+          <Segment value="fill" title="Full width">
             Fill
           </Segment>
-          <Segment value="tablet" title="As a tablet's, 768 wide">
+          <Segment value="tablet" title="Tablet, 768px">
             Tablet
           </Segment>
-          <Segment value="phone" title="As a phone's, 390 wide">
+          <Segment value="phone" title="Phone, 390px">
             Phone
           </Segment>
         </Segmented>
-        <a className={buttonClass({ variant: "ghost", size: "small", square: true })} href={link} target="_blank" rel="noopener noreferrer" title="Open it in a tab of its own" aria-label="Open it in a tab of its own">
+        <a className={buttonClass({ variant: "ghost", size: "small", square: true })} href={link} target="_blank" rel="noopener noreferrer" title="Open in new tab" aria-label="Open in new tab">
           <Icon name="external" size={13} />
         </a>
       </div>
@@ -55,7 +55,7 @@ export function RunPreview({ link, title, up, port, frameKey, waiting }: { link:
         ) : (
           <div className={css.waiting}>
             <p>
-              <Spinner size={13} /> Nothing's answering on :{port} yet: it's shown here once it does.
+              <Spinner size={13} /> Waiting for :{port}: renders once ready.
             </p>
             {waiting}
           </div>

@@ -27,15 +27,15 @@ export function MissionContext({ mission, capsule }: { mission: Mission; capsule
       {h.text && <Text as="p" dim>{h.text}</Text>}
       <h2>Brief</h2>
       {brief === undefined ? (
-        <Text as="p" dim>Reading the brief…</Text>
+        <Text as="p" dim>Loading brief…</Text>
       ) : brief === null ? (
-        <Text as="p" dim>The mission's brief couldn't be read.</Text>
+        <Text as="p" dim>Could not load brief.</Text>
       ) : brief.trim() ? (
         <Prose>
           <Markdown text={brief} />
         </Prose>
       ) : (
-        <Text as="p" dim>The mission has no brief yet.</Text>
+        <Text as="p" dim>No brief yet.</Text>
       )}
     </>
   );

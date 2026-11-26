@@ -8,7 +8,7 @@ import { Prose } from "../ui/Prose";
 export function TalkProposalPlan({ text }: { text: string }) {
   return (
     <details className={cx("fold", css.plan)} open>
-      <summary>The plan, confirmed with it</summary>
+      <summary>Plan, confirmed with the brief</summary>
       <Prose className={css.prose}>
         <Markdown text={text} />
       </Prose>

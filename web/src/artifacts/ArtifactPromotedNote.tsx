@@ -17,14 +17,14 @@ type ArtifactPromotedNoteProps = {
 export function ArtifactPromotedNote({ at, by, version, into }: ArtifactPromotedNoteProps) {
   return (
     <ArtifactNote dim>
-      <Icon name="check-circle" size={12} /> Promoted <Time iso={at} as="relative" /> by {by}: v{version} was chosen
+      <Icon name="check-circle" size={12} /> Promoted <Time iso={at} as="relative" /> by {by}: v{version}
       {into ? (
         <>
           , into{" "}
           {into}
         </>
-      ) : null}
-      . It's kept for good.
+      ) : null}. Kept
+      permanently.
     </ArtifactNote>
   );
 }

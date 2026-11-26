@@ -29,7 +29,7 @@ export function ReviewLayout({
   return (
     <div className={css.review} style={width ? ({ "--files-w": `${width}px` } as CSSProperties) : undefined}>
       <aside className={css.side}>{side}</aside>
-      <div className={css.resize} role="separator" aria-orientation="vertical" title="Drag to make the list of files wider or narrower; double-click to put it back" onPointerDown={onResize} onDoubleClick={onResetWidth} />
+      <div className={css.resize} role="separator" aria-orientation="vertical" title="Drag to resize; double-click to reset" onPointerDown={onResize} onDoubleClick={onResetWidth} />
       <div className={css.pane} ref={pane} onScroll={onPaneScroll}>
         {children}
       </div>

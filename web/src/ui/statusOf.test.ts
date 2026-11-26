@@ -16,7 +16,7 @@ describe("where crew stand, in a list of crew", () => {
   it("says what crew reported once they've started", () => {
     expect(words({ ended: false, activity: "working" })).toBe("Working");
     expect(words({ ended: false, activity: "waiting" })).toBe("Waiting for you");
-    expect(words({ ended: false, activity: "waiting", waitingOn: "the tests" })).toBe("Waiting on its work");
+    expect(words({ ended: false, activity: "waiting", waitingOn: "the tests" })).toBe("Waiting on background work");
     expect(words({ ended: false, activity: "permission" })).toBe("Needs permission");
     expect(words({ ended: false, status: "asking" })).toBe("Asks you");
     expect(words({ ended: false, status: "done" })).toBe("Reported done");

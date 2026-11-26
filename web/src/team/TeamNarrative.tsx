@@ -20,7 +20,7 @@ export function TeamNarrativeNew({ children }: { children: ReactNode }) {
 // TeamNarrativeReading is changes being read by an agent now.
 export function TeamNarrativeReading({ children }: { children: ReactNode }) {
   return (
-    <span className={css.reading} title="An agent is reading each change and writing what it does">
+    <span className={css.reading} title="Summarising changes">
       <Spinner size={12} /> {children}
     </span>
   );

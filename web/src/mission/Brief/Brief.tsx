@@ -188,7 +188,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
           // A plan ws can't read is refused, saying why: it's shown under
           // the plan, to fix there (the brief, if changed, is saved).
           setPlanProblem(humanError((e as Error).message));
-          if (brief?.changed) done("Saved the brief. The plan wasn't: see why under it.");
+          if (brief?.changed) done("Brief saved. Plan not saved: see why below.");
           await reload();
           return;
         }
@@ -223,7 +223,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
           disabled: stale,
         }
       : changed
-        ? { label: confirmable ? "Save, and confirm and start" : "Save", run: () => save(confirmable), disabled: false }
+        ? { label: confirmable ? "Save, confirm and start" : "Save", run: () => save(confirmable), disabled: false }
         : confirmable
           ? { label: "Confirm and start", run: () => save(true), disabled: false }
           : undefined;
@@ -262,7 +262,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
   const rewritePlan = async () => {
     if (!canRewrite || asking || busy) return;
     const now = working(brief, s.brief);
-    if (!now.trim()) return toast("There's no brief yet for a plan to be written from.");
+    if (!now.trim()) return toast("Write a brief first.");
     setAsking(true);
     try {
       const draft = !!p && p.kind === "brief";
@@ -271,7 +271,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
       if (briefing) await talks.say(to ?? "", body);
       else await act(slug, "replan", { text: body });
       setBeside(true);
-      done(planned ? "Asked the planner to rewrite the plan. What it changes shows here, to read." : "Asked the planner for the plan. It shows here once it's proposed.");
+      done(planned ? "Planner is rewriting the plan. Changes show here to review." : "Planner is writing the plan. Shows here once proposed.");
       setOwn(false);
       await reload();
     } catch (e) {
@@ -343,7 +343,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
       if (el && writing(el)) return el.blur();
       if (focus) return setFocus(undefined);
       if (held) return setHeld(undefined);
-      if (changed) return toast("Your edits aren't saved: save them, or discard them, first.");
+      if (changed) return toast("Save or discard your edits first.");
       onEscape();
     },
   });
@@ -395,8 +395,8 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
         // planner stays beside it, to write the plan from it.
         action={
           centre && !ended ? (
-            <Button variant="ghost" size="small" type="button" onClick={() => setOwn(true)} title="Write the brief yourself: its planner stays beside it, and can write the plan from it">
-              <Icon name="pencil" size={12} /> Write it yourself
+            <Button variant="ghost" size="small" type="button" onClick={() => setOwn(true)} title="Write the brief yourself, with the planner beside you">
+              <Icon name="pencil" size={12} /> Write the brief yourself
             </Button>
           ) : undefined
         }
@@ -406,7 +406,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
       />
     ) : planner ? (
       // Its conversation's being read: its place is kept, so the documents don't move when it's there.
-      <MissionBriefPlanner label="The planner's conversation" centre={centre} reading />
+      <MissionBriefPlanner label="Planner conversation" centre={centre} reading />
     ) : ended ? null : (
       <BriefNoPlanner briefing={briefing} busy={busy} briefIt={briefIt} field={plannerField} fold={wide ? () => fold(false) : undefined} />
     );
@@ -416,11 +416,11 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
     return (
       <MissionBrief>
         <MissionBriefOutline>
-          <MissionBriefOutlineSection title="The brief">
-            <MissionBriefOutlineEmpty>Not drafted yet. Its planner writes it with you: the goal, the context, what's in and out, and how you'll know it's done.</MissionBriefOutlineEmpty>
+          <MissionBriefOutlineSection title="Brief">
+            <MissionBriefOutlineEmpty>Not drafted yet. The planner writes it with you: goal, context, scope, and how you'll know it's done.</MissionBriefOutlineEmpty>
           </MissionBriefOutlineSection>
-          <MissionBriefOutlineSection title="The plan">
-            <MissionBriefOutlineEmpty>Comes with the brief: what Z is, where it may stop early, and its steps.</MissionBriefOutlineEmpty>
+          <MissionBriefOutlineSection title="Plan">
+            <MissionBriefOutlineEmpty>Comes with the brief: what Z is, where it may stop early, and the steps.</MissionBriefOutlineEmpty>
           </MissionBriefOutlineSection>
         </MissionBriefOutline>
         <MissionBriefTalk>{planner ? plannerPane(true) : <MissionBriefStart request={d.request} busy={busy} onBrief={briefIt} onOwn={() => setOwn(true)} />}</MissionBriefTalk>
@@ -465,9 +465,9 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
             ref={setTools}
             slot={setSlot}
             inset={inset}
-            of={toolsFor && editing.length === 1 && toRead > 0 && (toolsFor === "plan" ? "The plan" : "The brief")}
-            ofTitle="The other's changes are still to read: settled, it's yours to edit too"
-            none={toolsFor ? undefined : ended ? "It's ended: nothing to edit" : toRead ? "Settle a document's changes, and it's yours to edit" : ""}
+            of={toolsFor && editing.length === 1 && toRead > 0 && (toolsFor === "plan" ? "Plan" : "Brief")}
+            ofTitle="Review the other document's changes to edit both"
+            none={toolsFor ? undefined : ended ? "Mission ended: nothing to edit" : toRead ? "Review changes to edit" : ""}
           />
           <MissionBriefActs>
             {busy && <Spinner />}
@@ -477,12 +477,12 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
               </MissionBriefNav>
             )}
             {changed && (
-              <Button variant="ghost" type="button" disabled={busy} onClick={() => setAgain((n) => n + 1)} title={p ? "Start over from what's proposed" : "Start over from what's written"}>
-                Discard my edits
+              <Button variant="ghost" type="button" disabled={busy} onClick={() => setAgain((n) => n + 1)} title={p ? "Back to proposed version" : "Back to saved version"}>
+                Discard edits
               </Button>
             )}
             {p && (
-              <Button variant="ghost" type="button" disabled={busy} onClick={() => settle(false)} title={briefing ? "Decline this draft: nothing's written" : "Decline it: it stays as it's written"}>
+              <Button variant="ghost" type="button" disabled={busy} onClick={() => settle(false)} title={briefing ? "Decline draft" : "Keep current version"}>
                 Decline
               </Button>
             )}
@@ -493,7 +493,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
                 disabled={busy || primary.disabled}
                 onClick={primary.run}
                 keys="mod+⏎"
-                title={briefing && p ? "Nothing's written until you confirm it: your edits, and the changes you decline, go with it. The planner doesn't see them until then" : undefined}
+                title={briefing && p ? "Nothing is saved until you confirm, including your edits and declined changes." : undefined}
               >
                 {primary.label} <Keys k="mod+⏎" />
               </Button>
@@ -523,22 +523,22 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
         <MissionBriefDocs ref={docs} side={side}>
           {stale && (
             <MissionBriefDocsNote tone="attention" title="Proposed against an earlier version" side={side}>
-              It's changed since, so accepting this is refused. Ask the planner for it again, from what's written now.
+              Changed since, so this cannot be accepted. Ask the planner again.
             </MissionBriefDocsNote>
           )}
-          {panel("brief", "The brief", s.brief, setBrief)}
+          {panel("brief", "Brief", s.brief, setBrief)}
           {(planned || briefing) && (
             <>
               {d.planProblem && (
-                <MissionBriefDocsNote tone="attention" title="The plan doesn't read, so the mission works from its brief" side={side}>
+                <MissionBriefDocsNote tone="attention" title="Could not read the plan: mission works from the brief" side={side}>
                   {d.planProblem}
                 </MissionBriefDocsNote>
               )}
-              {panel("plan", "The plan", s.plan, setPlan, briefing ? (planner ? "No plan yet: its planner writes one with the brief, or from a brief of yours." : "No plan yet: its planner writes one with the brief.") : undefined)}
+              {panel("plan", "Plan", s.plan, setPlan, briefing ? (planner ? "No plan yet: the planner writes one with the brief, or from yours." : "No plan yet: the planner writes one with the brief.") : undefined)}
             </>
           )}
           {planProblem && (
-            <MissionBriefDocsNote tone="danger" title="ws didn't save the plan" side={side}>
+            <MissionBriefDocsNote tone="danger" title="Could not save the plan" side={side}>
               <MissionBriefPlanProblem>{planProblem}</MissionBriefPlanProblem>
             </MissionBriefDocsNote>
           )}

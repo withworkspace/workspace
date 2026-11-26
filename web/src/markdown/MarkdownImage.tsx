@@ -13,7 +13,7 @@ export function MarkdownImage({ src, alt, title }: { src?: string; alt?: string;
   if (t.kind === "external") return <img src={src} alt={alt ?? ""} title={title} loading="lazy" data-viewable={title || alt || ""} />;
   if (!at || t.kind !== "file" || !t.path)
     return (
-      <span className={css.deadLink} title="An image this can't find">
+      <span className={css.deadLink} title="Image not found">
         {alt || src}
       </span>
     );

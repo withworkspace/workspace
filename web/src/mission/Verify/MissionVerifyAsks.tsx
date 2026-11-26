@@ -25,7 +25,7 @@ export function MissionVerifyAsks({ crew, asks, onAsk }: { crew: string; asks: s
       <h4 className={css.head}>{crew} suggests, to send back</h4>
       <div className={css.chips}>
         {asks.map((a, i) => (
-          <Button key={i} type="button" className={css.ask} onClick={() => onAsk(a)} title="Send this back with the bundle, as what's to do">
+          <Button key={i} type="button" className={css.ask} onClick={() => onAsk(a)} title="Add as not right">
             {a}
           </Button>
         ))}

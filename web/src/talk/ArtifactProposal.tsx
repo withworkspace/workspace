@@ -17,17 +17,17 @@ export function ArtifactProposalBody({ p, src, artifact }: { p: TalkProposal; sr
   const added = p.state === "accepted" ? addedVersion(p.result) : undefined;
   const stale = p.state === "open" ? staleWords(p, artifact) : "";
   const beside = !added && p.to && p.on ? p.on : 0;
-  const name = artifact?.title ?? p.title ?? p.to ?? "The artifact";
+  const name = artifact?.title ?? p.title ?? p.to ?? "Artifact";
   return (
     <>
       <TalkProposalWhat said>{p.note}</TalkProposalWhat>
       {stale && (
         <TalkProposalStale>
-          {stale}. Adding it still bases it on v{p.on}.
+          {stale}. Will still be based on v{p.on}.
         </TalkProposalStale>
       )}
       <TalkProposalFrames two={!!beside}>
-        {beside > 0 && <TalkProposalFrame src={frameURL(p.to ?? "", beside)} caption={`v${beside}, which it revises`} title={`${name}, v${beside}`} />}
+        {beside > 0 && <TalkProposalFrame src={frameURL(p.to ?? "", beside)} caption={`v${beside}, before`} title={`${name}, v${beside}`} />}
         {added ? <TalkProposalFrame src={frameURL(added.id, added.n)} title={`${name}, v${added.n}`} /> : <TalkProposalFrame src={src} caption={beside ? "Proposed" : undefined} title={`${name}, as proposed`} />}
       </TalkProposalFrames>
       <ArtifactMeta p={p} artifact={artifact} />

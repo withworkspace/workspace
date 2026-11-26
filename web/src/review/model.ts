@@ -244,7 +244,7 @@ function diffRows(file: number, f: DiffFile, s: FileState, split: boolean): Row[
   if (s.viewed || s.folded) return rows;
   const note = (text: string, large?: boolean) => rows.push({ type: "note", key: `${file}:note`, file, text, large });
   if (f.large) {
-    note(`Large diff: ${f.additions + f.deletions} changed lines, hidden. ⏎ shows it.`, true);
+    note(`Large diff: ${f.additions + f.deletions} changed lines, hidden. ⏎ to show.`, true);
     return rows;
   }
   if (f.binary) {

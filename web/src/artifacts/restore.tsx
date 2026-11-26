@@ -10,8 +10,8 @@ import { doneWords } from "./doneWords";
 export async function restore(a: ArtifactInfo): Promise<ArtifactDone | undefined> {
   const yes = await confirm({
     title: `Restore “${a.title}”?`,
-    body: <>Its folder comes back from .ws/artifacts/.discarded, as it was, and where it lived in a repo, the version that was there is put back, in one commit. Its expiry counts from now.</>,
-    confirm: "Restore it",
+    body: <>Folder comes back from .ws/artifacts/.discarded. If it lived in a repo, that version is put back in one commit. Expiry restarts from now.</>,
+    confirm: "Restore",
   });
   if (!yes) return undefined;
   try {

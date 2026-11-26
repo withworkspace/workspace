@@ -43,7 +43,7 @@ export function DockEdge({
       title={
         rest === undefined
           ? "Drag to resize"
-          : "Drag to resize; double-click to put it back"
+          : "Drag to resize; double-click to reset"
       }
       className={cx(css.edge, side === "beside" ? css.beside : css.below)}
       onPointerDown={(e) => {

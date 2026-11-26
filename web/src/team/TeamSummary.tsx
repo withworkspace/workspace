@@ -32,7 +32,7 @@ type TeamSummaryProps = {
 // changes showing.
 export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWrite }: TeamSummaryProps) {
   return (
-    <section className={css.summary} aria-label="What the team's been working on">
+    <section className={css.summary} aria-label="Team summary">
       <GroupHead className={css.bar}>
         <Button variant="bare" className={css.fold} aria-expanded={!folded} onClick={onFold}>
           <Icon name={folded ? "chevron-right" : "chevron-down"} size={12} /> Being worked on
@@ -40,7 +40,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
         <span className={css.when}>
           {summary.writing ? (
             <>
-              <Spinner size={12} /> Writing it
+              <Spinner size={12} /> Writing…
             </>
           ) : (
             <>
@@ -50,14 +50,14 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
                 </span>
               )}
               {summary.at && summary.stale && <span className={css.stale}>changed since</span>}
-              <Button variant="link" className={css.again} onClick={onWrite} title="Have it written again, from the changes as they are now" keys="c">
-                Write it again
+              <Button variant="link" className={css.again} onClick={onWrite} title="Rewrite from current changes" keys="c">
+                Rewrite
               </Button>
             </>
           )}
         </span>
       </GroupHead>
-      {!folded && summary.failed && <p className={css.failed}>It couldn't be written: {humanError(summary.failed)}</p>}
+      {!folded && summary.failed && <p className={css.failed}>Could not write summary: {humanError(summary.failed)}</p>}
       {!folded && !!summary.topics?.length && (
         <ul className={css.topics}>
           {summary.topics.map((t) => {
@@ -65,7 +65,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
             return (
               <li key={t.name} className={cx(css.topic, pressed && css.on)}>
                 <div className={css.head}>
-                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Show only its changes"} keys={pressed ? "esc" : undefined}>
+                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Only this topic's changes"} keys={pressed ? "esc" : undefined}>
                     {t.name}
                   </Button>
                   <span className={css.meta}>

@@ -8,7 +8,7 @@ export function MissionVerifyKept({ to }: { to: To }) {
   return (
     <p className={css.kept}>
       <Link to={to}>
-        <Icon name="terminal" size={11} /> All it printed, and what it wrote
+        <Icon name="terminal" size={11} /> Output and files written
       </Link>
     </p>
   );

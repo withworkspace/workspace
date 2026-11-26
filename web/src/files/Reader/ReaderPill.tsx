@@ -13,7 +13,7 @@ export function ReaderPill({ title, sections, reading, open, toggle, pill }: { t
   const at = sections[reading.at];
   return (
     <div className={cx(css.wrap, reading.past && css.shown)}>
-      <button type="button" ref={pill} className={css.pill} data-contents-toggle aria-expanded={open} aria-hidden={!reading.past || undefined} tabIndex={reading.past ? undefined : -1} {...keyProps("t", "Its contents", toggle)}>
+      <button type="button" ref={pill} className={css.pill} data-contents-toggle aria-expanded={open} aria-hidden={!reading.past || undefined} tabIndex={reading.past ? undefined : -1} {...keyProps("t", "Contents", toggle)}>
         <span className={css.doc}>{title}</span>
         <Icon name="chevron-right" size={12} />
         <span className={css.at}>{at ? at.text : "Top"}</span>

@@ -67,7 +67,7 @@ export function PullRequestPeek({ status, author, mine, draft, branch, base, add
       </div>
       {mission && (
         <Link to={mission.to} className={css.mission}>
-          <Icon name="flag" size={12} /> The work of {mission.title}
+          <Icon name="flag" size={12} /> Mission: {mission.title}
         </Link>
       )}
       {layers && layers.length > 1 && (
@@ -79,8 +79,8 @@ export function PullRequestPeek({ status, author, mine, draft, branch, base, add
           </ol>
         </PaneSection>
       )}
-      <PaneSection title="What it says it does">
-        {children ? <div className={css.says}>{children}</div> : <p className={css.silent}>It has no description.</p>}
+      <PaneSection title="Description">
+        {children ? <div className={css.says}>{children}</div> : <p className={css.silent}>No description.</p>}
       </PaneSection>
     </div>
   );

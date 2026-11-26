@@ -13,7 +13,7 @@ export function TweaksTray({ told, set, onClose, keys, children }: { told: Told;
   return (
     <ArtifactTweaksTray foot={children}>
       <TweaksHead told={told}>
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide the tweaks" title="Hide them" keys={keys}>
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide tweaks" title="Hide tweaks" keys={keys}>
           <Icon name="x" size={13} />
         </Button>
       </TweaksHead>

@@ -46,7 +46,7 @@ export const kinds: Readonly<Record<V1.UiName, UiKind>> = {
   // A ref's card, by its words, while the pointer's on them.
   "ref-card": {
     as: "hover",
-    refuses: (asked) => (typeof asked.with.ref === "string" && asked.with.ref && asked.box ? undefined : "ref-card is asked for with a ref, and the box of its words."),
+    refuses: (asked) => (typeof asked.with.ref === "string" && asked.with.ref && asked.box ? undefined : "ref-card needs a ref and the box of its text."),
   },
   // One of the plugin's own things put in a repo, and saved there, by
   // the button that asked (Uis/ThingPromoteUi.tsx, Uis/ThingSaveUi.tsx).
@@ -62,8 +62,8 @@ export const kinds: Readonly<Record<V1.UiName, UiKind>> = {
 // the protocol's rule, for this plugin, on this ws.
 export function pictureRefused(asked: Asked, plugin: string, origin = globalThis.location?.origin ?? ""): string | undefined {
   const { src, title } = asked.with;
-  if (typeof src !== "string") return "picture is asked for with its address: { src }.";
-  if (title !== undefined && typeof title !== "string") return "picture's title is words.";
+  if (typeof src !== "string") return "picture needs an address: { src }.";
+  if (title !== undefined && typeof title !== "string") return "picture's title must be text.";
   return V1.pictureRefused(src, origin, { api: apiBase(plugin), base: frameBase(plugin) });
 }
 
@@ -71,7 +71,7 @@ export function pictureRefused(asked: Asked, plugin: string, origin = globalThis
 // if it wasn't: a thing is its kind, and the plugin's name for it.
 function aboutThing(ui: string, asked: Asked): string | undefined {
   const given = (v: unknown) => typeof v === "string" && v.trim() !== "";
-  return given(asked.with.kind) && given(asked.with.ref) ? undefined : `${ui} is asked for with the thing's kind and the plugin's name for it: { kind: "sketch", ref: "sketch-12" }.`;
+  return given(asked.with.kind) && given(asked.with.ref) ? undefined : `${ui} needs the thing's kind and the plugin's ref for it: { kind: "sketch", ref: "sketch-12" }.`;
 }
 
 // FrameUis is the UIs one frame's page has asked for: what the page says
@@ -132,7 +132,7 @@ export function frameUis(closed: (id: number, result: unknown) => void, has: Rea
     names: Object.keys(has),
     open(asked) {
       const kind = Object.hasOwn(has, asked.ui) ? has[asked.ui] : undefined;
-      if (!kind) return `This ws has no UI called ${asked.ui}. Update ws.`;
+      if (!kind) return `Workspace has no UI called ${asked.ui}. Update Workspace.`;
       const why = kind.refuses?.(asked, plugin);
       if (why) return why;
       if (kind.as === "hover") {

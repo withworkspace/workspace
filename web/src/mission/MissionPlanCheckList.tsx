@@ -44,7 +44,7 @@ export function MissionPlanCheckList({ checks, said }: { checks: StepCheck[]; sa
               <span className={css.more}>
                 {c.result !== "met" && c.why}
                 {c.kept && (
-                  <Link to={`/runs?show=${encodeURIComponent(c.kept)}`} className={css.kept} title="All it printed, and what it wrote">
+                  <Link to={`/runs?show=${encodeURIComponent(c.kept)}`} className={css.kept} title="Output and reports">
                     <Icon name="terminal" size={11} />
                   </Link>
                 )}

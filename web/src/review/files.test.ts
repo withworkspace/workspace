@@ -32,7 +32,7 @@ test("files in one folder share all of it, and files at the top share nothing", 
   const top = groupFiles([file("README.md"), file("cmd/main.go")]);
   expect(top.common).toBe("");
   expect(top.groups.map((x) => [x.label, x.title])).toEqual([
-    ["", "The top of the repo"],
+    ["", "Repo root"],
     ["cmd/", "cmd/"],
   ]);
 
@@ -64,7 +64,7 @@ test("a guide's order: its groups, and what it doesn't place after them (or, sta
   expect(groupByOrder(ordered, order).groups.map((g) => [g.label, g.files, !!g.skim, g.why])).toEqual([
     ["The change", [0, 1], false, "Start here."],
     ["Moves", [2, 3], true, undefined],
-    ["Not placed", [4, 5], false, "The guide didn't say where these are read"],
+    ["Not placed", [4, 5], false, "Not placed by the guide"],
   ]);
   // The change has moved on: what the guide doesn't place may be new.
   const stale = { ...order, stale: true };

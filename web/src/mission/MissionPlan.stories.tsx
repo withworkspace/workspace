@@ -67,7 +67,7 @@ export const Plan: StoryObj = {
           </MissionPlanNote>
         </MissionPlanStep>
         <MissionPlanStep n={4} title="Open it" state="todo">
-          <MissionPlanNote icon="pr" title="ws opens the pull request itself">
+          <MissionPlanNote icon="pr" title="Workspace opens the pull request itself">
             ws opens it
           </MissionPlanNote>
         </MissionPlanStep>

@@ -1,17 +1,17 @@
 // The keys of Documents and of a space's page, as the help says them.
 
 export const documentsKeys: [string, string][] = [
-  ["n", "Start a page"],
-  ["N", "Start a page as one of the workspace's kinds of document"],
-  ["/", "Search the documents"],
+  ["n", "New page"],
+  ["N", "New page from a document kind"],
+  ["/", "Search documents"],
   ["j / k", "Move between spaces and pages"],
-  ["⏎ or o", "Open it"],
+  ["⏎ or o", "Open"],
 ];
 
 export const spaceKeys: [string, string][] = [
-  ["j / k", "Move between documents: the one picked is shown beside the list"],
-  ["⏎ or o", "Read it"],
+  ["j / k", "Move between documents"],
+  ["⏎ or o", "Read"],
   ["/", "Search the space"],
-  ["n", "Start a page here"],
-  ["esc", "Clear the search, or back to Documents"],
+  ["n", "New page here"],
+  ["esc", "Clear search, or back to Documents"],
 ];

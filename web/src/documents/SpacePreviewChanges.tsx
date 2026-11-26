@@ -5,8 +5,8 @@ import css from "./SpacePreviewChanges.module.css";
 // its text: a DocumentsChanges.
 export function SpacePreviewChanges({ children }: { children: ReactNode }) {
   return (
-    <section className={css.changes} aria-label="Changes to it lately">
-      <h3>Changes to it lately</h3>
+    <section className={css.changes} aria-label="Recent changes">
+      <h3>Recent changes</h3>
       {children}
     </section>
   );

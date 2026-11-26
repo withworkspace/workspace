@@ -44,16 +44,16 @@ export function FilesSwitchItem({ name, ground, sub, ahead, behind, dirty, curre
         <span className={css.sub}>{sub}</span>
       </span>
       {!!ahead && (
-        <span className={css.ab} title={`${ahead} ahead of its upstream`}>
+        <span className={css.ab} title={`${ahead} ahead of upstream`}>
           ↑{ahead}
         </span>
       )}
       {!!behind && (
-        <span className={css.ab} title={`${behind} behind its upstream`}>
+        <span className={css.ab} title={`${behind} behind upstream`}>
           ↓{behind}
         </span>
       )}
-      {dirty && <DirtyDot title="Changes not committed" />}
+      {dirty && <DirtyDot title="Uncommitted changes" />}
       {current && <Icon name="check" size={13} className={css.check} />}
     </li>
   );

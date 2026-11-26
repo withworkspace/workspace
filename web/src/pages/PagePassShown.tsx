@@ -5,7 +5,7 @@ import css from "./PagePassShown.module.css";
 // words.
 export function PagePassShown({ shown, onShown }: { shown: boolean; onShown: (on: boolean) => void }) {
   return (
-    <Checkbox className={css.shown} checked={shown} onChange={onShown} title="Mark what it found on the words it's about, on the page. They're drawn over the page, not written into it.">
+    <Checkbox className={css.shown} checked={shown} onChange={onShown} title="Highlight findings on the page">
       Show on the page
     </Checkbox>
   );

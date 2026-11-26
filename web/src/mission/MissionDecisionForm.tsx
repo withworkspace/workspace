@@ -9,9 +9,9 @@ import css from "./MissionDecisionForm.module.css";
 export type DecisionFormKind = "record" | "replace" | "withdraw";
 
 const words: Record<DecisionFormKind, { title: (of?: string) => string; send: string; sending: string }> = {
-  record: { title: () => "A decision of yours", send: "Record", sending: "Recording…" },
-  replace: { title: (of) => `In place of ${of}`, send: "Replace it", sending: "Replacing…" },
-  withdraw: { title: (of) => `Withdraw ${of}`, send: "Withdraw it", sending: "Withdrawing…" },
+  record: { title: () => "New decision", send: "Record", sending: "Recording…" },
+  replace: { title: (of) => `In place of ${of}`, send: "Replace", sending: "Replacing…" },
+  withdraw: { title: (of) => `Withdraw ${of}`, send: "Withdraw", sending: "Withdrawing…" },
 };
 
 // MissionDecisionForm is where a decision is written: what was decided
@@ -77,9 +77,9 @@ export function MissionDecisionForm({
       <div className={css.head}>
         <Icon name="gavel" size={12} /> {w.title(of)}
         <span className={css.note}>
-          {kind === "record" && "Yours stand over what the plan asks, and crew and the orchestrator are shown them."}
-          {kind === "replace" && `${of} stays in the record, as replaced.`}
-          {kind === "withdraw" && `${of} stays in the record, as withdrawn.`}
+          {kind === "record" && "Your decisions override the plan, and crew and the orchestrator see them."}
+          {kind === "replace" && `${of} stays on record, marked replaced.`}
+          {kind === "withdraw" && `${of} stays on record, marked withdrawn.`}
         </span>
       </div>
       {!withdrawing && (
@@ -91,7 +91,7 @@ export function MissionDecisionForm({
         value={why}
         rows={rows(why)}
         placeholder={withdrawing ? "Why it no longer holds" : "Why"}
-        aria-label={withdrawing ? "Why it's withdrawn" : "Why"}
+        aria-label={withdrawing ? "Reason for withdrawal" : "Why"}
         onChange={(e) => setWhy(e.target.value)}
         onKeyDown={keys}
       />
@@ -104,7 +104,7 @@ export function MissionDecisionForm({
         <Button variant="ghost" size="small" onClick={onCancel} keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" type="submit" disabled={busy || (!ready && !same)} unavailable={same ? `It reads as ${of} does: say what's decided in its place` : undefined} title={w.send} keys="mod+⏎">
+        <Button variant="primary" size="small" type="submit" disabled={busy || (!ready && !same)} unavailable={same ? `Same as ${of}: enter the new decision` : undefined} title={w.send} keys="mod+⏎">
           {busy ? w.sending : w.send}
         </Button>
       </div>

@@ -20,11 +20,12 @@ export function OrchestratorFacts({ agent, auto, most }: OrchestratorFactsProps)
       <SummaryRow label="Agent">
         <Text mono>{agent}</Text>
       </SummaryRow>
-      <SummaryRow label="Crew it starts">
-        {auto ? "Start at once" : "Wait for you to launch them"}; up to {most} in a row, then it asks you
+      <SummaryRow label="Starting crew">
+        {auto ? "Start at once" : "Wait for you to launch"}; up to {most} in a row, then asks you
       </SummaryRow>
       <SummaryRow label="Settings">
-        <Link to="/settings/missions#orchestrator">Yours, in Settings</Link>; the team's are <code>[orchestrator]</code> in <code>ws.toml</code>
+        <Link to="/settings/missions#orchestrator">Yours, in Settings</Link>; team's under{" "}
+        <code>[orchestrator]</code> in <code>ws.toml</code>
       </SummaryRow>
     </Summary>
   );

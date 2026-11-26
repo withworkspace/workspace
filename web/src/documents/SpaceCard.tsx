@@ -54,7 +54,7 @@ export function SpaceCard({ space, detail, drafts, id, selected, onHover }: { sp
       foot={<DocumentsSpaceCardFoot stands={stands} inFlight={a?.inFlight.length ?? 0} drafts={drafts} />}
     >
       {space.cloned && (
-        <DocumentsSpaceCardKinds reading={!docs && !rows.length ? space.folders.map((f) => `${f.name} ${f.count}`).join(" · ") || "Reading it…" : undefined}>
+        <DocumentsSpaceCardKinds reading={!docs && !rows.length ? space.folders.map((f) => `${f.name} ${f.count}`).join(" · ") || "Loading…" : undefined}>
           {rows.map((r) => {
             const last = lastChanged(r.docs);
             return (

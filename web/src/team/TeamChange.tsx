@@ -60,7 +60,7 @@ export function TeamChange({ id, item: it, names, repoOf, selected, open, fresh,
             <TeamRepoChip colors={[repo.color]} label={repo.label} pr={it.pr} title={it.repo} />
           )}
           {it.touches?.map((t) => (
-            <Chip tone="progress" key={t.name} title={`It changes how things are done:\n${t.files.join("\n")}`}>
+            <Chip tone="progress" key={t.name} title={`Changes how we work: ${t.files.join("\n")}`}>
               {t.title}
             </Chip>
           ))}
@@ -100,17 +100,17 @@ export function TeamChange({ id, item: it, names, repoOf, selected, open, fresh,
             />
           )
         }
-        failed={it.narrative === "failed" && `What it does couldn't be written: ${humanError(it.gistError ?? "")}`}
+        failed={it.narrative === "failed" && `Could not summarise: ${humanError(it.gistError ?? "")}`}
         actions={
           <>
             {!several && (
-              <Button variant="ghost" size="small" onClick={onOpen} title="Open it" keys="o">
-                <Icon name={here ? "pr" : "external"} size={13} /> {here ? "Review it here" : "Open on GitHub"} <Keys k="o" />
+              <Button variant="ghost" size="small" onClick={onOpen} title="Open" keys="o">
+                <Icon name={here ? "pr" : "external"} size={13} /> {here ? "Review here" : "Open on GitHub"} <Keys k="o" />
               </Button>
             )}
             {(it.narrative === "unwritten" || it.narrative === "failed") && (
-              <Button variant="ghost" size="small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it" keys="w">
-                <Icon name="sparkle" size={13} /> {it.narrative === "failed" ? "Try again" : it.gist ? "Read it again" : "Read the change"} <Keys k="w" />
+              <Button variant="ghost" size="small" onClick={onWrite} title="Summarise the change and what's worth knowing" keys="w">
+                <Icon name="sparkle" size={13} /> {it.narrative === "failed" ? "Try again" : it.gist ? "Summarise again" : "Summarise"} <Keys k="w" />
               </Button>
             )}
           </>

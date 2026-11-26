@@ -32,8 +32,8 @@ export function PullRequestPane({ to, repo, number }: PullRequestPaneProps) {
   return (
     <DockBody label={pr?.title ?? name} pad>
       <PaneHead title={pr?.title ?? name} to={to} sub={<Text mono>{name}</Text>} />
-      {error && !d && <ErrorCard title="Couldn't read the pull request" error={humanError(error)} retry={() => void reload()} />}
-      {!d && !error && <Loading what="Reading the pull request…" />}
+      {error && !d && <ErrorCard title="Could not load pull request" error={humanError(error)} retry={() => void reload()} />}
+      {!d && !error && <Loading what="Loading pull request…" />}
       {d && pr && (
         <PullRequestPeek
           status={prStatus(pr)}

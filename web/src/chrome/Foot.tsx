@@ -17,7 +17,7 @@ type FootProps = {
 // and the one part of the chrome that's always there.
 export function Foot({ start, end, className }: FootProps) {
   return (
-    <footer aria-label="What's going on" className={cx(css.foot, className)}>
+    <footer aria-label="Status bar" className={cx(css.foot, className)}>
       <div className={css.start}>{start}</div>
       {end && <div className={css.end}>{end}</div>}
     </footer>

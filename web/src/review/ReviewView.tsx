@@ -59,24 +59,24 @@ import css from "./ReviewView.module.css";
 import { Text } from "../ui/Text";
 
 export const reviewKeys: [string, string][] = [
-  ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
+  ["1 – 5", "Overview, Guide, Discussion, Passes, Changes"],
   ["j / k", "Next / previous line"],
   ["n / p", "Next / previous change"],
   ["J / K", "Next / previous file"],
   ["mod+D / mod+U", "Down / up half a page"],
   ["g / G", "First / last"],
   ["t", "Jump to a file"],
-  ["c", "Comment on the line (or the selected lines)"],
-  ["⇧↓ / ⇧↑", "Select lines (or V then move, or drag the line numbers)"],
-  ["⏎", "On a comment: reply (or edit a draft); on a pass's finding: take it into your review; show hidden lines, or a large or folded file"],
-  ["x", "On a comment: resolve or reopen it; else mark the file viewed"],
-  ["D", "Delete a draft comment; on a pass's finding: dismiss it (then 1, 2 or 3 for why)"],
-  ["s", "Submit the review"],
-  ["i", "Re-reviewing: what changed since your last review, or all of it"],
+  ["c", "Comment on line or selection"],
+  ["⇧↓ / ⇧↑", "Select lines (or V then move, or drag line numbers)"],
+  ["⏎", "Reply to or edit comment; take finding; expand hidden lines or file"],
+  ["x", "Resolve or reopen comment; else mark file viewed"],
+  ["D", "Delete draft comment; dismiss finding (then 1, 2 or 3 for why)"],
+  ["s", "Submit review"],
+  ["i", "Since last review / all changes"],
   ["e", "Show 20 more lines around this change"],
   ["u", "Unified / side by side"],
   ["r", "Reload"],
-  ["esc", "Clear the selection, or back to the mission"],
+  ["esc", "Clear selection, or back to mission"],
 ];
 
 const fileID = (f: DiffFile) => f.newBlob ?? f.oldBlob ?? f.status;
@@ -566,7 +566,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     else if (r.type === "note" && r.large) showLarge(files[r.file]);
     else if (r.type === "file" && (states[r.file]?.unchanged || files[r.file]?.skim) && !states[r.file].viewed) toggleFolded(r.file);
     else if (r.type === "file") toggleViewed(r.file);
-    else if (r.type === "comment" && r.placed.draft && !r.placed.note.path) toast("It's on the change as a whole, and goes in your review's body: D deletes it.");
+    else if (r.type === "comment" && r.placed.draft && !r.placed.note.path) toast("On the whole change: goes in your review body. D to delete.");
     else if (r.type === "comment" && r.placed.draft) {
       const n = r.placed.note;
       setEditing({ file: r.file, target: n, noteID: n.id, note: n });
@@ -786,7 +786,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
 
   const scopeLine = diff && (
     <ReviewScope
-      since={sinceShown ? { name: sinceName, title: diff.since ? `What's changed since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file's change, compared with what you reviewed (${sinceName})` } : undefined}
+      since={sinceShown ? { name: sinceName, title: diff.since ? `Changes since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file compared with your review (${sinceName})` } : undefined}
       commits={diff.commits.length}
       base={diff.since ? undefined : diff.baseRef}
       additions={totals.a}
@@ -796,13 +796,13 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   const actions = (
     <>
       {changes && diff && sinceable !== undefined && (
-        <Button variant="ghost" size="small" onClick={toggleSince} title="Switch between what's changed since your last review and all of it" keys="i">
+        <Button variant="ghost" size="small" onClick={toggleSince} title="Since last review / all changes" keys="i">
           {sinceShown ? "Show all changes" : `Only since ${sinceName}`} <Keys k="i" />
         </Button>
       )}
       {source.actions}
       {source.browse && (
-        <Link to={source.browse} className={buttonClass({ size: "small" }, css.desktopOnly)} title="Browse its files, as they are now">
+        <Link to={source.browse} className={buttonClass({ size: "small" }, css.desktopOnly)} title="Browse current files">
           <Icon name="file" size={12} /> Browse files
         </Link>
       )}
@@ -819,7 +819,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           </Segment>
         </Segmented>
       )}
-      <Button variant="primary" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit the review" keys="s">
+      <Button variant="primary" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys="s">
         {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
       </Button>
     </>
@@ -895,27 +895,28 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       {source.notices}
       {changes && scopeNote && (
         <Callout tone="quiet" icon="info">
-          Showing all the changes: {scopeNote}
+          Showing all changes: {scopeNote}
         </Callout>
       )}
       {changes && sinceShown && (
         <ReviewStatus>
           {diff?.rebased ? (
             <>
-              It's been rebased since {sinceName}, so each file's change is compared with the one you reviewed.{" "}
+              Rebased since {sinceName}: each file is compared with the version you reviewed.{" "}
               {unchanged.size === files.length
-                ? "Nothing changed: there's nothing to re-read."
-                : `${unchanged.size} of ${files.length} ${files.length === 1 ? "file is" : "files are"} unchanged and folded; the rest show in full.`}{" "}
+                ? "Nothing changed."
+                : `${unchanged.size} of ${files.length} ${files.length === 1 ? "file is" : "files are"} unchanged and folded.`}{" "}
             </>
           ) : (
             <>
-              Re-reviewing what's changed since {sinceName}
-              {latest?.verdict ? ` (${verdictWords[latest.verdict]})` : ""}. Its comments sit on the lines they were made on;{" "}
+              Re-reviewing changes since {sinceName}
+              {latest?.verdict ? ` (${verdictWords[latest.verdict]})` : ""}. Comments stay on their original
+              lines;{" "}
             </>
           )}
           {openComments ? (
             <>
-              {openComments} still to resolve: <Keys k="⏎" /> replies, <Keys k="x" /> resolves.
+              {openComments} to resolve: <Keys k="⏎" /> reply, <Keys k="x" /> resolve.
             </>
           ) : diff?.rebased ? null : (
             "all resolved."
@@ -936,7 +937,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
             {diff.uncommitted.length > 5 && " …"}
           </Callout>
         )}
-        {!diff && !error && <Loading what="Reading the changes…" />}
+        {!diff && !error && <Loading what="Loading changes…" />}
         {diff && diff.commits.length > 0 && <ReviewCommits commits={diff.commits} />}
         {rs.reviews.length > 0 && <ReviewEarlier reviews={rs.reviews} />}
         {diff && !files.length && <Text as="p" dim>{source.empty}</Text>}

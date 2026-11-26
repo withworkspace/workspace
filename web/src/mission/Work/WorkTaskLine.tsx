@@ -33,13 +33,13 @@ export function WorkTaskLine({ r, busy, stop }: { r: RunDetail; busy: boolean; s
       }
       action={
         live && (
-          <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="Stop it now: it's kept as stopped">
+          <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="Stop now">
             {busy ? <Spinner size={11} /> : <Icon name="stop" size={11} />} Stop
           </Button>
         )
       }
     >
-      <RunName to={`/runs?show=${encodeURIComponent(r.nref ?? r.ref)}`} title={`${r.command}: its output and reports`}>
+      <RunName to={`/runs?show=${encodeURIComponent(r.nref ?? r.ref)}`} title={`${r.command}: output and reports`}>
         {r.name}
       </RunName>
       <RunCame result={r.result}>

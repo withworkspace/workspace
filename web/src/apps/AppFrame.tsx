@@ -136,10 +136,10 @@ export function AppFrame({ name, title, icon: iconName, at, render }: { name: st
       {standing && <AppState {...standing} />}
       {running ? (
         <>
-          <Button variant="ghost" square type="button" title="Start it again" aria-label="Start it again" disabled={busy !== undefined} onClick={() => void act("restart", () => restartApp(name, at))}>
+          <Button variant="ghost" square type="button" title="Start again" aria-label="Start again" disabled={busy !== undefined} onClick={() => void act("restart", () => restartApp(name, at))}>
             <Icon name="rotate" size={15} />
           </Button>
-          <Button variant="ghost" square type="button" title="Stop it" aria-label="Stop it" disabled={busy !== undefined} onClick={() => void stop()}>
+          <Button variant="ghost" square type="button" title="Stop" aria-label="Stop" disabled={busy !== undefined} onClick={() => void stop()}>
             <Icon name="stop" size={15} />
           </Button>
           {ready && <AppBarLink href={run.link} />}
@@ -162,7 +162,7 @@ export function AppFrame({ name, title, icon: iconName, at, render }: { name: st
           ))}
         {app?.pointers.map((p) => (
           <AppBarPointer key={p.need} name={p.need} title={pointTitle(p)}>
-            <Select size="small" value={p.at || "ground"} onChange={(v) => void point(p, v)} disabled={busy !== undefined} aria-label={`What ${p.need} is pointed at`}>
+            <Select size="small" value={p.at || "ground"} onChange={(v) => void point(p, v)} disabled={busy !== undefined} aria-label={`Capsule for ${p.need}`}>
               {p.choices.map((c) => (
                 <Option key={c} value={c} note={c === "ground" ? "nearest" : undefined}>
                   {c}
@@ -175,11 +175,11 @@ export function AppFrame({ name, title, icon: iconName, at, render }: { name: st
       <AppCard>
         {error && !app ? (
           <AppWaiting>
-            <ErrorCard title={`Couldn't start ${title}`} error={error} retry={() => void start()} />
+            <ErrorCard title={`Could not start ${title}`} error={error} retry={() => void start()} />
           </AppWaiting>
         ) : ready && run && render === "tab" ? (
           <AppWaiting>
-            <p>{title} opens in a tab of its own, as its recipe says. It's kept running while you have this open, and 15 minutes after.</p>
+            <p>{title} opens in new tab. Kept running while you have this open.</p>
             <a className={buttonClass({ variant: "primary" })} href={run.link} target="_blank" rel="noreferrer" title={run.link}>
               <Icon name="external" size={14} /> Open {title}
             </a>

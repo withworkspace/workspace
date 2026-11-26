@@ -29,7 +29,7 @@ export function WorkspaceName({
     <Button
       variant="bare"
       data-field
-      aria-label={`${name}: the workspace's menu`}
+      aria-label={`${name}: workspace menu`}
       className={cx(css.name, className)}
     >
       <WorkspaceMark name={name} />
@@ -42,7 +42,7 @@ export function WorkspaceName({
           role="img"
           className={css.dot}
           title={wants}
-          aria-label="In the menu, something wants you"
+          aria-label="Something in the menu needs you"
         />
       )}
     </Button>

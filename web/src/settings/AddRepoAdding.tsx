@@ -30,9 +30,9 @@ export function AddRepoAdding({ owner, repo, taken, groups, groupLabels, onCance
     <SettingsAddRepoForm
       as={as}
       invalid={clash || bad}
-      hint={clash ? `There's a ${name} here already.` : bad ? "Letters, digits, '.', '_' and '-'." : name !== repo.name ? `It stays ${owner}/${repo.name} on GitHub.` : "Its folder under repos/, and what commands call it."}
+      hint={clash ? `${name} already exists.` : bad ? "Letters, digits, '.', '_' and '-'." : name !== repo.name ? `Still ${owner}/${repo.name} on GitHub.` : "Folder under repos/, and name in commands."}
       onAs={setAs}
-      group={<SettingsGroupPick value={group} groups={groups} labels={groupLabels} none label="Its group" onPick={setGroup} />}
+      group={<SettingsGroupPick value={group} groups={groups} labels={groupLabels} none label="Group" onPick={setGroup} />}
       team={team}
       onTeam={setTeam}
       busy={busy}

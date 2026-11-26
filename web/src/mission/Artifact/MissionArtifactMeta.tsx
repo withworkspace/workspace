@@ -30,7 +30,7 @@ export function MissionArtifactMeta({ kind, hint, state, by, added, docRef, acti
       <MissionOutputState state={state} />
       {by && <span>by {by}</span>}
       {added && <Time iso={added} as="relative" />}
-      <Copyable text={docRef} className={css.ref} title="Copy its ref">
+      <Copyable text={docRef} className={css.ref} title="Copy ref">
         {docRef.replace(":", " · ")}
       </Copyable>
       <span className={css.spacer} />

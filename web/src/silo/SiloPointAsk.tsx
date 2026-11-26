@@ -30,7 +30,7 @@ export function SiloPointAsk({ repo, to, then, busy, error, onPoint, onNotNow }:
           to && (
             <div className={css.acts}>
               <Button variant="primary" disabled={busy} onClick={onPoint} autoFocus>
-                {busy ? <Spinner size={12} /> : <Icon name="arrow-right" size={12} />} {busy ? "Pointing…" : `Point it at ${to}`}
+                {busy ? <Spinner size={12} /> : <Icon name="arrow-right" size={12} />} {busy ? "Pointing…" : `Point at ${to}`}
               </Button>
               <Button variant="ghost" disabled={busy} onClick={onNotNow}>
                 Not now
@@ -41,11 +41,11 @@ export function SiloPointAsk({ repo, to, then, busy, error, onPoint, onNotNow }:
       >
         {to ? (
           <>
-            Its files become {to}'s, and its after_switch hook restarts what runs in it.{then ? " Then you go on to it." : ""}
-            {error && <p className={css.error}>{error}</p>}
+            Silo's files become {to}'s, and its after_switch hook restarts what's running.
+            {then ? " Then you go there." : ""}{error && <p className={css.error}>{error}</p>}
           </>
         ) : (
-          "This page points a silo at a capsule: it's opened from ws's router, with the capsule to point it at."
+          "Points a silo at a capsule. Open this page from the router, with a capsule named."
         )}
       </Empty>
     </div>

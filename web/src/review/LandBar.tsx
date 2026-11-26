@@ -66,13 +66,14 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
   const commits = `${n} ${n === 1 ? "commit" : "commits"}`;
   const how = (
     <>
-      There's no pull request: {n === 1 ? "it goes" : "they go"} straight to {l.branch}, rebased onto it{l.verify ? <>, once <Text mono>{l.verify}</Text> passes</> : null}. The capsule is burned after.
+      No pull request: {n === 1 ? "it goes" : "they go"} straight to {l.branch}, rebased
+      {l.verify ? <>, once <Text mono>{l.verify}</Text> passes</> : null}. Capsule is burned after.
     </>
   );
   if (l.landed) {
     return (
       <Callout tone="done" title={`Landed on ${l.landed.branch}, at ${l.landed.head.slice(0, 7)}`}>
-        The capsule's still here, with nothing left to land: ws debrief removes it.
+        Nothing left to land. Run ws debrief to remove the capsule.
       </Callout>
     );
   }
@@ -84,26 +85,26 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           {stopped.output && <pre className={css.output}>{stopped.output}</pre>}
         </Callout>
       )}
-      {error && <Callout tone="danger" title="Couldn't land it">{error}</Callout>}
+      {error && <Callout tone="danger" title="Could not land">{error}</Callout>}
       {l.pending && n === 0 ? (
         <Callout
           tone="attention"
-          title="Landing needs to be checked"
+          title="Landing unconfirmed"
           actions={
             <Button variant="primary" onClick={land} disabled={busy}>
               {busy ? "Checking…" : "Retry landing"}
             </Button>
           }
         >
-          Check whether the earlier push landed and finish recording it.
+          The last push may have landed: retry to check and finish.
         </Callout>
       ) : n === 0 ? (
         <Callout tone="quiet" icon="info" title={`Nothing to land yet`}>
-          This repo has no pull requests: what's committed here lands straight on {l.branch}, when you say.
+          No pull requests in this repo: commits land straight on {l.branch} when you say.
         </Callout>
       ) : l.dirty ? (
-        <Callout tone="attention" title={`${commits} to land on ${l.branch}, and changes not committed`}>
-          {how} What isn't committed wouldn't land: commit it (or put it aside) first.
+        <Callout tone="attention" title={`${commits} to land on ${l.branch}, plus uncommitted changes`}>
+          {how} Uncommitted changes will not land: commit or stash them first.
         </Callout>
       ) : asking ? (
         <Callout
@@ -121,8 +122,8 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
             </>
           }
         >
-          Everyone sees {n === 1 ? "it" : "them"} at once, and it can't be taken back: a mistake is put right with another commit.
-          {!l.approved && " You haven't approved this as it is now."}
+          Everyone sees {n === 1 ? "it" : "them"} at once. This cannot be undone: fix mistakes with a new
+          commit.{!l.approved && " You have not approved this version."}
           <ul className={css.commits}>
             {l.commits.map((c, i) => (
               <li key={i}>{c}</li>
@@ -133,7 +134,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
         <Callout
           tone={l.approved ? "done" : "info"}
           icon={l.approved ? "check-circle" : "info"}
-          title={l.approved ? `Approved: land its ${commits} on ${l.branch}` : `${commits} to land on ${l.branch}, when you say`}
+          title={l.approved ? `Approved: land ${commits} on ${l.branch}` : `${commits} to land on ${l.branch}, when you say`}
           actions={
             <Button variant={l.approved ? "primary" : undefined} onClick={ask}>
               <Icon name="arrow-right" size={13} /> Land on {l.branch} <Keys k="L" />
@@ -141,7 +142,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           }
         >
           {how}
-          {!l.approved && " You're the only review there is: read it, and approve it, before it lands."}
+          {!l.approved && " No other review: read and approve before landing."}
         </Callout>
       )}
     </>

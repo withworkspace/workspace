@@ -56,7 +56,7 @@ export function MissionDecision({
           {dense ? (
             <Inline text={d.asked.text} lines={1} />
           ) : (
-            <Clamp lines={2} of={d.asked.text} more="The whole question" less="Less">
+            <Clamp lines={2} of={d.asked.text} more="Full question" less="Less">
               <Inline text={d.asked.text} />
             </Clamp>
           )}

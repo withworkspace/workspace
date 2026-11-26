@@ -50,8 +50,9 @@ export function NotificationsPage() {
         {unread > 0 && <Count title={`${unread} unread`}>{unread}</Count>}
       </PageHead>
       {list && list.length === 0 && (
-        <Empty icon="bell" title="Nothing's happened yet">
-          What ws does for you is said here as it happens: a mission that ends by itself, a pull request it opened merging, a plugin's update. What needs you is in the sidebar.
+        <Empty icon="bell" title="No notifications yet">
+          What Workspace does for you shows here: a mission ending by itself, a pull request merging, a plugin
+          update. What needs you is in the sidebar.
         </Empty>
       )}
       {list && list.length > 0 && <NotificationFeed notifications={list} onOpen={open} onRead={open} onDismiss={(n) => void write(dismissNotifications([n.n]))} />}

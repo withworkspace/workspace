@@ -196,7 +196,7 @@ var settingRoles = []roleDef{
 		},
 	},
 	{
-		id: "pr_writer", title: "PR writer", about: "The agent writing the title and description of each pull request ws opens, from the step it's for and PR.md: fresh to the work, read-only.",
+		id: "pr_writer", title: "PR writer", about: "Writes the title and description of each pull request Workspace opens, from its step and PR.md. Read-only, and new to the work.",
 		names: converserNames,
 		team:  func(c *config.Config) (*string, *string) { return &c.PRWriter.Harness, &c.PRWriter.Model },
 		local: func(l *config.LocalConfig) (*string, *string) { return &l.PRWriter.Harness, &l.PRWriter.Model },
@@ -206,7 +206,7 @@ var settingRoles = []roleDef{
 		},
 		note: func(c *config.Config) string {
 			if !c.PRWriterEnabled() {
-				return "It's off ([pr_writer] enabled = false): ws titles each pull request as the mission is, and opens it at once."
+				return "Off ([pr_writer] enabled = false): pull requests take the mission's title and open at once."
 			}
 			if c.PRWriter.Harness == "" {
 				return "It follows conversations' agent, as none is set here, on the model that agent orchestrates on unless one is set."
@@ -441,20 +441,20 @@ func settingDefs(root string) []struct {
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
-	}{roleDef{id: "missions", title: "Guarantees", about: "What ws holds on every mission, where it acts, whatever an agent reads. The process's preferences are the planner's and the orchestrator's to apply; these are ws's own."}, []settingDef{
-		boolSetting("missions", "review_before_pr", "Your review before a pull request", "ws opens a pull request from a mission's capsule only once your latest review of it approves the commit it's at.", false,
+	}{roleDef{id: "missions", title: "Guarantees", about: "Rules Workspace enforces on every mission, whatever an agent reads. Process preferences are for the planner and orchestrator; these always apply."}, []settingDef{
+		boolSetting("missions", "review_before_pr", "Your review before a pull request", "Workspace opens a pull request only after you approve the capsule's latest commit.", false,
 			func(c *config.Config) **bool { return &c.Missions.ReviewBeforePR },
 			func(l *config.LocalConfig) **bool { return &l.Missions.ReviewBeforePR }),
-		boolSetting("missions", "review_before_land", "Your review before landing", "ws lands a mission's capsule, in a repo with no pull requests, only once your latest review of it approves it as it is.", false,
+		boolSetting("missions", "review_before_land", "Your review before landing", "In a repo without pull requests, Workspace lands a capsule only after you approve it.", false,
 			func(c *config.Config) **bool { return &c.Missions.ReviewBeforeLand },
 			func(l *config.LocalConfig) **bool { return &l.Missions.ReviewBeforeLand }),
-		boolSetting("missions", "review_before_ready", "Your review before a draft's ready", "ws marks a mission's draft pull request ready only once your latest review of its capsule approves the commit it's at.", false,
+		boolSetting("missions", "review_before_ready", "Your review before a draft's ready", "Workspace marks a draft pull request ready only after you approve the capsule's latest commit.", false,
 			func(c *config.Config) **bool { return &c.Missions.ReviewBeforeReady },
 			func(l *config.LocalConfig) **bool { return &l.Missions.ReviewBeforeReady }),
 		boolSetting("missions", "replies_need_me", "Replies to people wait for you", "A reply crew draft to a person on a mission's pull request is posted, as you, only once you approve it. A reply to a bot needn't wait.", true,
 			func(c *config.Config) **bool { return &c.Missions.RepliesNeedMe },
 			func(l *config.LocalConfig) **bool { return &l.Missions.RepliesNeedMe }),
-		boolSetting("missions", "end_when_merged", "Merged missions end themselves", "Once the orchestrator suggests a mission landed (every part of Z met, every pull request merged) and nothing else on it waits for you or crew, ws ends it. Off, the ending suggested waits for you.", true,
+		boolSetting("missions", "end_when_merged", "Merged missions end themselves", "When the orchestrator finds a mission done (every part of Z met, every pull request merged) and nothing waits on you or crew, Workspace ends it. Off, ending waits for you.", true,
 			func(c *config.Config) **bool { return &c.Missions.EndWhenMerged },
 			func(l *config.LocalConfig) **bool { return &l.Missions.EndWhenMerged }),
 		maxRoundsSetting(),
@@ -471,15 +471,15 @@ func settingDefs(root string) []struct {
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
-	}{roleDef{id: "router", title: "Local names", about: "Names under .localhost for the web UI and what ws runs, served by one router for every workspace on this machine (ws router). Yours alone: it listens on your machine."}, []settingDef{
+	}{roleDef{id: "router", title: "Local names", about: "Names under .localhost for the web UI and runs, served by one router for every workspace on this machine (ws router). Only on your machine."}, []settingDef{
 		routerEnabledSetting(), routerNameSetting(root),
 	}})
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
-	}{roleDef{id: "updates", title: "Updates", about: "Later releases of ws, and of the plugins installed from a repo."}, []settingDef{
+	}{roleDef{id: "updates", title: "Updates", about: "New releases of Workspace and of plugins installed from a repo."}, []settingDef{
 		// Yours alone (ws.toml has no [updates]): it's your machine that asks.
-		boolSetting("updates", "check", "Look for updates", "Once a day, the daemon asks GitHub for the latest release of ws, and of each plugin installed from a repo. Nothing's installed by looking. Off, it asks only when you say: Check now, here and under Plugins.", true,
+		boolSetting("updates", "check", "Look for updates", "Once a day, Workspace checks GitHub for new releases of itself and of plugins installed from a repo. Nothing installs automatically. Off, it checks only when you click Check now, here or under Plugins.", true,
 			func(*config.Config) **bool { var none *bool; return &none },
 			func(l *config.LocalConfig) **bool { return &l.Updates.Check }),
 	}})
@@ -489,11 +489,11 @@ func settingDefs(root string) []struct {
 	}{roleDef{id: "notifications", title: "Notifications", about: "What happened that you'd want to know, kept as a feed: where each source of it is sent. Yours alone, as the feed is. What needs you is told apart from these, and always listed."}, []settingDef{
 		notifySetting("missions", "Missions", "A mission ended by itself, or one was started for you by crew or the orchestrator.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.Missions }),
-		notifySetting("pulls", "Pull requests", "A pull request this ws opened merged.",
+		notifySetting("pulls", "Pull requests", "A pull request Workspace opened was merged.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.Pulls }),
 		notifySetting("plugins", "Plugins", "A plugin's update is out.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.Plugins }),
-		notifySetting("ws", "ws", "ws was upgraded, and the daemon restarted onto it.",
+		notifySetting("ws", "Workspace", "Workspace was upgraded and restarted.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.WS }),
 	}})
 	// Each plugin that tells of things, as it registered its kinds when it
@@ -623,7 +623,7 @@ func routerEnabledSetting() settingDef {
 func routerNameSetting(root string) settingDef {
 	return settingDef{
 		section: "router", key: "name", label: "Name", kind: "text",
-		about: "What the workspace's names end in: <name>.localhost. Where another workspace already has it, this one's gets four letters of its own after it while that one's daemon runs.",
+		about: "The ending of this workspace's names: <name>.localhost. If another workspace has it, this one adds four letters while that workspace is running.",
 		team:  func(*config.Config) any { return nil },
 		yours: func(l *config.LocalConfig) any { return strOrNil(l.Router.Name) },
 		def:   func(config.Config) any { return router.NameFor(root, "") },
@@ -660,7 +660,7 @@ func accentSetting() settingDef {
 	}
 	return settingDef{
 		section: "ui", key: "accent", label: "Accent", kind: "color",
-		about: "The colour the web UI is drawn in: buttons, links and selection, the wordmark and the glow behind each page. A hex colour (#rgb or #rrggbb). Unset, ws's own violet.",
+		about: "The colour the web UI is drawn in: buttons, links and selection, the wordmark and the glow behind each page. A hex colour (#rgb or #rrggbb). Unset, Workspace Violet.",
 		team:  func(c *config.Config) any { return get(c.UI.Accent) },
 		yours: func(l *config.LocalConfig) any { return get(l.UI.Accent) },
 		def:   func(config.Config) any { return nil },

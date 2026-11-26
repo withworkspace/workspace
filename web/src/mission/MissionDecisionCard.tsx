@@ -24,7 +24,7 @@ export function MissionDecisionCard({ id, stands, what, why, by, at, to }: { id:
       </HoverCardLine>
       {to && (
         <Link to={to} className={hoverCardLinkClass()}>
-          See it in Decisions <Icon name="arrow-right" size={11} />
+          Show in Decisions <Icon name="arrow-right" size={11} />
         </Link>
       )}
     </>

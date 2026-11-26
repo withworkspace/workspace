@@ -9,7 +9,7 @@ export const verdictIcon: Record<string, IconName> = { met: "check-circle", unme
 
 // settles is what approving a bundle does, and that it's stale where it is.
 export function settles(b: Bundle): string {
-  return `${b.asked ? `Approving ${b.id} passes step ${b.askedAt}.` : `No step waits on ${b.id}: your verdict is kept with it.`}${b.stale ? " It's stale: its capsule has moved on since." : ""}`;
+  return `${b.asked ? `Approving ${b.id} passes step ${b.askedAt}.` : `No step waits on ${b.id}: your verdict is saved.`}${b.stale ? " Stale: capsule has moved on since." : ""}`;
 }
 
 // stepTitle is what a bundle is of, as its step is listed.

@@ -9,7 +9,7 @@ import css from "./FilesTabs.module.css";
 // line.
 export function FilesTabs({ children }: { children: ReactNode }) {
   return (
-    <nav className={css.tabs} aria-label="What's here">
+    <nav className={css.tabs} aria-label="Tabs">
       {children}
     </nav>
   );

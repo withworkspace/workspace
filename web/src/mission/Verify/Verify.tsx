@@ -148,8 +148,8 @@ export function Verify({
     if (d.bundles.length) return <VerifyNothingLeft bundles={d.bundles} pick={pick} />;
     return (
       <Empty icon="list-checks" title="No bundles yet">
-        A verification bundle is what crew hand over to show their work is as its checks say: each check with what it came to and what shows it. Crew hand one over with{" "}
-        <code>ws mission bundle --set -</code>.
+        Crew hand over a bundle to show their work meets its checks: each check, its result and evidence. They
+        send one with <code>ws mission bundle --set -</code>.
       </Empty>
     );
   }
@@ -167,7 +167,7 @@ export function Verify({
         title={<Inline text={r.title} lines={lines} />}
         line={
           <>
-            {notRight ? "Not right, you say" : rowLine(bundle, r)}
+            {notRight ? "Marked not right" : rowLine(bundle, r)}
             {r.looked && !r.left && " · looked at"}
           </>
         }
@@ -178,7 +178,7 @@ export function Verify({
     );
   };
   const todo = toApprove(d.bundles);
-  const settleTitle = going.length ? "Send it back to its crew, with what you said" : left.length ? "Approve it as it is: checks are still left for you" : "Approve it: what it shows is as its checks say";
+  const settleTitle = going.length ? "Send back to crew with your notes" : left.length ? "Approve with checks still left" : "Approve bundle";
   // The open bundle's capsule, as the mission has it, for the recipes its
   // Try it names to start there.
   const capsule = d.capsules.find((c) => `${c.repo}/${c.name}` === bundle.capsule);
@@ -209,7 +209,7 @@ export function Verify({
                     keys="mod+⏎"
                     says={
                       going.length
-                        ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`
+                        ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew} with your notes. Their next bundle replaces this one.`
                         : `${settles(bundle)}${left.length ? ` ${left.length} ${left.length === 1 ? "check is" : "checks are"} still left for you.` : ""}`
                     }
                   >
@@ -222,7 +222,7 @@ export function Verify({
                   </MissionVerifyGroup>
                 )}
                 {settled.length > 0 && (
-                  <MissionVerifyGroup title={left.length || approved.length ? "Settled without you" : "Its checks"} n={settled.length}>
+                  <MissionVerifyGroup title={left.length || approved.length ? "Settled without you" : "Checks"} n={settled.length}>
                     {settled.map((r) => row(r, 1, "settled"))}
                   </MissionVerifyGroup>
                 )}

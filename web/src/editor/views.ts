@@ -175,7 +175,7 @@ class Diagram implements NodeView {
       this.view.focus();
     });
     // A double click opens it in the viewer, to move around in.
-    this.drawing.title = "Double-click to open it larger";
+    this.drawing.title = "Double-click to enlarge";
     this.drawing.addEventListener("dblclick", () => {
       const svg = this.drawing.querySelector("svg");
       if (svg) openViewer({ kind: "svg", svg: svg.outerHTML, title: "Diagram" });

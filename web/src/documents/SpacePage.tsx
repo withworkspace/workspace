@@ -247,7 +247,7 @@ export function SpacePage() {
   if (error && !value) {
     return (
       <div className="page narrow">
-        <ErrorCard title={`Couldn't read ${repo}`} error={error} retry={reload} />
+        <ErrorCard title={`Could not load ${repo}`} error={error} retry={reload} />
         <p>
           <Link to="/documents" onClick={hintOnClick("esc")}>
             Back to Documents
@@ -256,7 +256,7 @@ export function SpacePage() {
       </div>
     );
   }
-  if (!value || !space) return <Loading what="Reading the space…" />;
+  if (!value || !space) return <Loading what="Loading space…" />;
   let at = drafts.length;
   const kindAt = (k: SpaceKind) => {
     const first = at;
@@ -293,7 +293,7 @@ export function SpacePage() {
             variant="primary"
             onClick={newHere}
             disabled={starting || !space.cloned}
-            title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
+            title={library.length ? `New page from one of ${space.label}'s document kinds` : `New page in a ${space.label} folder`}
           >
           <Icon name="plus" /> New <Keys k="n" />
         </Button>
@@ -305,14 +305,14 @@ export function SpacePage() {
     {asKind && library.length === 0 && (
       <SpaceNewInFolder repo={repo} label={space.label} root={space.folder ?? ""} folders={folders.map(([f]) => f)} busy={starting} onStart={(title, to) => start(title, "", to)} onClose={() => setAsKind(false)} />
     )}
-    {value.problem && <Banner tone="attention">It may be behind: {value.problem}</Banner>}
+    {value.problem && <Banner tone="attention">May be out of date: {value.problem}</Banner>}
     {!space.cloned ? (
       <Empty icon="box" title="Not cloned here">
-        <code>ws setup {space.repo}</code> clones it.
+        Run <code>ws setup {space.repo}</code> to clone.
       </Empty>
     ) : (value.docs ?? []).length === 0 ? (
       <Empty icon="file" title="No documents yet">
-        It has no markdown{space.folder ? ` under ${space.folder}` : ""} on its default branch.
+        No markdown{space.folder ? ` under ${space.folder}` : ""} on the default branch.
       </Empty>
     ) : (
       <SpaceSplit listWidth={listWidth}>
@@ -326,13 +326,13 @@ export function SpacePage() {
                 inputRef={search}
                 q={q}
                 setQ={setQ}
-                placeholder={`Search ${space.label}: what its documents say`}
+                placeholder={`Search ${space.label}`}
                 label={`Search ${space.label}`}
                 onKey={searchKeys}
-                found={found.error ? "Couldn't search" : !found.hits ? "Searching…" : `${found.hits.size} of ${space.count}`}
+                found={found.error ? "Could not search" : !found.hits ? "Searching…" : `${found.hits.size} of ${space.count}`}
               />
               {activity && <ActivityFold repo={repo} activity={activity} open={foldOpen} setOpen={setFoldOpen} />}
-              {activityError && !activity && <DocumentsEmpty>Couldn't read what's happening in it.</DocumentsEmpty>}
+              {activityError && !activity && <DocumentsEmpty>Could not load activity.</DocumentsEmpty>}
               {tabs.length > 1 && (
                 <SpaceTabs
                   tabs={tabs.map((t) => ({ id: t.id, label: t.label, count: searched && t.n !== t.total ? `${t.n}/${t.total}` : String(t.total), empty: t.n === 0 }))}
@@ -346,7 +346,7 @@ export function SpacePage() {
           >
             {drafts.length > 0 && (
               <section aria-label="Your drafts">
-                <GroupHead title="Pages of yours that will live here: only you see them until they're saved or filed" count={drafts.length}>
+                <GroupHead title="Your drafts" count={drafts.length}>
                   Your drafts
                 </GroupHead>
                 <Rows role="listbox" aria-label="Your drafts">
@@ -356,7 +356,7 @@ export function SpacePage() {
                 </Rows>
               </section>
             )}
-            {searched && !docsShown.length && <DocumentsEmpty>Nothing in {space.label} says that.</DocumentsEmpty>}
+            {searched && !docsShown.length && <DocumentsEmpty>No matches in {space.label}.</DocumentsEmpty>}
             {kindsShown.map((k) => (
               <section key={k.name} id={listID("kind", k.name)} aria-label={k.title}>
                 <KindHead
@@ -398,7 +398,7 @@ export function SpacePage() {
                 />
               ) : (
                 <SpacePreview none>
-                  <Text as="p" dim>{searched ? "Nothing found to show." : "Nothing to show."}</Text>
+                  <Text as="p" dim>{searched ? "No matches." : "Nothing to show."}</Text>
                 </SpacePreview>
               )}
             </>

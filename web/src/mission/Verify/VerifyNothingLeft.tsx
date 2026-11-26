@@ -15,9 +15,9 @@ export function VerifyNothingLeft({ bundles, pick }: { bundles: Bundle[]; pick: 
         done
         icon="check"
         title="Nothing left to approve"
-        action={<VerifyBundleMenu groups={queued(bundles)} label={bundles.length === 1 ? "Look at the bundle" : `Look at the ${bundles.length} bundles`} pick={pick} />}
+        action={<VerifyBundleMenu groups={queued(bundles)} label={bundles.length === 1 ? "View bundle" : `View ${bundles.length} bundles`} pick={pick} />}
       >
-        {nothingLeftWords(bundles)} A bundle that needs you will show here, and on the tab.
+        {nothingLeftWords(bundles)} Bundles that need you show here and on the tab.
       </Empty>
     </MissionVerify>
   );

@@ -25,7 +25,7 @@ export function AddPlugin({ reload, onFailed }: { reload: Reload; onFailed: (f?:
       .catch(async (e: Error) => {
         // One that's installed and didn't start is in the list, failed.
         await reload();
-        onFailed(failed(`Couldn't add ${typed}`, e));
+        onFailed(failed(`Could not add ${typed}`, e));
       })
       .finally(() => setBusy(false));
   };

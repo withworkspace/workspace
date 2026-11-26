@@ -33,7 +33,7 @@ export function WorkRuns({ slug, c, open, reload }: { slug: string; c: CapsuleDe
     setBusy(recipe);
     runRecipe(slug, c.repo, c.name, recipe)
       .then((r) => {
-        if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} is running on ${r.port}, not up yet`, { tone: "done" });
+        if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} starting on ${r.port}`, { tone: "done" });
         return reload();
       })
       .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
@@ -64,7 +64,7 @@ export function WorkRuns({ slug, c, open, reload }: { slug: string; c: CapsuleDe
               key={n}
               disabled={!!busy}
               onClick={() => start(n)}
-              title={tasks.has(n) ? `Run its ${n} task, from its ws.repo.toml: what it comes to is kept` : `Run its ${n} recipe, from its ws.repo.toml, while you have this mission open`}
+              title={tasks.has(n) ? `Run ${n} task from ws.repo.toml` : `Run ${n} from ws.repo.toml. Kept running while this mission is open.`}
             >
               {busy === n ? <Spinner size={11} /> : <Icon name="play" size={11} />} {busy === n ? `Starting ${n}…` : `Run ${n}`}
             </Button>

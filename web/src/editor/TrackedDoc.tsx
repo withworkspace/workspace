@@ -62,7 +62,7 @@ export default function TrackedDoc({ text, changes, focus, settling, onSettle, o
       editable: () => false,
       nodeViews,
       // markdown and pm: the names other places still know the document by.
-      attributes: { class: cx("markdown pm", markdownClass, css.pm), "aria-label": "The document with its suggested edits" },
+      attributes: { class: cx("markdown pm", markdownClass, css.pm), "aria-label": "Document with suggested edits" },
       handleClick: (_view, _pos, event) => {
         const id = (event.target as HTMLElement).closest("[data-change]")?.getAttribute("data-change");
         if (id) on.current.onFocus?.(id);
@@ -94,11 +94,11 @@ function bar(id: string, by: string, state: { focused: boolean; settling: boolea
   el.contentEditable = "false";
   el.dataset.change = id;
   const who = document.createElement("span");
-  who.textContent = by === "agent" ? "The agent's edit" : by === "you" ? "Your edit" : `${by}'s edit`;
+  who.textContent = by === "agent" ? "Agent's edit" : by === "you" ? "Your edit" : `${by}'s edit`;
   el.append(who);
   if (state.settling) {
     const busy = document.createElement("span");
-    busy.textContent = "Writing it in…";
+    busy.textContent = "Applying…";
     el.append(busy);
     return el;
   }

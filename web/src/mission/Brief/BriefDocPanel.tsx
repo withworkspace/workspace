@@ -84,7 +84,7 @@ export function BriefDocPanel({
       toRead={
         toSettle && (
           <>
-            {r.pending.length} {r.pending.length === 1 ? "change" : "changes"} to read
+            {r.pending.length} {r.pending.length === 1 ? "change" : "changes"} to review
           </>
         )
       }
@@ -92,10 +92,10 @@ export function BriefDocPanel({
         <>
           {toSettle && (
             <>
-              <Button variant="ghost" size="small" type="button" onClick={() => all("decline")} title="Leave each as the draft before had it">
+              <Button variant="ghost" size="small" type="button" onClick={() => all("decline")} title="Decline all remaining changes">
                 Decline the rest
               </Button>
-              <Button size="small" type="button" onClick={() => all("accept")} title="Take each as it's proposed">
+              <Button size="small" type="button" onClick={() => all("accept")} title="Accept all remaining changes">
                 Accept the rest
               </Button>
             </>
@@ -106,7 +106,7 @@ export function BriefDocPanel({
                 variant="ghost" size="small"
                 type="button"
                 onClick={() => setByHand(true)}
-                title="Change the plan yourself. ws holds a plan to a strict form: one it can't read is refused when you save it, saying every problem"
+                title="Edit the plan yourself. Saving checks the format and lists any problems."
               >
                 <Icon name="pencil" size={12} /> Edit by hand
               </Button>
@@ -117,9 +117,9 @@ export function BriefDocPanel({
                   disabled={guard.busy}
                   aria-busy={guard.busy}
                   onClick={guard.rewrite}
-                  title={guard.planned ? "Have its planner write the plan again, to fit the brief as it reads now (your edits to the brief go with it)" : "Have its planner write the plan, from the brief as it reads now"}
+                  title={guard.planned ? "Planner rewrites the plan from the current brief, including your edits" : "Planner writes the plan from the current brief"}
                 >
-                  {guard.busy ? <Spinner size={12} /> : <Icon name="sparkle" size={12} />} {guard.planned ? "Rewrite from the brief" : "Write it from the brief"}
+                  {guard.busy ? <Spinner size={12} /> : <Icon name="sparkle" size={12} />} {guard.planned ? "Rewrite from the brief" : "Write from brief"}
                 </Button>
               )}
             </>
@@ -150,14 +150,15 @@ export function BriefDocPanel({
         <div>
           {guard && (
             <MissionBriefDocNote>
-              ws holds a plan to a strict form: each step starts with its kind, and what's under it is a line each. One it can't read is refused when you save it, saying every problem. <em>Discard my edits</em> puts it back.
+              Plans follow a strict format: each step starts with its kind, then one line per item. Saving
+              checks the format and lists any problems. <em>Discard edits</em> restores the plan.
             </MissionBriefDocNote>
           )}
           <MarkdownEditor
             key={showing}
             initial={showing}
             label={title}
-            placeholder={guard ? "## Z, then ## Stops early, then ## Steps: a numbered list, each step starting with its kind" : (empty ?? "The goal, the context, what's in and out, and how you'll know it's done")}
+            placeholder={guard ? "## Z, then ## Stops early, then ## Steps: a numbered list, each step starting with its kind" : (empty ?? "Goal, context, scope, and how you'll know it's done")}
             autoFocus={!!guard}
             onChange={setDraft}
             onSubmit={onSubmit}

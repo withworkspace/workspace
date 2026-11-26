@@ -36,11 +36,11 @@ export function MissionCheckingNow({ judge, command, elapsed, since, stops, line
         <span className={css.elapsed} title={`Since ${since}`}>
           {elapsed}
         </span>
-        <Text dim>so far · stopped at {stops}</Text>
+        <Text dim>so far · stops at {stops}</Text>
       </div>
       {!judge ? (
-        <div className={line ? css.line : cx(css.line, css.quiet)} title={line ? "The last line it printed" : undefined}>
-          {line || "Nothing printed yet"}
+        <div className={line ? css.line : cx(css.line, css.quiet)} title={line ? "Last output line" : undefined}>
+          {line || "No output yet"}
         </div>
       ) : null}
       {after ? <Text as="div" dim className={css.after}>Then the judge reads {after}.</Text> : null}

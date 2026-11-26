@@ -20,7 +20,7 @@ export function GuideText({ g, writing }: { g: Guide; writing?: boolean }) {
       )}
       {g.differs?.length ? (
         <div className={css.differs}>
-          <strong>Where it differs from what it says it does</strong>
+          <strong>Differs from description</strong>
           <ul>
             {g.differs.map((d, i) => (
               <li key={i}>
@@ -32,7 +32,7 @@ export function GuideText({ g, writing }: { g: Guide; writing?: boolean }) {
         </div>
       ) : (
         // Being written, it's said nothing differs once it's on to the files.
-        (!writing || groups) && <Text as="p" dim className={css.same}>It does what its description says.</Text>
+        (!writing || groups) && <Text as="p" dim className={css.same}>Matches its description.</Text>
       )}
       {groups && (
         <ol className={css.groups}>

@@ -16,7 +16,7 @@ export function RefPageCard({ r, page: p }: { r: Extract<PageRef, { kind: "page"
         {p?.findings ? `, ${p.findings} open` : ""}
         {p?.stale ? `, ${p.stale} out of date` : ""}
       </HoverCardLine>
-      <RefGo to={refHref(r)}>Open the page</RefGo>
+      <RefGo to={refHref(r)}>Open page</RefGo>
     </>
   );
 }

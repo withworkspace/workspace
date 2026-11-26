@@ -7,7 +7,7 @@ import { Prose } from "../ui/Prose";
 export function OrchestratorPrompt({ text }: { text: string }) {
   return (
     <details className={css.fold}>
-      <summary>The prompt it was given</summary>
+      <summary>Prompt</summary>
       <Prose className={css.prompt}>
         <Markdown text={text} />
       </Prose>

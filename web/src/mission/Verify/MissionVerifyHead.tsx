@@ -18,13 +18,13 @@ type MissionVerifyHeadProps = {
 // it's still of its capsule as it is, and what's said of it.
 export function MissionVerifyHead({ id, title, meta, current, children }: MissionVerifyHeadProps) {
   return (
-    <section className={css.head} aria-label="The bundle">
+    <section className={css.head} aria-label="Bundle">
       <div className={css.top}>
         <h2>
           <span className="ref">{id}</span> {title}
         </h2>
         <span className={css.meta}>{meta}</span>
-        {current && <span className={css.current}>Current: its capsule hasn't moved since</span>}
+        {current && <span className={css.current}>Current: capsule unchanged since</span>}
       </div>
       {children}
     </section>

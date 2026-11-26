@@ -37,29 +37,30 @@ export function AnnotateEdit({
       title="Suggested edit"
       by={`by ${by === "agent" ? "the agent" : by}`}
       actionsStart={
-        <Button variant="link" className={css.seeApplied} onClick={onPreview} title="See it in the document, as a tracked change" keys="v">
-          <Icon name="eye" size={12} /> See it in place
+        <Button variant="link" className={css.seeApplied} onClick={onPreview} title="Show as tracked change" keys="v">
+          <Icon name="eye" size={12} /> Show in place
         </Button>
       }
       actions={
         settling ? (
-          <AnnotateSuggestionBusy>Writing it in…</AnnotateSuggestionBusy>
+          <AnnotateSuggestionBusy>Applying…</AnnotateSuggestionBusy>
         ) : (
           <>
-            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline it" keys="d">
+            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline" keys="d">
               Decline {active && <Keys k="d" />}
             </Button>
-            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept it, and land it on ${landing}` : "Accept it"} keys="a">
-              {landing ? `Land it on ${landing}` : "Accept"} {active && <Keys k="a" />}
+            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept and land on ${landing}` : "Accept"} keys="a">
+              {landing ? `Land on ${landing}` : "Accept"} {active && <Keys k="a" />}
             </Button>
           </>
         )
       }
     >
-      <Change bare wrap was={[from]} now={to === "" ? [] : [to]} gone="(delete it)" />
+      <Change bare wrap was={[from]} now={to === "" ? [] : [to]} gone="(delete)" />
       {landing && (
         <AnnotateSettled>
-          Accepting writes it in and lands it on {landing} at once: there's no pull request. <Keys k="a" /> again does it.
+          Accepting lands on {landing} immediately, without a pull request. Press <Keys k="a" /> again to
+          confirm.
         </AnnotateSettled>
       )}
     </AnnotateSuggestion>

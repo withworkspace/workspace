@@ -31,7 +31,7 @@ export function InstalledRow({ p, icon, reload, onFailed }: { p: InstalledPlugin
       })
       .catch(async (e: Error) => {
         await reload();
-        onFailed(failed(`Couldn't update ${p.name}`, e));
+        onFailed(failed(`Could not update ${p.name}`, e));
       })
       .finally(() => setBusy(undefined));
   };
@@ -45,7 +45,7 @@ export function InstalledRow({ p, icon, reload, onFailed }: { p: InstalledPlugin
       toast(`Removed ${p.name}${data ? ", and what it kept" : ""}`, { tone: "done" });
     } catch (e) {
       await reload();
-      onFailed(failed(`Couldn't remove ${p.name}`, e));
+      onFailed(failed(`Could not remove ${p.name}`, e));
     } finally {
       setBusy(undefined);
     }
@@ -60,7 +60,7 @@ export function InstalledRow({ p, icon, reload, onFailed }: { p: InstalledPlugin
       to={p.path && p.state !== "failed" ? p.path : undefined}
       version={p.version}
       state={state}
-      out={update.out ? { label: `${p.latest} is out`, href: repoLink(p.from.repo ?? "", p.latest) } : undefined}
+      out={update.out ? { label: `${p.latest} available`, href: repoLink(p.from.repo ?? "", p.latest) } : undefined}
       about={p.description}
       from={{ label: fromOf(p), href: p.from.repo ? repoLink(p.from.repo) : undefined, at: p.from.at }}
       adds={addsOf(p)}
@@ -68,20 +68,22 @@ export function InstalledRow({ p, icon, reload, onFailed }: { p: InstalledPlugin
         <>
           {p.state === "setup" && (
             <PluginsRowNote tone="attention">
-              It can't be used until {p.missing?.length === 1 ? "this is" : "these are"} set: <Text mono>{(p.missing ?? []).join(", ")}</Text>. In a terminal:{" "}
+              Not usable until {p.missing?.length === 1 ? "this is" : "these are"} set:{" "}
+              <Text mono>{(p.missing ?? []).join(", ")}</Text>. In a terminal:{" "}
               <Copyable text={`ws plugin config ${p.name} --ask`}>ws plugin config {p.name} --ask</Copyable>
             </PluginsRowNote>
           )}
           {p.state === "failed" && (
             <PluginsRowNote tone="danger">
-              {humanError(p.error ?? "It didn't start")} Its log: <Copyable text={`ws plugin logs ${p.name}`}>ws plugin logs {p.name}</Copyable>
+              {humanError(p.error ?? "Could not start")} Logs:{" "}
+              <Copyable text={`ws plugin logs ${p.name}`}>ws plugin logs {p.name}</Copyable>
             </PluginsRowNote>
           )}
-          {p.state !== "failed" && p.error && <PluginsRowNote>It last logged: {p.error}</PluginsRowNote>}
+          {p.state !== "failed" && p.error && <PluginsRowNote>Last log: {p.error}</PluginsRowNote>}
           {p.refused?.map((r) => (
             <PluginsRowNote key={r}>Left out: {r}</PluginsRowNote>
           ))}
-          {p.updateError && <PluginsRowNote>Couldn't look for a later release: {p.updateError}</PluginsRowNote>}
+          {p.updateError && <PluginsRowNote>Could not check for updates: {p.updateError}</PluginsRowNote>}
         </>
       }
       actions={
@@ -91,7 +93,7 @@ export function InstalledRow({ p, icon, reload, onFailed }: { p: InstalledPlugin
               {busy === "update" ? <Spinner size={11} /> : <Icon name={update.out ? "arrow-up" : "rotate"} size={11} />} {busy === "update" ? "Updating…" : update.label}
             </Button>
           )}
-          <Button variant="ghost" size="small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop it, and take it out of the workspace">
+          <Button variant="ghost" size="small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop and remove from workspace">
             {busy === "remove" ? <Spinner size={11} /> : <Icon name="x" size={11} />} {busy === "remove" ? "Removing…" : "Remove"}
           </Button>
         </>

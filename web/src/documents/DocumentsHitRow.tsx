@@ -37,8 +37,8 @@ export function DocumentsHitRow({ id, to, selected, onHover, onOpen, onContextMe
             </RowTitle>
             {state && <Chip tone="quiet">{state}</Chip>}
             {!every && (
-              <Chip tone="quiet" title="Not every word was found in it">
-                some of the words
+              <Chip tone="quiet" title="Not all words matched">
+                partial match
               </Chip>
             )}
           </RowLine>

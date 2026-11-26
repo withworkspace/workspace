@@ -238,10 +238,10 @@ export function TalkPage() {
     );
   const keep = () =>
     useTalks.getState().keep(to).then(
-      () => toast("Kept: it's in Conversations.", { tone: "done" }),
+      () => toast("Kept in Conversations.", { tone: "done" }),
       (e: Error) => {
         if (!(e instanceof ApiError && e.status === 404)) return toast(humanError(e.message), { tone: "danger" });
-        toast("That ask's gone: nobody kept it.");
+        toast("Ask expired: nobody kept it.");
         navigate(back);
       },
     );
@@ -281,23 +281,23 @@ export function TalkPage() {
     <TalkLayout side={side} ref={page}>
       <TalkBar
         ref={head}
-        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to the conversations", keys: "esc" }}
+        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to conversations", keys: "esc" }}
         status={st && <Status s={st} iconOnly size={16} />}
         title={d ? title : undefined}
         actions={
           <>
             {slug && d?.goal === "brief" && (
-              <Link to={`/missions/${slug}/brief`} className={buttonClass({ size: "small" })} title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
-                <Icon name="file" size={13} /> The brief
+              <Link to={`/missions/${slug}/brief`} className={buttonClass({ size: "small" })} title="Brief and plan: confirm proposals there">
+                <Icon name="file" size={13} /> Brief
               </Link>
             )}
             {became && (
               <Link to={`/missions/${became}`} className={buttonClass({ size: "small" })}>
-                <Icon name="flag" size={13} /> Its mission
+                <Icon name="flag" size={13} /> Mission
               </Link>
             )}
             {wide && (
-              <ToggleButton variant="ghost" size="small" pressed={sideOn} onChange={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
+              <ToggleButton variant="ghost" size="small" pressed={sideOn} onChange={toggleSide} title="Show or hide details">
                 <Icon name="panel" size={12} /> Details
               </ToggleButton>
             )}
@@ -322,23 +322,23 @@ export function TalkPage() {
         {error && <ErrorCard error={error} retry={load} />}
         {d?.summary && !side && <TalkSummary text={d.summary} />}
         {!d && !error && <Skeleton rows={6} />}
-        {d?.via && <Text as="p" dim>Started from the {d.via} plugin, which worded the first message.</Text>}
+        {d?.via && <Text as="p" dim>Started from the {d.via} plugin, which wrote the first message.</Text>}
         {d?.ephemeral && (
           <Callout
             tone="quiet"
             icon="sparkle"
-            title="An ask nobody's kept"
+            title="Ask not kept"
             actions={
               <Button size="small" onClick={keep}>
                 <Icon name="message" size={12} /> Keep as a conversation
               </Button>
             }
           >
-            It isn't listed with the rest, and it goes an hour after its last turn unless you keep it.
+            Not listed in Conversations. Deleted an hour after the last turn unless you keep it.
           </Callout>
         )}
         <TalkAnchor
-          excerpt={anchor?.excerpt?.length ? { lines: anchor.excerpt, from: anchor.line ?? 1, title: `${anchor.path}, the lines the question is about` } : undefined}
+          excerpt={anchor?.excerpt?.length ? { lines: anchor.excerpt, from: anchor.line ?? 1, title: `${anchor.path}: lines asked about` } : undefined}
           quote={anchor?.quote?.exact}
         />
         <TalkTurns>
@@ -376,7 +376,7 @@ export function TalkPage() {
             onChange={setText}
             onSend={send}
             aria-label="Reply"
-            placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
+            placeholder={d?.answering ? "Say more: sends when the agent is done" : d?.status === "resolved" ? "Reply to reopen…" : "Reply…"}
           >
             {d && <TalkModelSwitch slug={slug} id={id} chosen={d.model?.model} />}
             <Button variant="primary" disabled={!text.trim() || sending} onClick={send} keys={sendKeys(sendKey)}>

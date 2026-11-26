@@ -7,7 +7,7 @@ import css from "./PullRequestMetaChecks.module.css";
 export function PullRequestMetaChecks({ checks }: { checks: NonNullable<PR["checks"]> }) {
   return (
     <span className={css.checks}>
-      <PullRequestCheckMark checks={checks} /> {checks === "success" ? "Checks pass" : checks === "failure" ? "Checks are failing" : "Checks are running"}
+      <PullRequestCheckMark checks={checks} /> {checks === "success" ? "Checks pass" : checks === "failure" ? "Checks failing" : "Checks running"}
     </span>
   );
 }

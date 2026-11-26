@@ -3,10 +3,10 @@ import { readsAs } from "../../ask/ask";
 // What the Brief tab says in words, and what it works out of them.
 
 export const briefKeys: [string, string][] = [
-  ["j / k", "On Brief: the next change to read / the one before"],
-  ["a / d", "On Brief: accept the change / decline it; with a passage picked out, a asks the planner about it"],
+  ["j / k", "On Brief: next / previous change"],
+  ["a / d", "On Brief: accept / decline change; with text selected, a asks the planner"],
   ["/", "On Brief: ask the planner"],
-  ["p", "On Brief: fold the planner's conversation away, or bring it back"],
+  ["p", "On Brief: show or hide planner"],
   ["mod+⏎", "On Brief: confirm, accept or save (in the editor too)"],
 ];
 
@@ -49,14 +49,14 @@ interface Proposed {
 
 // proposedName is what a proposal is, in the bar: a couple of words.
 export function proposedName(p: Proposed): string {
-  if (p.briefing) return p.kind === "plan" ? "The plan" : `Draft ${Math.max(p.draft, 1)}`;
+  if (p.briefing) return p.kind === "plan" ? "Plan" : `Draft ${Math.max(p.draft, 1)}`;
   return p.kind === "plan" ? "Plan revision" : "Brief edit";
 }
 
 // proposedTitle is the same, said in full.
 export function proposedTitle(p: Proposed): string {
-  if (p.briefing) return p.kind === "plan" ? "The plan, proposed" : `Draft ${Math.max(p.draft, 1)} of the brief${p.plan ? ", with its plan" : ""}`;
-  return p.kind === "plan" ? "A revision of the plan" : "An edit to the brief";
+  if (p.briefing) return p.kind === "plan" ? "Proposed plan" : `Draft ${Math.max(p.draft, 1)} of the brief${p.plan ? ", with its plan" : ""}`;
+  return p.kind === "plan" ? "Proposed plan revision" : "Proposed brief edit";
 }
 
 // acceptLabel is what taking a proposal is called: briefing, a brief (or
@@ -67,4 +67,4 @@ export function acceptLabel(p: Pick<Proposed, "briefing" | "kind" | "unwritten">
 }
 
 // unplaced says of changes that couldn't be marked where they are.
-export const unplaced = (n: number) => (n === 1 ? "A change couldn't be shown in place: it's in as proposed." : `${n} changes couldn't be shown in place: they're in as proposed.`);
+export const unplaced = (n: number) => (n === 1 ? "1 change not shown in place: included as proposed." : `${n} changes not shown in place: included as proposed.`);

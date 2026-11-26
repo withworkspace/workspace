@@ -112,12 +112,12 @@ export function FileAs({
                 {x.title}
               </Option>
             ))}
-            <Option value="">No kind: in a folder…</Option>
+            <Option value="">No kind: choose a folder…</Option>
           </Select>
         </PageField>
         {!k && (
           <PageField label="Folder">
-            <Input className={cx(textClass("mono"), pageFieldCodeClass)} list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="The folder it's filed in, as repo:folder/" />
+            <Input className={cx(textClass("mono"), pageFieldCodeClass)} list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="Folder, as repo:folder/" />
             <datalist id="file-as-places">
               {(spaces ?? []).map((s) => (
                 <option key={s.repo} value={`${s.repo}:${s.folder ?? ""}`}>
@@ -128,22 +128,22 @@ export function FileAs({
           </PageField>
         )}
         <PageField label="Title">
-          <Input autoFocus value={name} placeholder="What it's named from" onChange={(e) => setName(e.target.value)} aria-label="Title" />
+          <Input autoFocus value={name} placeholder="Document title" onChange={(e) => setName(e.target.value)} aria-label="Title" />
         </PageField>
         <PageField label="Commit">
-          <Input className={cx(textClass("mono"), pageFieldCodeClass)} value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
+          <Input className={cx(textClass("mono"), pageFieldCodeClass)} value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="Commit message" />
         </PageField>
       </PageFields>
       {plan && (
         <PageFileWhere at={plan.ref} taken={plan.taken}>
-          {plan.taken && <span>: there's one there already. Give it another title.</span>}
+          {plan.taken && <span>: already exists. Choose another title.</span>}
         </PageFileWhere>
       )}
       {plan && (
-        <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Filing lands it on ${plan.branch}` : "Filing lifts a capsule for it"}>
+        <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Filing lands on ${plan.branch}` : "Filed in a new capsule"}>
           {lands ? (
             <>
-              This repo has no pull requests: it's one commit, straight to {plan.branch}
+              No pull requests in this repo: one commit straight to {plan.branch}
               {plan.verify ? (
                 <>
                   , once <Text mono>{plan.verify}</Text> passes
@@ -152,18 +152,18 @@ export function FileAs({
               .
             </>
           ) : (
-            <>It's committed in a new capsule, and left there: yours, to add to or open a pull request from.</>
+            <>Committed in a new capsule, for you to add to or open a pull request from.</>
           )}
         </Callout>
       )}
-      <PageFileWhat>What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</PageFileWhat>
+      <PageFileWhat>Files the page as it reads: cells as text, questions left out. The page stays, linked to the filed document.</PageFileWhat>
       {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={file} disabled={!ready} title="File it as a document" keys="mod+⏎">
-          {busy ? (lands ? "Landing…" : "Filing…") : lands ? `File, and land on ${plan?.branch}` : "File it"} <Keys k="mod+⏎" />
+        <Button variant="primary" onClick={file} disabled={!ready} title="File as document" keys="mod+⏎">
+          {busy ? (lands ? "Landing…" : "Filing…") : lands ? `File and land on ${plan?.branch}` : "File"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>
     </Dialog>
@@ -211,7 +211,7 @@ export function SaveToFile({
     }
   };
   return (
-    <Dialog title="Save to the repo" onClose={onClose} wide>
+    <Dialog title="Save to repo" onClose={onClose} wide>
       <PageFileWhere at={tied.ref} />
       <PageFields
         onKeyDown={(e) => {
@@ -222,14 +222,14 @@ export function SaveToFile({
         }}
       >
         <PageField label="Commit">
-          <Input autoFocus className={cx(textClass("mono"), pageFieldCodeClass)} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
+          <Input autoFocus className={cx(textClass("mono"), pageFieldCodeClass)} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="Commit message" />
         </PageField>
       </PageFields>
       {saves && saves.how !== "capsule" && (
-        <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Saving lands it on ${saves.branch}` : "Saving lifts a capsule for it"}>
+        <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Saving lands on ${saves.branch}` : "Saved in a new capsule"}>
           {lands ? (
             <>
-              This repo has no pull requests: it's one commit, straight to {saves.branch}
+              No pull requests in this repo: one commit straight to {saves.branch}
               {saves.verify ? (
                 <>
                   , once <Text mono>{saves.verify}</Text> passes
@@ -238,18 +238,18 @@ export function SaveToFile({
               .
             </>
           ) : (
-            <>It's on {saves.branch}, which isn't changed in place: it's committed in a new capsule, and left there, for you to open a pull request from. The page goes on with the file there.</>
+            <>File is on {saves.branch}, so the change goes in a new capsule for you to open a pull request from. The page follows the file there.</>
           )}
         </Callout>
       )}
-      <PageFileWhat>What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</PageFileWhat>
+      <PageFileWhat>Saves the page as it reads: cells as text, questions left out. The page keeps them.</PageFileWhat>
       {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={save} disabled={busy || !message.trim()} title="Save it to the repo" keys="mod+⏎">
-          {busy ? (lands ? "Landing…" : "Saving…") : lands ? `Save, and land on ${saves?.branch}` : "Save"} <Keys k="mod+⏎" />
+        <Button variant="primary" onClick={save} disabled={busy || !message.trim()} title="Save to repo" keys="mod+⏎">
+          {busy ? (lands ? "Landing…" : "Saving…") : lands ? `Save and land on ${saves?.branch}` : "Save"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>
     </Dialog>

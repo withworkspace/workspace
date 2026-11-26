@@ -36,7 +36,7 @@ export function SettingsGroupPick({ value, groups, labels, team, none, label, on
       <Input
         ref={field}
         className={cx(textClass("mono"), css.naming)}
-        aria-label={`${label}: a new group`}
+        aria-label={`${label}: new group`}
         placeholder="new group"
         value={name}
         aria-invalid={bad}

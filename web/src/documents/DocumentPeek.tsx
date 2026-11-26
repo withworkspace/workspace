@@ -28,11 +28,11 @@ export function DocumentPeek({ repo, capsule, path, words, mission, children }: 
       <div className={css.where}>
         <Chip tone="quiet">{repo}</Chip>
         {capsule && (
-          <Chip tone="progress" title={`As it is in the capsule ${capsule}, not on the repo's default branch`}>
+          <Chip tone="progress" title={`Version in capsule ${capsule}, not the default branch`}>
             in {capsule}
           </Chip>
         )}
-        <Copyable text={path} className={css.path} title="Copy its path" icon="over">
+        <Copyable text={path} className={css.path} title="Copy path" icon="over">
           {path}
         </Copyable>
         <span className={css.words}>
@@ -41,7 +41,7 @@ export function DocumentPeek({ repo, capsule, path, words, mission, children }: 
       </div>
       {mission && (
         <Link to={mission.to} className={css.mission}>
-          <Icon name="flag" size={12} /> A document of {mission.title}
+          <Icon name="flag" size={12} /> Mission document: {mission.title}
         </Link>
       )}
       <article className={css.text}>{children}</article>

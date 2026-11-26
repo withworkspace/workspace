@@ -125,7 +125,7 @@ export function DocEdit({
           if (now.version === start.base) return setMoved(false);
           if (unsaved) return setMoved(true);
           setStart((s) => ({ text: now.text, base: now.version, mode: s.mode, n: s.n }));
-          toast(slug ? "The document changed (crew committed to it): you're editing it as it is now" : "The document changed: you're editing it as it is now", { tone: "info" });
+          toast(slug ? "Document updated by crew" : "Document updated", { tone: "info" });
         },
         () => {},
       ),
@@ -150,11 +150,11 @@ export function DocEdit({
       const now = await readDoc(slug, a.ref);
       if (now.version !== live.current.start.base) {
         setMoved(true);
-        return toast("It's changed since you started: save your edit (it merges), or close and start again from it as it is to suggest", { tone: "danger" });
+        return toast("Changed since you started. Saving will merge.", { tone: "danger" });
       }
       const { suggestionsFor } = await import("../../editor/suggest");
       const proposed = suggestionsFor(now.text, text);
-      if (!proposed.length) return toast("Nothing to suggest: it reads as it did", { tone: "info" });
+      if (!proposed.length) return toast("Nothing to suggest: no changes", { tone: "info" });
       for (const p of proposed) {
         await openThread(slug, a.ref, {
           version: now.version,
@@ -168,7 +168,7 @@ export function DocEdit({
         });
       }
       await dropDraft(slug, a.ref);
-      toast(proposed.length === 1 ? "Suggested, on a thread: v shows it in place" : `${proposed.length} edits suggested, each on a thread: v shows them in place`, { tone: "done" });
+      toast(proposed.length === 1 ? "Suggested: v shows in place" : `${proposed.length} edits suggested: v shows in place`, { tone: "done" });
       onSaved();
     } catch (e) {
       toast(humanError((e as Error).message), { tone: "danger" });
@@ -182,8 +182,8 @@ export function DocEdit({
     if (!edit || busy) return;
     if (!live.current.unsaved) return onClose(false);
     const text = edit.text();
-    if (!text.trim()) return toast("A document can't be saved empty", { tone: "danger" });
-    if (clashMark.test(text)) return toast("Settle the clashes first: take out the <<<<<<<, ======= and >>>>>>> lines", { tone: "danger" });
+    if (!text.trim()) return toast("Document cannot be empty", { tone: "danger" });
+    if (clashMark.test(text)) return toast("Resolve conflicts first: remove the <<<<<<<, ======= and >>>>>>> lines", { tone: "danger" });
     if (live.current.mode === "suggest") return void suggest(text);
     setBusy(true);
     saveDoc(slug, { ref: a.ref, base: start.base, text, message: message.trim() || undefined })
@@ -211,34 +211,37 @@ export function DocEdit({
   return (
     <MissionArtifactEdit>
       {a.saves && a.saves.how !== "capsule" && !suggesting && (
-        <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Saving lands it on ${a.saves.branch}` : `Saving lifts a capsule for it`}>
+        <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Saving lands on ${a.saves.branch}` : `Saving creates a new capsule`}>
           {lands ? (
             <>
-              This repo has no pull requests: your edit is one commit, straight to {a.saves.branch}
+              No pull requests in this repo: commits straight to {a.saves.branch}
               {a.saves.verify ? (
                 <>
                   , once <Text mono>{a.saves.verify}</Text> passes
                 </>
               ) : null}
-              . Everyone sees it at once. Its message, below, is the only description there'll be.
+              . Visible to everyone at once. The message below is the only description.
             </>
           ) : (
             <>
-              It's on {a.saves.branch}, which isn't changed in place: your edit is committed in a new capsule, and left there. It's yours, to add to or open a pull request from.
+              {a.saves.branch} is not changed directly: your edit is committed to a new capsule, for you to
+              add to or open a pull request from.
             </>
           )}
         </Callout>
       )}
       {moved && (
-        <Callout tone="attention" title="It's changed since you started">
-          {slug ? "Someone (crew, most likely) changed this document while you were editing it." : "This document changed while you were editing it."} Saving merges your edit with their changes; if the two touch
-          the same lines, you'll choose.
+        <Callout tone="attention" title="Changed since you started">
+          {slug ? "Someone (likely crew) changed this document while you were editing." : "This document changed while you were editing."}{" "}
+          Saving will merge; where lines conflict, you choose.
         </Callout>
       )}
       {clashes > 0 && (
-        <Callout tone="danger" title={clashes === 1 ? "A clash to settle" : `${clashes} clashes to settle`}>
-          Your edit and the changes made meanwhile touch the same lines. Each clash is marked below: <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; your edit</code>, then <code>=======</code> and the document as
-          it is now, then <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>. Keep what should stay, take out the marker lines, and save.
+        <Callout tone="danger" title={clashes === 1 ? "1 conflict" : `${clashes} conflicts`}>
+          Your edit and other changes touch the same lines. Each conflict is marked below:{" "}
+          <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; your edit</code>, then <code>=======</code> and the current
+          document, then <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>. Keep what should stay, remove the marker
+          lines, and save.
         </Callout>
       )}
       {quotes === undefined ? (
@@ -260,10 +263,10 @@ export function DocEdit({
         mode={
           a.annotatable && (
             <Segmented value={suggesting ? "suggest" : "edit"} onChange={setMode} aria-label="Edit or suggest">
-              <Segment value="edit" title="Your changes are made: saving writes them in">
+              <Segment value="edit" title="Save changes directly">
                 Edit
               </Segment>
-              <Segment value="suggest" title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
+              <Segment value="suggest" title="Offer each change as a suggestion to accept or decline">
                 Suggest
               </Segment>
             </Segmented>
@@ -273,8 +276,8 @@ export function DocEdit({
           commits
             ? {
                 value: message,
-                placeholder: suggesting ? "Say why (each suggestion's thread opens with it)" : `Say what changed (the commit's message: "${a.saves?.subject ?? a.docKind?.subject ?? "Edit …"}" if not)`,
-                label: suggesting ? "Why" : "The commit's message",
+                placeholder: suggesting ? "Why (shown on each suggestion)" : `What changed (default: "${a.saves?.subject ?? a.docKind?.subject ?? "Edit …"}")`,
+                label: suggesting ? "Why" : "Commit message",
                 onChange: setMessage,
                 onKeyDown: (e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -292,22 +295,22 @@ export function DocEdit({
         kept={
           kept && unsaved ? (
             <>
-              Draft kept <Time iso={kept} as="relative" />
+              Draft saved <Time iso={kept} as="relative" />
             </>
           ) : null
         }
         actions={
           <>
             {unsaved && (
-              <Button variant="ghost" onClick={discard} disabled={busy} title="Throw this edit away">
+              <Button variant="ghost" onClick={discard} disabled={busy} title="Discard edit">
                 Discard
               </Button>
             )}
-            <Button variant="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft" keys="esc">
+            <Button variant="ghost" onClick={close} disabled={busy} title="Close and keep draft" keys="esc">
               Close <Keys k="esc" />
             </Button>
             <Button variant="primary" onClick={save} disabled={busy || !unsaved} keys="mod+⏎">
-              {busy ? (suggesting ? "Suggesting…" : lands ? "Landing…" : "Saving…") : suggesting ? "Suggest" : lands ? `Save, and land on ${a.saves?.branch}` : "Save"} <Keys k="mod+⏎" />
+              {busy ? (suggesting ? "Suggesting…" : lands ? "Landing…" : "Saving…") : suggesting ? "Suggest" : lands ? `Save and land on ${a.saves?.branch}` : "Save"} <Keys k="mod+⏎" />
             </Button>
           </>
         }

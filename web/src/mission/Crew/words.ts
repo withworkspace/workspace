@@ -21,8 +21,8 @@ export const screenContext = (screen?: CrewPrompt) => screen?.context.filter((l)
 // step yet ("make this edit to …"); or, knowing nothing, go on.
 export function wantsTo(pending: TranscriptEntry | undefined, screen: CrewPrompt | undefined, about: string[] | undefined): string {
   if (pending) return pending.edit ? (pending.edit.old ? "edit" : "write") : pending.tool === "Bash" ? "run" : `use ${pending.tool}`;
-  if (!about?.length) return "go on";
-  return screen?.title.replace(/^.*?(Do you want to [^?]*)\?.*$/i, "$1").replace(/^Do you want to /i, "") || "go on";
+  if (!about?.length) return "continue";
+  return screen?.title.replace(/^.*?(Do you want to [^?]*)\?.*$/i, "$1").replace(/^Do you want to /i, "") || "continue";
 }
 
 // shortPath is a file's path by its folder and name.

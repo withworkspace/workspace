@@ -144,12 +144,12 @@ export function DocumentsPage() {
               <Button
                 onClick={newAsKind}
                 disabled={starting}
-                title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
+                title="New page from a document kind"
               >
                 New as… <Keys k="N" />
               </Button>
             )}
-            <Button variant="primary" onClick={newPage} disabled={starting} title="Start a page">
+            <Button variant="primary" onClick={newPage} disabled={starting} title="New page">
               <Icon name="plus" /> New page <Keys k="n" />
             </Button>
           </>
@@ -168,7 +168,8 @@ export function DocumentsPage() {
                 spaceOf={spaceOf}
                 label={
                   <>
-                    Changed lately{spaces.length > 1 && <DocumentsSub> · across {spaces.length} spaces</DocumentsSub>}
+                    Recent changes
+                    {spaces.length > 1 && <DocumentsSub> · across {spaces.length} spaces</DocumentsSub>}
                   </>
                 }
               />
@@ -179,13 +180,14 @@ export function DocumentsPage() {
             spaces={
               <>
                 <GroupHead count={spaces.length}>Spaces</GroupHead>
-                {error && !value && <ErrorCard title="Couldn't read the spaces" error={error} retry={reload} />}
-                {value?.problem && <Banner tone="attention">Some of it may be behind: {value.problem}</Banner>}
-                {!value && !error && <Loading what="Reading the spaces…" />}
+                {error && !value && <ErrorCard title="Could not load spaces" error={error} retry={reload} />}
+                {value?.problem && <Banner tone="attention">May be out of date: {value.problem}</Banner>}
+                {!value && !error && <Loading what="Loading spaces…" />}
                 {value && spaces.length === 0 && (
-                  <Empty icon="file" title="No spaces of documents">
-                    A repo of documents (ADRs, proposals, guides) is read here, by its titles, rather than in Files: say <code>documents = true</code> under its{" "}
-                    <code>[repos.&lt;name&gt;]</code> in <code>ws.toml</code>, or name it as <code>[missions] records</code>.
+                  <Empty icon="file" title="No document spaces">
+                    Show a repo of documents (ADRs, proposals, guides) here: set <code>documents = true</code>{" "}
+                    under its <code>[repos.&lt;name&gt;]</code> in <code>ws.toml</code>, or name it as{" "}
+                    <code>[missions] records</code>.
                   </Empty>
                 )}
                 {spaces.length > 0 && (
@@ -207,14 +209,14 @@ export function DocumentsPage() {
             }
             local={
               <>
-                <GroupHead title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
+                <GroupHead title="Pages on this machine, not in a space: only you see them. Use File as… to add one to a space.">
                   Local <Count>{local.length}</Count>
                   {filling > 0 && <DocumentsSub>· {filling} filling</DocumentsSub>}
                 </GroupHead>
                 {local.length === 0 ? (
                   <DocumentsEmpty>
-                    No pages here. A page is somewhere to write a problem down and work it out:{" "}
-                    <Button variant="link" onClick={newPage} title="Start a page">
+                    No local pages yet:{" "}
+                    <Button variant="link" onClick={newPage} title="New page">
                       start one
                     </Button>
                     .
@@ -232,7 +234,7 @@ export function DocumentsPage() {
                           onHover={() => i !== index && setIndex(i)}
                           note={
                             p.page.source && (
-                              <Chip tone="quiet" title="Its file isn't in a space of documents">
+                              <Chip tone="quiet" title="File not in a document space">
                                 {p.page.source.ref.split(":")[0]}
                               </Chip>
                             )

@@ -122,7 +122,7 @@ export function Side({
               id={`side-${key}`}
               selected={selected(key)}
               onReview={() => review(c)}
-              title={c.exists ? "Review it" : "Burned: its folder's gone"}
+              title={c.exists ? "Review" : "Burned: folder deleted"}
               keys={c.exists ? "v" : undefined}
               gone={!c.exists}
               dirty={c.dirty}
@@ -161,13 +161,13 @@ export function Side({
           ))}
         </MissionSideSection>
       )}
-      <MissionSideSection title="Crew" count={live.length ? `${live.length} on it` : undefined}>
+      <MissionSideSection title="Crew" count={live.length ? `${live.length} working` : undefined}>
         {live.map((c) => (
           <CrewRow key={c.id} c={c} slug={d.slug} side />
         ))}
         {d.crew.length > live.length && (
           <MissionSideMore onClick={toWork} keys="3">
-            {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
+            {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none working now: in Work`}
           </MissionSideMore>
         )}
         {!d.crew.length && <Text as="div" dim>Nobody yet.</Text>}

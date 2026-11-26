@@ -75,7 +75,7 @@ export const passageChip = (exact: string, n = 40): Chip => ({ icon: "quote", te
 // them: the file's name and the lines, its path in full on hover.
 export function linesChip(path: string, line: number, endLine?: number, side?: "new" | "old"): Chip {
   const at = `${path.split("/").pop()}:${linesOf(line, endLine)}`;
-  return { icon: "code", text: at, title: `${path}:${linesOf(line, endLine)}${side === "old" ? " (lines it removes)" : ""}`, kind: "lines" };
+  return { icon: "code", text: at, title: `${path}:${linesOf(line, endLine)}${side === "old" ? " (removed lines)" : ""}`, kind: "lines" };
 }
 
 // anchorChip is what an ask was asked of, as its card's head shows it: a

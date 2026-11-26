@@ -85,7 +85,7 @@ export function PassView({
       tools={
         <>
           {onLines && (
-            <PassShow dim checked={!hidden} onChange={(on) => onHide(p.name, !on)} title="Draw what it found on the lines it's about, in the diff">
+            <PassShow dim checked={!hidden} onChange={(on) => onHide(p.name, !on)} title="Show findings in diff">
               In the diff
             </PassShow>
           )}
@@ -94,14 +94,14 @@ export function PassView({
             onClick={run}
             disabled={busy || running}
             unavailable={p.unavailable}
-            title={p.cold ? "Its agent is given the change and the description, and nothing else" : "Its agent reads the change with the code checked out here (ws docks it first). It reads, and that's all"}
+            title={p.cold ? "Sees only the change and description" : "Reads the change with the code checked out here. Read-only."}
           >
             {running ? "Running…" : p.runs ? "Run again" : "Run"}
           </Button>
         </>
       }
     >
-      {p.unavailable && <PassNote>It can't be run: {p.unavailable}.</PassNote>}
+      {p.unavailable && <PassNote>Cannot run: {p.unavailable}.</PassNote>}
       {p.failed && !running && <Banner>{humanError(p.failed)}</Banner>}
       {running && steps.length > 0 && (
         <PassNote kind="steps">
@@ -110,8 +110,8 @@ export function PassView({
       )}
       {p.moved && !running && (
         <PassNote kind="moved">
-          {" "}
-          It's been pushed to since this ran{p.ran ? ` (at ${p.ran.slice(0, 7)})` : ""}: what it found may not stand. Run it again.
+          {" "}New commits since this ran{p.ran ? ` (at ${p.ran.slice(0, 7)})` : ""}: findings may be out of
+          date. Run again.
         </PassNote>
       )}
       {p.summary && <PassSummary text={p.summary} at={p.at} />}
@@ -122,7 +122,7 @@ export function PassView({
               key={f.key}
               blocks={f.blocks}
               kind={
-                <span className={`kind k-found${f.blocks ? " k-blocking" : ""}${f.kind === "addressed" ? " k-addressed" : ""}`} title={f.blocks ? "It blocks: the pass is no go while it's open" : undefined}>
+                <span className={`kind k-found${f.blocks ? " k-blocking" : ""}${f.kind === "addressed" ? " k-addressed" : ""}`} title={f.blocks ? "Blocking: pass is no go while open" : undefined}>
                   {f.thread ? (followWords[f.kind] ?? f.kind) : f.kind}
                 </span>
               }
@@ -130,7 +130,7 @@ export function PassView({
                 f.path ? (
                   <PassFindingLink onClick={() => (f.thread ? toComment(f.thread) : toFinding(p.name, f.key)) || setLines((l) => ({ ...l, [f.key]: !l[f.key] }))}>{where(f)}</PassFindingLink>
                 ) : (
-                  <Text dim>The change as a whole</Text>
+                  <Text dim>Whole change</Text>
                 )
               }
               said={f.suggest ? <Text dim>· suggests a change</Text> : null}
@@ -138,10 +138,10 @@ export function PassView({
                 f.thread ? (
                   // It's about a comment you've made: there's nothing to take.
                   <span className={css.actions}>
-                    <Button size="small" onClick={() => onResolve(f.thread!).catch(failed)} title="Resolve the comment's thread on GitHub: it's dealt with. It posts at once">
-                      Resolve the comment
+                    <Button size="small" onClick={() => onResolve(f.thread!).catch(failed)} title="Resolve thread on GitHub. Posts immediately.">
+                      Resolve comment
                     </Button>
-                    <Button variant="ghost" size="small" onClick={() => settle(f, "dismissed", "wrong")} title="The follow-up has it wrong: don't count it">
+                    <Button variant="ghost" size="small" onClick={() => settle(f, "dismissed", "wrong")} title="Wrong: don't count">
                       Dismiss
                     </Button>
                   </span>
@@ -156,7 +156,7 @@ export function PassView({
                   />
                 )
               }
-              lines={lines[f.key] ? <Excerpt lines={f.excerpt ?? []} from={f.line ?? 0} title="The lines it's on: they aren't in this diff" /> : undefined}
+              lines={lines[f.key] ? <Excerpt lines={f.excerpt ?? []} from={f.line ?? 0} title="Lines outside this diff" /> : undefined}
               text={f.text}
             />
           ))}
@@ -170,15 +170,15 @@ export function PassView({
                 key={f.key}
                 settled
                 kind={<span className="kind k-found">{f.kind}</span>}
-                where={<Text dim mono>{f.path ? where(f) : "The change as a whole"}</Text>}
+                where={<Text dim mono>{f.path ? where(f) : "Whole change"}</Text>}
                 said={
                   <Text dim>
-                    {f.state === "done" ? (f.thread ? "Its comment's resolved" : "Taken into your review") : `Dismissed${f.why ? `: ${reviewDismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}
+                    {f.state === "done" ? (f.thread ? "Comment resolved" : "Added to your review") : `Dismissed${f.why ? `: ${reviewDismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}
                   </Text>
                 }
                 end={
-                  <Button variant="ghost" size="small" onClick={() => settle(f, "open")} title="It's open again: it counts toward go or no go">
-                    Open again
+                  <Button variant="ghost" size="small" onClick={() => settle(f, "open")} title="Reopen: counts toward go / no go">
+                    Reopen
                   </Button>
                 }
                 text={f.text}

@@ -42,19 +42,19 @@ export function ReviewSubmit({
     return n ? [`${n} ${k}`] : [];
   });
   return (
-    <Dialog title="Submit the review" onClose={onClose} className={css.dialog} wide>
+    <Dialog title="Submit review" onClose={onClose} className={css.dialog} wide>
       <p>
         {draft
           ? `${draft.comments.length} new ${draft.comments.length === 1 ? "comment" : "comments"}${counts.length ? ` (${counts.join(", ")})` : ""}.`
           : "No new comments."}{" "}
-        Once it's submitted, crew read it and the orchestrator decides what follows.
+        Once submitted, crew read it.
       </p>
       <ReviewVerdicts label="Verdict" value={verdict} keyed onPick={pick} />
       <TextArea
         ref={area}
         value={summary}
         rows={4}
-        placeholder="A summary, if it helps (optional)"
+        placeholder="Summary (optional)"
         aria-label="Summary"
         onChange={(e) => setSummary(e.target.value)}
         onKeyDown={(e) => {
@@ -71,7 +71,7 @@ export function ReviewSubmit({
       <div className={css.actions}>
         {draft && (
           <Button variant="ghost" onClick={onDiscard}>
-            Discard the draft
+            Discard draft
           </Button>
         )}
         <span className={css.spacer} />

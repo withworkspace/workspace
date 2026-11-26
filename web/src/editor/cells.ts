@@ -151,7 +151,7 @@ export class CellView implements NodeView {
     this.head.className = cx("cell-head", css.cellHead);
     this.head.contentEditable = "false";
     this.head.setAttribute("role", "button");
-    this.head.title = "Ask for a change, or see what it read";
+    this.head.title = "Ask for a change, or see sources";
     const glyph = document.createElement("span");
     glyph.className = css.cellGlyph;
     glyph.setAttribute("aria-hidden", "true");
@@ -177,7 +177,7 @@ export class CellView implements NodeView {
     const ask = this.node.attrs.ask && !this.node.childCount;
     this.dom.className = cx(css.cell, statuses[status], !this.node.childCount && css.blank, ask && css.ask);
     this.glyph.textContent = ask ? "?" : "»";
-    this.head.title = ask ? "Read the answer, ask more, or have it put in the page" : "Ask for a change, or see what it read";
+    this.head.title = ask ? "Read answer, ask more, or add to page" : "Ask for a change, or see sources";
     this.dom.dataset.cell = this.node.attrs.id || this.node.attrs.key;
     this.prompt.textContent = this.node.attrs.prompt;
     const note = st?.note ?? (status === "starting" ? "Starting…" : "");

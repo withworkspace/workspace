@@ -49,7 +49,7 @@ export function PluginProposalCard({
       else now.add(n);
       return now;
     });
-  const accept = !several ? (tried ? "Try again" : "Accept") : chosen.length === open.length ? (tried ? `Try the ${open.length} left` : "Accept all") : `Accept ${chosen.length} of ${open.length}`;
+  const accept = !several ? (tried ? "Try again" : "Accept") : chosen.length === open.length ? (tried ? `Retry ${open.length} left` : "Accept all") : `Accept ${chosen.length} of ${open.length}`;
   const made = items.filter((it) => it.state === "made");
   return (
     <TalkProposal
@@ -63,9 +63,9 @@ export function PluginProposalCard({
       foot={
         live ? (
           <TalkProposalChoice
-            busy={busy ? `${p.plugin} is doing it…` : undefined}
+            busy={busy ? `${p.plugin} working…` : undefined}
             decline={made.length ? "Decline the rest" : "Decline"}
-            declineTitle={made.length ? "What's done stands: the rest is declined" : undefined}
+            declineTitle={made.length ? "Keep what's done, decline the rest" : undefined}
             accept={accept}
             ready={chosen.length > 0}
             replying={replying}

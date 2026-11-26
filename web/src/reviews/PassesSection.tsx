@@ -36,7 +36,7 @@ export function PassesSection({
     return (
       <>
         <h2>Passes</h2>
-        <Text as="p" dim>Reading the passes…</Text>
+        <Text as="p" dim>Loading passes…</Text>
       </>
     );
   }
@@ -45,8 +45,9 @@ export function PassesSection({
       <h2>Passes</h2>
       {passes.length === 0 ? (
         <Text as="p" dim>
-          No pass is set up for reviews here. One is a skill or a few words saying what to look for, in <Text mono>ws.toml</Text> (the team's) or{" "}
-          <Text mono>ws.local.toml</Text> (yours): <Text mono>[reviews.passes.&lt;name&gt;]</Text>.
+          No review passes set up. Add one under <Text mono>[reviews.passes.&lt;name&gt;]</Text> in{" "}
+          <Text mono>ws.toml</Text> (team) or <Text mono>ws.local.toml</Text> (yours): a skill, or a few words
+          on what to look for.
         </Text>
       ) : (
         <PassList>

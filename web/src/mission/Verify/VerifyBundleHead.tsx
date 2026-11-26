@@ -29,7 +29,7 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
         <>
           From {b.crew}
           {b.by ? ` (${b.by})` : ""}
-          {b.own ? ", who did the work it shows" : ", a verifier who didn't do the work"}
+          {b.own ? ", who did the work" : ", an independent verifier"}
           {b.capsule && (
             <>
               , of <Text mono>{b.capsule}</Text>
@@ -37,7 +37,7 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
                 <>
                   {" "}
                   at{" "}
-                  <Copyable text={b.commit} title="Copy the commit">
+                  <Copyable text={b.commit} title="Copy commit">
                     {shortCommit(b.commit)}
                   </Copyable>
                 </>
@@ -50,7 +50,7 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
     >
       {b.replacedBy && (
         <MissionVerifyNote tone="quiet" icon="info" actions={<Button onClick={() => pick(b.replacedBy!)}>Open {b.replacedBy}</Button>}>
-          {b.replacedBy} has taken its place.
+          Replaced by {b.replacedBy}.
         </MissionVerifyNote>
       )}
       {b.verdict === "approved" && (
@@ -82,12 +82,13 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
           }
         >
           <MissionVerifySaid notes={b.notes ?? []} />
-          {!b.replacedBy && <>It's with its crew: the bundle they hand over next takes its place.</>}
+          {!b.replacedBy && <>With crew: their next bundle replaces this one.</>}
         </MissionVerifyNote>
       )}
       {b.stale && !b.replacedBy && (
         <MissionVerifyNote tone="attention" title="Stale">
-          Its capsule has moved on to <Text mono>{shortCommit(b.head)}</Text> since. What this shows is of <Text mono>{shortCommit(b.commit)}</Text>.
+          Capsule has moved on to <Text mono>{shortCommit(b.head)}</Text>. This bundle shows{" "}
+          <Text mono>{shortCommit(b.commit)}</Text>.
         </MissionVerifyNote>
       )}
       <MissionVerifySummary text={b.summary} />
@@ -95,7 +96,7 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
         replaces={
           b.replaces && (
             <>
-              It took the place of{" "}
+              Replaces{" "}
               <Button variant="link" type="button" onClick={() => pick(b.replaces!)}>
                 {b.replaces}
               </Button>

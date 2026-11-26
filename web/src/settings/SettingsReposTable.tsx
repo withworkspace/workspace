@@ -10,7 +10,7 @@ export function SettingsReposTable({ acts, children }: { acts?: boolean; childre
       <thead>
         <tr>
           <th>Repo</th>
-          <th>Called</th>
+          <th>Name</th>
           <th>On GitHub</th>
           <th>Aliases</th>
           <th>Group</th>

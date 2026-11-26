@@ -506,9 +506,9 @@ export function Palette({
   // acting on, and the action that's asking.
   const doing = asking ? `${asking.thing ? `${asking.thing.id}: ` : ""}${asking.action.title}` : acting ? acting.title : undefined;
   const placeholder = asking
-    ? asking.ask.placeholder || (asking.ask.type === "pick" ? `${asking.ask.title}…` : `${asking.ask.title}: type it, then ⏎`)
+    ? asking.ask.placeholder || (asking.ask.type === "pick" ? `${asking.ask.title}…` : `${asking.ask.title}: type, then ⏎`)
     : acting
-      ? `Do something to ${acting.title}…`
+      ? `Actions for ${acting.title}…`
       : group === "pulls"
       ? "A number, a title, who it's by…"
       : group === "files"
@@ -516,9 +516,9 @@ export function Palette({
         : group === "code"
           ? tag
             ? `Text in ${tag}'s files…`
-            : "Text in the files, across the workspace…"
+            : "Search code across the workspace…"
           : group === "do"
-          ? "Something to do…"
+          ? "Search actions…"
           : group
             ? `Find in ${groupTitle[group].toLowerCase()}…`
             : "Find anything: a mission, a file, a pull request, an address…";
@@ -547,7 +547,7 @@ export function Palette({
               </FindTag>
             )}
             {!mode && only && scope === "all" && (
-              <FindTag onClick={() => setOnly(undefined)} title="Look through everything again">
+              <FindTag onClick={() => setOnly(undefined)} title="Search everything">
                 {groupTitle[only]}
               </FindTag>
             )}
@@ -645,11 +645,11 @@ export function Palette({
       )}
       <FindList id="palette-list" ref={list} keepFocus={!!mode}>
         {mode && (
-          <FindSection label={asking ? asking.ask.title : "What can be done to it"} title={asking ? asking.ask.title : `Do to ${acting?.title}`}>
+          <FindSection label={asking ? asking.ask.title : "Actions"} title={asking ? asking.ask.title : `Actions for ${acting?.title}`}>
             {rows.map((it) => (
               <PaletteRow key={it.id} it={it} on={it.id === on?.id} section="do" onOver={over(it)} onPick={() => choose(it)} />
             ))}
-            {asking?.ask.type === "text" && <FindNote>Type it, then ⏎ sends it.</FindNote>}
+            {asking?.ask.type === "text" && <FindNote>Type, then ⏎ to send.</FindNote>}
             {!rows.length && asking?.ask.type !== "text" && <FindNone>{typed ? `Nothing here matches “${typed}”.` : "Nothing here."}</FindNone>}
           </FindSection>
         )}
@@ -668,31 +668,31 @@ export function Palette({
             {scope === "code"
               ? q
                 ? `No file ${tag ? `in ${tag} ` : ""}says “${q}”.`
-                : `Type text to find in the files of ${tag ?? "every repo, and what capsules have changed"}.`
+                : `Type to search the files of ${tag ?? "every repo, and what capsules have changed"}.`
               : q
                 ? `Nothing matches “${q}”.`
                 : group === "pulls" && !pulls?.at
-                  ? "Pull requests show here once Reviews has been opened."
+                  ? "Open Reviews to load pull requests."
                   : group === "files"
-                    ? "No capsule has changed anything. Type a few letters of a path."
+                    ? "No changes in capsules. Type part of a path."
                     : "Nothing here."}
           </FindNone>
         )}
       </FindList>
       {mode ? (
         <FindFoot>
-          <FindFootKey k="⏎">{asking ? (asking.ask.type === "pick" ? "pick it" : "send it") : "do it"}</FindFootKey>
+          <FindFootKey k="⏎">{asking ? (asking.ask.type === "pick" ? "pick" : "send") : "run"}</FindFootKey>
           <FindFootKey k="esc">back</FindFootKey>
         </FindFoot>
       ) : (
         <FindFoot aside={pulls?.at && pullsAge > stale ? `Pull requests as of ${clock(pulls.at)}` : undefined}>
-          <FindFootKey k="⏎">go</FindFootKey>
+          <FindFootKey k="⏎">open</FindFootKey>
           <FindFootKey k="mod+⏎">new tab</FindFootKey>
           <FindFootKey k="⇥">{group ? "everything" : "only these"}</FindFootKey>
-          {scope === "code" && tag && !q && <FindFootKey k="⌫">the whole workspace</FindFootKey>}
-          {(onThing || actable) && <FindFootKey k="mod+K">act on it</FindFootKey>}
-          {on?.ref && <FindFootKey k="mod+C">copy its name</FindFootKey>}
-          {pinName && <FindFootKey k="mod+.">{pinnedNow ? "unpin it" : "pin it"}</FindFootKey>}
+          {scope === "code" && tag && !q && <FindFootKey k="⌫">whole workspace</FindFootKey>}
+          {(onThing || actable) && <FindFootKey k="mod+K">actions</FindFootKey>}
+          {on?.ref && <FindFootKey k="mod+C">copy ref</FindFootKey>}
+          {pinName && <FindFootKey k="mod+.">{pinnedNow ? "unpin" : "pin"}</FindFootKey>}
         </FindFoot>
       )}
     </FindWindow>

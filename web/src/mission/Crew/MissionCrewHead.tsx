@@ -39,7 +39,7 @@ export function MissionCrewHead({ name, status, runs, acp, capsule, termTitle, a
               <Icon name="box" size={12} /> {capsule}
             </Text>
           )}
-          {termTitle && <Text mono className={cx(css.fact, css.termTitle)} title="What its terminal calls itself">{termTitle}</Text>}
+          {termTitle && <Text mono className={cx(css.fact, css.termTitle)} title="Terminal title">{termTitle}</Text>}
         </div>
       </div>
       {actions}

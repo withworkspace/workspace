@@ -469,7 +469,7 @@ export function AnnotatedDoc({
     const changes = threads.filter((t) => t.status === "open" && t.kind === "change").map((t) => t.id);
     if (changes.length) {
       const one = changes.length === 1;
-      setError(`${changes.join(", ")} ${one ? "asks" : "ask"} for a change: resolve ${one ? "it" : "them"} first (declining a suggestion, if you don't want it).`);
+      setError(`${changes.join(", ")} ${one ? "asks" : "ask"} for a change: resolve ${one ? "it" : "them"} first.`);
       return;
     }
     setApproving(true);
@@ -704,13 +704,13 @@ export function AnnotatedDoc({
           <Button
             disabled={sending || stale}
             onClick={() => sendToCrew(toSend.map((t) => t.id))}
-            title={`Hand ${toSend.map((t) => t.id).join(", ")} to crew: the crew that wrote it, or fresh crew in its capsule`}
+            title={`Send ${toSend.map((t) => t.id).join(", ")} to crew`}
           >
             Send {toSend.length} changes to crew
           </Button>
         )}
         {since && diff.length > 0 && (
-          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Show or hide what's changed since you commented" keys="i">
+          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Changes since your last comment" keys="i">
             <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k="i" />
           </Button>
         )}
@@ -721,7 +721,7 @@ export function AnnotatedDoc({
         ) : (
           <>
             {approved && <AnnotateBarNote>You approved an earlier version</AnnotateBarNote>}
-            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve the document as it is" keys="⇧A">
+            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve this version" keys="⇧A">
               <Icon name="check" size={13} /> {approved ? "Approve again" : "Approve"} <Keys k="⇧A" />
             </Button>
           </>
@@ -742,25 +742,25 @@ export function AnnotatedDoc({
             </>
           }
         >
-          It's what stage {stage.n} ({stage.title}) set out to make: accept the stage too?
+          This completes stage {stage.n} ({stage.title}). Accept the stage too?
         </Callout>
       )}
       {stale && (
         <Callout
           tone="attention"
-          title="This document has changed since it loaded"
+          title="Document updated"
           actions={
             <Button onClick={onChanged} keys="r">
               Reload <Keys k="r" />
             </Button>
           }
         >
-          New threads wait until you've seen the latest.
+          Reload to add new threads.
         </Callout>
       )}
       {since && diff.length > 0 && showChanges && (
         <Callout tone="info" icon="eye" title={`${diff.length} ${diff.length === 1 ? "change" : "changes"} since you commented ${stamp(since.at).replace(/^Yesterday/, "yesterday")}`}>
-          Marked in the left margin: click one to see what it said before.
+          Marked in the margin: click one to see the earlier text.
           {waiting.length > 0 && (
             <>
               {" "}
@@ -771,7 +771,7 @@ export function AnnotatedDoc({
       )}
       {error && <Banner>{humanError(error)}</Banner>}
       {lost.length > 0 && (
-        <AnnotateLost said={`${lost.length === 1 ? "A thread's" : `${lost.length} threads'`} text isn't in this version: it's been changed, or removed.`}>
+        <AnnotateLost said={`${lost.length === 1 ? "A thread's" : `${lost.length} threads'`} text was changed or removed in this version.`}>
           {lost.map((p) => (
             <div key={p.thread.id} id={`thread-${p.thread.id}`}>
               {card(p, true)}

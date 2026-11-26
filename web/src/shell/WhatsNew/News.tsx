@@ -27,7 +27,7 @@ export function News({ title, entries, info, onClose }: { title: string; entries
   return (
     <WhatsNewDialog title={title} version={shortVersion(info.version)} lede={ledeOf(entries, info)} releases={info.missing ? info.releases : undefined} onClose={onClose}>
       {!lead ? (
-        <Text as="p" dim>Nothing's said to be new in this ws.</Text>
+        <Text as="p" dim>Nothing new in this version.</Text>
       ) : (
         <>
           {entry(lead, true)}

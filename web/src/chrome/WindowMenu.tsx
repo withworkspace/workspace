@@ -49,14 +49,14 @@ export function WindowMenu({
   return (
     <Menu
       className={css.menu}
-      aria-label="The workspace"
+      aria-label="Workspace"
       trigger={trigger}
       // What this is, and which: not an item, so the keys pass it by.
       foot={
         <div className={css.foot}>
           <Logotype />
           {version && (
-            <span className={css.version} title={`ws ${version.full}: the daemon's, which serves this page`}>
+            <span className={css.version} title={`Workspace ${version.full}`}>
               {version.short}
             </span>
           )}
@@ -89,15 +89,15 @@ export function WindowMenu({
       </MenuItem>
       {/* A later release, as the daemon last found: to where it's installed from. */}
       {later && (
-        <MenuItem id="later" textValue={`ws ${later} is out`} className={css.later} onAction={onLater}>
+        <MenuItem id="later" textValue={`Workspace ${later} available`} className={css.later} onAction={onLater}>
           <Icon name="arrow-up" />
-          <MenuText>ws {later} is out</MenuText>
+          <MenuText>Workspace {later} available</MenuText>
         </MenuItem>
       )}
       <MenuSeparator />
-      <MenuItem id="shutdown" textValue="Shut down the daemon" tone="danger" onAction={onShutDown}>
+      <MenuItem id="shutdown" textValue="Shut down Workspace" tone="danger" onAction={onShutDown}>
         <Icon name="power" />
-        <MenuText>Shut down the daemon…</MenuText>
+        <MenuText>Shut down Workspace…</MenuText>
       </MenuItem>
     </Menu>
   );

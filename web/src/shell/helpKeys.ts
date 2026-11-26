@@ -29,8 +29,8 @@ export function helpKeys(path: string): [string, string][] {
   if (path === "/reviews") return reviewsKeys;
   if (path === "/team") return teamKeys;
   if (path === "/settings" || path.startsWith("/settings/")) return settingsKeys;
-  if (path.startsWith("/reviews/")) return [...prReviewKeys, ...reviewKeys.filter(([k]) => k !== "esc"), ["esc", "Clear the selection, or back to Reviews"]];
-  if (path.includes("/review/")) return [...reviewKeys.filter(([k]) => k !== "esc"), ["L", "Land it on the default branch (a repo with no pull requests)"], ...reviewKeys.filter(([k]) => k === "esc")];
+  if (path.startsWith("/reviews/")) return [...prReviewKeys, ...reviewKeys.filter(([k]) => k !== "esc"), ["esc", "Clear selection, or back to Reviews"]];
+  if (path.includes("/review/")) return [...reviewKeys.filter(([k]) => k !== "esc"), ["L", "Land on default branch (repos without pull requests)"], ...reviewKeys.filter(([k]) => k === "esc")];
   if (path.includes("/files/")) return explorerKeys;
   if (path.endsWith("/artifact")) return artifactKeys;
   if (path.includes("/crew/")) return crewKeys;
@@ -44,9 +44,9 @@ export function helpKeys(path: string): [string, string][] {
 
 // globalKeys are the keys everywhere, the Keys dialog's second group.
 export const globalKeys: [string, string][] = [
-  ["mod+K", "Find anything: a mission, a file, a pull request, an address"],
+  ["mod+K", "Find anything"],
   ["mod+P", "Find a file"],
-  ["mod+shift+F", "Find text in the files: the repo you're in (⌫ for everywhere), or a capsule's own"],
+  ["mod+shift+F", "Search in files (⌫ for all repos)"],
   ["g m", "Go to Missions"],
   ["g c", "Go to Conversations"],
   ["g d / g p", "Go to Documents"],
@@ -54,11 +54,11 @@ export const globalKeys: [string, string][] = [
   ["g r", "Go to Reviews"],
   ["g t", "Go to Team"],
   ["g f", "Go to Files"],
-  ["g o", "Go to the Orchestrator"],
-  [".", "Pin what the page is to your Focus, or unpin it"],
-  ["z", "Peek at what the pointer's on (or the row the cursor's on) beside the page: a mission, a document, a pull request, a conversation. Again closes it"],
-  ["C", "Begin a conversation beside the page: it's one once you've said something"],
-  ["\\", "Open or close what's beside the page: what you asked about it, what you peeked at"],
-  ["?", "These keys"],
+  ["g o", "Go to Orchestrator"],
+  [".", "Pin or unpin in Focus"],
+  ["z", "Peek at what's under the pointer; again to close"],
+  ["C", "Start a conversation beside the page"],
+  ["\\", "Open or close side panel"],
+  ["?", "Keyboard shortcuts"],
   ["esc", "Close, or go back"],
 ];

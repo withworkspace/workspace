@@ -87,7 +87,7 @@ export function TalkPluginItem({
       {markdown?.trim() &&
         (long ? (
           <details className={css.text}>
-            <summary className={textClass("dim")}>What it says</summary>
+            <summary className={textClass("dim")}>Description</summary>
             <Prose>
               <Markdown text={markdown} />
             </Prose>

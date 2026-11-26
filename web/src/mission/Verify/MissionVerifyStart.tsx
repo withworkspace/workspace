@@ -35,7 +35,7 @@ export function MissionVerifyStart({ recipe, task, state, link, came, where, not
   const tip = `${verb} its ${recipe} recipe, from its ws.repo.toml${where ? `, in ${where}` : ""}, while you have this mission open${note ? `. ${note}` : ""}`;
   return (
     <span className={css.start}>
-      {came && (state === "idle" || state === "starting") && <RunMark task={came} title={`Its last run ${came}`} />}
+      {came && (state === "idle" || state === "starting") && <RunMark task={came} title={`Last run ${came}`} />}
       {state === "idle" || state === "starting" ? (
         <Button size="small" disabled={state === "starting"} onClick={start} title={tip}>
           {state === "starting" ? <Spinner size={11} /> : <Icon name="play" size={11} />} {state === "starting" ? `${task ? "Running" : "Starting"} ${recipe}…` : `${verb} ${recipe}${came ? " again" : ""}`}
@@ -46,7 +46,7 @@ export function MissionVerifyStart({ recipe, task, state, link, came, where, not
           {task ? (
             `Running ${recipe}…`
           ) : link ? (
-            <a href={link} target="_blank" rel="noopener noreferrer" className={css.open} title={state === "up" ? link : `Nothing answers yet: ${recipe} is starting`}>
+            <a href={link} target="_blank" rel="noopener noreferrer" className={css.open} title={state === "up" ? link : `${recipe} not ready yet`}>
               {state === "up" ? `Open ${recipe}` : `${recipe} is starting`}
               <Icon name="arrow-up-right" size={11} />
             </a>

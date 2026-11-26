@@ -47,18 +47,18 @@ import { Text } from "../ui/Text";
 export const teamKeys: [string, string][] = [
   ["j / k", "Next / previous"],
   ["g / G", "First / last"],
-  ["⏎", "Show or hide what happened to it"],
-  ["o", "Open it: an open pull request's review here, anything else on GitHub (a change in several repos lists its pull requests)"],
-  ["w", "Have what it does written, or written again if that failed"],
-  ["⇧W", "Have it written for everything showing that has none"],
-  ["n", "Only the changes with something worth knowing, or everything"],
-  ["c", "Catch me up: have what the team's been working on written, or written again"],
-  ["esc", "Back to every change, from a topic's"],
+  ["⏎", "Expand or collapse"],
+  ["o", "Open: review here, or on GitHub"],
+  ["w", "Summarise, or retry"],
+  ["⇧W", "Summarise all shown"],
+  ["n", "Worth knowing only, or everything"],
+  ["c", "Catch up"],
+  ["esc", "Show all changes"],
   ["p", "By person, or by day"],
-  ["1 / 2 / 3", "Today / the last 7 days / as far back as ws has looked"],
-  ["a", "Show or hide what bots did"],
+  ["1 / 2 / 3", "Today / 7 days / all"],
+  ["a", "Show or hide bots"],
   ["/", "Filter by text, repo or person"],
-  ["r", "Look again"],
+  ["r", "Refresh"],
 ];
 
 // useTeamEvents calls changed when there's been a new look, or a gist's
@@ -214,10 +214,10 @@ export function TeamPage() {
     if (it.prs?.length) {
       // One change in several repos: its pull requests are listed in it.
       remember((m) => ({ opened: { ...m.opened, [it.key]: true } }));
-      toast(`It's ${it.prs.length} pull requests: each is listed under it.`);
+      toast(`${it.prs.length} pull requests: listed in the row`);
     } else if (it.kind === "pr" && it.pr && (it.state === "in-review" || it.state === "in-progress")) navigate(prHref(it.repo, it.pr));
     else if (it.url) window.open(it.url, "_blank", "noopener");
-    else toast("There's nowhere to open this yet: it has no address on GitHub.");
+    else toast("Nothing to open: not on GitHub yet.");
   };
   const pick = (since: string) => {
     setTopic(undefined);
@@ -233,17 +233,17 @@ export function TeamPage() {
   const summary = view?.summary;
   const catchUp = () => {
     if (!summary) {
-      toast(`Nothing writes these here${narrative?.off ? `: ${narrative.off}` : ""}.`);
+      toast(`Summaries are off${narrative?.off ? `: ${narrative.off}` : ""}.`);
       return;
     }
     if (!summary.can) {
-      toast("None of these changes has been read yet: there's nothing to write it from.");
+      toast("Summarise some changes first.");
       return;
     }
     remember({ foldSummary: false });
     summariseTeam(period).then(
       (r) => {
-        if (!r.started) toast("It's being written.");
+        if (!r.started) toast("Already being written.");
         load();
       },
       (e: Error) => toast(humanError(e.message), { tone: "danger" }),
@@ -260,12 +260,12 @@ export function TeamPage() {
   // Having gists written: one row's, or all that are showing and have none.
   const write = (what: { strand?: string; since?: string }) => {
     if (!narrative?.on) {
-      toast(`Nothing writes these here${narrative?.off ? `: ${narrative.off}` : ""}.`);
+      toast(`Summaries are off${narrative?.off ? `: ${narrative.off}` : ""}.`);
       return;
     }
     narrateTeam(what).then(
       (r) => {
-        if (!r.started) toast(what.strand ? "It's written, or being written." : "There's nothing left to write.");
+        if (!r.started) toast(what.strand ? "Already summarised." : "Nothing left to summarise.");
         load();
       },
       (e: Error) => toast(humanError(e.message), { tone: "danger" }),
@@ -327,11 +327,11 @@ export function TeamPage() {
       actions={
         <>
           {view && <TeamAsOf at={view.at} looking={loading} />}
-          <Segmented value={byPeople ? "people" : "days"} onChange={(v) => arrange(v === "people")} aria-label="Arranged">
+          <Segmented value={byPeople ? "people" : "days"} onChange={(v) => arrange(v === "people")} aria-label="Group by">
             <Segment value="days" title="By day, newest first" keys="p">
               Days
             </Segment>
-            <Segment value="people" title="By person: what each has open, has landed, and has been reviewing" keys="p">
+            <Segment value="people" title="By person: open, landed and reviewing" keys="p">
               People
             </Segment>
           </Segmented>
@@ -343,12 +343,12 @@ export function TeamPage() {
             ))}
           </Segmented>
           {narrative?.on && (
-            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing" keys="n">
+            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only changes worth knowing" keys="n">
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
             </ToggleButton>
           )}
           <TeamFilter ref={filter} value={q} onChange={setQ} />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again" keys="r">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Refresh" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>
@@ -366,7 +366,7 @@ export function TeamPage() {
             {humanError(error)}
           </Empty>
         ) : (
-          <Loading what="Reading what's landed, and asking GitHub for pull requests…" />
+          <Loading what="Loading landed changes and pull requests…" />
         )}
       </div>
     );
@@ -376,12 +376,12 @@ export function TeamPage() {
     <div className="page">
       {head}
       {(error || view.error) && (
-        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
-          {humanError(error ?? view.error ?? "")} What's here is as of <Time iso={view.at} as="relative" />.
+        <Callout tone="attention" title="Could not load changes" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
+          {humanError(error ?? view.error ?? "")} Showing changes as of <Time iso={view.at} as="relative" />.
         </Callout>
       )}
       {!!view.problems?.length && (
-        <Callout tone="quiet" icon="info" title={`${view.problems.length === 1 ? "One thing" : `${view.problems.length} things`} couldn't be read`}>
+        <Callout tone="quiet" icon="info" title={`${view.problems.length === 1 ? "One thing" : `${view.problems.length} things`} could not be read`}>
           {view.problems.slice(0, 8).map((p) => (
             <div key={p}>{p}</div>
           ))}
@@ -389,13 +389,13 @@ export function TeamPage() {
         </Callout>
       )}
       {!view.github && (
-        <Callout tone="quiet" icon="info" title="This is what git knows">
-          There's no GitHub to ask here, so pull requests show only once they've merged, and nobody's reviews do.
+        <Callout tone="quiet" icon="info" title="Git history only">
+          No GitHub here: pull requests show only once merged, and reviews not at all.
         </Callout>
       )}
       {!total && (
         <Empty icon="user" title={period === "today" ? "Nothing yet today" : "Nothing has happened"}>
-          {period === "today" ? "Nothing has landed on a default branch or happened to a pull request today." : "Nothing has landed on a default branch or happened to a pull request in this time."} Press <Keys k="3" /> to look further
+          {period === "today" ? "Nothing landed on a default branch and no pull request activity today." : "Nothing landed on a default branch and no pull request activity in this period."} Press <Keys k="3" /> to look further
           back.
         </Empty>
       )}
@@ -409,20 +409,19 @@ export function TeamPage() {
           )}
           {!!narrative?.writing && (
             <TeamNarrativeReading>
-              Reading {narrative.writing} {narrative.writing === 1 ? "change" : "changes"}
+              Summarising {narrative.writing} {narrative.writing === 1 ? "change" : "changes"}
             </TeamNarrativeReading>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
-            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read" keys="c">
-              Catch me up
+            <Button variant="link" onClick={catchUp} title="Summarise the team's work in this period" keys="c">
+              Catch up
             </Button>
           )}
           {narrative?.on && narrative.unwritten > 0 && (
             <span>
-              {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been read: those from before yesterday wait until you ask.{" "}
-              <Button variant="link" onClick={writeAll} title="Have an agent read them" keys="⇧W">
-                Read them
-              </Button>
+              {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been
+              summarised.{" "}
+              <Button variant="link" onClick={writeAll} title="Summarise all" keys="⇧W">Summarise</Button>
             </span>
           )}
         </TeamNarrative>
@@ -450,7 +449,7 @@ export function TeamPage() {
       )}
       {total > 0 && onlyKnow && !days.length && !q && (
         <Empty icon="eye" title="Nothing worth knowing">
-          {narrative?.unwritten ? "Not in the changes that have been read, at least." : "None of these changes is one you'd be caught out by."} Press <Keys k="n" /> for everything.
+          {narrative?.unwritten ? "Not in the summarised changes, at least." : "Nothing here likely to catch you out."} Press <Keys k="n" /> for everything.
         </Empty>
       )}
       {!byPeople &&
@@ -481,7 +480,7 @@ export function TeamPage() {
               {people.get(g.key)?.name ?? g.key}
             </GroupHead>
             {g.theirs.length > 0 && (
-              <Rows role="listbox" aria-label="Theirs">
+              <Rows role="listbox" aria-label="Their changes">
                 {g.theirs.map((it) => row(`${g.key}/${it.key}`, it))}
               </Rows>
             )}

@@ -18,8 +18,8 @@ describe("where a plugin's from", () => {
     expect(fromOf(plugin({ from: { repo: "acme/plugin-jira", tag: "v0.3.0" } }))).toBe("acme/plugin-jira v0.3.0");
   });
   it("says one was built here, at a tag or not", () => {
-    expect(fromOf(plugin({ from: { repo: "acme/plugin-jira", built: true } }))).toBe("acme/plugin-jira, built here from its source");
-    expect(fromOf(plugin({ from: { repo: "acme/plugin-jira", tag: "v0.3.0", built: true } }))).toBe("acme/plugin-jira v0.3.0, built here from its source");
+    expect(fromOf(plugin({ from: { repo: "acme/plugin-jira", built: true } }))).toBe("acme/plugin-jira, built from source");
+    expect(fromOf(plugin({ from: { repo: "acme/plugin-jira", tag: "v0.3.0", built: true } }))).toBe("acme/plugin-jira v0.3.0, built from source");
   });
   it("says a link's folder, from your home", () => {
     expect(fromOf(plugin({ from: { linked: "/Users/sam/code/plugin-jira" } }))).toBe("Linked to ~/code/plugin-jira");
@@ -56,10 +56,10 @@ describe("a plugin's update", () => {
   });
   it("looks, where none is known to be out", () => {
     const u = updateOf(plugin({ from: { repo: "acme/plugin-jira", tag: "v0.3.0" }, latest: "v0.3.0" }));
-    expect(u).toMatchObject({ can: true, out: false, label: "Look for an update" });
+    expect(u).toMatchObject({ can: true, out: false, label: "Check for updates" });
   });
   it("fetches one built from source again", () => {
-    expect(updateOf(plugin({ from: { repo: "acme/plugin-jira", built: true } })).label).toBe("Fetch again");
+    expect(updateOf(plugin({ from: { repo: "acme/plugin-jira", built: true } })).label).toBe("Rebuild");
   });
   it("is counted across the plugins", () => {
     expect(outCount([plugin({ newer: true }), plugin(), plugin({ newer: true })])).toBe(2);
@@ -69,7 +69,7 @@ describe("a plugin's update", () => {
 describe("what a change did", () => {
   it("says what was added, and what it still needs", () => {
     expect(changedSaid({ name: "jira", version: "0.3.0" }, "added")).toBe("Added jira 0.3.0");
-    expect(changedSaid({ name: "jira", missing: ["site", "token"] }, "added")).toBe("Added jira. It needs setting up: site, token");
+    expect(changedSaid({ name: "jira", missing: ["site", "token"] }, "added")).toBe("Added jira. Needs setting up: site, token");
   });
   it("says an update from and to", () => {
     expect(changedSaid({ name: "jira", was: "v0.3.0", now: "v0.4.0" }, "updated")).toBe("jira: v0.3.0 → v0.4.0");

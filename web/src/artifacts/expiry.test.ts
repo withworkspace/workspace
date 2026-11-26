@@ -85,10 +85,10 @@ describe("promoting", () => {
   it("says what's missing, and that a document cites only one that lives in a repo", () => {
     expect(promoteBlocked("nothing", "")).toBe("");
     expect(promoteBlocked("mission", "")).toBe("Choose the mission.");
-    expect(promoteBlocked("start", " ")).toBe("Say what the mission is.");
+    expect(promoteBlocked("start", " ")).toBe("Describe the mission.");
     expect(promoteBlocked("document", "records:plans/glow.md", "home")).toBe("");
     expect(promoteBlocked("document", "records:plans/glow.md", "offered", "records:artifacts/glow/")).toBe("");
-    expect(promoteBlocked("document", "records:plans/glow.md", "here")).toContain("give it a folder there to live in");
+    expect(promoteBlocked("document", "records:plans/glow.md", "here")).toContain("A document can only cite it from a repo: choose a folder in one.");
     expect(promoteBlocked("nothing", "", "other", "")).toBe("Name the folder, as repo:folder/.");
     expect(promoteBlocked("nothing", "", "other", "records:")).toBe("Name the folder, as repo:folder/.");
     expect(promoteBlocked("nothing", "", "other", "records:kept/glow/")).toBe("");

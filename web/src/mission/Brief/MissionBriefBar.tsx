@@ -7,7 +7,7 @@ import css from "./MissionBriefBar.module.css";
 // On a wide window they're the panes' columns.
 export function MissionBriefBar({ children }: { children: ReactNode }) {
   return (
-    <div className={css.bar} role="region" aria-label="What's to confirm">
+    <div className={css.bar} role="region" aria-label="Brief actions">
       {children}
     </div>
   );

@@ -20,8 +20,8 @@ export function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; w
         going: !!going && !going.whole && going.number === l.number,
       }))}
       merged={st.merged}
-      title={st.workedOut ? "ws worked it out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}
-      about={`${st.layers.length} ${st.layers.length === 1 ? "layer" : "layers"}${st.workedOut ? " · worked out" : ""}`}
+      title={st.workedOut ? "Detected stack: each pull request builds on the one before" : `Stack ${st.number} on GitHub`}
+      about={`${st.layers.length} ${st.layers.length === 1 ? "layer" : "layers"}${st.workedOut ? " · detected" : ""}`}
       whole={whole}
       goingWhole={going?.whole}
       onWhole={onWhole}

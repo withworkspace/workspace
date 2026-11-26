@@ -55,11 +55,11 @@ export function ThingPromote({ what, places, pick, onPick, under, group, onUnder
   return (
     <ThingUi onSubmit={() => !busy && onPromote()}>
       <ThingUiTitle>Put {what} in a repo</ThingUiTitle>
-      <p>Everyone with the repo has it then. What you change after is on this machine until you save it there.</p>
-      {!places && <p className={css.where}>Working out where it would live…</p>}
+      <p>Shared with everyone who has the repo. Later changes stay on this machine until you save.</p>
+      {!places && <p className={css.where}>Finding a location…</p>}
       {places && !several && pick !== "else" && place && (
         <p className={css.where}>
-          It'll live at <code>{place.where}</code>
+          Saves to <code>{place.where}</code>
           <Button variant="link" type="button" className={css.else} disabled={busy} onClick={() => onPick("else")}>
             Somewhere else…
           </Button>
@@ -69,12 +69,12 @@ export function ThingPromote({ what, places, pick, onPick, under, group, onUnder
       {place?.folders && <ThingPromoteFolder label={place.label} under={under} group={group} onUnder={onUnder} folders={place.folders} busy={busy} />}
       {places && pick === "else" && (
         <label className={css.where}>
-          {!several && <Text dim>It'll live at</Text>}
+          {!several && <Text dim>Saves to</Text>}
           {/* biome-ignore lint/a11y/noAutofocus: the field is what was asked for */}
-          <Input type="text" className={textClass("mono")} value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => onElsewhere(e.currentTarget.value)} />
+          <Input type="text" className={textClass("mono")} value={elsewhere} placeholder="repo:folder/" aria-label="Location (repo:folder/)" autoFocus disabled={busy} onChange={(e) => onElsewhere(e.currentTarget.value)} />
         </label>
       )}
-      {place && !place.direct && <Text as="p" dim>{place.label} takes pull requests: it'll be left in a capsule, for you to open one from.</Text>}
+      {place && !place.direct && <Text as="p" dim>{place.label} uses pull requests: saved in a capsule for you to open one.</Text>}
       {failed && <ThingUiFailed>{failed}</ThingUiFailed>}
       <ThingUiButtons>
         <Button variant="primary" size="small" type="submit" ref={go} disabled={busy || !ready}>

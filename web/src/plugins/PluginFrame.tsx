@@ -212,8 +212,8 @@ export function PluginFrame({ name }: { name: string }) {
 
   if (plugins && !plugin) {
     return (
-      <Empty icon="box" title={`There's no plugin called ${name}`}>
-        <code>ws plugin list</code> says which this workspace has.
+      <Empty icon="box" title={`No plugin called ${name}`}>
+        Run <code>ws plugin list</code> to see installed plugins.
       </Empty>
     );
   }

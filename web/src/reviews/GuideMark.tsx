@@ -9,7 +9,7 @@ import { textClass } from "../ui/Text";
 // push.
 export function GuideMark({ guide }: { guide?: ReviewGuide }) {
   if (guide?.running) return <Spinner size={11} title="Writing the guide…" />;
-  if (guide?.failed) return <Icon name="alert" size={11} className={css.bad} title="The guide couldn't be written" />;
-  if (guide?.guide && guide.moved) return <Icon name="rotate" size={11} className={textClass("dim")} title="It's been pushed to since the guide was written" />;
+  if (guide?.failed) return <Icon name="alert" size={11} className={css.bad} title="Could not write guide" />;
+  if (guide?.guide && guide.moved) return <Icon name="rotate" size={11} className={textClass("dim")} title="New commits since the guide was written" />;
   return null;
 }

@@ -17,6 +17,6 @@ export function VerifyTranscript({ url }: { url: string }) {
       gone = true;
     };
   }, [url]);
-  if (failed) return <p>It couldn't be read.</p>;
+  if (failed) return <p>Could not load file.</p>;
   return <Printed>{text ?? " "}</Printed>;
 }

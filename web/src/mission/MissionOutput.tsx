@@ -64,7 +64,7 @@ export function MissionOutput({ a, selected, open, compact, id }: { a: Artifact;
           <div className={css.meta}>
             {a.by && <span>{a.by}</span>}
             {a.added && <Time iso={a.added} as="relative" />}
-            <Copyable text={a.ref} title="Copy its ref" />
+            <Copyable text={a.ref} title="Copy ref" />
           </div>
         )}
       </div>

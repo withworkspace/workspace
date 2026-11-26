@@ -72,7 +72,7 @@ export function ReviewFiles({
           <>
             {(g?.skim || g?.named) && dirOf(f.path) && <span className={css.dir}>{dirOf(f.path)}</span>}
             {open > 0 && (
-              <span className={css.found} title={`${open} ${open === 1 ? "finding" : "findings"} of a pass, still open`}>
+              <span className={css.found} title={`${open} open ${open === 1 ? "finding" : "findings"}`}>
                 <Icon name="sparkle" size={11} />
                 {open}
               </span>

@@ -57,8 +57,8 @@ export function CodeFinder({ repo, worktree, onPick, onClose }: { repo: string; 
   const note = codeNote(got.end);
   return (
     <Finder
-      aria-label="Search the files"
-      placeholder={`Text in ${repo}/${worktree}'s files…`}
+      aria-label="Search files"
+      placeholder={`Search ${repo}/${worktree}…`}
       value={q}
       onChange={setQ}
       count={hits.length}
@@ -79,7 +79,7 @@ export function CodeFinder({ repo, worktree, onPick, onClose }: { repo: string; 
           <FindCodeHit h={h} />
         </FinderRow>
       ))}
-      {!hits.length && got.done && <FinderNone className={css.none}>{want ? `No file here says “${want}”.` : "Type text to find in every file of the capsule."}</FinderNone>}
+      {!hits.length && got.done && <FinderNone className={css.none}>{want ? `No matches for “${want}”.` : "Search every file in the capsule."}</FinderNone>}
     </Finder>
   );
 }

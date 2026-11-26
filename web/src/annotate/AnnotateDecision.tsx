@@ -41,7 +41,7 @@ export function AnnotateDecision({
     <AnnotateSuggestion
       kind="decision"
       icon="gavel"
-      title={drafted ? "Record what was decided?" : "What was decided"}
+      title={drafted ? "Record decision?" : "Decision"}
       by={drafted && `drafted by ${draftedBy === "agent" ? "the agent" : draftedBy}`}
       actions={
         <>
@@ -54,7 +54,7 @@ export function AnnotateDecision({
               Cancel
             </Button>
           )}
-          <Button variant="primary" size="small" disabled={busy || !what.trim()} onClick={onRecord} title="Record it" keys="mod+⏎">
+          <Button variant="primary" size="small" disabled={busy || !what.trim()} onClick={onRecord} title="Record" keys="mod+⏎">
             Record
           </Button>
         </>

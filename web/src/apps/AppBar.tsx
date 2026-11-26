@@ -51,7 +51,7 @@ export function AppBarPointer({ name, title, children }: { name: string; title: 
 // AppBarLink opens the app in a tab of its own.
 export function AppBarLink({ href }: { href: string }) {
   return (
-    <a className={css.link} href={href} target="_blank" rel="noreferrer" title={`Open ${href} in a tab of its own`} aria-label="Open in a tab of its own">
+    <a className={css.link} href={href} target="_blank" rel="noreferrer" title={`Open ${href} in new tab`} aria-label="Open in new tab">
       <Icon name="external" size={15} />
     </a>
   );

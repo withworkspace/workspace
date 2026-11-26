@@ -10,7 +10,7 @@ const html = (value: string | undefined, options = true) =>
       onChange: () => {},
       "aria-label": "Repos",
       className: "repos",
-      empty: "Nothing to add here.",
+      empty: "No repos to add.",
       children: options ? [h(ListBoxOption, { key: "a", value: "api", textValue: "api", children: "api" }), h(ListBoxOption, { key: "b", value: "records", textValue: "records", disabled: true, title: "Here already", className: "repo", children: "records" })] : [],
     }),
   );
@@ -36,6 +36,6 @@ describe("ListBox", () => {
   });
 
   it("says what it's given when it's empty", () => {
-    expect(html(undefined, false)).toContain("Nothing to add here.");
+    expect(html(undefined, false)).toContain("No repos to add.");
   });
 });

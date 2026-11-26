@@ -38,12 +38,12 @@ export function SideHead({
   const runnable = !d.gone && !!v?.size;
   return (
     <ArtifactCompareSide
-      label={i ? "The right one's artifact" : "The left one's artifact"}
+      label={i ? "Right artifact" : "Left artifact"}
       picked={side.id}
       choices={choices ?? []}
       onPick={onPick}
       versions={<VersionStrip d={d} n={side.n} go={(n) => go(withSide(pair, i, { id: side.id, n }))} keys={keys} />}
-      tweaks={framed && <TweaksButton told={tweaks.told} set={tweaks.set} label={i ? "The right one's tweaks" : "The left one's tweaks"} />}
+      tweaks={framed && <TweaksButton told={tweaks.told} set={tweaks.set} label={i ? "Right tweaks" : "Left tweaks"} />}
       alone={runnable ? frameURL(d.id, side.n, opensAs) : undefined}
     >
       {v && <VersionLine d={d} v={v} />}

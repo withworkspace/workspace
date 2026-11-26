@@ -44,7 +44,7 @@ export function PagesRow({ id, title, to, kind, file, filling, cells, stale, upd
               </Chip>
             )}
             {file && (
-              <Chip tone="quiet" className={textClass("mono")} title={`Tied to ${file.ref}: saving it writes there`}>
+              <Chip tone="quiet" className={textClass("mono")} title={`Tied to ${file.ref}: saving writes there`}>
                 <Icon name="file" size={11} /> {file.name}
               </Chip>
             )}
@@ -55,7 +55,7 @@ export function PagesRow({ id, title, to, kind, file, filling, cells, stale, upd
             )}
             {!!cells && !filling && <Chip tone="quiet">{cells === 1 ? "1 cell" : `${cells} cells`}</Chip>}
             {!!stale && !filling && (
-              <Chip tone="attention" title="Written from files that have changed since">
+              <Chip tone="attention" title="Sources changed since written">
                 {stale === 1 ? "1 out of date" : `${stale} out of date`}
               </Chip>
             )}

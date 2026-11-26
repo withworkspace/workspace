@@ -10,19 +10,19 @@ export function MissionCapsuleBadges({ c }: { c: CapsuleDetail }) {
   return (
     <span className={css.badges}>
       {c.landed ? (
-        <Chip tone="done" title="Its commits were pushed straight to the default branch: its repo has no pull requests">
+        <Chip tone="done" title="Pushed straight to default branch: repo has no pull requests">
           Landed
         </Chip>
       ) : (
         !c.exists && <Chip tone="quiet">Burned</Chip>
       )}
       {c.direct && c.exists && !c.landed && (
-        <Chip tone={c.toLand ? "waiting" : "quiet"} title="Its repo has no pull requests: what's committed here lands straight on the default branch, when you say (from its review, or ws land)">
+        <Chip tone={c.toLand ? "waiting" : "quiet"} title="Repo has no pull requests: commits land straight on the default branch when you land them (from review, or ws land)">
           {c.toLand ? `${c.toLand} to land` : "No pull request"}
         </Chip>
       )}
       {c.dirty && (
-        <Chip tone="attention" title="Files changed in the capsule and not committed: reviews and crew after don't see them">
+        <Chip tone="attention" title="Uncommitted changes">
           Uncommitted changes
         </Chip>
       )}

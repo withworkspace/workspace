@@ -395,7 +395,7 @@ export const Documents: StoryObj = {
           >
             <MissionBriefDocWaiting>No plan yet: its planner writes one with the brief, or from a brief of yours.</MissionBriefDocWaiting>
           </MissionBriefDoc>
-          <MissionBriefDocsNote tone="danger" title="ws didn't save the plan">
+          <MissionBriefDocsNote tone="danger" title="Workspace could not save the plan">
             <MissionBriefPlanProblem>{"step 2: no kind\nstep 3: a Wait needs who it waits on"}</MissionBriefPlanProblem>
           </MissionBriefDocsNote>
         </MissionBriefDocs>

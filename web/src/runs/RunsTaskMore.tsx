@@ -63,7 +63,7 @@ export function RunsTaskMore({ r, by, show }: { r: RunDetail; by?: string; show:
             <dt>Commit</dt>
             <dd>
               <Text mono>{one.commit.slice(0, 12)}</Text>
-              {one.dirty && <Text dim>, with changes that weren't committed</Text>}
+              {one.dirty && <Text dim>, with uncommitted changes</Text>}
             </dd>
           </>
         )}
@@ -73,7 +73,7 @@ export function RunsTaskMore({ r, by, show }: { r: RunDetail; by?: string; show:
           {by && <> by {by}</>}
           {one.recipe && (
             <>
-              , from its{" "}
+              , from{" "}
               <code>
                 [run.{one.type === "task" ? "task" : "service"}.{one.recipe}]
               </code>

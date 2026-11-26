@@ -32,7 +32,7 @@ export function VerifyTryStart({ recipe, at }: { recipe: string; at: TryRuns & {
     runRecipe(at.slug, c.repo, c.name, recipe)
       .then((r) => {
         setStarted(r);
-        if (r.type !== "task" && !r.up) toast(`${r.name} is running on ${r.port}, not up yet`);
+        if (r.type !== "task" && !r.up) toast(`${r.name} starting on ${r.port}: not ready yet`);
         return at.reload();
       })
       .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
@@ -46,7 +46,7 @@ export function VerifyTryStart({ recipe, at }: { recipe: string; at: TryRuns & {
       link={run?.link}
       came={task && !live ? ended?.result : undefined}
       where={`${c.repo}/${c.name}`}
-      note={at.moved ? "The capsule has moved on since this bundle: it starts as it is now" : undefined}
+      note={at.moved ? "Capsule has moved on since this bundle: starts from its current state" : undefined}
       start={start}
     />
   );

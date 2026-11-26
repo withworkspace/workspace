@@ -6,8 +6,8 @@ import { SrOnly } from "../ui/SrOnly";
 
 const says: Record<NonNullable<PR["checks"]>, { icon: IconName; words: string; look: string }> = {
   success: { icon: "check", words: "Checks pass", look: css.success },
-  failure: { icon: "x", words: "Checks are failing", look: css.failure },
-  pending: { icon: "clock", words: "Checks are running", look: css.pending },
+  failure: { icon: "x", words: "Checks failing", look: css.failure },
+  pending: { icon: "clock", words: "Checks running", look: css.pending },
 };
 
 // PullRequestCheckMark is a pull request's checks as a mark: passing,

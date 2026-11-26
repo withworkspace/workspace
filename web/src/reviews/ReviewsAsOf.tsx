@@ -7,10 +7,10 @@ import { Text } from "../ui/Text";
 // or that it's being asked now.
 export function ReviewsAsOf({ at, asking }: { at: string; asking: boolean }) {
   return (
-    <Text dim className={css.asOf} title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
+    <Text dim className={css.asOf} title="Last refreshed. Refreshes every few minutes while open.">
       {asking ? (
         <>
-          <Spinner size={12} /> Asking GitHub…
+          <Spinner size={12} /> Refreshing…
         </>
       ) : (
         <>

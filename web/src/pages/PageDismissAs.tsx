@@ -13,19 +13,19 @@ export function PageDismissAs({ whys, onDismiss }: { whys: [DismissWhy, string, 
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
-      <Button variant="ghost" size="small" onClick={() => setAsking(true)} title="It isn't one: don't raise it again. You'll say why">
+      <Button variant="ghost" size="small" onClick={() => setAsking(true)} title="Not an issue: don't raise again">
         Dismiss
       </Button>
     );
   return (
-    <span className={css.as} role="group" aria-label="Dismiss it as">
+    <span className={css.as} role="group" aria-label="Dismiss as">
       <Text dim>Dismiss as</Text>
       {whys.map(([why, label, title]) => (
         <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)}>
           {label}
         </Button>
       ))}
-      <Button variant="ghost" size="small" square onClick={() => setAsking(false)} aria-label="Don't dismiss it" title="Don't dismiss it">
+      <Button variant="ghost" size="small" square onClick={() => setAsking(false)} aria-label="Cancel" title="Cancel">
         <Icon name="x" size={11} />
       </Button>
     </span>

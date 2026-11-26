@@ -10,5 +10,5 @@ export function RevisionChanges({ was, now }: { was: TalkProposal; now: TalkProp
   const a = revisedText(was);
   const b = revisedText(now);
   if (!a && !b) return null;
-  return <TalkProposalChanges n={was.n}>{a === b ? <Text as="div" dim>Its words are as they were.</Text> : <BriefDiff className={talkProposalChangedClass} was={a} now={b} />}</TalkProposalChanges>;
+  return <TalkProposalChanges n={was.n}>{a === b ? <Text as="div" dim>Text unchanged.</Text> : <BriefDiff className={talkProposalChangedClass} was={a} now={b} />}</TalkProposalChanges>;
 }

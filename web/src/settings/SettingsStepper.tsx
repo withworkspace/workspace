@@ -26,13 +26,13 @@ export function SettingsStepper({ value, text: was, label, onChange }: SettingsS
     // What isn't a number would be sent as nothing, which clears the key.
     if (!/^\d+$/.test(t)) {
       setText(was);
-      return toast(`${label} is a whole number.`, { tone: "danger" });
+      return toast(`${label} must be a whole number.`, { tone: "danger" });
     }
     onChange(Number(t));
   };
   return (
     <span className={css.stepper}>
-      <Button type="button" disabled={value <= 1} title="One fewer" aria-label={`${label}: one fewer`} onClick={() => onChange(value - 1)}>
+      <Button type="button" disabled={value <= 1} title="Decrease" aria-label={`Decrease ${label}`} onClick={() => onChange(value - 1)}>
         <Icon name="minus" size={12} />
       </Button>
       <Input
@@ -50,7 +50,7 @@ export function SettingsStepper({ value, text: was, label, onChange }: SettingsS
           }
         }}
       />
-      <Button type="button" title="One more" aria-label={`${label}: one more`} onClick={() => onChange(value + 1)}>
+      <Button type="button" title="Increase" aria-label={`Increase ${label}`} onClick={() => onChange(value + 1)}>
         <Icon name="plus" size={12} />
       </Button>
     </span>

@@ -43,37 +43,37 @@ export function ReaderMeta({ kind, repo, worktree, ground, page, flights, docRef
       <span className={css.kind} title={kind?.hint}>
         {kind ? kind.title : "Document"}
       </span>
-      <Chip tone={ground ? "done" : "quiet"} title={ground ? "As it is on the repo's default branch (its ground)" : `As it is in the capsule ${repo}/${worktree}`}>
+      <Chip tone={ground ? "done" : "quiet"} title={ground ? "Default branch version" : `Version in capsule ${repo}/${worktree}`}>
         <Icon name={ground ? "layers" : "box"} size={11} /> {ground ? "On the default branch" : `In ${worktree}`}
       </Chip>
       {page && (
-        <Link to={page.to} className={textClass("dim")} title="It's edited in this page, which keeps its cells and passes">
+        <Link to={page.to} className={textClass("dim")} title="Open page">
           Edited in {page.name}
         </Link>
       )}
       {flights.map((f) => (
-        <Link key={f.capsule} to={f.to} className={chipClass("progress")} title={`It's changed in the capsule ${f.capsule}${f.pr ? `, in pull request #${f.pr}` : ""}: read it as it is there`}>
+        <Link key={f.capsule} to={f.to} className={chipClass("progress")} title={`Changed in capsule ${f.capsule}${f.pr ? `, in pull request #${f.pr}` : ""}: open that version`}>
           <Icon name="box" size={11} /> In flight in {f.capsule}
           {f.pr ? ` · #${f.pr}` : ""}
         </Link>
       ))}
-      <Copyable text={docRef} className={css.ref} title="Copy its ref">
+      <Copyable text={docRef} className={css.ref} title="Copy ref">
         {docRef.replace(":", " · ")}
       </Copyable>
       <span className={css.actions}>
         {pin}
         {contents && (
-          <Button size="small" ref={contents.ref} data-contents-toggle aria-expanded={contents.open} onClick={contents.onToggle} title="Its contents" keys="t">
+          <Button size="small" ref={contents.ref} data-contents-toggle aria-expanded={contents.open} onClick={contents.onToggle} title="Contents" keys="t">
             <Icon name="list" size={12} /> Contents <Keys k="t" />
           </Button>
         )}
-        <Button size="small" className={css.ask} onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask about it, or about what's selected" keys="a">
+        <Button size="small" className={css.ask} onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask about document or selection" keys="a">
           <Icon name="sparkle" size={12} /> Ask <Keys k="a" />
         </Button>
-        <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say" keys="e">
+        <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit as page" keys="e">
           <Icon name="pencil" size={12} /> Edit <Keys k="e" />
         </Button>
-        <Link to={filesTo} className={buttonClass({ size: "small" })} {...keyProps("o", "Open it in Files")}>
+        <Link to={filesTo} className={buttonClass({ size: "small" })} {...keyProps("o", "Open in Files")}>
           <Icon name="file" size={12} /> Files <Keys k="o" />
         </Link>
       </span>

@@ -71,7 +71,7 @@ export function FileList({
                   className={css.order}
                   pressed={!!order}
                   onChange={onOrder}
-                  title={order ? "The files are in the guide's order: switch to their folders'" : "Read the files in the guide's order"}
+                  title={order ? "Switch to folder order" : "Guide order"}
                 >
                   <Icon name="sparkle" size={12} /> Guide
                 </ToggleButton>

@@ -46,7 +46,7 @@ export function CrewPrompt({ slug, crew, pending, fileLink, onTerminal, compact 
           toast(humanError(e.message), {
             tone: "danger",
             ms: 8000,
-            action: onTerminal ? { label: "Open the terminal", run: onTerminal } : undefined,
+            action: onTerminal ? { label: "Open terminal", run: onTerminal } : undefined,
           }),
       )
       .finally(() => setBusy(false));
@@ -91,9 +91,9 @@ export function CrewPrompt({ slug, crew, pending, fileLink, onTerminal, compact 
               answer(
                 { permission: "always" },
                 {
-                  title: "Allow it from now on?",
-                  body: `${crew.id} won't ask again for this kind of thing, for the rest of its session. Its harness decides what "this kind" covers.`,
-                  confirm: "Allow from now on",
+                  title: "Always allow?",
+                  body: `${crew.id} won't ask again for this kind of action this session.`,
+                  confirm: "Always allow",
                 },
               )
             }

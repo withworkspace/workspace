@@ -69,31 +69,31 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
 
   return (
     <Dialog title={`Promote “${title}”`} onClose={onClose} wide>
-      <DialogText>Promoting keeps it for good: it expires no more, and says which version was chosen and what it went into. It still takes new versions.</DialogText>
+      <DialogText>Keeps the artifact permanently, recording the chosen version and what it went into. New versions can still be added.</DialogText>
       <div className="file-as-fields" onKeyDown={keys}>
         <label>
           <span>Version</span>
-          <Select fill value={String(n)} onChange={(v) => onVersion(Number(v))} aria-label="The version chosen">
+          <Select fill value={String(n)} onChange={(v) => onVersion(Number(v))} aria-label="Version">
             {versions.map(({ n: v, note }) => (
               <Option key={v} value={String(v)} title={note}>
-                {`v${v}${v === latest ? " (the latest)" : ""}${home?.version === v ? ` (in ${home.repo})` : ""}${note ? `: ${note}` : ""}`}
+                {`v${v}${v === latest ? " (latest)" : ""}${home?.version === v ? ` (in ${home.repo})` : ""}${note ? `: ${note}` : ""}`}
               </Option>
             ))}
           </Select>
         </label>
         <label>
           <span>Into</span>
-          <Select fill value={kind} onChange={(k) => onKind(k as IntoKind)} aria-label="What it went into">
-            <Option value="nothing">Nothing: it's kept</Option>
+          <Select fill value={kind} onChange={(k) => onKind(k as IntoKind)} aria-label="Into">
+            <Option value="nothing">Nothing</Option>
             <Option value="mission">A mission</Option>
-            <Option value="start">A new mission, started from it</Option>
-            <Option value="document">A document, which cites it</Option>
+            <Option value="start">A new mission</Option>
+            <Option value="document">A document</Option>
           </Select>
         </label>
         {kind === "mission" && (
           <label>
             <span>Mission</span>
-            <Select fill value={text} onChange={onText} aria-label="The mission">
+            <Select fill value={text} onChange={onText} aria-label="Mission">
               <Option value="">Choose one…</Option>
               {missions.map((m) => (
                 <Option key={m.slug} value={m.slug} title={m.title}>
@@ -106,21 +106,21 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
         {kind === "start" && (
           <label>
             <span>Mission</span>
-            <Input autoFocus value={text} placeholder="What the mission is: build the glow" onChange={(e) => onText(e.target.value)} aria-label="What the mission is" />
+            <Input autoFocus value={text} placeholder="What the mission is: build the glow" onChange={(e) => onText(e.target.value)} aria-label="New mission" />
           </label>
         )}
         {kind === "document" && (
           <label>
             <span>Document</span>
-            <Input autoFocus className={cx(textClass("mono"), css.code)} value={text} placeholder="repo:path/to/plan.md" onChange={(e) => onText(e.target.value)} aria-label="The document, as repo:path" />
+            <Input autoFocus className={cx(textClass("mono"), css.code)} value={text} placeholder="repo:path/to/plan.md" onChange={(e) => onText(e.target.value)} aria-label="Document (repo:path)" />
           </label>
         )}
         {!home && ready && (
           <label>
-            <span>Lives</span>
-            <Select fill value={lives} onChange={(l) => onLives(l as Lives)} aria-label="Where it's to live">
+            <span>Location</span>
+            <Select fill value={lives} onChange={(l) => onLives(l as Lives)} aria-label="Location">
               {offered ? (
-                <Option value="offered" note="for everyone with it">
+                <Option value="offered" note="shared">
                   {offered}
                 </Option>
               ) : null}
@@ -132,26 +132,26 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
         {!home && lives === "other" && (
           <label>
             <span>Folder</span>
-            <Input autoFocus className={cx(textClass("mono"), css.code)} value={other} placeholder="repo:folder/" onChange={(e) => onOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
+            <Input autoFocus className={cx(textClass("mono"), css.code)} value={other} placeholder="repo:folder/" onChange={(e) => onOther(e.target.value)} aria-label="Folder (repo:folder/)" />
           </label>
         )}
       </div>
       {kind === "mission" || kind === "start" ? (
-        <Text as="p" dim className="file-as-what">It's recorded on the mission, among its artifacts, so whoever briefs it and its crew read it.</Text>
+        <Text as="p" dim className="file-as-what">Added to the mission's artifacts, for its brief and crew.</Text>
       ) : null}
       {home ? (
-        <Callout tone="attention" icon="branch" title={`It lives in ${home.where}`}>
-          {home.version === n ? `v${n} is there already: its record there is brought up to what's said here` : `v${home.version} is there now, and v${n} takes its place`}, in one commit straight to {home.repo}'s {branch}.
-          Every version stays on this machine.
+        <Callout tone="attention" icon="branch" title={`Lives in ${home.where}`}>
+          {home.version === n ? `v${n} already there: record updated` : `v${n} replaces v${home.version}`}, in
+          one commit straight to {home.repo}'s {branch}. All versions stay on this machine.
         </Callout>
       ) : lives === "here" ? (
-        <Callout tone="info" icon="monitor" title="It stays on this machine">
-          Nobody else has it. Promote it again to give it a folder in a repo, for everyone with the repo.
+        <Callout tone="info" icon="monitor" title="Stays on this machine">
+          Not shared. Promote again to put it in a repo.
         </Callout>
       ) : ready ? (
-        <Callout tone="attention" icon="branch" title="Where it lives is chosen once">
-          v{n} is put in {folder.trim() || "that folder"}, with a record of it, in one commit straight to its repo's {branch}. Promote it again, versions later, and the one chosen then goes to the same folder, with
-          nothing asked. Every version stays on this machine.
+        <Callout tone="attention" icon="branch" title="Location is chosen once">
+          v{n} goes in {folder.trim() || "that folder"}, in one commit straight to the repo's {branch}. Later
+          promotions use the same folder. All versions stay on this machine.
         </Callout>
       ) : null}
       {blocked && <Text as="p" dim className="file-as-what">{blocked}</Text>}

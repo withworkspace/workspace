@@ -33,10 +33,10 @@ export function FilesTreeTools({ all, changed, counted, changedOnly, canChange, 
         </Text>
       ) : (
         <Segmented fill className={css.show} value={changedOnly ? "changed" : "all"} onChange={(v) => onShow(v === "changed")} aria-label="Show">
-          <Segment value="changed" title="Only what's changed since the branch point" keys="c" disabled={!canChange}>
+          <Segment value="changed" title="Changed files only" keys="c" disabled={!canChange}>
             Changed <Count>{changed}</Count>
           </Segment>
-          <Segment value="all" title="Every file" keys="c">
+          <Segment value="all" title="All files" keys="c">
             All <Count>{all}</Count>
           </Segment>
         </Segmented>
@@ -45,7 +45,7 @@ export function FilesTreeTools({ all, changed, counted, changedOnly, canChange, 
         <Icon name="search" size={14} />
       </Button>
       {onSearch && (
-        <Button variant="ghost" size="small" square onClick={onSearch} title="Search what the files say" keys="mod+shift+F" aria-label="Search what the files say">
+        <Button variant="ghost" size="small" square onClick={onSearch} title="Search in files" keys="mod+shift+F" aria-label="Search in files">
           <Icon name="code" size={14} />
         </Button>
       )}

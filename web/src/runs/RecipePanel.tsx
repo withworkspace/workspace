@@ -22,7 +22,7 @@ export function RecipePanel({ rc, busy, onStart, pageTo, back }: { rc: RecipeInf
     <RunPanelFrame label={`${called}, not running`}>
       <RunPanelHead back={back} title={rc.title} name={rc.name} status={{ icon: "circle", tone: "quiet", words: "Not running" }}>
         {onStart && (
-          <Button variant="primary" size="small" disabled={busy} onClick={onStart} title={`Start its ${rc.name} recipe here, for as long as you have it open here`}>
+          <Button variant="primary" size="small" disabled={busy} onClick={onStart} title={`Start ${rc.name}: kept running while you have this open`}>
             {busy ? <Spinner size={11} /> : <Icon name="play" size={11} />} Start
           </Button>
         )}
@@ -36,10 +36,10 @@ export function RecipePanel({ rc, busy, onStart, pageTo, back }: { rc: RecipeInf
           <RunPanelCommand command={rc.command} />
         </RunPanelFact>
       </RunPanelFacts>
-      <RunPanelIdle icon={inTab ? "external" : "play"} title={`${called} isn't running`} action={pageTo && <Link to={pageTo}>Its tab, {called}</Link>}>
+      <RunPanelIdle icon={inTab ? "external" : "play"} title={`${called} isn't running`} action={pageTo && <Link to={pageTo}>Go to {called} tab</Link>}>
         {inTab
-          ? "Start it, and it opens in a tab of its own once it answers. It runs while you have this open, and 15 minutes after."
-          : "Start it, and it's shown here, in a frame, once it answers. It runs while you have this open, and 15 minutes after."}
+          ? "Opens in new tab once started. Kept running while you have this open."
+          : "Shows here once started. Kept running while you have this open."}
       </RunPanelIdle>
     </RunPanelFrame>
   );
