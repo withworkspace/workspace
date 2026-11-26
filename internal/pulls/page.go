@@ -130,6 +130,43 @@ func (s *Service) Freshen(repo string, number int) {
 	}
 }
 
+// readYours reads, behind, the page of each PR in l that's yours or asks
+// for your review, where nothing's kept of it or what is is stale: those
+// are the pages you'll open, and they're there when you do. Others are
+// read when they're first shown. One at a time, as one look at a time of
+// the list.
+func (s *Service) readYours(l *List) {
+	s.mu.Lock()
+	if s.readingYours {
+		s.mu.Unlock()
+		return
+	}
+	s.readingYours = true
+	s.mu.Unlock()
+	go func() {
+		defer func() {
+			s.mu.Lock()
+			s.readingYours = false
+			s.mu.Unlock()
+		}()
+		for _, pr := range l.Yours() {
+			if pg := s.keptPage(pr.Repo, pr.Number); pg != nil {
+				if !s.pageStale(pg) {
+					continue
+				}
+			}
+			s.readPage(pr.Repo, pr.Number) //nolint:errcheck // shown when it's opened, and read again then
+		}
+	}()
+}
+
+// readingYoursNow is whether readYours is under way.
+func (s *Service) readingYoursNow() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.readingYours
+}
+
 // PageSeen is how many times a PR's kept page has changed in this
 // process: its open page reads again when it moves.
 func (s *Service) PageSeen(repo string, number int) int64 {

@@ -609,3 +609,28 @@ func TestPostingAStacksReviewsDoesntAskForTheList(t *testing.T) {
 		t.Error("the list isn't stale after a review was posted")
 	}
 }
+
+// In the daemon, the pages of pull requests asking for your review (or
+// yours) are read as the list is, so they're there when you open one;
+// everyone else's is read when it's first shown.
+func TestReadYours_PagesReadBehindTheList(t *testing.T) {
+	w := newWorld(t)
+	w.gh.ReviewRequestedFn = func(org string) ([]github.PRRef, error) {
+		return []github.PRRef{{Repo: "api", Number: 92}}, nil
+	}
+	w.svc.ReadYours = true
+	if _, err := w.svc.List(false); err != nil {
+		t.Fatal(err)
+	}
+	for deadline := time.Now().Add(10 * time.Second); w.svc.keptPage("api", 92) == nil; time.Sleep(20 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("the page of the PR asking for your review was never read")
+		}
+	}
+	for w.svc.readingYoursNow() {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if w.svc.keptPage("api", 88) != nil {
+		t.Error("someone else's PR's page was read before it was shown")
+	}
+}

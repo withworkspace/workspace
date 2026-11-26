@@ -213,6 +213,31 @@ func (l *List) Find(repo string, number int) (*PR, *Stack) {
 	return nil, nil
 }
 
+// Yours is each PR in the list that's yours or asks for your review: a
+// stack's layers each, as it is.
+func (l *List) Yours() []PR {
+	if l == nil {
+		return nil
+	}
+	var out []PR
+	yours := func(pr PR) bool { return pr.Mine || pr.Asked != "" }
+	for _, sec := range l.Sections {
+		for _, r := range sec.Rows {
+			if r.PR != nil && yours(*r.PR) {
+				out = append(out, *r.PR)
+			}
+			if r.Stack != nil {
+				for _, layer := range r.Stack.Layers {
+					if yours(layer) || r.Stack.Mine {
+						out = append(out, layer)
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
 func sameLogin(a, b string) bool { return a != "" && strings.EqualFold(a, b) }
 
 // activityGrace is how long after your review a PR's last update still
