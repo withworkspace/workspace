@@ -24,8 +24,38 @@ import (
 // LiftForConversation lifts a capsule for the conversation an agent is
 // answering: branch, from base ("" for the default branch). It joins no
 // mission, even on a mission's Talk tab, and isn't boarded. One the
-// conversation put away comes back on its branch, as it was left.
+// conversation put away comes back on its branch, as it was left. One
+// that's there already, lifted by hand or elsewhere and no mission's, it
+// joins (joinForConversation).
 func (w *Workspace) LiftForConversation(slug, id, repo, branch, base string, o CapsuleOptions) (Capsule, error) {
+	return w.forConversation(slug, id, repo, branch, o, func(store conversation.Store, c *conversation.Conversation, o CapsuleOptions) (Capsule, string, error) {
+		name := workspace.CapsuleName(branch)
+		if was := c.Capsule(repo, name); was != nil && was.Away != nil && !was.Joined && git.Ok(w.WS().BareDir(repo), "rev-parse", "--verify", "--quiet", "refs/heads/"+was.Branch) {
+			// Put away with the conversation, its branch kept: back as it was.
+			made, err := w.makeCapsule(repo, was.Branch, o, func() (string, error) { return w.WS().CreateDockWorktree(repo, was.Branch) })
+			return made, was.Branch, err
+		}
+		made, err := w.Lift(repo, branch, base, o)
+		return made, branch, err
+	})
+}
+
+// DockForConversation docks a capsule for the conversation an agent is
+// answering, on a branch that's on the remote already (a pull request's):
+// what it commits there, and pushes when the user asks, goes to that
+// branch. As LiftForConversation, it's the conversation's, and one
+// that's there already it joins.
+func (w *Workspace) DockForConversation(slug, id, repo, branch string, o CapsuleOptions) (Capsule, error) {
+	return w.forConversation(slug, id, repo, branch, o, func(store conversation.Store, c *conversation.Conversation, o CapsuleOptions) (Capsule, string, error) {
+		made, err := w.Dock(repo, branch, o)
+		return made, branch, err
+	})
+}
+
+// forConversation gives the conversation id a capsule of repo for branch:
+// joins the one that's there (joinForConversation), or has mk make
+// one, and keeps it as the conversation's.
+func (w *Workspace) forConversation(slug, id, repo, branch string, o CapsuleOptions, mk func(conversation.Store, *conversation.Conversation, CapsuleOptions) (Capsule, string, error)) (Capsule, error) {
 	store, err := ConversationStore(w.Root(), slug, id)
 	if err != nil {
 		return Capsule{}, err
@@ -39,18 +69,10 @@ func (w *Workspace) LiftForConversation(slug, id, repo, branch, base string, o C
 	}
 	o.Mission, o.Aside = "", true
 	name := workspace.CapsuleName(branch)
-	was := c.Capsule(repo, name)
-	var made Capsule
-	switch {
-	case was != nil && was.Away == nil && exists(filepath.Join(w.WS().RepoDir(repo), name)):
-		return Capsule{}, refused("capsule-exists", "you lifted %s/%s already: it's at %s", repo, name, filepath.Join(w.WS().RepoDir(repo), name))
-	case was != nil && was.Away != nil && git.Ok(w.WS().BareDir(repo), "rev-parse", "--verify", "--quiet", "refs/heads/"+was.Branch):
-		// Put away with the conversation, its branch kept: back as it was.
-		branch = was.Branch
-		made, err = w.makeCapsule(repo, branch, o, func() (string, error) { return w.WS().CreateDockWorktree(repo, branch) })
-	default:
-		made, err = w.Lift(repo, branch, base, o)
+	if exists(filepath.Join(w.WS().RepoDir(repo), name)) {
+		return w.joinForConversation(store, c, repo, name)
 	}
+	made, branch, err := mk(store, c, o)
 	if err != nil {
 		return made, err
 	}
@@ -58,6 +80,37 @@ func (w *Workspace) LiftForConversation(slug, id, repo, branch, base string, o C
 		return made, fmt.Errorf("%s/%s is lifted, but %s doesn't have it as its own, so it won't be put away with it: %w", repo, made.Name, id, err)
 	}
 	return made, nil
+}
+
+// joinForConversation has a conversation's agent work in a capsule that's
+// there already, lifted by hand, or docked on a pull request's branch
+// made somewhere else: so "look at capsule x, bump this, fix the
+// conflicts and push" needs no mission. Not a mission's (its crew's to
+// work in), nor one another conversation has, nor a repo's .ground. It's
+// joined, not lifted: putting the conversation away leaves it where it is
+// (putAwayCapsules), as it was there before.
+func (w *Workspace) joinForConversation(store conversation.Store, c *conversation.Conversation, repo, name string) (Capsule, error) {
+	path := filepath.Join(w.WS().RepoDir(repo), name)
+	if was := c.Capsule(repo, name); was != nil && was.Away == nil {
+		return Capsule{}, refused("capsule-exists", "you lifted %s/%s already: it's at %s", repo, name, path)
+	}
+	if name == workspace.GroundDir {
+		return Capsule{}, refused("capsule-is-ground", "%s/%s is the repo's default branch, which stays as it is: lift a capsule of your own (`ws lift %s <name>`)", repo, name, repo)
+	}
+	if m, ok := w.Missions.FindByCapsule(repo, name); ok {
+		return Capsule{}, refused("capsule-is-missions", "%s/%s is mission %s's, its crew's to work in: to try something from it, lift one of your own on a branch from its (`ws lift %s <name> <its branch>`)", repo, name, m.Slug, repo)
+	}
+	if other := store.LiftedBy(repo, name); other != nil && other.ID != c.ID {
+		return Capsule{}, refused("capsule-is-conversations", "%s/%s is conversation %s's: lift one of your own (`ws lift %s <name>`)", repo, name, other.ID, repo)
+	}
+	branch, err := git.Line(path, "branch", "--show-current")
+	if err != nil || branch == "" {
+		return Capsule{}, refused("capsule-detached", "%s/%s isn't on a branch, so there's nothing to commit to or push: lift one of your own (`ws lift %s <name>`)", repo, name, repo)
+	}
+	if _, err := store.Lift(c.ID, conversation.Capsule{Repo: repo, Name: name, Branch: branch, At: w.now(), Joined: true}); err != nil {
+		return Capsule{}, err
+	}
+	return Capsule{Repo: repo, Name: name, Path: path, Joined: true}, nil
 }
 
 // putAwayCapsules puts away the capsules a conversation's agent lifted,
@@ -70,6 +123,14 @@ func (w *Workspace) putAwayCapsules(store conversation.Store, c *conversation.Co
 	for _, cp := range c.Lifted() {
 		if _, ok := w.Missions.FindByCapsule(cp.Repo, cp.Name); ok {
 			// A mission it raised took it on: it's the mission's now.
+			continue
+		}
+		if cp.Joined {
+			// There before the conversation took it on: left as it is,
+			// and no longer the conversation's to write in.
+			if _, err := store.PutCapsuleAway(c.ID, cp.Repo, cp.Name, false, w.now()); err != nil {
+				left = append(left, fmt.Sprintf("%s (left where it is, but %s still has it: %v)", cp.Ref(), c.ID, err))
+			}
 			continue
 		}
 		path := filepath.Join(w.WS().RepoDir(cp.Repo), cp.Name)
@@ -106,25 +167,26 @@ func (w *Workspace) putAwayCapsules(store conversation.Store, c *conversation.Co
 // (prompt.Sandboxed): where it may write, and whether it may lift. It's
 // what the agent's told of it, or nil for a run that only reads.
 func (w *Workspace) sandboxFor(store conversation.Store, c *conversation.Conversation, h harness.Converser, r *harness.ConverseRun) *prompt.Sandbox {
-	if !harness.Sandboxes(h) || !prompt.Sandboxed(c) {
+	if !harness.RunsThings(h) || !prompt.Sandboxed(c) {
 		return nil
 	}
 	own, err := w.ownFolder(store, c.ID)
 	if err != nil {
 		return nil // nowhere of its own to write: it reads, as before
 	}
-	out := &prompt.Sandbox{Own: own, NoLift: c.CanLift()}
+	out := &prompt.Sandbox{Own: own, NoLift: c.CanLift(), Confined: harness.Sandboxes(h), Asks: harness.Escalates(h)}
 	r.Sandbox, r.Lift = true, out.NoLift == ""
+	r.Folders = func() []string { return w.ConversationFolders(store.Slug, c.ID) }
 	r.Write = []string{own}
 	for _, cp := range c.Capsules {
 		path := resolved(filepath.Join(w.WS().RepoDir(cp.Repo), cp.Name))
 		if cp.Away != nil || !exists(path) {
 			if cp.Away != nil {
-				out.Away = append(out.Away, prompt.SandboxCapsule{Repo: cp.Repo, Name: cp.Name, Branch: cp.Branch})
+				out.Away = append(out.Away, prompt.SandboxCapsule{Repo: cp.Repo, Name: cp.Name, Branch: cp.Branch, Joined: cp.Joined})
 			}
 			continue
 		}
-		out.Capsules = append(out.Capsules, prompt.SandboxCapsule{Repo: cp.Repo, Name: cp.Name, Branch: cp.Branch, Path: path})
+		out.Capsules = append(out.Capsules, prompt.SandboxCapsule{Repo: cp.Repo, Name: cp.Name, Branch: cp.Branch, Path: path, Joined: cp.Joined})
 		r.Write = append(r.Write, path)
 		if admin, err := git.Line(path, "rev-parse", "--absolute-git-dir"); err == nil && admin != "" {
 			r.Beside = append(r.Beside, resolved(admin))

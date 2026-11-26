@@ -252,7 +252,8 @@ func talkLine(c *conversation.Conversation) string {
 }
 
 // newConversationAllowedCmd is Claude Code's PreToolUse hook in a
-// conversation's run: it says to allow a shell command the conversation's
+// conversation's run, and what ws's extension asks on pi (an event
+// shaped as Claude Code's): it says to allow a shell command the conversation's
 // list allows, as ws reads it (a proposal's HTML on stdin, which Claude
 // Code's own rules refuse), and what a sandboxed run may run or write
 // besides; to refuse, saying what to do, a ws or gh command that isn't
@@ -261,7 +262,7 @@ func talkLine(c *conversation.Conversation) string {
 func newConversationAllowedCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "allowed <allow-list file>",
-		Short:  "Say whether a conversation's agent may run a command (Claude Code runs this)",
+		Short:  "Say whether a conversation's agent may run a command (Claude Code's hook and pi's extension run this)",
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

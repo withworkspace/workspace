@@ -68,6 +68,88 @@ func TestCommandPolicyCursorTitles(t *testing.T) {
 	}
 }
 
+// A conversation that runs things with no sandbox (ConversePolicy): any
+// command but a ws or gh one that isn't allowed alone; edits, deletes and
+// moves where every path is in its folders, as they stand when asked;
+// reads, searches and fetches.
+func TestConversePolicy(t *testing.T) {
+	dir := t.TempDir()
+	capsule := filepath.Join(dir, "repos", "api", "bump")
+	os.MkdirAll(capsule, 0o755)
+	capsule, _ = filepath.EvalSymlinks(capsule)
+	var open []string
+	policy := ConversePolicy([]string{"ws show", "ws lift", "gh pr view"}, func() []string { return open })
+	ask := func(kind, title string, input map[string]any, locations ...string) bool {
+		t.Helper()
+		r := permission(kind, title, input)
+		for _, l := range locations {
+			r.ToolCall.Locations = append(r.ToolCall.Locations, acp.Location{Path: l})
+		}
+		r.Options = []acp.PermissionOption{
+			{OptionID: "allow-once", Name: "Allow once", Kind: acp.AllowOnce},
+			{OptionID: "reject-once", Name: "Reject", Kind: acp.RejectOnce},
+		}
+		ans, ok := policy(acp.Ask{Permission: r})
+		if !ok {
+			t.Fatalf("%s %s: left unanswered", kind, title)
+		}
+		return ans.Option == "allow-once"
+	}
+	for cmd, allowed := range map[string]bool{
+		"pnpm install": true,
+		"cd " + capsule + " && pnpm up vite && pnpm test": true,
+		"git merge origin/main && git push":               true,
+		"for f in *.go; do wc -l $f; done":                true,
+		"ws show m1":                                      true,
+		"ws lift api bump":                                true,
+		"gh pr view 12":                                   true,
+		"gh pr merge 12":                                  false,
+		"gh pr view 12 | head":                            false, // gh runs alone
+		"ws mission archive m1":                           false,
+		"pnpm test && ws mission archive m1":              false,
+		"timeout 5 gh api repos/x/y -X DELETE":            false,
+	} {
+		if got := ask("execute", cursorTitle(cmd), nil); got != allowed {
+			t.Errorf("%s: allowed %v, want %v", cmd, got, allowed)
+		}
+	}
+	// Edits: only in its folders, as they stand when it's asked.
+	inside := filepath.Join(capsule, "package.json")
+	if ask("edit", "Edit `"+inside+"`", nil) {
+		t.Error("an edit allowed before the capsule was its own")
+	}
+	open = []string{capsule}
+	for _, c := range []struct {
+		kind, title string
+		input       map[string]any
+		locations   []string
+		allowed     bool
+	}{
+		{"edit", "Edit `" + inside + "`", nil, nil, true},
+		{"edit", "Write " + filepath.Join(capsule, "new.ts"), nil, nil, true},
+		{"edit", "Edit files", map[string]any{"path": inside}, nil, true},
+		{"edit", "Edit files", nil, []string{inside}, true},
+		{"delete", "Delete `" + inside + "`", nil, nil, true},
+		{"edit", "Edit `" + filepath.Join(dir, "repos", "api", ".ground", "a.go") + "`", nil, nil, false},
+		{"edit", "Edit `" + filepath.Join(capsule, "..", "other", "a.go") + "`", nil, nil, false},
+		{"move", "Move", map[string]any{"source": inside, "destination": filepath.Join(dir, "elsewhere.json")}, nil, false},
+		{"edit", "Edit `package.json`", nil, nil, false}, // not a path in full
+		{"edit", "Edit files", nil, nil, false},          // nothing to place
+		{"read", "Read `/etc/hosts`", nil, nil, true},
+		{"fetch", "Fetch https://example.com", nil, nil, true},
+	} {
+		if got := ask(c.kind, c.title, c.input, c.locations...); got != c.allowed {
+			t.Errorf("%s %q %v %v: allowed %v, want %v", c.kind, c.title, c.input, c.locations, got, c.allowed)
+		}
+	}
+	// No folders at all (a run held in another process): no edits.
+	none := ConversePolicy(nil, nil)
+	r := permission("edit", "Edit `"+inside+"`", nil)
+	if ans, _ := none(acp.Ask{Permission: r}); ans.Option != "cancel" {
+		t.Errorf("an edit with no folders = %+v", ans)
+	}
+}
+
 func TestCursorWorksIn(t *testing.T) {
 	if got := cursorWorksIn("/w/.ws/converse/cursor-acp", "/w/c"); !strings.Contains(got, "the folder you work on is /w/c") || !strings.HasSuffix(got, "\n\n") {
 		t.Errorf("cursorWorksIn = %q", got)
@@ -151,6 +233,22 @@ func TestCursorACPLaunches(t *testing.T) {
 	talk, err := c.Converse(ConverseRun{Prompt: "brief it", Dir: "/w", Talk: true, Scratch: scratch})
 	if err != nil || talk.ACP.Mode != "agent" || !commandAllowed("ws mission brief --propose m1", talk.ACP.Allow) {
 		t.Errorf("talk run = %+v, %v", talk.ACP, err)
+	}
+	if talk.ACP.Runs || talk.ACP.Folders != nil || !strings.Contains(talk.ACP.Prompt, "Don't write files") {
+		t.Errorf("a talk run that only reads runs things: %+v", talk.ACP)
+	}
+	// One that runs things (trusted: no sandbox of Cursor's) is answered
+	// by ConversePolicy, its writes judged by its folders, and told it
+	// writes where its instructions say.
+	folders := func() []string { return []string{"/w/repos/api/bump"} }
+	runs, err := c.Converse(ConverseRun{Prompt: "bump it", Dir: "/w", Talk: true, Scratch: scratch, Sandbox: true, Lift: true, Folders: folders})
+	if err != nil || !runs.ACP.Runs || runs.ACP.Folders == nil || runs.ACP.Folders()[0] != "/w/repos/api/bump" ||
+		strings.Contains(runs.ACP.Prompt, "Don't write files") || !strings.Contains(runs.ACP.Prompt, "Write files only where your instructions say") ||
+		!commandAllowed("ws dock api 12", runs.ACP.Allow) {
+		t.Errorf("a run that runs things = %+v, %v", runs.ACP, err)
+	}
+	if !RunsThings(c) || Sandboxes(c) {
+		t.Errorf("Cursor over ACP: runs things %v, sandboxes %v", RunsThings(c), Sandboxes(c))
 	}
 	if _, err := c.Converse(ConverseRun{Prompt: "hi", Dir: "/w"}); err == nil {
 		t.Error("a conversation with no scratch folder ran")

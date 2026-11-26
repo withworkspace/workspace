@@ -982,6 +982,38 @@ func TestPi_Converse(t *testing.T) {
 	if args := strings.Join(l.Args, " "); !strings.Contains(args, "--session sess-9") || strings.Contains(args, "--session-id") || !strings.Contains(args, "--model openrouter/x") || l.Conversation != "sess-9" {
 		t.Errorf("resumed: %s", args)
 	}
+
+	// One that runs things: writing and editing too, each command and
+	// write asked of ws's guard (as Claude Code's hook asks it), with a
+	// list that says the conversation runs things.
+	l, err = p.Converse(ConverseRun{Prompt: "Bump it.", Dir: "/root", Scratch: scratch, Talk: true, Sandbox: true, Lift: true, Guard: []string{"/bin/ws", "conversation", "allowed"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if args := strings.Join(l.Args, " "); !strings.Contains(args, "--tools read,bash,grep,find,ls,write,edit") || !strings.Contains(args, scratch+"/pi/ws-converse-ask-") {
+		t.Errorf("a run that runs things: %s", args)
+	}
+	src, _ = os.ReadFile(l.Args[slices.Index(l.Args, "-e")+1])
+	var guardCmd []string
+	if m := regexp.MustCompile(`const guard: string\[\] = (\[.*\]);`).FindSubmatch(src); m == nil || json.Unmarshal(m[1], &guardCmd) != nil {
+		t.Fatalf("ask guard:\n%s", src)
+	}
+	if len(guardCmd) != 4 || strings.Join(guardCmd[:3], " ") != "/bin/ws conversation allowed" || !strings.Contains(string(src), `ask("Bash"`) || !strings.Contains(string(src), `file_path: full(`) {
+		t.Errorf("ask guard runs %v:\n%s", guardCmd, src)
+	}
+	list, _ := os.ReadFile(guardCmd[3])
+	var said guardList
+	if json.Unmarshal(list, &said) != nil || !said.Sandboxed || !commandAllowed("ws dock api 12", said.Allow) {
+		t.Errorf("its list: %s", list)
+	}
+	// Without ws's guard to ask, it reads, as before.
+	l, _ = p.Converse(ConverseRun{Prompt: "Bump it.", Dir: "/root", Scratch: scratch, Talk: true, Sandbox: true})
+	if args := strings.Join(l.Args, " "); strings.Contains(args, "write,edit") || !strings.Contains(args, "ws-converse-guard-") {
+		t.Errorf("no guard to ask: %s", args)
+	}
+	if !RunsThings(p) || Sandboxes(p) {
+		t.Errorf("pi: runs things %v, sandboxes %v", RunsThings(p), Sandboxes(p))
+	}
 }
 
 // A model's effort in brackets is Claude Code's --effort, the model its

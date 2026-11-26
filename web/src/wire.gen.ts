@@ -968,6 +968,12 @@ export interface ConversationCapsule {
      */
     away?: string;
     kept?: boolean;
+    /**
+     * Joined is one that was there before the conversation took it on
+     * (lifted by hand, docked elsewhere): put away, it's left where it is,
+     * not burned.
+     */
+    joined?: boolean;
 }
 
 // From conversation/conversation.go

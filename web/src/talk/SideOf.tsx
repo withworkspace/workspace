@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { ArtifactInfo, TalkDetail } from "../api";
+import type { ArtifactInfo, TalkCapsule, TalkDetail } from "../api";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { MoreLink } from "../ui/MoreLink";
@@ -63,14 +63,15 @@ export function SideOf({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug:
         </TalkSideSection>
       )}
       {(d?.capsules?.length ?? 0) > 0 && (
-        <TalkSideSection title="Capsules" tip="Capsules its agent lifted to try things in: the conversation's own, not a mission's, and put away with it">
+        <TalkSideSection title="Capsules" tip="Capsules its agent works in: lifted or docked for the conversation and put away with it, or joined, there already and left where they are">
           <TalkSideNamed>
             {d!.capsules!.map((c) => (
-              <li key={`${c.repo}/${c.name}`} title={c.away ? `Put away with the conversation, its branch (${c.branch}) kept${c.kept ? ", with what wasn't committed" : ""}` : `On branch ${c.branch}`}>
+              <li key={`${c.repo}/${c.name}`} title={capsuleTip(c)}>
                 <code>
                   {c.repo}/{c.name}
                 </code>
-                {c.away && <Text dim> put away</Text>}
+                {c.joined && !c.away && <Text dim> joined</Text>}
+                {c.away && <Text dim>{c.joined ? " left as it was" : " put away"}</Text>}
               </li>
             ))}
           </TalkSideNamed>
@@ -100,4 +101,13 @@ export function SideOf({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug:
       {d && !items.length && !named.length && !d.summary && !d.capsules?.length && <TalkSideEmpty />}
     </TalkSide>
   );
+}
+
+// capsuleTip says of a conversation's capsule which branch it's on, and
+// what became of it when the conversation was put away.
+function capsuleTip(c: TalkCapsule): string {
+  if (c.joined) {
+    return c.away ? `Joined, there already: left where it is, on ${c.branch}, when the conversation was put away` : `Joined, there already, on branch ${c.branch}: left where it is when the conversation's put away`;
+  }
+  return c.away ? `Put away with the conversation, its branch (${c.branch}) kept${c.kept ? ", with what wasn't committed" : ""}` : `On branch ${c.branch}`;
 }

@@ -20,7 +20,9 @@ infer from the current directory. Base defaults to origin/<default-branch>.
 Run by a conversation's agent, the capsule is that conversation's, to try
 things in: it joins no mission, stays out of your editor, and is put away
 when the conversation is (its branch kept, so lifting it again brings it
-back).
+back). Naming one that's there already, lifted by hand and no mission's,
+has the conversation work in it: it's left where it is when the
+conversation's put away.
 
 Examples:
   ws lift frontend my-feature
@@ -67,8 +69,19 @@ Examples:
 // running this is answering, and says where it is and whose.
 func liftForConversation(ctx *ops.Workspace, id, repo, branch, base string) error {
 	c, err := ctx.LiftForConversation(os.Getenv(mission.EnvMission), id, repo, branch, base, ops.CapsuleOptions{Show: showCapsuleMaking, By: ops.ActorFromEnv()})
+	return madeForConversation(c, err, id)
+}
+
+// madeForConversation says where a capsule lifted, docked or joined for a
+// conversation is, and whose, and prints the cd the shell's ws runs.
+func madeForConversation(c ops.Capsule, err error, id string) error {
 	if err != nil {
 		return err
+	}
+	if c.Joined {
+		fmt.Fprintf(ui.Stderr, "Joined %s/%s, which was there already, at %s: %s works in it now, to change, build, commit and, when you're asked, push. It's left where it is when the conversation's put away.\n", c.Repo, c.Name, c.Path, id)
+		fmt.Printf("cd %s\n", shellQuote(c.Path))
+		return nil
 	}
 	if c.HookErr != nil {
 		fmt.Fprintf(ui.Stderr, "  %s after_create hook failed: %v\n", ui.Orange.Render("⚠"), c.HookErr)
