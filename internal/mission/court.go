@@ -233,6 +233,9 @@ type PRFacts struct {
 	Conflict bool
 	// MergeUnknown: GitHub is still working out whether it merges cleanly.
 	MergeUnknown bool
+	// Blocked: its base branch's rules don't let it merge yet (a review
+	// they require, most often), though an admin could go round them.
+	Blocked bool
 	// Unasked: ws opened it, and GitHub hasn't been asked how it stands
 	// since. No review and no checks, of such a one, is nothing known, not
 	// a pull request that needs neither.
@@ -1091,6 +1094,15 @@ func prHeadline(pr PRFacts) Headline {
 	case pr.Review == "REVIEW_REQUIRED":
 		h.Court, h.Kind, h.Label = CourtOutside, KindAwaitingReview, "in review"
 		h.Text = pr.Ref + " is waiting for review · nothing for you to do"
+	case pr.Blocked && pr.Review != "APPROVED":
+		// GitHub's review decision can be empty while a ruleset wants a
+		// review; that it's blocked still says so. Being able to merge it
+		// anyway, as an admin, doesn't make it yours to.
+		h.Court, h.Kind, h.Label = CourtOutside, KindAwaitingReview, "in review"
+		h.Text = pr.Ref + " is waiting for the review its base branch's rules ask for · nothing for you to do"
+	case pr.Blocked:
+		h.Court, h.Kind, h.Label = CourtOutside, KindWaitingOn, "⧗ held"
+		h.Text = pr.Ref + " is approved, but its base branch's rules still hold it: open it to see what they want"
 	case pr.MergeUnknown:
 		// Nothing else holds it up, but it may turn out to conflict: it's
 		// not yours to merge until GitHub has said.

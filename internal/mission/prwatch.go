@@ -20,6 +20,8 @@ type SeenPR struct {
 	Checks string `toml:"checks,omitempty" json:"checks,omitempty"` // failure, pending, success
 	// Conflict: it doesn't merge cleanly onto its base.
 	Conflict bool `toml:"conflict,omitempty" json:"conflict,omitempty"`
+	// Blocked: its base branch's rules don't let it merge yet.
+	Blocked bool `toml:"blocked,omitempty" json:"blocked,omitempty"`
 	// Said is when the latest thing someone else said on it was, as far
 	// as ws has read what's said (at an Open Pull Request step): what's
 	// said after it is news.
@@ -147,6 +149,9 @@ func (p SeenPR) String() string {
 	}
 	if p.Checks != "" {
 		s += ", checks " + p.Checks
+	}
+	if p.Blocked {
+		s += ", blocked"
 	}
 	return s
 }
