@@ -51,6 +51,11 @@ const (
 	BundleHanded     = "bundle.handed"   // a verification bundle, for you
 	ChecksJudged     = "checks.judged"   // a step's checks, run and judged
 
+	ConversationAnswered = "conversation.answered" // its agent said something
+	ProposalMade         = "proposal.made"
+	ProposalAccepted     = "proposal.accepted"
+	ProposalDeclined     = "proposal.declined"
+
 	// Heard of: what the daemon found had moved.
 	CommitsLanded      = "commits.landed"       // a repo's default branch moved: its commits
 	DocChanged         = "doc.changed"          // a space's document changed on its default branch
@@ -78,6 +83,7 @@ var Kinds = []string{
 	PROpened, PRReviewRequested, PRApproved, PRChangesRequested, PRChecksFailed, PRChecksPassed, PRMerged, PRClosed,
 	MissionStarted, MissionFlagged, MissionWaiting, MissionEnded,
 	CrewStarted, CrewAsked, CrewDone, BundleHanded, ChecksJudged,
+	ConversationAnswered, ProposalMade, ProposalAccepted, ProposalDeclined,
 	ArtifactAdded, ArtifactPromoted,
 	DocAdded, DocAmended, DocChanged,
 	ThingAdded, ThingChanged,
@@ -172,6 +178,12 @@ type Event struct {
 	// (passed, failed, stopped, gone) for run.ended.
 	Run    string `json:"run,omitempty"`
 	Status string `json:"status,omitempty"`
+	// Conversation is a conversation's id (t3), in Mission's scope or the
+	// workspace's; Proposal one of its proposals, by number, and its kind
+	// (a plan, a mission, jira:issues).
+	Conversation string `json:"conversation,omitempty"`
+	Proposal     int    `json:"proposal,omitempty"`
+	ProposalKind string `json:"proposalKind,omitempty"`
 	// Changes are what changed in a thing a plugin keeps, field by field,
 	// for thing.changed: a Jira issue's status, from In Progress to Done.
 	Changes []FieldChange `json:"changes,omitempty"`
