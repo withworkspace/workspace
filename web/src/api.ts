@@ -1131,7 +1131,7 @@ export const getThreadVersion = (slug: string, ref: string, v: string) =>
 // of one).
 export interface TalkProposal {
   n: number;
-  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin";
+  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin" | "automation";
   by: string;
   at: string;
   what?: string;
@@ -1195,10 +1195,55 @@ export interface TalkProposal {
   label?: string;
   icon?: string;
   items?: PluginProposalItem[];
+  // an automation: what it is and would have done lately (its script is
+  // text), as internal/automation.Proposed says it.
+  automation?: ProposedAutomation;
   revises?: number; // the agent's revision of an open proposal of its, by number: that one's superseded by this
   state: "open" | "accepted" | "declined" | "superseded" | "withdrawn"; // superseded: a later one took its place; withdrawn: the agent took it back
   because?: string; // withdrawn: why
   result?: string; // a mission's slug, slug:d3, a document's ref (an edit's: where it was saved), or an artifact's version (a3.v1); "" for a decision kept with the conversation; a superseded one's, the later one's number
+}
+
+// ProposedAutomation is an automation a conversation proposed: its name,
+// the user's words (about), when it runs and what it may do, and what it
+// would have done over the last 30 days; replaces, whether there's one by
+// its name already. Mirrors internal/automation.Proposed.
+export interface ProposedAutomation {
+  name: string;
+  about?: string;
+  when: string;
+  may: string[];
+  dryRun: AutomationDryRun;
+  replaces?: boolean;
+}
+
+// AutomationDryRun is what an automation would have done over the events
+// since then: how many it looked at and was for, its runs, those held
+// back, failing or still waiting; and its latest runs (lines).
+export interface AutomationDryRun {
+  since: string;
+  events: number;
+  matched: number;
+  ran: number;
+  held?: number;
+  failed?: number;
+  waiting?: number;
+  settling?: number;
+  lines: AutomationDryLine[] | null;
+}
+
+// AutomationDryLine is one run of a dry run: the event (its ref, when,
+// what it says, how many settled into it), and what it would have done,
+// what its waits came to, why it was held back or failed.
+export interface AutomationDryLine {
+  event: string;
+  at: string;
+  says: string;
+  batch?: number;
+  did?: string[];
+  waited?: string[];
+  held?: string;
+  error?: string;
 }
 
 // PluginProposalItem is one thing a plugin's proposal does, as the plugin

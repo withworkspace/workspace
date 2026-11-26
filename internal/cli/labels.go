@@ -57,6 +57,7 @@ var labels = map[string]string{
 	"automation":       "Listing automations",
 	"automation add":   "Adding an automation",
 	"automation check": "Checking an automation",
+	"automation kinds": "Reading how an automation's written",
 	"automation list":  "Listing automations",
 	"automation runs":  "Reading what automations did",
 	"automation on":    "Turning {1} on",

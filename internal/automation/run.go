@@ -635,7 +635,8 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	}
 	// It waits for what's kept after it's reached: after the latest event
 	// now, or in a dry run, after the event it's run on, from when that was.
-	after, due := int64(0), r.e.now().Add(d)
+	var after int64
+	due := r.e.now().Add(d)
 	if r.dry != nil {
 		after, due = r.ev.N, r.ev.At.Add(d)
 	} else if after, err = latest(r.e.Root); err != nil {

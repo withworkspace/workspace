@@ -395,8 +395,12 @@ func maysOf(v starlark.Value) ([]string, error) {
 // scriptError is what's wrong with a script, as its line says it.
 func scriptError(err error) error {
 	if ee, ok := err.(*starlark.EvalError); ok {
-		if n := len(ee.CallStack); n > 0 {
-			return fmt.Errorf("%s: %s", ee.CallStack[n-1].Pos, ee.Msg)
+		// The script's own line: the innermost frame that's in it, not in
+		// a builtin it called.
+		for i := len(ee.CallStack) - 1; i >= 0; i-- {
+			if pos := ee.CallStack[i].Pos; pos.Filename() != "<builtin>" {
+				return fmt.Errorf("%s: %s", pos, ee.Msg)
+			}
 		}
 		return errors.New(ee.Msg)
 	}

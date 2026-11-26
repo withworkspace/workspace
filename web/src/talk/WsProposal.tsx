@@ -84,6 +84,7 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
     document: !docEmpty,
     artifact: note.trim() && (p.to || title.trim()),
     plugin: true,
+    automation: true,
   }[p.kind];
   const rows = (s: string) => Math.min(10, Math.max(3, s.split("\n").length + 1));
   const editor = () => {
@@ -161,7 +162,7 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
   };
   // Its title: a mission's, a document's or a brief's that starts one,
   // or an artifact's (the artifact's own, for a version of it).
-  const shownTitle = editing ? undefined : p.kind === "mission" || p.kind === "document" || briefing ? p.title || undefined : p.kind === "artifact" ? p.title || artifact?.title : undefined;
+  const shownTitle = editing ? undefined : p.kind === "mission" || p.kind === "document" || briefing ? p.title || undefined : p.kind === "artifact" ? p.title || artifact?.title : p.kind === "automation" ? p.automation?.name : undefined;
   return (
     <TalkProposal
       state={p.state}
@@ -170,7 +171,7 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
       label={proposalLabel(p, briefing, kindTitle)}
       title={shownTitle}
       revises={p.revises}
-      onEdit={p.state === "open" && !editing ? () => setEditing(true) : undefined}
+      onEdit={p.state === "open" && !editing && p.kind !== "automation" ? () => setEditing(true) : undefined}
       changes={revisedFrom && p.state === "open" ? <RevisionChanges was={revisedFrom} now={p} /> : undefined}
       foot={
         p.state === "open" ? (

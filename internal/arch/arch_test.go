@@ -43,7 +43,7 @@ var allowed = map[string][]string{
 	"notification": {"events"},
 	"workspace":    {"config", "git", "slug"},
 	"mission":      {"slug", "git"},
-	"conversation": {"mission", "doc"},
+	"conversation": {"mission", "doc", "automation"}, // a proposed automation, as its card shows it
 	"page":         {"doc", "conversation"},
 	"review":       {"mission", "git"},
 	"pulls":        {"github", "review", "git"},

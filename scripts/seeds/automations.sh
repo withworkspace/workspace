@@ -23,6 +23,14 @@ if [ -d "$dir/.ws/automations" ]; then
 	exit 1
 fi
 
+# A stand-in for Claude Code, as the marketing seed's (no model's asked
+# anything): conversation w1's agent proposes an automation from
+# agent/w1-1.md.
+mkdir -p "$dir/.try/bin" "$dir/.try/agent"
+cp "$here/../marketing/stand-in/claude" "$dir/.try/bin/claude"
+chmod +x "$dir/.try/bin/claude"
+cp "$here"/agent/*.md "$dir/.try/agent/"
+
 # Where the grounds are now isn't news.
 "$ws" events hear >/dev/null 2>&1 || true
 "$ws" automation add "$here/drawing.star" >/dev/null
@@ -55,10 +63,15 @@ done
 # the daemon's up).
 "$ws" events hear >/dev/null 2>&1 || true
 
+# Asked for one in words, w1's agent proposes ana-sketches, dry-run over
+# what's just happened.
+"$ws" talk "Tell me when Ana's done changing a sketch" --print >/dev/null 2>&1 || true
+
 cat <<OUT
 automations: drawing, doc-changes and settled, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
 
   ws automation list      each, and how its last run went
   ws automation runs      what each did
   ws notifications        what they told you (the bell, in the web UI)
+  /conversations/w1       an automation proposed in words, with its dry run, to turn on
 OUT

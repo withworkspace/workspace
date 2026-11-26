@@ -1367,6 +1367,12 @@ export interface ConversationProposal {
     on?: number;
     latest?: number;
     size?: number;
+    /**
+     * Automation is a proposed automation, as its card shows it (its
+     * script is Text).
+     */
+    // external type "github.com/withworkspace/workspace/internal/automation.Proposed", to include this type the package must be explicitly included in the parsing
+    automation?: unknown;
     warnings?: string[];
     /**
      * A plugin's: the plugin (Plugin), which of what it proposes (Proposes,

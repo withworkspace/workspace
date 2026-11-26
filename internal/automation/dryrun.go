@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/events"
@@ -31,6 +32,9 @@ type DryRun struct {
 	Held    int `json:"held,omitempty"`
 	Failed  int `json:"failed,omitempty"`
 	Waiting int `json:"waiting,omitempty"`
+	// Settling is how many batches are settling still: their events
+	// haven't been quiet as long as settle says yet.
+	Settling int `json:"settling,omitempty"`
 	// Lines are its runs, the latest last: at most DryLines of them.
 	Lines []DryLine `json:"lines"`
 }
@@ -183,10 +187,19 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 		settling[key].events = append(settling[key].events, ev)
 	}
 	for key, g := range settling {
-		if last := g.events[len(g.events)-1]; e.now().Sub(last.At) >= g.pace.Settle {
+		last := g.events[len(g.events)-1]
+		if e.now().Sub(last.At) >= g.pace.Settle {
 			flush(key)
+			continue
 		}
+		line := DryLine{Event: last.Ref(), At: last.At, Says: last.Says(), Waited: []string{fmt.Sprintf("settling still: it runs once these have been quiet %s", shortDuration(g.pace.Settle))}}
+		if len(g.events) > 1 {
+			line.Batch = len(g.events)
+		}
+		out.Settling++
+		lines = append(lines, line)
 	}
+	sort.SliceStable(lines, func(i, j int) bool { return lines[i].At.Before(lines[j].At) })
 	if len(lines) > DryLines {
 		lines = lines[len(lines)-DryLines:]
 	}
@@ -205,4 +218,18 @@ func (d *dryRun) waiting() (int, waitFor, bool) {
 		}
 	}
 	return 0, waitFor{}, false
+}
+
+// Proposed is an automation as a conversation proposes it, for the card:
+// what it's called, the user's words, when and what it may do, and what
+// it would have done lately. Its script is the proposal's text.
+type Proposed struct {
+	Name   string   `json:"name"`
+	About  string   `json:"about,omitempty"`
+	When   string   `json:"when"`
+	May    []string `json:"may"`
+	DryRun DryRun   `json:"dryRun"`
+	// Replaces is whether there's one by its name already, which accepting
+	// it replaces.
+	Replaces bool `json:"replaces,omitempty"`
 }

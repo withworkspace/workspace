@@ -2,8 +2,10 @@ package ops
 
 import (
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/automation"
+	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/notification"
 )
@@ -63,4 +65,20 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 			return out
 		},
 	}
+}
+
+// acceptAutomation adds a proposed automation, on, from the next event:
+// its name is the proposal's result.
+func (w *Workspace) acceptAutomation(store conversation.Store, c *conversation.Conversation, p conversation.Proposal) (string, error) {
+	if p.Automation == nil {
+		return "", &Invalid{Reason: "the proposal has no automation"}
+	}
+	a, err := (&automation.Engine{Root: w.Root()}).Add(p.Automation.Name, []byte(p.Text))
+	if err != nil {
+		return "", &Invalid{Reason: "it can't be added: " + err.Error()}
+	}
+	if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, a.Name, conversation.You, time.Now()); err != nil {
+		return "", err
+	}
+	return a.Name, nil
 }
