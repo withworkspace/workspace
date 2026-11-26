@@ -88,6 +88,11 @@ func bringForward(ctx context.Context, root string, db *sql.DB) error {
 		have[name] = v
 	}
 	rows.Close()
+	// Read short, have would say a part is further back than it is, and
+	// its steps would be run again.
+	if err := rows.Err(); err != nil {
+		return err
+	}
 	names := slices.Sorted(maps.Keys(parts))
 	sort.SliceStable(names, func(i, j int) bool { return names[i] == "store" && names[j] != "store" })
 	for _, name := range names {

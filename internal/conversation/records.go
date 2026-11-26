@@ -550,6 +550,9 @@ func (s Store) idsIn(tx *store.Tx) []string {
 			out = append(out, id)
 		}
 	}
+	if rows.Err() != nil {
+		return nil
+	}
 	return out
 }
 
