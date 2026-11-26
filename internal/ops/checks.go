@@ -864,7 +864,7 @@ func firstLine(s string) string {
 
 // gitOut is what git says in dir, trimmed; "" if it fails.
 func gitOut(dir string, args ...string) string {
-	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
+	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output() //nolint:noctx // a quick read of git, with no context to end it with
 	if err != nil {
 		return ""
 	}
@@ -875,7 +875,7 @@ func gitOut(dir string, args ...string) string {
 // commit's tree), when nothing there is uncommitted: "" when something
 // is, or it can't be told.
 func cleanTree(dir string) string {
-	out, err := exec.Command("git", "-C", dir, "status", "--porcelain").Output()
+	out, err := exec.Command("git", "-C", dir, "status", "--porcelain").Output() //nolint:noctx // a quick read of git, with no context to end it with
 	if err != nil || strings.TrimSpace(string(out)) != "" {
 		return ""
 	}

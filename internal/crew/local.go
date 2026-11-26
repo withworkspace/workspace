@@ -71,7 +71,7 @@ func (h *LocalHost) Launch(s Spec) (int, error) {
 	if s.ACP != nil {
 		return 0, errors.New("crew over ACP need the workspace's daemon to hold them")
 	}
-	cmd := exec.Command(s.Args[0], s.Args[1:]...)
+	cmd := exec.Command(s.Args[0], s.Args[1:]...) //nolint:noctx // crew outlive the call that starts them: the host ends them
 	cmd.Dir = s.Dir
 	cmd.Env = s.Env
 	p, err := termpane.Start(cmd, s.Width, s.Height)

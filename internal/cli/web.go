@@ -136,10 +136,10 @@ func noWebError(root string, c *daemon.Client) error {
 func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("open", url).Run()
+		return exec.Command("open", url).Run() //nolint:noctx // hands the link to the browser and returns
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Run()
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Run() //nolint:noctx // hands the link to the browser and returns
 	default:
-		return exec.Command("xdg-open", url).Run()
+		return exec.Command("xdg-open", url).Run() //nolint:noctx // hands the link to the browser and returns
 	}
 }

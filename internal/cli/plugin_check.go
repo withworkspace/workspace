@@ -185,7 +185,7 @@ func servedProblems(host *plugin.Host, name string, r plugin.Registration) []plu
 	// get asks the plugin for path, and gives the answer's status and the
 	// kind of thing it says it is.
 	get := func(path string) (status int, kind string, err error) {
-		res, err := client.Get("http://plugin" + path)
+		res, err := client.Get("http://plugin" + path) //nolint:noctx // the client's Timeout bounds it
 		if err != nil {
 			return 0, "", err
 		}

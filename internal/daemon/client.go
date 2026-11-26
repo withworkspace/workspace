@@ -172,7 +172,7 @@ func spawn(root string) error {
 		return err
 	}
 	defer logf.Close()
-	cmd := exec.Command(self, "daemon", "run", "--root", root)
+	cmd := exec.Command(self, "daemon", "run", "--root", root) //nolint:noctx // the daemon outlives whoever started it
 	// The daemon outlives whoever started it (crew's command, say): none
 	// of their mission identity applies to it.
 	cmd.Env = append(os.Environ(), "WS_MISSION=", "WS_CREW=", "WS_ROLE=", "WS_ORIGIN_PWD=")
