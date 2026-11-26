@@ -1,5 +1,5 @@
 ---
-title: Find knows what still stands
+title: Improved search relevancy
 ---
 What **⌘K** and `ws find` find is weighed by whether it still stands and
 how long since it settled. A decision undone two months ago no longer ranks

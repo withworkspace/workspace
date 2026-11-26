@@ -1,5 +1,5 @@
 ---
-title: Pick a model from a tree, and switch it as it runs
+title: Model Selection
 link: /settings/agents
 picture: model-picker.webp
 ---

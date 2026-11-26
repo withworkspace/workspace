@@ -1,5 +1,5 @@
 ---
-title: Try it starts what it names
+title: Click to try
 picture: try-it.webp
 ---
 When a bundle's Try it is a recipe (`ws run web`), the Verify tab has a

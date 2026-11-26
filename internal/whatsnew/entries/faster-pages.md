@@ -1,5 +1,5 @@
 ---
-title: Pages open at once
+title: Faster
 ---
 The daemon keeps what pages read in memory and tells them when it changes,
 so most pages no longer wait on git first, the Team page among them. With

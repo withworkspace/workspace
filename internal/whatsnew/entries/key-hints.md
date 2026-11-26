@@ -1,5 +1,5 @@
 ---
-title: Every button says its key
+title: Teach shortcuts
 link: /settings/keyboard
 ---
 A button's tooltip says the key that does the same. Turn on **Settings ›
