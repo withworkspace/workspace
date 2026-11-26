@@ -40,7 +40,10 @@ type DB struct {
 
 // Tx is one transaction: a Write's or a Read's.
 type Tx struct {
-	tx     *sql.Tx
+	tx *sql.Tx
+	// ctx is the one the transaction began with: each statement in it ends
+	// with it too, not only the transaction.
+	ctx    context.Context
 	root   string
 	write  bool
 	topics []string
@@ -170,7 +173,7 @@ func (db *DB) Write(ctx context.Context, fn func(*Tx) error) (err error) {
 	if err != nil {
 		return err
 	}
-	tx := &Tx{tx: stx, root: db.root, write: true}
+	tx := &Tx{tx: stx, ctx: ctx, root: db.root, write: true}
 	done := false
 	defer func() {
 		if !done {
@@ -203,7 +206,7 @@ func (db *DB) Read(ctx context.Context, fn func(*Tx) error) error {
 		return err
 	}
 	defer stx.Rollback() // a read has nothing to commit
-	return fn(&Tx{tx: stx, root: db.root})
+	return fn(&Tx{tx: stx, ctx: ctx, root: db.root})
 }
 
 // Seq is the latest change's number: it moves whenever a write that named
@@ -218,19 +221,19 @@ func (db *DB) Seq(ctx context.Context) (seq int64, err error) {
 // Exec runs a statement that returns no rows.
 func (tx *Tx) Exec(query string, args ...any) (sql.Result, error) {
 	cost.Stmt()
-	return tx.tx.Exec(query, args...)
+	return tx.tx.ExecContext(tx.ctx, query, args...)
 }
 
 // Query runs a statement that returns rows.
 func (tx *Tx) Query(query string, args ...any) (*sql.Rows, error) {
 	cost.Stmt()
-	return tx.tx.Query(query, args...)
+	return tx.tx.QueryContext(tx.ctx, query, args...)
 }
 
 // QueryRow runs a statement that returns at most one row.
 func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
 	cost.Stmt()
-	return tx.tx.QueryRow(query, args...)
+	return tx.tx.QueryRowContext(tx.ctx, query, args...)
 }
 
 // Changed says what this transaction changed: topics a page follows
@@ -255,11 +258,11 @@ func (tx *Tx) noteChanges() error {
 		return nil
 	}
 	var seq int64
-	if err := tx.tx.QueryRow(`UPDATE meta SET value = value + 1 WHERE key = 'seq' RETURNING value`).Scan(&seq); err != nil {
+	if err := tx.tx.QueryRowContext(tx.ctx, `UPDATE meta SET value = value + 1 WHERE key = 'seq' RETURNING value`).Scan(&seq); err != nil {
 		return fmt.Errorf("store: numbering a change: %w", err)
 	}
 	for _, t := range tx.topics {
-		if _, err := tx.tx.Exec(`INSERT INTO changes (topic, seq) VALUES (?, ?) ON CONFLICT (topic) DO UPDATE SET seq = excluded.seq`, t, seq); err != nil {
+		if _, err := tx.tx.ExecContext(tx.ctx, `INSERT INTO changes (topic, seq) VALUES (?, ?) ON CONFLICT (topic) DO UPDATE SET seq = excluded.seq`, t, seq); err != nil {
 			return fmt.Errorf("store: noting a change: %w", err)
 		}
 	}
