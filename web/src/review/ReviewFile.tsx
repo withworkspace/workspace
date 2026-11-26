@@ -70,22 +70,22 @@ export function ReviewFile({
             size="small"
             className={css.unchanged}
             onClick={(e) => (e.stopPropagation(), onFold())}
-            title="Its change is the same as when you reviewed it: a rebase moved it, and nothing else"
+            title="Same change as when you reviewed it, only rebased"
           >
             <Icon name="check" size={11} /> Unchanged since you reviewed · {folded ? "show" : "hide"}
           </Button>
         )}
         {skim && !unchanged && (
-          <Button variant="ghost" size="small" className={css.skim} onClick={(e) => (e.stopPropagation(), onFold())} title="It's one to skim, so it's folded: it still counts until you mark it viewed">
+          <Button variant="ghost" size="small" className={css.skim} onClick={(e) => (e.stopPropagation(), onFold())} title="Folded to skim. Counts as unviewed until marked viewed">
             {skim} · {folded ? "show" : "hide"}
           </Button>
         )}
-        <Checkbox className={css.viewedBox} checked={viewed} onChange={onViewed} {...keyProps("x", viewed ? "Mark it not viewed" : "Mark it viewed", (e: React.MouseEvent<HTMLLabelElement>) => e.stopPropagation())}>
+        <Checkbox className={css.viewedBox} checked={viewed} onChange={onViewed} {...keyProps("x", viewed ? "Mark not viewed" : "Mark viewed", (e: React.MouseEvent<HTMLLabelElement>) => e.stopPropagation())}>
           Viewed
         </Checkbox>
       </div>
       {guide && !viewed && (
-        <p className={css.guide} title="What the guide says the change does to it">
+        <p className={css.guide} title="What the guide says about this file">
           <Icon name="sparkle" size={13} className={css.guideIcon} />
           <span>
             <Inline text={guide} />

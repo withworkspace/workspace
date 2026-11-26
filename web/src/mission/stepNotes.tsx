@@ -32,12 +32,12 @@ export function stepNotes(s: Stage): ReactNode {
     <>
       {s.who && s.who !== "crew" && <StepWho s={s} />}
       {s.type === "Verify" && (
-        <MissionPlanNote icon="list-checks" title="A verifier's: crew who didn't do the work show it by using it, and hand over a bundle">
+        <MissionPlanNote icon="list-checks" title="Verifier: other crew try the work and hand over a bundle">
           verifier
         </MissionPlanNote>
       )}
       {s.opensPR && s.who !== "ws" && (
-        <MissionPlanNote icon="pr" title="It makes a pull request: its crew open it through ws, which holds the guarantees about it">
+        <MissionPlanNote icon="pr" title="Crew open a pull request through Workspace">
           opens a pull request
         </MissionPlanNote>
       )}
@@ -46,7 +46,7 @@ export function stepNotes(s: Stage): ReactNode {
           skipped
         </MissionPlanNote>
       ) : s.onlyIf ? (
-        <MissionPlanNote icon="question" yours={s.held} title={`Only if ${s.onlyIf}: the orchestrator starts it or skips it`}>
+        <MissionPlanNote icon="question" yours={s.held} title={`Only if ${s.onlyIf}: otherwise skipped`}>
           only if
         </MissionPlanNote>
       ) : null}
@@ -57,7 +57,7 @@ export function stepNotes(s: Stage): ReactNode {
         </MissionPlanNote>
       ) : null}
       {s.carryOn ? (
-        <MissionPlanNote icon="reply" title={`The crew who did step ${s.carryOn} carry on with this one`}>
+        <MissionPlanNote icon="reply" title={`Same crew as step ${s.carryOn}`}>
           carries on from {s.carryOn}
         </MissionPlanNote>
       ) : null}
@@ -67,7 +67,7 @@ export function stepNotes(s: Stage): ReactNode {
         <CrewBadge key={c} id={c} />
       ))}
       {s.checkIn && s.state !== "accepted" && (
-        <Text dim title="The orchestrator stops for you after this stage">
+        <Text dim title="Orchestrator pauses for you after this stage">
           <Icon name="pause" size={11} /> check in after
         </Text>
       )}

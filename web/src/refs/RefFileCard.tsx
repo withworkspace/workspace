@@ -32,11 +32,11 @@ export function RefFileCard({ r: named, known, pane }: { r: Extract<PageRef, { k
         {r.line ? `, line${r.endLine && r.endLine > r.line ? `s ${r.line} to ${r.endLine}` : ` ${r.line}`}` : file ? `, ${file.lines.length} lines` : ""}
       </HoverCardLine>
       {gone && <RefGone r={named} there={!!file} />}
-      {error && !gone && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
+      {error && !gone && <HoverCardLine dim>Could not read: {error}</HoverCardLine>}
       {named.commit && !gone && <HoverCardLine dim>Named at {named.commit.slice(0, 7)}.</HoverCardLine>}
       {file?.binary && <HoverCardLine dim>Not text.</HoverCardLine>}
       {file?.tooLarge && <HoverCardLine dim>Too large to show here.</HoverCardLine>}
-      {r.line && file && r.line > file.lines.length && <HoverCardLine dim>The file has only {file.lines.length} lines now.</HoverCardLine>}
+      {r.line && file && r.line > file.lines.length && <HoverCardLine dim>File now has only {file.lines.length} lines.</HoverCardLine>}
       {lines.length > 0 && (
         <RefExcerpt raised={pane} more={!!file && to < file.lines.length}>
           {lines.map((l, i) => (
@@ -44,7 +44,7 @@ export function RefFileCard({ r: named, known, pane }: { r: Extract<PageRef, { k
           ))}
         </RefExcerpt>
       )}
-      <RefGo to={refHref(r, known)}>Open it in Files</RefGo>
+      <RefGo to={refHref(r, known)}>Open in Files</RefGo>
     </>
   );
 }

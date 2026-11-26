@@ -92,9 +92,9 @@ export function CodeNavCard({
       )}
       {a && (
         <Text as="div" dim className={css.how}>
-          <span className={a.answer === "resolved" ? css.resolved : a.answer === "candidates" || a.answer === "unresolved" ? css.unsure : undefined}>{definedHere ? "Defined here: click for who uses it" : answerWords(a)}</span>
+          <span className={a.answer === "resolved" ? css.resolved : a.answer === "candidates" || a.answer === "unresolved" ? css.unsure : undefined}>{definedHere ? "Defined here: click for uses" : answerWords(a)}</span>
           {a.answer === "candidates" && a.how && <span> · {a.how}</span>}
-          {a.partial && <span title="It ran out of time or files to read, and may have missed some"> · partial</span>}
+          {a.partial && <span title="Search incomplete: may have missed some"> · partial</span>}
           {a.external?.url && (
             <a href={a.external.url} target="_blank" rel="noreferrer">
               Docs <Icon name="external" size={10} />

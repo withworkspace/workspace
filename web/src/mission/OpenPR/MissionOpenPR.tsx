@@ -38,9 +38,9 @@ export function MissionOpenPR({ name, step, title, onTitle, body, onBody, draft,
   return (
     <Dialog title={`Open a pull request from ${name}`} onClose={onClose} className={css.dialog} wide>
       <p>
-        ws pushes its branch and opens the pull request onto the default branch, holding the process's rules about pull requests: one that wants your
-        review first refuses it until you've approved the capsule as it is.
-        {step !== undefined && ` Step ${step} of the plan opens it.`} Its title and description are the PR writer's to write, from the step it's for and the workspace's PR.md, unless you give them.
+        Pushes the branch and opens a pull request onto the default branch. If your review is required first,
+        approve the capsule before opening.{step !== undefined && ` Planned for step ${step}.`} Leave title
+        and description blank for the PR writer to write them.
       </p>
       <div className={css.form}>
         <div className={css.title}>
@@ -48,25 +48,25 @@ export function MissionOpenPR({ name, step, title, onTitle, body, onBody, draft,
             value={title}
             autoFocus
             aria-label="Title"
-            placeholder="Its title, or leave it to the PR writer"
+            placeholder="Title, or leave blank for the PR writer"
             disabled={writing}
             onChange={(e) => onTitle(e.target.value)}
           />
-          <Button variant="ghost" size="small" onClick={onWrite} disabled={writing || busy} title="Have the PR writer write its title and description, from the step it's for and PR.md">
-            {writing ? <Spinner size={12} /> : <Icon name="pencil" size={12} />} {writing ? "Writing…" : "Write it"}
+          <Button variant="ghost" size="small" onClick={onWrite} disabled={writing || busy} title="Write with the PR writer">
+            {writing ? <Spinner size={12} /> : <Icon name="pencil" size={12} />} {writing ? "Writing…" : "Write"}
           </Button>
         </div>
         <TextArea
           value={body}
           rows={8}
           aria-label="Description"
-          placeholder="What it does, and why"
+          placeholder="What changed, and why"
           disabled={writing}
           onChange={(e) => onBody(e.target.value)}
         />
       </div>
       <Checkbox className={cx(css.toggle, css.draft)} checked={draft} onChange={onDraft}>
-        Open it as a draft
+        Open as draft
       </Checkbox>
       {error && <Banner>{humanError(error)}</Banner>}
       <DialogActions>
@@ -77,9 +77,9 @@ export function MissionOpenPR({ name, step, title, onTitle, body, onBody, draft,
           variant="primary"
           onClick={onOpen}
           disabled={busy || writing}
-          title={title.trim() ? undefined : "The PR writer writes its title and description, and ws opens it once they're written"}
+          title={title.trim() ? undefined : "PR writer writes title and description, then opens the pull request"}
         >
-          {title.trim() ? "Open it" : "Write and open it"}
+          {title.trim() ? "Open pull request" : "Write and open"}
         </Button>
       </DialogActions>
     </Dialog>

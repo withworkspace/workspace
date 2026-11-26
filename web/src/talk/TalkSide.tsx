@@ -5,7 +5,7 @@ import css from "./TalkSide.module.css";
 // TalkSideSections, or a TalkSideEmpty while there's nothing yet.
 export function TalkSide({ children }: { children: ReactNode }) {
   return (
-    <aside className={css.side} aria-label="Beside the conversation">
+    <aside className={css.side} aria-label="Conversation details">
       {children}
     </aside>
   );

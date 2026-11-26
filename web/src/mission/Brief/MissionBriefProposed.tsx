@@ -21,7 +21,7 @@ type MissionBriefProposedProps = {
 // it. The one they show leads back to them.
 export function MissionBriefProposed({ icon, name, fate, shown, struck, onGo }: MissionBriefProposedProps) {
   return (
-    <button type="button" className={cx(css.proposed, shown && css.shown, struck && css.struck)} onClick={shown ? onGo : undefined} disabled={!shown} title={shown ? "It's what the documents show: go to them" : undefined}>
+    <button type="button" className={cx(css.proposed, shown && css.shown, struck && css.struck)} onClick={shown ? onGo : undefined} disabled={!shown} title={shown ? "Go to documents" : undefined}>
       <Icon name={icon} size={13} />
       <span className={css.name}>{name}</span>
       <span className={css.fate}>{fate}</span>

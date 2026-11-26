@@ -110,13 +110,13 @@ describe("the handshake", () => {
   it("refuses a page that speaks only a later version, saying ws is behind", async () => {
     const { result, message } = await answered({ type: "ws:connect", versions: [2] }, fakeWs().host);
     expect(isRefuse(message)).toBe(true);
-    expect(message).toEqual({ type: "ws:refuse", versions: [1], message: "jira speaks frame protocol 2, and this ws speaks 1. Update ws." });
-    expect(result).toEqual({ refused: "jira speaks frame protocol 2, and this ws speaks 1. Update ws." });
+    expect(message).toEqual({ type: "ws:refuse", versions: [1], message: "jira supports frame protocol 2; Workspace supports 1. Update ws." });
+    expect(result).toEqual({ refused: "jira supports frame protocol 2; Workspace supports 1. Update ws." });
   });
 
   it("refuses a page that speaks only versions ws has dropped, saying the plugin is behind", () => {
-    expect(refusal("jira", [1], [2, 3])).toBe("jira speaks frame protocol 1, and this ws speaks 2, 3. Update the plugin.");
-    expect(refusal("jira", [], [1])).toBe("jira lists no frame protocol version, and this ws speaks 1. Update the plugin.");
+    expect(refusal("jira", [1], [2, 3])).toBe("jira supports frame protocol 1; Workspace supports 2, 3. Update the plugin.");
+    expect(refusal("jira", [], [1])).toBe("jira lists no frame protocol version; Workspace supports 1. Update the plugin.");
   });
 
   it("gives the published client a ProtocolError when they have no version in common", async () => {
@@ -126,7 +126,7 @@ describe("the handshake", () => {
     const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, conversation() {}, close() {} }) };
     const failed = connect({ host: { postMessage: (m, _o, [port]) => void answer(m as V1.Connect, port as MessagePort, ws.host, later) } });
     await expect(failed).rejects.toBeInstanceOf(ProtocolError);
-    await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira speaks frame protocol 1, and this ws speaks 2. Update the plugin." });
+    await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira supports frame protocol 1; Workspace supports 2. Update the plugin." });
     error.mockRestore();
   });
 
@@ -558,7 +558,7 @@ describe("listening for the frame", () => {
     const { frame, refusals, post } = setup();
     const ahead = post({ ...hello, versions: [2] });
     await tick();
-    expect(refusals).toEqual(["jira speaks frame protocol 2, and this ws speaks 1. Update ws."]);
+    expect(refusals).toEqual(["jira supports frame protocol 2; Workspace supports 1. Update ws."]);
     expect(ahead.got).toEqual([{ type: "ws:refuse", versions: [1], message: refusals[0] }]);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("@withworkspace/ui-lib@0.1.0"));
     // With nobody connected, there's nobody to tell: nothing's thrown.

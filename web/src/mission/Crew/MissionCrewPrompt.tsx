@@ -52,7 +52,7 @@ export function MissionCrewPromptInput({ children }: { children: ReactNode }) {
 export function MissionCrewPromptFile({ to }: { to: string }) {
   return (
     <Link to={to} className={css.file}>
-      <Icon name="file" size={12} /> The file as it is
+      <Icon name="file" size={12} /> Current file
     </Link>
   );
 }

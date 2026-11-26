@@ -21,9 +21,9 @@ type DocumentsSearchProps = {
 export function DocumentsSearch({ inputRef, q, setQ, onKey, kinds, kind, setKind, states, state, setState }: DocumentsSearchProps) {
   return (
     <div className={css.search}>
-      <DocumentsSearchBox inputRef={inputRef} q={q} setQ={setQ} placeholder="Search the documents: what they say, in a few words or a question" label="Search the documents" onKey={onKey} />
+      <DocumentsSearchBox inputRef={inputRef} q={q} setQ={setQ} placeholder="Search documents, or ask a question" label="Search documents" onKey={onKey} />
       {kinds.length > 0 && (
-        <Select value={kind} onChange={(v) => (setKind(v), setState(""))} aria-label="Of a kind">
+        <Select value={kind} onChange={(v) => (setKind(v), setState(""))} aria-label="Kind">
           <Option value="">Any kind</Option>
           {kinds.map((k) => (
             <Option key={k.name} value={k.name}>
@@ -33,8 +33,8 @@ export function DocumentsSearch({ inputRef, q, setQ, onKey, kinds, kind, setKind
         </Select>
       )}
       {states.length > 0 && (
-        <Select value={state} onChange={setState} aria-label="Where it stands">
-          <Option value="">Anywhere</Option>
+        <Select value={state} onChange={setState} aria-label="Status">
+          <Option value="">Any status</Option>
           {states.map((s) => (
             <Option key={s} value={s}>
               {s}

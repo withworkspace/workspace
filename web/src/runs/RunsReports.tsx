@@ -11,7 +11,7 @@ export function RunsReports({ r }: { r: RunDetail }) {
       reports={r.reports.map((rp) => ({
         name: rp.name,
         unwritten: rp.files === 0 && !running,
-        title: rp.files > 0 ? `${rp.path}${rp.format ? `, ${rp.format}` : ""}: kept with the run` : running ? `${rp.path}: kept once it ends` : `Its command didn't write ${rp.path}`,
+        title: rp.files > 0 ? `${rp.path}${rp.format ? `, ${rp.format}` : ""}: kept with the run` : running ? `${rp.path}: kept when run ends` : `${rp.path} not written`,
       }))}
     />
   );

@@ -6,7 +6,7 @@ import css from "./MissionArtifactPath.module.css";
 export function MissionArtifactPath({ path }: { path: string }) {
   return (
     <p className={css.path}>
-      <Copyable text={path} title="Copy where it is" />
+      <Copyable text={path} title="Copy path" />
     </p>
   );
 }

@@ -144,7 +144,7 @@ export function hereItems(h: Here | undefined, w: Workspace, known: Known): Item
 const said: Record<string, [out: string, into: string]> = {
   about: ["what this is about", "about this"],
   from: ["where this came from", "came from this"],
-  in: ["this is in it", "in this"],
+  in: ["contains this", "in this"],
   mentions: ["named here", "names this"],
   lands: ["where this lands", "lands this"],
   of: ["what this is of", "of this"],

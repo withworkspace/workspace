@@ -37,13 +37,13 @@ export function RunsSiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
   return (
     <RunsPageRow
       open={open}
-      mark={<RunMark live={st.watching} up={st.watching} title={st.watching ? "Kept as files change" : "Not kept"} />}
+      mark={<RunMark live={st.watching} up={st.watching} title={st.watching ? "Syncing as files change" : "Not syncing"} />}
       name={st.repo}
       top={
         <>
           <Text dim>on</Text>
           <Text mono>{st.target}</Text>
-          {trouble && <Chip tone="waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</Chip>}
+          {trouble && <Chip tone="waiting">{st.error ? "not syncing" : last?.error ? "sync failed" : `${hook?.name} failed`}</Chip>}
         </>
       }
       sub={
@@ -71,11 +71,11 @@ export function RunsSiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
       actions={
         <>
           {(hook || last?.error) && (
-            <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "What its last hook said, and why a sync failed"}>
+            <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "Last hook output and sync errors"}>
               <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
             </Button>
           )}
-          <Button variant="ghost" size="small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
+          <Button variant="ghost" size="small" disabled={busy || !!st.error} onClick={resync} title="Full resync from capsule">
             {busy ? <Spinner size={11} /> : <Icon name="rotate" size={11} />} Resync
           </Button>
         </>
@@ -86,9 +86,9 @@ export function RunsSiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
           {hook && (
             <>
               <Text as="p" dim>
-                Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
+                {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
               </Text>
-              <Printed className={runsPageLogClass}>{hook.output || "It said nothing."}</Printed>
+              <Printed className={runsPageLogClass}>{hook.output || "No output."}</Printed>
             </>
           )}
         </RunsPageMore>

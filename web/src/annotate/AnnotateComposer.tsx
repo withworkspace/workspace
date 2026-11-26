@@ -60,7 +60,7 @@ export function AnnotateComposer({
 }) {
   return (
     <div className={css.composer} onClick={(e) => e.stopPropagation()}>
-      <Segmented fill value={kind} onChange={onKind} aria-label="What kind of comment">
+      <Segmented fill value={kind} onChange={onKind} aria-label="Comment kind">
         {threadKinds.map((k) => (
           <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={kindWords[k]} keys="tab">
             <Icon name={kindIcon[k]} size={12} />
@@ -72,7 +72,7 @@ export function AnnotateComposer({
       <TextArea ref={textRef} value={text} rows={2} placeholder={kindHints[kind]} aria-label={kindHints[kind]} onChange={(e) => onText(e.target.value)} onKeyDown={onKeys} />
       {edit !== undefined && (
         <>
-          <Text as="div" dim>It should read:</Text>
+          <Text as="div" dim>Should read:</Text>
           <TextArea
             className={css.editTo}
             value={edit}
@@ -85,7 +85,7 @@ export function AnnotateComposer({
       {error && <Banner>{humanError(error)}</Banner>}
       {canSuggest && edit === undefined && (
         <Button variant="link" className={css.suggest} onClick={onSuggest}>
-          <Icon name="pencil" size={12} /> Suggest an edit instead
+          <Icon name="pencil" size={12} /> Suggest edit
         </Button>
       )}
       <AnnotateActions
@@ -98,7 +98,7 @@ export function AnnotateComposer({
         <Button variant="ghost" size="small" onClick={onCancel} title="Cancel" keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title="Post it" keys={postKeys}>
+        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title="Post" keys={postKeys}>
           {edit !== undefined ? "Suggest" : "Comment"}
         </Button>
       </AnnotateActions>

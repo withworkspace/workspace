@@ -48,7 +48,7 @@ export function PlanStepNow({ s, d }: { s: Stage; d?: MissionDetail }) {
       )}
       {(stepYours(s) || s.held) && (
         <MissionPlanLine icon="user" yours>
-          {how ? "Yours to do" : "Yours: only you pass it"}
+          {how ? "Yours to do" : "Yours: only you can pass"}
         </MissionPlanLine>
       )}
       {!!s.carryOn && <MissionPlanLine icon="reply">Carries on from step {s.carryOn}</MissionPlanLine>}

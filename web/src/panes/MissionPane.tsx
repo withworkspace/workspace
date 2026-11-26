@@ -53,8 +53,8 @@ export function MissionPane({ to, slug }: MissionPaneProps) {
           </>
         }
       />
-      {error && !d && <ErrorCard title="Couldn't read the mission" error={humanError(error)} retry={() => void reload()} />}
-      {!d && !error && <Loading what="Reading the mission…" />}
+      {error && !d && <ErrorCard title="Could not load mission" error={humanError(error)} retry={() => void reload()} />}
+      {!d && !error && <Loading what="Loading mission…" />}
       {d && <MissionPeek {...peekOf(d)} />}
     </DockBody>
   );

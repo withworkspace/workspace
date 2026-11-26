@@ -24,7 +24,7 @@ export function FootCrew({ id, mission, doing, to }: FootCrewProps) {
       shrink
       to={to}
       className={css.crew}
-      title={`${id} is working on ${mission}${doing ? `: ${doing}` : ""}. Go and watch it`}
+      title={`${id} is working on ${mission}${doing ? `: ${doing}` : ""}`}
     >
       <span className={css.who}>
         <CrewBadge id={id} live />

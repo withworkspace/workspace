@@ -23,7 +23,7 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
     return (
       <TalkProposalSettled icon="arrow-down">
         <span>
-          Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>, proposed after it: nothing to confirm here
+          Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>
         </span>
       </TalkProposalSettled>
     );
@@ -35,7 +35,7 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
       {children}
     </TalkProposalSettled>
   );
-  const open = (to: string, words = "Open it") => (
+  const open = (to: string, words = "Open") => (
     <Link to={to} className={buttonClass()}>
       {words} <Icon name="arrow-right" size={13} />
     </Link>
@@ -51,23 +51,23 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
         done("Saved as an idea")
       );
     case "brief":
-      return done(briefing ? (p.plan ? "Briefed and planned: it's ready for crew" : "Briefed: it's ready for crew") : "The brief is updated");
+      return done(briefing ? (p.plan ? "Ready for crew" : "Briefed: ready for crew") : "Brief updated");
     case "plan":
-      return done("The plan is updated");
+      return done("Plan updated");
     case "dispatch":
-      return done(p.result === "queued" ? "Queued: the mission's page launches it" : `Started ${p.result}`);
+      return done(p.result === "queued" ? "Queued: launches from the mission page" : `Started ${p.result}`);
     case "replan":
       return (
         <>
-          {done(`Asked the planner, in ${p.result}: it revises the plan, or says why not`)}
+          {done(`Asked the planner in ${p.result}`)}
           {slug && p.result && open(talkHref(slug, p.result))}
         </>
       );
     case "comment":
       return (
         <>
-          {done("In your draft review: it's posted when you submit")}
-          {!inReview && open(prHref, "Open the review")}
+          {done("Added to draft review: posts when you submit")}
+          {!inReview && open(prHref, "Open review")}
         </>
       );
     case "document": {
@@ -75,7 +75,7 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
       // open a pull request from. An edit to one in a capsule was saved
       // there, where it was.
       const capsule = p.result?.split(":")[0].includes("/") ? p.result.split(":")[0] : "";
-      const leftIn = capsule && p.result !== p.to ? `in a capsule, ${capsule}, to open a pull request from` : "";
+      const leftIn = capsule && p.result !== p.to ? `in ${capsule}, ready for a pull request` : "";
       return (
         <>
           {done(p.to ? (leftIn ? `Saved ${leftIn}` : "Saved") : leftIn ? `Added ${leftIn}` : "Added")}
@@ -103,7 +103,7 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
       );
     }
   }
-  if (!p.result) return done("Decided: kept with this conversation until it becomes a mission");
+  if (!p.result) return done("Decided: saved with this conversation");
   const [on, ref] = p.result.split(":");
   return done(
     <>Recorded as {ref} on <Link to={`/missions/${on}`} className={textClass("link")}>{on}</Link></>,

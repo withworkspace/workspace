@@ -58,8 +58,8 @@ const row = (id: string, title: string, icon: IconName, more: Partial<Item>): It
 function pinActs(name: string, w: Workspace, ended: boolean): Item[] {
   const pins = w.focus as FocusPin[] | undefined;
   if (!pins) return [];
-  if (pins.some((p) => p.name === name)) return [row(`unpin:${name}`, "Unpin it", "pin", { hint: "out of your focus", doing: { ws: { unpin: name } } })];
-  return ended ? [] : [row(`pin:${name}`, "Pin it", "pin", { hint: "keep it in your focus, in the sidebar", doing: { ws: { pin: name } } })];
+  if (pins.some((p) => p.name === name)) return [row(`unpin:${name}`, "Unpin", "pin", { hint: "remove from Focus", doing: { ws: { unpin: name } } })];
+  return ended ? [] : [row(`pin:${name}`, "Pin", "pin", { hint: "add to Focus", doing: { ws: { pin: name } } })];
 }
 
 // A mission that's ended: there's nothing in it to focus on.
@@ -83,13 +83,13 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       if (asked) out.push({ ...asked, id: `act:headline:${m.slug}` });
       const has = (v: ActVerb) => asked?.doing && "act" in asked.doing && asked.doing.act === v;
       const verb = (v: ActVerb, title: string, icon: IconName, hint?: string) => !has(v) && out.push(row(`${v}:${m.slug}`, title, icon, { hint, doing: { act: v, slug: m.slug } }));
-      if (m.state === "parked") verb("unpark", "Unpark it", "play", "back to work");
-      else if (m.state !== "archived" && m.state !== "briefing") verb("park", "Park it", "pause", "put aside, out of the way");
+      if (m.state === "parked") verb("unpark", "Unpark", "play", "back to work");
+      else if (m.state !== "archived" && m.state !== "briefing") verb("park", "Park", "pause", "set aside");
       for (const c of m.crew.filter((c) => crewStatus(c).live))
         out.push(row(`stop:${m.slug}/${c.id}`, `Stop ${c.id}`, "stop", { hint: [c.harness, c.capsule].filter(Boolean).join(" · "), doing: { act: "stop", slug: m.slug, crew: c.id } }));
-      if (m.state === "archived") verb("unarchive", "Unarchive it", "rotate", "bring it back");
-      else verb("archive", "Archive it", "archive", "burns its capsules");
-      out.push(row(`brief:${m.slug}`, "Its brief", "flag", { hint: "plan", to: `/missions/${encodeURIComponent(m.slug)}?tab=brief` }));
+      if (m.state === "archived") verb("unarchive", "Unarchive", "rotate", "restore");
+      else verb("archive", "Archive", "archive", "burns capsules");
+      out.push(row(`brief:${m.slug}`, "Open brief", "flag", { hint: "plan", to: `/missions/${encodeURIComponent(m.slug)}?tab=brief` }));
       out.push(...pinActs(m.slug, w, over.has(m.state)));
       return out;
     }
@@ -97,11 +97,11 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       const t = w.conversations.find((x) => x.id === s.id);
       if (!t) return [];
       const out: Item[] = [];
-      if (t.status === "resolved") out.push(row(`reopen:${t.id}`, "Reopen it", "rotate", { doing: { ws: { talk: t.id, status: "open" } } }));
-      else out.push(row(`resolve:${t.id}`, "Resolve it", "check-circle", { hint: "close done", doing: { ws: { talk: t.id, status: "resolved" } } }));
-      if (t.became) out.push(row(`became:${t.id}`, "The mission it became", "flag", { to: `/missions/${encodeURIComponent(t.became)}` }));
+      if (t.status === "resolved") out.push(row(`reopen:${t.id}`, "Reopen", "rotate", { doing: { ws: { talk: t.id, status: "open" } } }));
+      else out.push(row(`resolve:${t.id}`, "Resolve", "check-circle", { hint: "close done", doing: { ws: { talk: t.id, status: "resolved" } } }));
+      if (t.became) out.push(row(`became:${t.id}`, "Open mission", "flag", { to: `/missions/${encodeURIComponent(t.became)}` }));
       const pr = t.pr && /^([\w.-]+)#(\d+)$/.exec(t.pr);
-      if (pr) out.push(row(`pr:${t.id}`, `Its pull request, ${t.pr}`, "pr", { to: `/reviews/${encodeURIComponent(pr[1])}/${pr[2]}` }));
+      if (pr) out.push(row(`pr:${t.id}`, `Open pull request ${t.pr}`, "pr", { to: `/reviews/${encodeURIComponent(pr[1])}/${pr[2]}` }));
       out.push(...pinActs(t.id, w, t.status === "resolved"));
       return out;
     }
@@ -109,14 +109,14 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       const a = w.artifacts?.find((x) => x.id === s.id);
       if (!a) return [];
       const out: Item[] = [];
-      if (a.status === "discarded") out.push(row(`restore:${a.id}`, "Restore it", "rotate", { doing: { ws: { restore: a.id } } }));
-      if (a.versions > 1) out.push(row(`compare:${a.id}`, "Compare its versions", "layers", { to: `/artifacts/${encodeURIComponent(a.id)}/compare` }));
+      if (a.status === "discarded") out.push(row(`restore:${a.id}`, "Restore", "rotate", { doing: { ws: { restore: a.id } } }));
+      if (a.versions > 1) out.push(row(`compare:${a.id}`, "Compare versions", "layers", { to: `/artifacts/${encodeURIComponent(a.id)}/compare` }));
       out.push(...pinActs(a.id, w, a.status === "discarded"));
       return out;
     }
     case "pr": {
-      const out: Item[] = [row(`dock:${s.repo}#${s.number}`, "Dock it here", "branch", { hint: "check out a capsule, as ws dock does", doing: { ws: { dock: prAPI(s.repo, s.number) } } })];
-      if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open it on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));
+      const out: Item[] = [row(`dock:${s.repo}#${s.number}`, "Dock here", "branch", { hint: "check out in a capsule", doing: { ws: { dock: prAPI(s.repo, s.number) } } })];
+      if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));
       out.push(...pinActs(`${s.repo}#${s.number}`, w, false));
       return out;
     }

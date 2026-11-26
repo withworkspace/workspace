@@ -73,14 +73,14 @@ export function settled(t: TalkTurn, proposals: TalkProposal[] = []): Settled | 
       if (p.to) return { accepted, what: `edit to ${made ?? p.to}`, to: made ? docAddress(made) : undefined, edits };
       return made ? { accepted, what: `document ${made}`, to: docAddress(made), edits } : { accepted, what: `document ${quoted(p.title)}`.trim(), edits };
     case "brief":
-      return { accepted, what: p.plan ? "the brief and its plan" : "the edit to the brief", edits };
+      return { accepted, what: p.plan ? "the brief and plan" : "the edit to the brief", edits };
     case "plan":
       return { accepted, what: p.was ? "the edit to the plan" : "the plan", edits };
     case "dispatch":
       return { accepted, what: made && made !== "queued" ? `crew ${made}` : "crew", edits };
     case "replan":
       // The planner's conversation is the mission's: the card above leads there.
-      return made ? { accepted, what: `replan, asked of the planner in ${made}`, edits } : { accepted, what: `replan ${quoted(clip(p.text?.replace(/\.$/, "") ?? "", 80))}`.trim(), edits };
+      return made ? { accepted, what: `replan, in ${made}`, edits } : { accepted, what: `replan ${quoted(clip(p.text?.replace(/\.$/, "") ?? "", 80))}`.trim(), edits };
     case "comment":
       return { accepted, what: `review comment on ${p.path}:${p.line}`, edits };
     case "plugin":
@@ -148,7 +148,7 @@ export function staleWords(p: Proposed, a?: Latest): string {
 // or records:artifacts/…), a version where its artifact is (its place).
 // On this machine it's a file; in a repo, a commit landed there.
 export function artifactWhere(p: Proposed & { path?: string }, a?: Latest & { place?: string }): string {
-  const kept = (place: string | undefined) => (!place ? "" : place === ".ws" ? ", on this machine" : `, in a commit on ${place}`);
+  const kept = (place: string | undefined) => (!place ? "" : place === ".ws" ? ", on this machine" : `, committed to ${place}`);
   if (p.to) return `Adds v${artifactNext(p, a)} to ${p.to}${kept(a?.place)}`;
   if (!p.path) return "";
   return `Adds ${p.path}${kept(p.path.startsWith(".ws/") ? ".ws" : p.path.split(":")[0])}`;
@@ -211,7 +211,7 @@ export function made(proposals: TalkProposal[], slug = "", titleOf: (id: string)
       case "brief":
       case "plan":
         if (!open && p.n !== latest(p.kind)) break;
-        item(p.kind === "plan" ? "The plan" : p.plan ? "The brief and its plan" : "The brief", { to: open || !mission ? undefined : `${mission}/brief` });
+        item(p.kind === "plan" ? "The plan" : p.plan ? "The brief and plan" : "The brief", { to: open || !mission ? undefined : `${mission}/brief` });
         break;
       case "dispatch":
         item(clip(first(p.text), 90) || "Crew", { tag: result, to: open ? undefined : mission });

@@ -26,10 +26,11 @@ export function PullRequestPosting({ p }: { p: Posting }) {
           <pre>{c.body}</pre>
         </div>
       ))}
-      {!p.body && !p.comments.length && <Text as="div" dim>No words: just the verdict.</Text>}
+      {!p.body && !p.comments.length && <Text as="div" dim>Verdict only, no comment.</Text>}
       {!!p.loose && (
         <Text as="div" dim className={css.loose}>
-          <Icon name="info" size={12} /> {p.loose === 1 ? "One comment is" : `${p.loose} comments are`} on lines outside the pull request's diff on GitHub, so {p.loose === 1 ? "it goes" : "they go"} in the review's body instead.
+          <Icon name="info" size={12} /> {p.loose === 1 ? "One comment is" : `${p.loose} comments are`} on
+          lines outside the diff, so {p.loose === 1 ? "it goes" : "they go"} in the review body instead.
         </Text>
       )}
     </div>

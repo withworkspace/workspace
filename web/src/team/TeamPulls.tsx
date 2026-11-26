@@ -34,7 +34,7 @@ export function TeamPulls({ pulls }: { pulls: TeamPull[] }) {
         return (
           <li key={p.key}>
             {p.to ? (
-              <Link to={p.to} title="Review it here">
+              <Link to={p.to} title="Review here">
                 {inner}
               </Link>
             ) : p.href ? (

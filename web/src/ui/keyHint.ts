@@ -19,7 +19,7 @@ import { saying, toast } from "./toast";
 export function keyHint(keys: string) {
   if (!usePrefs.getState().keyHints) return;
   if (saying().some((t) => t.keys === keys)) return;
-  toast("There's a key for that:", { keys });
+  toast("Keyboard shortcut:", { keys });
 }
 
 // titleWithKeys is what a part's tooltip says: what it does, then its

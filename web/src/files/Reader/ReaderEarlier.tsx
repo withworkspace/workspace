@@ -4,7 +4,9 @@ import { Text } from "../../ui/Text";
 export function ReaderEarlier({ count, docRef }: { count: number; docRef: string }) {
   return (
     <Text as="p" dim>
-      {count === 1 ? "A thread was" : `${count} threads were`} made on this file before it was edited as a page. {count === 1 ? "It's" : "They're"} kept: <Text mono>ws show {docRef}</Text> lists {count === 1 ? "it" : "them"}. Ask and change on its page now.
+      {count === 1 ? "A thread was" : `${count} threads were`} made on this file before it became a page.{" "}
+      {count === 1 ? "It's" : "They're"} kept: <Text mono>ws show {docRef}</Text> lists{" "}
+      {count === 1 ? "it" : "them"}.
     </Text>
   );
 }

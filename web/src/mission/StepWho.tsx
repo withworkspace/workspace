@@ -7,16 +7,16 @@ import { MissionPlanNote } from "./MissionPlanNote";
 // (it opens the pull request), CI's, someone outside's, the planner's.
 export function StepWho({ s }: { s: Stage }) {
   const yours: Record<string, [string, string]> = {
-    Decide: ["yours, to decide", "Yours to decide: your answer is recorded as a decision, and passes the step"],
-    Land: ["yours, to land", "Yours to land: the step passes once it's landed"],
+    Decide: ["yours, to decide", "Yours to decide: your answer is recorded and passes the step"],
+    Land: ["yours, to land", "Yours to land: passes once landed"],
   };
   const [icon, label, title]: [IconName, string, string] =
     s.who === "you"
-      ? ["user", ...(yours[s.type ?? ""] ?? ["yours", "A checkpoint: you look at what the steps before it made, and only you pass it"])]
+      ? ["user", ...(yours[s.type ?? ""] ?? ["yours", "Checkpoint: review the earlier steps' work. Only you can pass."])]
       : s.who === "ws"
-        ? ["pr", "ws opens it", "ws opens the pull request itself, and passes the step when it merges"]
+        ? ["pr", "Workspace opens", "Workspace opens the pull request; passes when merged"]
         : s.who === "the planner"
-          ? ["sparkle", "planner", "The planner's: it writes the steps after it"]
+          ? ["sparkle", "planner", "Planner: writes the steps that follow"]
           : ["clock", s.who === "CI" ? "CI" : "outside", `Waited for: ${s.whoSays ?? s.who}`];
   return (
     <MissionPlanNote icon={icon} yours={s.who === "you"} title={title}>

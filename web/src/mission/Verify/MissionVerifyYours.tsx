@@ -31,7 +31,7 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
     <div className={css.yours}>
       {onNote && note !== undefined && (
         <label className={css.note}>
-          <span>What's not right? It goes back to {crew} with this check and what's shown here.</span>
+          <span>What's not right? Goes back to {crew} with this check.</span>
           <TextArea autoFocus rows={2} value={note} onChange={(e) => onNote(e.target.value)} placeholder="Say what you saw" />
         </label>
       )}
@@ -41,7 +41,7 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
           pressed={!!looked}
           disabled={busy}
           onChange={onLook}
-          title={left ? "Say it's fine as it is: it leaves what's left for you" : "Mark it as looked at, to keep your place: approving doesn't need it"}
+          title={left ? "Mark as fine" : "Mark as looked at"}
           keys="y"
         >
           <Icon name="check" size={14} /> {left ? "Approve check" : "Looked at"} <Keys k="y" />
@@ -52,7 +52,7 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
             className={note !== undefined ? cx(css.on, css.danger) : undefined}
             pressed={note !== undefined}
             onChange={(on) => onNote(on ? "" : undefined)}
-            title="Say what's not right of it: it goes back to its crew when you send the bundle back"
+            title="Say what's not right"
             keys="n"
           >
             <Icon name="x" size={14} /> Not right <Keys k="n" />

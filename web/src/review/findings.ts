@@ -7,13 +7,13 @@ import type { DismissWhy, PassFinding } from "../api";
 // Why a review's finding is dismissed: what a page's is, as a reviewer
 // would say it.
 export const reviewDismissWhys: [DismissWhy, string, string][] = [
-  ["wrong", "Wrong", "It isn't so"],
-  ["already", "Said already", "Someone's said it, or it's known"],
-  ["minor", "Not worth it", "It's so, but not worth raising"],
+  ["wrong", "Wrong", "Not true"],
+  ["already", "Said already", "Already raised or known"],
+  ["minor", "Not worth it", "True, but not worth raising"],
 ];
 
 // What a follow-up says of a comment.
-export const followWords: Record<string, string> = { addressed: "Dealt with", partly: "Partly dealt with", "not-addressed": "Not dealt with" };
+export const followWords: Record<string, string> = { addressed: "Addressed", partly: "Partly addressed", "not-addressed": "Not addressed" };
 
 // What's done with a finding: taken into your draft, dismissed (and why),
 // or asked about.

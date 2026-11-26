@@ -34,7 +34,7 @@ export function ArtifactTweak({ id, kind, label, description, opensAs, inline, c
         <label htmlFor={id} className={css.label}>
           {label}
         </label>
-        {opensAs !== undefined && <span className={css.moved} title={`It opens as ${opensAs}`} aria-label={`Changed: it opens as ${opensAs}`} />}
+        {opensAs !== undefined && <span className={css.moved} title={`Default: ${opensAs}`} aria-label={`Changed from default: ${opensAs}`} />}
         {inline && <span className={css.inline}>{children}</span>}
       </div>
       {description && <p className={css.description}>{description}</p>}

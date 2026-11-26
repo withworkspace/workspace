@@ -82,15 +82,15 @@ export function Missions({ missions }: { missions: Mission[] }) {
         {head}
         <Empty
           icon="flag"
-          title={missions.length ? "Nothing on right now" : "No missions yet"}
+          title={missions.length ? "No active missions" : "No missions yet"}
           action={
             <Link to="/conversations?new=1" className={buttonClass({ variant: "primary" })}>
               Start with a conversation
             </Link>
           }
         >
-          A mission is a piece of work crew carry out for you, stage by stage. Describe what you want in a conversation and the agent proposes one, or run{" "}
-          <code>ws mission new</code>.
+          A mission is work crew carry out for you, stage by stage. Describe what you want in a conversation,
+          or run <code>ws mission new</code>.
         </Empty>
       </div>
     );

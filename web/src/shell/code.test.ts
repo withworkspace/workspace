@@ -39,8 +39,8 @@ describe("the code scope", () => {
 
   it("says when it was capped, and why", () => {
     const capped = build({ q: "e", scope: "code", local, found: [], code: { hits: [hit()], end: { matches: 200, bytes: 9000, capped: "matches" } } });
-    expect(capped.sections[0].note).toMatch(/Stopped at the first 200 matches/);
-    expect(codeNote({ matches: 31, bytes: 262000, capped: "bytes" })).toMatch(/Stopped at 31 matches, as many as fit/);
+    expect(capped.sections[0].note).toMatch(/Showing first 200 matches/);
+    expect(codeNote({ matches: 31, bytes: 262000, capped: "bytes" })).toMatch(/Showing 31 matches, the most that fit/);
     expect(codeNote({ matches: 3, bytes: 90 })).toBeUndefined();
     expect(codeNote({ matches: 0, bytes: 0, problem: "regex parse error" })).toBe("regex parse error");
   });

@@ -122,12 +122,12 @@ describe("waitHow", () => {
 
   it("says a Wait with a check is watched, and passes by itself", () => {
     expect(waitHow(wait({ on: "npm", passes: "watched" }))).toMatchObject({ auto: true, word: "Watched" });
-    expect(waitHow(wait({ on: "you", passes: "watched" }))?.says).toContain("or mark it done");
+    expect(waitHow(wait({ on: "you", passes: "watched" }))?.says).toContain("checked every few minutes and passed automatically, or mark done to check now");
   });
 
   it("says a Wait without one is manual, and who moves it", () => {
-    expect(waitHow(wait({ on: "you", passes: "done" }))).toEqual({ auto: false, word: "Manual", says: "nothing's watching for it: it moves when you mark it done" });
-    expect(waitHow(wait({ on: "the platform team", passes: "said" }))?.says).toBe("nothing's watching for it: it moves when someone marks it done");
+    expect(waitHow(wait({ on: "you", passes: "done" }))).toEqual({ auto: false, word: "Manual", says: "passes when you mark done" });
+    expect(waitHow(wait({ on: "the platform team", passes: "said" }))?.says).toBe("passes when someone marks done");
     // One from before a Wait said who it's on.
     expect(waitHow(wait({}))).toMatchObject({ auto: false, word: "Manual" });
   });
@@ -142,7 +142,7 @@ describe("waitHow", () => {
 
   it("says what ws's last look came to", () => {
     const at = () => "14:02";
-    expect(watchWords(wait({ passes: "watched" }), at)).toBe("ws hasn't looked yet");
+    expect(watchWords(wait({ passes: "watched" }), at)).toBe("Not checked yet");
     expect(watchWords(wait({ passes: "watched", watch: { since: "x", looked: "y", looks: 3, came: "not yet" } }), at)).toBe("ws last looked 14:02: not yet");
   });
 });
@@ -163,8 +163,8 @@ describe("checksWords", () => {
 
   it("says a Wait's as ws last looked, and once it's passed, as ws last saw them", () => {
     const wait = step({ type: "Wait", passes: "watched", checks: [check()] });
-    expect(checksWords(wait, at)).toBe("ws hasn't looked yet");
-    expect(checksWords({ ...wait, state: "accepted" }, at)).toBe("Its check, as ws last saw it");
-    expect(checksWords({ ...wait, state: "accepted", checks: [check(), check()] }, at)).toBe("Its checks, as ws last saw them");
+    expect(checksWords(wait, at)).toBe("Not checked yet");
+    expect(checksWords({ ...wait, state: "accepted" }, at)).toBe("Check, as last seen");
+    expect(checksWords({ ...wait, state: "accepted", checks: [check(), check()] }, at)).toBe("Checks, as last seen");
   });
 });

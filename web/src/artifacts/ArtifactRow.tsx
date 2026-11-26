@@ -65,7 +65,7 @@ export function ArtifactRow({ to, onContextMenu, id, option, selected, onHover, 
         )}
       </TLink>
       {onPromote && (
-        <Button variant="ghost" size="small" className={css.promote} onClick={onPromote} title="Keep it for good: it expires no more">
+        <Button variant="ghost" size="small" className={css.promote} onClick={onPromote} title="Keep permanently">
           <Icon name="check-circle" size={13} /> Promote
         </Button>
       )}

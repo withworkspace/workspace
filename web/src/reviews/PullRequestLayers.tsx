@@ -64,7 +64,7 @@ export function PullRequestLayers({
           </li>
         ))}
       </ol>
-      <ToggleButton variant="ghost" size="small" className={css.whole} pressed={whole} aria-busy={goingWhole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer." keys="w">
+      <ToggleButton variant="ghost" size="small" className={css.whole} pressed={whole} aria-busy={goingWhole || undefined} onChange={onWhole} title="All layers' changes combined. Read-only: comment on a layer." keys="w">
         {goingWhole && !whole ? <Spinner size={12} /> : <Icon name="layers" size={12} />} Whole stack <Keys k="w" />
       </ToggleButton>
     </div>

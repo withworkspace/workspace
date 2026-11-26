@@ -22,7 +22,7 @@ export function RefArtifactCard({ r }: { r: Extract<PageRef, { kind: "artifact" 
   return (
     <>
       <RefCardHead icon="artifact" title={brief?.title ?? r.id} />
-      {!brief && <HoverCardLine dim>This machine has no artifact {r.id}.</HoverCardLine>}
+      {!brief && <HoverCardLine dim>No artifact {r.id} on this machine.</HoverCardLine>}
       {brief && (
         <HoverCardLine dim>
           {r.version ? `${r.id}.v${r.version}, ` : `${r.id}, `}
@@ -42,8 +42,8 @@ export function RefArtifactCard({ r }: { r: Extract<PageRef, { kind: "artifact" 
           {v.fromTitle ? ` (${v.fromTitle})` : ""}
         </HoverCardLine>
       )}
-      {error && brief && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
-      {brief && <RefGo to={refHref(r)}>Open the artifact</RefGo>}
+      {error && brief && <HoverCardLine dim>Could not read: {error}</HoverCardLine>}
+      {brief && <RefGo to={refHref(r)}>Open artifact</RefGo>}
     </>
   );
 }

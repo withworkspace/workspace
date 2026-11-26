@@ -38,7 +38,7 @@ export function TalkProposalChoice({
       <Button variant="ghost" disabled={!!busy} onClick={onDecline} title={declineTitle}>
         {decline}
       </Button>
-      <Button variant="primary" disabled={!!busy || !ready} unavailable={replying ? "Read its reply first: the agent's still writing it" : undefined} onClick={onAccept}>
+      <Button variant="primary" disabled={!!busy || !ready} unavailable={replying ? "Agent is still replying" : undefined} onClick={onAccept}>
         {accept}
       </Button>
     </>

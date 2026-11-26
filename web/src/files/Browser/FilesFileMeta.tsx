@@ -28,7 +28,7 @@ export function FilesFileMeta({ status, base, oldPath, uncommitted, legend }: Fi
         base && <Chip tone="quiet">Unchanged since {base}</Chip>
       )}
       {oldPath && <Text dim>from {oldPath}</Text>}
-      {uncommitted && <Chip tone="attention">Not committed</Chip>}
+      {uncommitted && <Chip tone="attention">Uncommitted</Chip>}
       {legend}
     </div>
   );

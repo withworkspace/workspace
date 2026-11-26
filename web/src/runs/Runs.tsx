@@ -50,8 +50,8 @@ export function RunsPage() {
         {running.length > 0 && <Chip tone="done">{running.length} running</Chip>}
       </PageHead>
       <RunsPageLede>
-        What ws runs for you and your agents. A service (a dev server, a preview, a compose stack) is given a free port, and ended once whoever it's for goes, or its time's
-        up. A task (tests, lint, a build) ends by itself, and what it came to is kept.
+        Dev servers, tests and builds run for you and your agents. Services get a free port and stop when no
+        longer needed. Tasks end by themselves, and their results are kept.
       </RunsPageLede>
       {error && !info && <ErrorCard error={error} retry={reload} />}
       {!info && !error && <Skeleton rows={4} />}
@@ -64,8 +64,8 @@ export function RunsPage() {
             </GroupHead>
             {running.length === 0 ? (
               <Empty icon="play" title="Nothing's running">
-                Crew and conversations start dev servers and run tests with <code>ws run</code>, and so can you: from a terminal, or with Run on a capsule in a mission's Work
-                tab. Each shows here, with its link.
+                Dev servers and tests started with <code>ws run</code> show here. Start one from a terminal,
+                or with Run on a capsule in a mission's Work tab.
               </Empty>
             ) : (
               <RunsPageList>
@@ -78,7 +78,7 @@ export function RunsPage() {
           {results.length > 0 && (
             <section>
               <GroupHead count={results.length}>Results</GroupHead>
-              <RunsPageNote>What each task last came to, kept with all it printed, its reports, and the runs of it before, while where it ran is there.</RunsPageNote>
+              <RunsPageNote>Latest result of each task, with output, reports and earlier runs. Kept until the capsule is gone.</RunsPageNote>
               <RunsPageList>
                 {results.map((r) => (
                   <RunsRow key={r.ref} r={r} up={up} reload={reload} show={show} />
@@ -94,7 +94,8 @@ export function RunsPage() {
                 Silos
               </GroupHead>
               <RunsPageNote>
-                Each mirrors the capsule it's pointed at, kept by the daemon as files change. <code>ws silo point</code> points one elsewhere.
+                Each mirrors a capsule, kept in sync as files change. <code>ws silo point</code> points one
+                elsewhere.
               </RunsPageNote>
               <RunsPageList>
                 {info.silos.map((st) => (
@@ -108,7 +109,7 @@ export function RunsPage() {
               <GroupHead count={ended.length}>
                 Ended
               </GroupHead>
-              <RunsPageNote>Services that ended by themselves, kept an hour with their output.</RunsPageNote>
+              <RunsPageNote>Services that exited on their own. Kept for an hour, with output.</RunsPageNote>
               <RunsPageList>
                 {ended.map((r) => (
                   <RunsRow key={r.ref} r={r} up={up} reload={reload} show={show} />

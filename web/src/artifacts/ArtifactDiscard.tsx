@@ -29,10 +29,12 @@ export function ArtifactDiscard({ title, id, home, branch, why, onWhy, error, bu
   return (
     <Dialog title={`Discard “${title}”`} onClose={onClose}>
       <DialogText>
-        It's taken off the list, with its versions. Its folder moves to <Text mono>.ws/artifacts/.discarded</Text>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
+        Removed from list, with versions. Folder moves to <Text mono>.ws/artifacts/.discarded</Text>, and is
+        deleted after 30 days: until then, <em>Restore</em> puts it back.{" "}
         {home && (
           <>
-            Its folder in {home.repo} (<Text mono>{home.where}</Text>) is taken away too, in one commit straight to {home.repo}'s {branch ?? "default branch"}.{" "}
+            Folder in {home.repo} (<Text mono>{home.where}</Text>) is taken away too, commits to {home.repo}'s{" "}
+            {branch ?? "default branch"}.{" "}
           </>
         )}
         {id} still says what it was.
@@ -42,7 +44,7 @@ export function ArtifactDiscard({ title, id, home, branch, why, onWhy, error, bu
         autoFocus
         rows={3}
         value={why}
-        placeholder="Why? (you can leave it empty)"
+        placeholder="Why? (optional)"
         onChange={(e) => onWhy(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -50,7 +52,7 @@ export function ArtifactDiscard({ title, id, home, branch, why, onWhy, error, bu
             onGo();
           }
         }}
-        aria-label="Why it's discarded"
+        aria-label="Reason"
       />
       {error && <Banner>{error}</Banner>}
       <DialogActions>

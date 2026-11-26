@@ -115,12 +115,12 @@ export function ArtifactPage() {
           actions={
             <>
               {a.markdown && !editing && (
-                <Button size="small" onClick={edit} unavailable={a.editable ? undefined : `Can't be edited here: ${a.uneditable}`} title="Edit it here">
+                <Button size="small" onClick={edit} unavailable={a.editable ? undefined : `Not editable here: ${a.uneditable}`} title="Edit">
                   <Icon name="pencil" size={12} /> Edit <Keys k="e" />
                 </Button>
               )}
               {a.url && (
-                <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} {...keyProps(editing ? undefined : "o", "Open it where it lives")}>
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} {...keyProps(editing ? undefined : "o", "Open in repo")}>
                   <Icon name="external" size={12} /> Open <Keys k="o" />
                 </a>
               )}
@@ -128,26 +128,26 @@ export function ArtifactPage() {
           }
         />
       )}
-      {error && <ErrorCard title="Couldn't open this document" error={error} retry={again} />}
+      {error && <ErrorCard title="Could not open document" error={error} retry={again} />}
       {!a && !error && <Skeleton rows={10} />}
       {a && !editing && draft && (
         <Callout
           tone="attention"
           icon="pencil"
-          title="You've an unsaved edit of this"
+          title="Unsaved edit"
           actions={
             <>
               <Button variant="primary" size="small" onClick={edit}>
-                Go on editing <Keys k="e" />
+                Continue editing <Keys k="e" />
               </Button>
               <Button variant="ghost" size="small" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>
-                Discard it
+                Discard
               </Button>
             </>
           }
         >
-          Kept <Time iso={draft.at} as="relative" />
-          {draft.base !== a.version ? ". The document's changed since: saving merges your edit with those changes." : "."}
+          Draft saved <Time iso={draft.at} as="relative" />
+          {draft.base !== a.version ? ". Document changed since. Saving will merge." : "."}
         </Callout>
       )}
       {a && editing ? (
@@ -162,7 +162,7 @@ export function ArtifactPage() {
           }}
           onClose={(kept) => {
             setEditing(false);
-            if (kept) toast("Your edit's kept as a draft: e goes on with it", { tone: "info" });
+            if (kept) toast("Draft saved: e to continue", { tone: "info" });
             getDraft(slug, ref).then(setDraft, () => {});
           }}
         />

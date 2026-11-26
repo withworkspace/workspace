@@ -23,7 +23,7 @@ export function MissionBriefOutlineItem({ children, count = 0, here, onGo }: Mis
       <button type="button" className={cx(css.item, here && css.here)} aria-current={here || undefined} onClick={onGo}>
         <span>{children}</span>
         {count > 0 && (
-          <Count tone="attention" title={`${count} to read here`}>
+          <Count tone="attention" title={`${count} to review`}>
             {count}
           </Count>
         )}

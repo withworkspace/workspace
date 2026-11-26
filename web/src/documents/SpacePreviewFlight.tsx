@@ -14,7 +14,7 @@ export function SpacePreviewFlight({ capsules }: { capsules: { name: string; to:
           <Link to={c.to}>{c.name}</Link>
         </span>
       ))}
-      : in flight, so what's here may be about to change.
+      : not landed yet, so this may change.
     </Banner>
   );
 }

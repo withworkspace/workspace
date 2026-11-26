@@ -28,17 +28,17 @@ export function FootSidebar({
 }: FootSidebarProps) {
   const says = !shown && count > 0;
   const title = shown
-    ? "Hide the sidebar"
+    ? "Hide sidebar"
     : says
-      ? `${count} ${count === 1 ? "needs" : "need"} you: show the sidebar`
-      : "Show the sidebar";
+      ? `${count} ${count === 1 ? "needs" : "need"} you: show sidebar`
+      : "Show sidebar";
   return (
     <FootItem
       on={shown}
       label={
         says
-          ? `The sidebar: ${count} ${count === 1 ? "needs" : "need"} you`
-          : "The sidebar"
+          ? `Sidebar: ${count} ${count === 1 ? "needs" : "need"} you`
+          : "Sidebar"
       }
       title={title}
       onPress={onPress}

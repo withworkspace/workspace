@@ -25,8 +25,8 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
   return (
     <>
       {info.unknown && info.unknown.length > 0 && <SettingsUnknown keys={info.unknown} />}
-      <SettingsBlock title={<>What {fileName(info.file)} sets</>} count={mines.length}>
-        {mines.length === 0 && <div className="quiet-line">Nothing: every setting is the team's, or ws's default.</div>}
+      <SettingsBlock title={<>Set in {fileName(info.file)}</>} count={mines.length}>
+        {mines.length === 0 && <div className="quiet-line">Nothing: all settings are the team's or defaults.</div>}
         <SettingsMine>
           {mines.map((m) => (
             <MineRow key={name(m.s)} m={m} />
@@ -42,7 +42,7 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
               </Link>{" "}
               · Theme
             </span>
-            <span>{{ system: "As the system has it", light: "Light", dark: "Dark" }[choice]}</span>
+            <span>{{ system: "System", light: "Light", dark: "Dark" }[choice]}</span>
           </SettingsMineRow>
           <SettingsMineRow>
             <span>

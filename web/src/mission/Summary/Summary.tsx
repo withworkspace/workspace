@@ -106,7 +106,7 @@ export function Summary({
               {workWords(w, label, d.slug) || "Nothing yet: crew lift a capsule when they start."}{" "}
               {(w.capsules.length > 0 || w.outputs.length > 0) && (
                 <MoreLink onClick={() => go("work")} keys="3">
-                  All of it in Work
+                  See all in Work
                 </MoreLink>
               )}
             </MissionSummaryWork>
@@ -129,7 +129,7 @@ export function Summary({
             <Events events={events.slice(-recent)} lines={2} />
             {events.length > recent && (
               <MissionSummaryMore onClick={() => go("log")} keys="5">
-                The whole log ({events.length})
+                Full log ({events.length})
               </MissionSummaryMore>
             )}
           </SummaryRow>

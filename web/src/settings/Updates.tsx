@@ -32,27 +32,27 @@ export function Updates({ running }: { running?: string }) {
     checkUpdates()
       .then((now) => {
         set(now);
-        if (now.error) toast(`Couldn't look: ${humanError(now.error)}`, { tone: "danger", ms: 8000 });
-        else toast(now.newer ? `ws ${now.latest} is out` : "No later release of ws", { tone: "done" });
+        if (now.error) toast(`Could not check for updates: ${humanError(now.error)}`, { tone: "danger", ms: 8000 });
+        else toast(now.newer ? `ws ${now.latest} is out` : "ws is up to date", { tone: "done" });
       })
-      .catch((e: Error) => toast(`Couldn't look: ${humanError(e.message)}`, { tone: "danger", ms: 8000 }))
+      .catch((e: Error) => toast(`Could not check for updates: ${humanError(e.message)}`, { tone: "danger", ms: 8000 }))
       .finally(() => setBusy(undefined));
   };
   const upgrade = async () => {
     if (!up?.latest) return;
     const yes = await confirm({
       title: `Upgrade ws to ${up.latest}?`,
-      body: `It's fetched, checked against the release's checksums, and put in place of ${shortVersion(up.version)}, which is kept: ws upgrade --rollback puts it back. The daemon restarts onto it once nothing's at work (no crew mid-turn, no agent's run), and this page carries on.`,
+      body: `Replaces ${shortVersion(up.version)}, which is kept: ws upgrade --rollback restores it. Workspace restarts when idle (no crew mid-turn, no agent runs); this page carries on.`,
       confirm: "Upgrade",
     });
     if (!yes) return;
     setBusy("upgrade");
     try {
       const did = await upgradeWS();
-      toast(did.installed ? `ws ${did.to} is installed: the daemon restarts onto it once nothing's at work` : `ws ${did.to} is what's running already`, { tone: "done", ms: 8000 });
+      toast(did.installed ? `ws ${did.to} installed: Workspace restarts when idle` : `Already running ws ${did.to}`, { tone: "done", ms: 8000 });
       await reload();
     } catch (e) {
-      toast(`Couldn't upgrade: ${humanError((e as Error).message)}`, { tone: "danger", ms: 10000 });
+      toast(`Could not upgrade: ${humanError((e as Error).message)}`, { tone: "danger", ms: 10000 });
     } finally {
       setBusy(undefined);
     }

@@ -47,28 +47,28 @@ export function PullRow({
       chips={
         <>
           {st && (
-            <Chip tone="quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
+            <Chip tone="quiet" title={st.workedOut ? "Detected stack: each pull request builds on the one before" : `Stack ${st.number} on GitHub`}>
               <Icon name="layers" size={11} /> stack of {st.layers.length}
             </Chip>
           )}
           {pr?.draft && <Chip tone="quiet">Draft</Chip>}
           {pr?.asked === "team" && (
-            <Chip tone="quiet" title="Asked of a team you're in">
+            <Chip tone="quiet" title="Requested from your team">
               Your team
             </Chip>
           )}
           {!!onTopOf && (
-            <Chip tone="quiet" title="Its base is that pull request's branch">
+            <Chip tone="quiet" title="Based on that pull request's branch">
               on top of #{onTopOf}
             </Chip>
           )}
           {mission && (
-            <Chip tone="quiet" title={`From the mission ${mission.title}`}>
+            <Chip tone="quiet" title={`From mission ${mission.title}`}>
               <Icon name="flag" size={11} /> {mission.title}
             </Chip>
           )}
           {pr?.capsule && (
-            <Chip tone="quiet" title={`Checked out here in ${pr.repo}/${pr.capsule}`}>
+            <Chip tone="quiet" title={`Checked out in ${pr.repo}/${pr.capsule}`}>
               <Icon name="box" size={11} /> {pr.capsule}
             </Chip>
           )}

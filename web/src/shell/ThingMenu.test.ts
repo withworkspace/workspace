@@ -17,10 +17,10 @@ const titles = (to: string) => actsAt(to, workspace).map((it) => it.title);
 
 describe("what a row's menu can do", () => {
   it("is what Find can do to the thing the row goes to", () => {
-    expect(titles("/missions/ready")).toEqual(["Park it", "Archive it", "Its brief"]);
-    expect(titles("/conversations/w1")).toEqual(["Resolve it"]);
-    expect(titles("/artifacts/a1")).toEqual(["Compare its versions"]);
-    expect(titles("/reviews/demo/12")[0]).toBe("Dock it here");
+    expect(titles("/missions/ready")).toEqual(["Park", "Archive", "Open brief"]);
+    expect(titles("/conversations/w1")).toEqual(["Resolve"]);
+    expect(titles("/artifacts/a1")).toEqual(["Compare versions"]);
+    expect(titles("/reviews/demo/12")[0]).toBe("Dock here");
   });
 
   it("is nothing for a row that goes to something with nothing to do to it", () => {

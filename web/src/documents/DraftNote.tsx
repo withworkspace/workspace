@@ -8,25 +8,25 @@ export function DraftNote({ p }: { p: Placed }) {
   switch (p.why) {
     case "to":
       return (
-        <Chip tone="quiet" title={`To be filed in ${p.path || "its top"}, not filed yet`}>
+        <Chip tone="quiet" title={`Will be filed in ${p.path || "its top"}`}>
           Not filed · {p.path || "top"}
         </Chip>
       );
     case "unsaved":
       return (
-        <Chip tone="attention" title={`Your edits to ${p.path}, not saved to the repo yet`}>
+        <Chip tone="attention" title={`Unsaved edits to ${p.path}`}>
           Unsaved
         </Chip>
       );
     case "filed":
       return (
-        <Chip tone="progress" title={`Filed as ${p.path}, in a capsule: it's here once it lands`}>
+        <Chip tone="progress" title={`Filed as ${p.path}: shows here once landed`}>
           Filed, not landed
         </Chip>
       );
     default:
       return (
-        <Chip tone="quiet" title="Started as one of this space's kinds, not filed yet">
+        <Chip tone="quiet" title="Started from a document kind, not filed yet">
           Not filed
         </Chip>
       );

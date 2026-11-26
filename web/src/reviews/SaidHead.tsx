@@ -17,12 +17,12 @@ export function SaidHead({ it }: { it: Said }) {
         <Icon name={saidIcon(it.kind)} size={12} /> {saidWords[it.kind]}
       </span>
       {it.stale && (
-        <Text dim title="It's had commits pushed since this review">
+        <Text dim title="New commits since this review">
           on earlier commits
         </Text>
       )}
       {it.sending ? (
-        <Text dim title="It's on its way to GitHub">
+        <Text dim title="Sending to GitHub">
           Sending…
         </Text>
       ) : (

@@ -62,9 +62,10 @@ export function Work({
 
   if (!w.capsules.length && !w.outputs.length && !d.endedCapsules?.length) {
     return (
-      <Empty icon="box" title="Nothing's been made yet">
-        A capsule is a worktree the mission's crew work in. Crew lift one when they start; <code>ws lift &lt;repo&gt; &lt;name&gt;</code> lifts one by hand. Proposals, notes, handoffs and
-        artifacts show here as crew make them.
+      <Empty icon="box" title="Nothing made yet">
+        Crew lift a capsule when they start, or lift one yourself with{" "}
+        <code>ws lift &lt;repo&gt; &lt;name&gt;</code>. Proposals, notes, handoffs and artifacts show here as
+        crew make them.
       </Empty>
     );
   }
@@ -84,7 +85,7 @@ export function Work({
             </MissionWorkSub>
           )}
           {showDone && rows(w.done)}
-          {!w.capsules.length && <MissionWorkNone>None yet: crew lift one when they start.</MissionWorkNone>}
+          {!w.capsules.length && <MissionWorkNone>None yet: crew lift capsules when they start.</MissionWorkNone>}
           {d.endedCapsules?.length ? (
             <MissionWorkEnded>
               <EndedCapsules list={d.endedCapsules} />
@@ -94,7 +95,7 @@ export function Work({
           {w.outputs.map((a) => (
             <WorkOutputRow key={a.ref} a={a} selected={outputKey(a) === shown} select={select} open={openArtifact} />
           ))}
-          {!w.outputs.length && <MissionWorkNone>Nothing yet: proposals, notes, handoffs and artifacts show here as crew make them.</MissionWorkNone>}
+          {!w.outputs.length && <MissionWorkNone>Nothing yet: proposals, notes, handoffs and artifacts show here.</MissionWorkNone>}
         </>
       }
     >

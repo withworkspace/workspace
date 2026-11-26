@@ -42,7 +42,7 @@ export function Copyable({
         if (keys && clicked(e)) keyHint(keys);
         e.preventDefault();
         e.stopPropagation();
-        navigator.clipboard?.writeText(text).then(() => setCopied(true), () => toast("Couldn't copy: the browser said no"));
+        navigator.clipboard?.writeText(text).then(() => setCopied(true), () => toast("Could not copy: browser refused"));
       }}
     >
       <span className={css.text}>{children ?? text}</span>

@@ -35,7 +35,7 @@ export function ListRow({ a, selected, onHover, onPromote }: { a: ArtifactInfo; 
           </Chip>
           {a.status !== "live" || a.gone || a.expired ? <Chip tone={artifactStatus(a).tone}>{artifactStatus(a).words}</Chip> : null}
           {expiry?.soon && (
-            <Chip tone="attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
+            <Chip tone="attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}. Promote it to keep it.`}>
               <Icon name="clock" size={11} /> {expiry.words}
             </Chip>
           )}

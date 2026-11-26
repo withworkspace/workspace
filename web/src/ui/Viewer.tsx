@@ -353,7 +353,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
           <div className={css.svg} dangerouslySetInnerHTML={{ __html: viewing.svg }} />
         )}
       </div>
-      {failed && <div className={css.failed}>This picture couldn't be loaded.</div>}
+      {failed && <div className={css.failed}>Could not load picture.</div>}
       {viewing.title && (
         <div className={css.title} data-viewer-own="">
           {viewing.title}
@@ -363,17 +363,17 @@ function Stage({ viewing }: { viewing: Viewing }) {
         <Button variant="ghost" square onClick={zoomOut} title="Zoom out" aria-label="Zoom out">
           <Icon name="minus" size={15} />
         </Button>
-        <Button variant="ghost" className={css.zoom} onClick={ownSize} title="Its own size">
+        <Button variant="ghost" className={css.zoom} onClick={ownSize} title="Intrinsic size">
           {Math.round(zoom * 100)}%
         </Button>
         <Button variant="ghost" square onClick={zoomIn} title="Zoom in" aria-label="Zoom in">
           <Icon name="plus" size={15} />
         </Button>
-        <Button variant="ghost" className={css.fit} onClick={fitIt} title="Fit it to the window">
+        <Button variant="ghost" className={css.fit} onClick={fitIt} title="Fit to window">
           Fit
         </Button>
         {viewing.kind === "image" && (
-          <a className={buttonClass({ variant: "ghost" }, "icon-button")} href={viewing.src} target="_blank" rel="noopener noreferrer" title="Open it on its own" aria-label="Open it on its own">
+          <a className={buttonClass({ variant: "ghost" }, "icon-button")} href={viewing.src} target="_blank" rel="noopener noreferrer" title="Open in new tab" aria-label="Open in new tab">
             <Icon name="external" size={14} />
           </a>
         )}

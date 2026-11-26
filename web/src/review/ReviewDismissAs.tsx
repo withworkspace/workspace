@@ -20,14 +20,14 @@ export function ReviewDismissAs({ onDismiss, onCancel }: { onDismiss: (why: Dism
     { modal: true },
   );
   return (
-    <span className={css.as} role="group" aria-label="Dismiss it as" onClick={(e) => e.stopPropagation()}>
+    <span className={css.as} role="group" aria-label="Dismiss as" onClick={(e) => e.stopPropagation()}>
       <Text dim>Dismiss as</Text>
       {reviewDismissWhys.map(([why, label, title], i) => (
         <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)} keys={`${i + 1}`}>
           {label} <Keys k={`${i + 1}`} />
         </Button>
       ))}
-      <Button variant="ghost" size="small" square onClick={onCancel} aria-label="Don't dismiss it" title="Don't dismiss it" keys="esc">
+      <Button variant="ghost" size="small" square onClick={onCancel} aria-label="Cancel" title="Cancel" keys="esc">
         <Icon name="x" size={11} />
       </Button>
     </span>

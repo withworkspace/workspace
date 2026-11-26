@@ -61,8 +61,8 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
     return (
       <FilesRunsNone>
         <Empty icon="play" title="Nothing runs here">
-          Nothing's run in it lately, and its ws.repo.toml has no recipes: a repo says how it's run as [run.service.&lt;name&gt;] and [run.task.&lt;name&gt;] there, and ws run
-          starts one from a terminal.
+          No recent runs, and no recipes in ws.repo.toml. Add [run.service.&lt;name&gt;] or
+          [run.task.&lt;name&gt;] there, or start one from a terminal with ws run.
         </Empty>
       </FilesRunsNone>
     );
@@ -83,7 +83,7 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
     setBusy(b);
     runInWorktree(repo, name, recipe)
       .then((r) => {
-        if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} is running on ${r.port}, not up yet`, { tone: "done" });
+        if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} starting on ${r.port}`, { tone: "done" });
         show(r.type === "task" ? { run: runId(r) } : { service: r.recipe ?? r.name });
         return reload();
       })
@@ -169,8 +169,8 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
     }
     return (
       <FilesRunsNone>
-        <Empty icon="play" title="Nothing's run here lately">
-          Run one of its tasks and it's shown here, with all it printed.
+        <Empty icon="play" title="No recent runs">
+          Tasks you run show here, with their output.
         </Empty>
       </FilesRunsNone>
     );
@@ -195,13 +195,13 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
                       key={rc.name}
                       disabled={!!busy}
                       onClick={() => start(rc.name, { id: rc.name, what: "start" })}
-                      title={`Run its ${rc.name} task, from its ws.repo.toml: what it comes to is kept`}
+                      title={`Run ${rc.name} task`}
                     >
                       {busy?.id === rc.name ? <Spinner size={11} /> : <Icon name="play" size={11} />} {rc.title || rc.name}
                     </Button>
                   ))
                 }
-                quiet={place.tasks.length === 0 && "None of its tasks has run here lately. What a task comes to is kept a month, with the ten runs of it before."}
+                quiet={place.tasks.length === 0 && "No recent task runs. Results are kept for a month, with the ten runs before."}
               >
                 {place.tasks.map((r) => (
                   <TaskItem key={runId(r)} r={r} title={r.recipe ? recipes.get(r.recipe)?.title : undefined} to={to({ run: runId(r) })} picked={isPicked(r)} />

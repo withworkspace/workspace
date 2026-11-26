@@ -42,17 +42,17 @@ export function SettingsAccent({ label, ours, accents, picked, hex, dark, pulled
   const other = picked !== ours && !accents.some(([a]) => a === picked);
   return (
     <div className={css.accent}>
-      <div className={css.swatches} role="group" aria-label={`${label}: ones to pick from`}>
-        <button type="button" className={css.swatch} style={swatch(ours)} aria-pressed={picked === ours} title="ws's own" aria-label="ws's own" onClick={onOurs} />
+      <div className={css.swatches} role="group" aria-label={`${label} presets`}>
+        <button type="button" className={css.swatch} style={swatch(ours)} aria-pressed={picked === ours} title="Default" aria-label="Default" onClick={onOurs} />
         {accents.map(([a, name]) => (
           <button key={a} type="button" className={css.swatch} style={swatch(a)} aria-pressed={picked === a} title={name} aria-label={name} onClick={() => picked !== a && onPick(a)} />
         ))}
-        <label className={cx(css.swatch, css.any, other && css.on)} style={swatch(picked)} title="Another colour">
-          <input ref={picker} type="color" value={picked} aria-label={`${label}: another colour`} onChange={(e) => onPreview(e.target.value)} />
+        <label className={cx(css.swatch, css.any, other && css.on)} style={swatch(picked)} title="Custom colour">
+          <input ref={picker} type="color" value={picked} aria-label={`${label}: custom colour`} onChange={(e) => onPreview(e.target.value)} />
         </label>
       </div>
       <div className={css.line}>
-        <span className={css.shown} title={`As the ${dark ? "dark" : "light"} theme shows it`}>
+        <span className={css.shown} title={`Preview in ${dark ? "dark" : "light"} theme`}>
           <span className={css.shownText}>Text</span>
           <span className={css.shownTint}>Selected</span>
           <span className={css.shownButton}>Button</span>
@@ -77,7 +77,8 @@ export function SettingsAccent({ label, ours, accents, picked, hex, dark, pulled
       </div>
       {pulled && (
         <SettingsNote>
-          The {dark ? "dark" : "light"} theme shows it {pulled.way}, as <code>{pulled.as}</code>, so it reads on the page.
+          Shown {pulled.way} in the {dark ? "dark" : "light"} theme, as <code>{pulled.as}</code>, for
+          contrast.
         </SettingsNote>
       )}
     </div>

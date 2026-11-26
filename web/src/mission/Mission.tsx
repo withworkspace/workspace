@@ -62,17 +62,17 @@ const wideTabs: Tab[] = ["work", "verify"];
 
 export const missionKeys: [string, string][] = [
   ["1–7", "Summary, Brief, Work, Verify, Log, Talk, Decisions"],
-  ["j / k", "Next / previous document or capsule, or a bundle's check"],
-  ["⏎", "Open it: a capsule's review, a document's page"],
-  ["v", "Review the capsule, or read the replies on a document"],
-  ["o", "Open its link (a PR, a document on GitHub)"],
-  ["f", "Browse the capsule's files (or the mission's only one)"],
-  ["e", "Go to the brief and plan, to edit them"],
-  ["s", "Show or hide the details: beside Summary, over the other tabs"],
+  ["j / k", "Next / previous item"],
+  ["⏎", "Open"],
+  ["v", "Review capsule / read replies"],
+  ["o", "Open link"],
+  ["f", "Browse files"],
+  ["e", "Edit brief and plan"],
+  ["s", "Toggle details"],
   ["r", "Reload"],
-  ["y / n", "On Verify: approve the check (or mark it looked at) / say it's not right"],
-  ["mod+⏎", "On Verify: approve the bundle, or send it back with what you said"],
-  ["esc", "Close the details or a bundle you opened, or back to the missions"],
+  ["y / n", "Verify: approve / reject check"],
+  ["mod+⏎", "Verify: approve bundle or send back"],
+  ["esc", "Close, or back to missions"],
   ...briefKeys,
 ];
 
@@ -265,7 +265,7 @@ export function MissionPage() {
 
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
-  const wayBack = { to: "/", title: "Missions", keys: "esc", label: "Back to the missions" };
+  const wayBack = { to: "/", title: "Missions", keys: "esc", label: "Back to missions" };
   const tabRow = (count?: (t: Tab) => ReactNode) => (
     <Tabs className={pageBarTabsClass()} value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (
@@ -282,11 +282,11 @@ export function MissionPage() {
       <div className="page narrow">
         <Crumbs steps={[{ to: "/", label: "Missions", keys: "esc" }]} />
         <ErrorCard
-          title={/not found|no mission/i.test(error) ? "There's no mission here" : "Couldn't load this mission"}
-          error={/not found|no mission/i.test(error) ? `No mission is called ${slug}: it may have been renamed or deleted.` : error}
+          title={/not found|no mission/i.test(error) ? "Mission not found" : "Could not load mission"}
+          error={/not found|no mission/i.test(error) ? `No mission called ${slug}. It may have been renamed or deleted.` : error}
           retry={again}
         />
-        <Link to="/" className={buttonClass()} {...keyProps("esc", "Back to the missions")}>
+        <Link to="/" className={buttonClass()} {...keyProps("esc", "Back to missions")}>
           <Icon name="arrow-left" /> All missions
         </Link>
       </div>
@@ -348,21 +348,21 @@ export function MissionPage() {
         status={d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} />}
         title={d.title}
         onRename={rename}
-        renameLabel="Rename the mission"
+        renameLabel="Rename mission"
         tabs={tabRow((t) => (
           <>
             {t === "brief" && briefWaiting > 0 && (
-              <Count tone="attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
+              <Count tone="attention" title={planning?.proposed ? "Planner proposal to confirm" : "Planner waiting on you"}>
                 {briefWaiting}
               </Count>
             )}
             {t === "verify" && waitingBundles > 0 && (
-              <Count tone="attention" title="Verification bundles waiting for you to approve">
+              <Count tone="attention" title="Bundles to approve">
                 {waitingBundles}
               </Count>
             )}
             {t === "verify" && !waitingBundles && standing > 0 && (
-              <Count title="Verification bundles, handed over to show the work">
+              <Count title="Verification bundles">
                 {standing}
               </Count>
             )}
@@ -381,13 +381,13 @@ export function MissionPage() {
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.
         <MissionFramePanel id="mission-panel" label={tabNames.brief} brief key="brief">
-          {error && <ErrorCard title="Couldn't refresh" error={error} retry={again} />}
+          {error && <ErrorCard title="Could not refresh" error={error} retry={again} />}
           <Brief d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </MissionFramePanel>
       ) : (
       <MissionFrameBody side={docked} wide={wideTabs.includes(tab)}>
         <MissionFrameMain>
-          {error && <ErrorCard title="Couldn't refresh" error={error} retry={again} />}
+          {error && <ErrorCard title="Could not refresh" error={error} retry={again} />}
           <MissionFramePanel id="mission-panel" label={tabNames[tab]} key={tab}>
             {tab === "summary" && <Summary d={d} selected={selected} review={review} full={!side} go={setTab} reload={load} />}
             {tab === "work" && w && (

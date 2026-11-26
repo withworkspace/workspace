@@ -60,11 +60,11 @@ export function Below({ views, sheet }: BelowProps) {
       <DockHead
         tools={
           <>
-            <Segmented aria-label="Which of it" size="small" value={below.where} onChange={(w: BelowWhere) => change((s) => belowWhere(s, w))}>
-              <Segment value="here" title="Of what this page is of">
+            <Segmented aria-label="Scope" size="small" value={below.where} onChange={(w: BelowWhere) => change((s) => belowWhere(s, w))}>
+              <Segment value="here" title="For this page">
                 Here
               </Segment>
-              <Segment value="everywhere" title="The workspace's">
+              <Segment value="everywhere" title="Whole workspace">
                 Everywhere
               </Segment>
             </Segmented>

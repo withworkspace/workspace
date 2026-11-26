@@ -15,8 +15,7 @@ export function PlacesRow({ settings }: { settings: Setting[] }) {
   return (
     <SettingsRow label={<Marked text={words.places.label} />} tomlKey={<Marked text={settings.map((s) => (s === settings[0] ? name(s) : s.key)).join(" · ")} />} about={<Marked text={words.places.about} />} source={mine && <Source s={mine} brief />}>
       <Button type="button" onClick={arrange}>
-        <Icon name="grip" size={13} />
-        Arrange the sidebar…
+        <Icon name="grip" size={13} />Arrange sidebar…
       </Button>
     </SettingsRow>
   );

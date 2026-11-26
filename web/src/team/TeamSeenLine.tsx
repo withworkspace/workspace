@@ -7,7 +7,7 @@ export function TeamSeenLine({ at }: { at: string }) {
   return (
     <li className={css.line} role="separator">
       <span>
-        You'd seen what's below <Time iso={at} as="relative" />
+        Seen <Time iso={at} as="relative" />
       </span>
     </li>
   );

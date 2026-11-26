@@ -49,7 +49,7 @@ export function ArtifactVersions({ versions, current, onPick, keys }: ArtifactVe
           <HoverCardLine>{x.note || <Text dim>No note.</Text>}</HoverCardLine>
           {x.home && (
             <HoverCardLine dim>
-              It's the version in {x.home.repo}: {x.home.where}
+              Version in {x.home.repo}: {x.home.where}
             </HoverCardLine>
           )}
         </HoverCard>

@@ -55,7 +55,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
   };
   return (
     <>
-      <Button variant="ghost" size="small" onClick={() => setOpen(true)} title="Push its branch and open a pull request, through ws">
+      <Button variant="ghost" size="small" onClick={() => setOpen(true)} title="Push branch and open pull request">
         <Icon name="pr" size={12} /> Open pull request
       </Button>
       {open && (

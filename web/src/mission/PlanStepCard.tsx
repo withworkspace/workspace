@@ -34,7 +34,7 @@ export function PlanStepCard({ s, of, d, time }: { s: Stage; of: number; d?: Mis
   const rows: [string, React.ReactNode][] = [];
   const row = (label: string, value: React.ReactNode) => value && rows.push([label, value]);
   const how = waitHow(s);
-  row("Waits on", how && (s.on === "you" ? "you: it's yours to do" : s.on ? <Inline text={s.on} /> : "something outside ws"));
+  row("Waits on", how && (s.on === "you" ? "you" : s.on ? <Inline text={s.on} /> : "something outside Workspace"));
   row(
     "Passed by",
     how && s.state !== "accepted" && (
@@ -55,11 +55,11 @@ export function PlanStepCard({ s, of, d, time }: { s: Stage; of: number; d?: Mis
     ),
   );
   row("Makes", s.makes && <Inline text={s.makes} />);
-  row("Opens", s.opensPR && "a pull request, through ws");
-  row("Carries on", !!s.carryOn && `from step ${s.carryOn}, with its crew`);
+  row("Opens", s.opensPR && "a pull request");
+  row("Carries on", !!s.carryOn && `from step ${s.carryOn}, same crew`);
   row("Limit", s.limit && `${s.limit}${s.outOfTime ? ", out of time" : ""}`);
   row("Only if", s.onlyIf && <Inline text={s.onlyIf} />);
-  row("After it", s.checkIn && s.state !== "accepted" && "the orchestrator stops for you");
+  row("After", s.checkIn && s.state !== "accepted" && "orchestrator pauses for you");
   row(s.skipped ? "Skipped" : "Passed", s.state === "accepted" && s.why && <Inline text={s.why} />);
   row(
     "Took",

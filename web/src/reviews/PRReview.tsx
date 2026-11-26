@@ -77,13 +77,13 @@ import { Text, textClass } from "../ui/Text";
 // is added to your draft from there.
 
 export const prReviewKeys: [string, string][] = [
-  ["[ / ]", "The layer below / above, in a stack"],
-  ["w", "The whole stack together, or back to the layer"],
-  ["/", "Go to the ask bar: what you ask opens beside the page"],
-  ["a", "Ask about the line (or the selected lines)"],
+  ["[ / ]", "Layer below / above"],
+  ["w", "Whole stack / single layer"],
+  ["/", "Ask bar"],
+  ["a", "Ask about line or selection"],
   ["A", "Ask about the pull request"],
-  ["o", "Open it on GitHub"],
-  ["O", "Open here: dock it, as ws dock does"],
+  ["o", "Open on GitHub"],
+  ["O", "Open here"],
 ];
 
 const verdictEvents: Record<Verdict, string> = { approve: "Approve", changes: "Request changes", comment: "Comment" };
@@ -274,7 +274,7 @@ export function PRReviewPage() {
     );
   const dock = () => {
     if (!d || docking) return;
-    if (d.pr.fork) return toast("It's from a fork: ws dock looks for its branch on origin, so it can't be opened here.");
+    if (d.pr.fork) return toast("Could not open here: pull request is from a fork.");
     setDocking(true);
     dockPR(api)
       .then(
@@ -296,17 +296,18 @@ export function PRReviewPage() {
       title: "Not yours to review?",
       body: (
         <>
-          Your name comes off the reviewers of <Text mono>{ref}</Text> on GitHub, where {d.pr.author} and anyone else on it will see. Nobody's asked in your place.
+          Removes you from the reviewers of <Text mono>{ref}</Text> on GitHub. {d.pr.author} and others on it
+          will see. No one is asked in your place.
         </>
       ),
-      confirm: "Take my name off",
+      confirm: "Remove me",
     });
     if (!yes) return;
     setDeclining(true);
     declinePR(api)
       .then(
         () => {
-          toast(`Your name is off ${ref}'s reviewers.`, { tone: "done" });
+          toast(`Removed from ${ref}'s reviewers.`, { tone: "done" });
           navigate("/reviews");
         },
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
@@ -347,9 +348,9 @@ export function PRReviewPage() {
       }),
     chip: (h) => ({
       ...(h.finding
-        ? { icon: "list-checks" as const, text: `${h.finding.pass}: “${clip(h.finding.text, 28)}”`, title: `What the ${h.finding.pass} pass found (${h.finding.kind}): ${h.finding.text}`, kind: "finding" as const }
+        ? { icon: "list-checks" as const, text: `${h.finding.pass}: “${clip(h.finding.text, 28)}”`, title: `${h.finding.pass} pass finding (${h.finding.kind}): ${h.finding.text}`, kind: "finding" as const }
         : linesChip(h.lines!.path, h.lines!.line, h.lines!.endLine, h.lines!.side)),
-      placeholder: h.finding ? "Ask about what it found…" : "Ask about these lines…",
+      placeholder: h.finding ? "Ask about this finding…" : "Ask about these lines…",
       drop: "Ask about the whole pull request",
     }),
   };
@@ -363,7 +364,7 @@ export function PRReviewPage() {
       <div className="page narrow">
         <Empty
           icon="pr"
-          title={`${ref} can't be shown`}
+          title={`Could not load ${ref}`}
           action={
             <Link to="/reviews" className={buttonClass()}>
               Back to Reviews
@@ -378,7 +379,7 @@ export function PRReviewPage() {
   if (!d || !shown) {
     return (
       <div className="page narrow">
-        <Loading what={`Fetching ${ref}…`} delay={150} />
+        <Loading what={`Loading ${ref}…`} delay={150} />
       </div>
     );
   }
@@ -400,10 +401,10 @@ export function PRReviewPage() {
     getDiff: (since) => getPRDiff(api, whole ? "whole" : since ? "since" : "layer") as Promise<ReviewDiff>,
     diffKey: whole ? "whole" : "layer",
     sinceName: () => sinceName,
-    movedWords: "It has new commits since this loaded",
-    empty: "It changes nothing.",
+    movedWords: "New commits since loaded",
+    empty: "No changes.",
     opened: shown.opened,
-    readOnly: whole ? "The whole stack is for reading: comment on a layer ([ and ] move between them)." : undefined,
+    readOnly: whole ? "Whole stack is read-only: comment on a layer ([ and ] switch layers)." : undefined,
     side: d.stack ? <LayerList d={d} whole={whole} going={going} search={viewQ} onWhole={toggleWhole} /> : undefined,
     actions: (
       <>
@@ -413,13 +414,13 @@ export function PRReviewPage() {
           className={css.desktopOnly}
           onClick={dock}
           disabled={docking}
-          unavailable={pr.fork ? "It's from a fork: ws dock looks for its branch on origin, so it can't be opened here" : undefined}
-          title={d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself"}
+          unavailable={pr.fork ? "Cannot open forks here" : undefined}
+          title={d.docked?.by === "you" ? `Checked out in ${pr.repo}/${d.docked.capsule}` : "Check out here to run yourself"}
           keys="O"
         >
-          <Icon name="box" size={13} /> {docking ? "Docking…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
+          <Icon name="box" size={13} /> {docking ? "Opening…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
         </Button>
-        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" {...keyProps("o", "Open it on GitHub")}>
+        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" {...keyProps("o", "Open on GitHub")}>
           <Icon name="external" size={12} /> GitHub
         </a>
       </>
@@ -430,8 +431,8 @@ export function PRReviewPage() {
         <PullRequestMeta>
           {!whole && <Status s={prStatus(pr)} />}
           {!whole && pr.asked === "you" && pr.state === "needs-review" && (
-            <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="It isn't yours to review: take your name off its reviewers on GitHub">
-              {declining ? "Taking your name off…" : "Not mine"}
+            <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="Remove me from reviewers on GitHub">
+              {declining ? "Removing…" : "Not mine"}
             </Button>
           )}
           <span>
@@ -443,8 +444,8 @@ export function PRReviewPage() {
             discussion?.reviewers.map((r) => <PullRequestReviewer key={r.login} login={r.login} kind={r.kind} stale={r.stale} />)}
           {pr.updated && <Time iso={pr.updated} as="relative" className={textClass("dim")} />}
           {!whole && !threads && !threadsError && (
-            <Text dim title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
-              <Spinner size={12} /> Reading the comments on GitHub…
+            <Text dim title="Comments still loading">
+              <Spinner size={12} /> Loading comments…
             </Text>
           )}
           {pr.mission && (
@@ -453,7 +454,7 @@ export function PRReviewPage() {
             </Link>
           )}
           {d.docked && (
-            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={pullRequestMetaChipClass("quiet")} title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
+            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={pullRequestMetaChipClass("quiet")} title={d.docked.by === "ws" ? "Checked out for a question. Removed when this merges or closes, unless you edit it." : "Browse files"}>
               <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
             </Link>
           )}
@@ -466,17 +467,17 @@ export function PRReviewPage() {
         </PullRequestMeta>
         {d.needsRebase && (
           <Callout tone="attention" title="This layer needs a rebase">
-            The layer below has moved on, and this one hasn't followed. Its changes show against the layer below as it was when this was pushed.
+            The layer below has new commits. Changes shown against the layer below as of this push.
           </Callout>
         )}
         {pr.fork && (
           <Callout tone="quiet" icon="info">
-            It's from a fork: it can be reviewed here, but not docked, so an agent can't be asked about it.
+            From a fork: you can review here, but agents cannot answer questions about it.
           </Callout>
         )}
         {threadsError && (
           <Callout tone="quiet" icon="info">
-            The comments on GitHub couldn't be read ({humanError(threadsError)}): what shows is your own, as kept here.
+            Could not load GitHub comments ({humanError(threadsError)}): showing only yours.
           </Callout>
         )}
       </>
@@ -566,7 +567,7 @@ export function PRReviewPage() {
             const where = posted.some((p) => p.sending) ? "on its way to GitHub" : "on GitHub";
             toast(posted.length === 1 ? `Your review of ${pr.repo}#${posted[0].number} is ${where}.` : `Your ${posted.length} reviews are ${where.replace("its", "their")}.`, {
               tone: "done",
-              action: url ? { label: "See it on GitHub", run: () => window.open(url, "_blank", "noopener") } : undefined,
+              action: url ? { label: "View on GitHub", run: () => window.open(url, "_blank", "noopener") } : undefined,
             });
             reviewed(pr.repo, pr.number);
             navigate("/reviews");
@@ -590,12 +591,13 @@ export function PRReviewPage() {
         actions={
           state.url ? (
             <a className={buttonClass()} href={state.url} target="_blank" rel="noreferrer">
-              See it on GitHub <Icon name="external" size={12} />
+              View on GitHub <Icon name="external" size={12} />
             </a>
           ) : undefined
         }
       >
-        Your review of {ref} is {state.sending ? "on its way to GitHub" : "on GitHub"}. When they push, it's back with you, and opens on what's changed since.
+        Your review of {ref} is {state.sending ? "on its way to GitHub" : "on GitHub"}. Back with you when
+        they push, showing changes since.
       </Callout>
     ),
     onAsk: ask,
@@ -636,10 +638,10 @@ interface PRHeld {
 // pull request.
 const suggest = (h?: PRHeld) =>
   h?.finding
-    ? ["Is it right?", "How would it be fixed?", "Propose a comment on it"]
+    ? ["Is this right?", "How to fix this?", "Suggest a comment"]
     : h?.lines
       ? ["Explain these lines", "What calls this?", "What could go wrong here?"]
-      : ["Summarise it", "What could break?", "Where do I start reading?", "Is it tested?"];
+      : ["Summarise", "What could break?", "Where do I start reading?", "Is this tested?"];
 
 // withFinding is a question about what a pass found, with what it found
 // said after it: the card leads with the question.

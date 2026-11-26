@@ -29,14 +29,14 @@ export function PluginsUpdates({ out, checked, looking, onLook }: PluginsUpdates
       <Text dim className={css.looked}>
         {checked ? (
           <>
-            Looked for updates <Time iso={checked} as="relative" />
+            Checked for updates <Time iso={checked} as="relative" />
           </>
         ) : (
-          "Not looked for updates yet"
+          "Not checked for updates yet"
         )}
       </Text>
-      <Button size="small" onClick={onLook} disabled={looking} title="Ask each plugin's repo for its latest release now">
-        {looking ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {looking ? "Looking…" : "Check for updates"}
+      <Button size="small" onClick={onLook} disabled={looking} title="Check each plugin's repo now">
+        {looking ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {looking ? "Checking…" : "Check for updates"}
       </Button>
     </div>
   );

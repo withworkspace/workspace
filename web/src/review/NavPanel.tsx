@@ -59,13 +59,13 @@ export function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api:
       how={at.how}
       tools={
         browse && (
-          <Link to={browse} className={buttonClass({ size: "small" })} {...keyProps("o", "Open it in Files, as it is now")}>
+          <Link to={browse} className={buttonClass({ size: "small" })} {...keyProps("o", "Open current version in Files")}>
             Open <Keys k="o" />
           </Link>
         )
       }
       body={body}
-      note={!lines && !error ? `Reading ${at.path}…` : undefined}
+      note={!lines && !error ? `Loading ${at.path}…` : undefined}
       onBack={goBack}
       onClose={close}
     >

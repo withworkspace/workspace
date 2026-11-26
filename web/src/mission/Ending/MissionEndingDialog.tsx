@@ -32,21 +32,21 @@ export function MissionEndingDialog({ ending, name, text, onText, to, onTo, erro
     <Dialog title={drop ? `Drop ${name}` : `Hand ${name} on`} onClose={onClose} className={css.dialog} wide>
       <p>
         {drop
-          ? "Its work won't be part of the mission, and it no longer holds it open. Its worktree is kept, in no mission."
-          : "A mission is raised for it from what you say, to be briefed, or name one there is: it takes the capsule, which no longer holds this one open."}
+          ? "Work won't be part of the mission, and won't hold it open. The capsule is kept, outside any mission."
+          : "Describe a new mission for it, or name an existing one. The capsule moves there and no longer holds this mission open."}
       </p>
       <TextArea
         value={text}
         rows={3}
         autoFocus
-        placeholder={drop ? "Why it's dropped" : "What the mission it goes to is for"}
-        aria-label={drop ? "Why" : "What it's for"}
+        placeholder={drop ? "Reason for dropping" : "What the new mission is for"}
+        aria-label={drop ? "Reason" : "New mission"}
         onChange={(e) => onText(e.target.value)}
       />
       {!drop && (
         <label className={css.to}>
-          <span>Or to a mission there is</span>
-          <Input value={to} onChange={(e) => onTo(e.target.value)} placeholder="its slug" />
+          <span>Or an existing mission</span>
+          <Input value={to} onChange={(e) => onTo(e.target.value)} placeholder="Mission slug" />
         </label>
       )}
       {error && <Banner>{humanError(error)}</Banner>}
@@ -55,7 +55,7 @@ export function MissionEndingDialog({ ending, name, text, onText, to, onTo, erro
           Cancel
         </Button>
         <Button variant={drop ? "danger" : "primary"} onClick={onEnd} disabled={busy || (!text.trim() && !(!drop && to.trim()))}>
-          {drop ? "Drop it" : "Hand it on"}
+          {drop ? "Drop" : "Hand on"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -29,7 +29,7 @@ export function ArtifactsHead({ filters, shown, onShown, discarded, froms, from,
       actions={
         filters && (
           <>
-            <Segmented value={shown} onChange={onShown} aria-label="Where they stand">
+            <Segmented value={shown} onChange={onShown} aria-label="Status">
               {(Object.keys(shownLabels) as Shown[]).map((s) => (
                 <Segment key={s} value={s}>
                   {shownLabels[s]}
@@ -38,7 +38,7 @@ export function ArtifactsHead({ filters, shown, onShown, discarded, froms, from,
               ))}
             </Segmented>
             {froms.length > 0 && (
-              <Select value={from} onChange={onFrom} aria-label="Where they came from">
+              <Select value={from} onChange={onFrom} aria-label="Origin">
                 <Option value={ANYWHERE}>From anywhere</Option>
                 <Option value={BY_HAND}>Added by hand</Option>
                 {froms.map((f) => (

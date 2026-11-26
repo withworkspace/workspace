@@ -91,7 +91,7 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
       case "decision":
         return (
           <TalkProposalEdit>
-            <TextArea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="The decision" />
+            <TextArea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="Decision" />
             <TextArea value={why} rows={2} onChange={(e) => setWhy(e.target.value)} placeholder="Why" aria-label="Why" />
           </TalkProposalEdit>
         );
@@ -99,25 +99,25 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
         return (
           <TalkProposalEdit>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />
-            <MarkdownEditor initial={p.brief ?? ""} label="The brief" placeholder="The brief (none: an idea, to brief later)" compact onChange={setBrief} onCancel={() => setEditing(false)} />
+            <MarkdownEditor initial={p.brief ?? ""} label="Brief" placeholder="Brief (leave empty to save as idea)" compact onChange={setBrief} onCancel={() => setEditing(false)} />
           </TalkProposalEdit>
         );
       case "brief":
         return (
           <TalkProposalEdit>
-            <MarkdownEditor initial={p.brief ?? ""} label="The brief" compact autoFocus onChange={setBrief} onCancel={() => setEditing(false)} />
+            <MarkdownEditor initial={p.brief ?? ""} label="Brief" compact autoFocus onChange={setBrief} onCancel={() => setEditing(false)} />
           </TalkProposalEdit>
         );
       case "plan":
         return (
           <TalkProposalEdit>
-            <MarkdownEditor initial={p.plan ?? ""} label="The plan" compact autoFocus onChange={setBrief} onCancel={() => setEditing(false)} />
+            <MarkdownEditor initial={p.plan ?? ""} label="Plan" compact autoFocus onChange={setBrief} onCancel={() => setEditing(false)} />
           </TalkProposalEdit>
         );
       case "dispatch":
         return (
           <TalkProposalEdit>
-            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="What the crew's to do" aria-label="What the crew's to do" />
+            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="What crew should do" aria-label="What crew should do" />
           </TalkProposalEdit>
         );
       case "replan":
@@ -129,32 +129,32 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
       case "comment":
         return (
           <TalkProposalEdit>
-            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="What the comment says" aria-label="What the comment says" />
+            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="Comment" aria-label="Comment" />
           </TalkProposalEdit>
         );
       case "document":
         return (
           <TalkProposalEdit>
-            <MarkdownEditor initial={p.text ?? ""} label="The document" compact autoFocus onChange={setDoc} onCancel={() => setEditing(false)} />
+            <MarkdownEditor initial={p.text ?? ""} label="Document" compact autoFocus onChange={setDoc} onCancel={() => setEditing(false)} />
             <Text as="div" dim>
               {p.to
-                ? "The whole document, as it's saved: it stays where it is, whatever its first heading says."
-                : "Its first heading is its title: where it goes, and its commit's message, are made from it when it's added."}
+                ? "Full document. Stays in place, whatever the first heading says."
+                : "First heading is the title, and sets the file location and commit message."}
             </Text>
           </TalkProposalEdit>
         );
       case "artifact":
         return (
           <TalkProposalEdit>
-            {!p.to && <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Its title" aria-label="Its title" />}
+            {!p.to && <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />}
             <TextArea
               value={note}
               rows={Math.min(6, Math.max(2, note.split("\n").length + 1))}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={p.to ? "What changed, and why" : "What it tries out"}
-              aria-label="Its note"
+              placeholder={p.to ? "What changed, and why" : "What this version tries"}
+              aria-label="Note"
             />
-            <Text as="div" dim>The HTML is the agent's: ask it for another version to change that.</Text>
+            <Text as="div" dim>To change the HTML, ask the agent for another version.</Text>
           </TalkProposalEdit>
         );
     }

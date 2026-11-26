@@ -5,7 +5,7 @@ import css from "./FilesImage.module.css";
 export function FilesImage({ src, path }: { src: string; path: string }) {
   return (
     <div className={css.image}>
-      <img src={src} alt={path} data-viewable={path} title="Open it larger" />
+      <img src={src} alt={path} data-viewable={path} title="View larger" />
     </div>
   );
 }

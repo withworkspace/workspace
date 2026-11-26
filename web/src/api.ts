@@ -797,7 +797,7 @@ export type CrewPick = Pick;
 
 // kindHint says what a document's kind is, for its label's title.
 export const kindHint = (k: DocKind) =>
-  `${k.title}: one of the workspace's kinds of document (${k.name}, at ${k.where})${k.guide ? `. How one's written: ${k.guide}` : ""}`;
+  `${k.title}: one of the workspace's kinds of document (${k.name}, at ${k.where})${k.guide ? `. Writing guide: ${k.guide}` : ""}`;
 
 
 // DocDraft is an edit to a document not saved yet, kept with the mission:
@@ -1468,9 +1468,9 @@ export interface PassFinding {
 }
 
 export const dismissWhys: [DismissWhy, string, string][] = [
-  ["wrong", "Wrong", "It isn't so"],
-  ["already", "Already said", "The page says it already"],
-  ["minor", "Not worth it", "It's so, but not worth acting on"],
+  ["wrong", "Wrong", "Not true"],
+  ["already", "Already said", "Already on the page"],
+  ["minor", "Not worth it", "True, but not worth acting on"],
 ];
 
 export interface PagePass {

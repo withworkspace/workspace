@@ -21,7 +21,7 @@ export function RepoGroupCell({ repo, groups, labels, done }: { repo: Repo; grou
       .finally(() => setBusy(false));
   };
   return (
-    <SettingsRepoGroup over={!repo.yours && repo.groupYours ? (repo.teamGroup ? `The team has it in ${repo.teamGroup}` : "The team has it in no group") : undefined}>
+    <SettingsRepoGroup over={!repo.yours && repo.groupYours ? (repo.teamGroup ? `Team group: ${repo.teamGroup}` : "Team group: none") : undefined}>
       <SettingsGroupPick value={repo.group ?? ""} groups={groups} labels={labels} team={team} none={repo.yours || !team} label={`${repo.name}'s group`} onPick={pick} disabled={busy} />
     </SettingsRepoGroup>
   );

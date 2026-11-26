@@ -9,7 +9,7 @@ export type Saving = "saved" | "unsaved" | "saving" | "changed" | "failed";
 // saving (it changed somewhere else), or not saved, to try again.
 export function PageSaveState({ state, retry }: { state: Saving; retry: () => void }) {
   if (state === "failed") return <PageRetry onClick={retry}>Not saved: try again</PageRetry>;
-  const words = { saved: "Saved", unsaved: "Saving…", saving: "Saving…", changed: "Not saving" }[state];
+  const words = { saved: "Saved", unsaved: "Saving…", saving: "Saving…", changed: "Saving paused" }[state];
   return (
     <span className={cx(css.state, state === "changed" && css.changed)} role="status">
       {state === "saved" && <Icon name="check" size={12} />}

@@ -22,7 +22,7 @@ export function SettingsRepoShare({ repo, asking, busy, onAsk, onShare, onCancel
     );
   return (
     <span className={css.ask}>
-      <Button variant="primary" size="small" disabled={busy} onClick={onShare} title={`Adds ${repo} to ws.toml, commits it on the workspace's config repo and pushes it`}>
+      <Button variant="primary" size="small" disabled={busy} onClick={onShare} title={`Add ${repo} to ws.toml, then commit and push to the config repo`}>
         {busy ? "Pushing…" : "Commit and push"}
       </Button>
       <Button variant="ghost" size="small" disabled={busy} onClick={onCancel}>

@@ -7,7 +7,7 @@ import css from "./FilesMission.module.css";
 // chip that goes there.
 export function FilesMission({ to, title }: { to: string; title: string }) {
   return (
-    <Link to={to} className={chipClass(undefined, css.mission)} title={`The mission this capsule is for: ${title}`}>
+    <Link to={to} className={chipClass(undefined, css.mission)} title={`Mission: ${title}`}>
       <Icon name="flag" size={12} />
       <span>{title}</span>
     </Link>

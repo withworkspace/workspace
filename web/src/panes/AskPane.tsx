@@ -31,7 +31,7 @@ export function AskPane({ to, thing }: AskPaneProps) {
     <>
       <DockBody label={`Ask about ${thing}`} pad>
         <PaneHead title={`Ask about ${thing}`} />
-        <p className={css.says}>Ask about {thing}, or ask for a change: it's made where you can see it.</p>
+        <p className={css.says}>Ask about {thing}, or request a change.</p>
         <div className={css.offered}>
           {(gives?.suggestions ?? []).map((q) => (
             <button key={q} type="button" className="ask-suggestion" onClick={() => void start(q).catch(() => {})}>

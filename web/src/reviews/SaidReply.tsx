@@ -38,9 +38,9 @@ export function SaidReply({ text, busy, error, onText, onSend }: { text: string;
       />
       {error && <Banner>{humanError(error)}</Banner>}
       <div className={css.actions}>
-        <Text dim>Posts to GitHub at once, as you: it isn't part of your draft.</Text>
+        <Text dim>Posts to GitHub immediately, not part of your draft.</Text>
         <span className={css.spacer} />
-        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={onSend} title="Post it to GitHub" keys={sendKeys(sendKey)}>
+        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={onSend} title="Post to GitHub" keys={sendKeys(sendKey)}>
           {busy ? "Posting…" : "Comment on GitHub"} <SendKeys />
         </Button>
       </div>

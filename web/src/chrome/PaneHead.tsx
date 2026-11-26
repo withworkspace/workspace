@@ -23,7 +23,7 @@ export function PaneHead({ title, to, sub, more }: PaneHeadProps) {
     <>
       {more}
       {to && (
-        <Link to={to} className={css.open} title="Go to its own page, in the page's place">
+        <Link to={to} className={css.open} title="Open full page">
           Open <Icon name="arrow-up-right" size={12} />
         </Link>
       )}

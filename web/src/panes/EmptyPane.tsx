@@ -9,16 +9,16 @@ import css from "./EmptyPane.module.css";
 export function EmptyPane({ elsewhere = 0 }: { elsewhere?: number }) {
   return (
     <Empty icon="panel" title="Nothing beside this page" className={css.empty}>
-      <p className={css.says}>{elsewhere > 0 ? `${elsewhere === 1 ? "One more is" : `${elsewhere} more are`} beside the page ${elsewhere === 1 ? "it's" : "they're"} about.` : "Beside stays here as you go from page to page."}</p>
+      <p className={css.says}>{elsewhere > 0 ? `${elsewhere === 1 ? "One more is" : `${elsewhere} more are`} beside the page ${elsewhere === 1 ? "it's" : "they're"} about.` : "Beside stays open across pages."}</p>
       <dl className={css.keys}>
         <dt>
           <Keys k="C" />
         </dt>
-        <dd>A new conversation</dd>
+        <dd>New conversation</dd>
         <dt>
           <Keys k="z" />
         </dt>
-        <dd>Peek at what the pointer's on</dd>
+        <dd>Peek under pointer</dd>
         <dt>
           <Keys k="\" />
         </dt>

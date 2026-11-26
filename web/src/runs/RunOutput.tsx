@@ -9,7 +9,7 @@ import css from "./RunOutput.module.css";
 // and kept at its foot as more comes unless you've scrolled up. A page
 // gives it its height by a class of its own: the Runs page's rows cap
 // it, a place's Runs tab fills what's left with it.
-export function RunOutput({ runRef, live, className, empty = "It printed nothing." }: { runRef: string; live: boolean; className?: string; empty?: string }) {
+export function RunOutput({ runRef, live, className, empty = "No output." }: { runRef: string; live: boolean; className?: string; empty?: string }) {
   const { value, error } = useRunLog(runRef, live);
   const pre = useRef<HTMLPreElement>(null);
   const stuck = useRef(true); // at the foot: new output keeps it there
@@ -22,13 +22,13 @@ export function RunOutput({ runRef, live, className, empty = "It printed nothing
   useEffect(() => {
     stuck.current = true;
   }, [runRef]);
-  if (error && !value) return <div className={cx(css.unread, className)}>Its output can't be read: {humanError(error)}</div>;
+  if (error && !value) return <div className={cx(css.unread, className)}>Could not read output: {humanError(error)}</div>;
   return (
     <pre
       ref={pre}
       className={cx(css.log, className)}
       tabIndex={0}
-      aria-label="Its output"
+      aria-label="Output"
       onScroll={(e) => {
         const el = e.currentTarget;
         stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;

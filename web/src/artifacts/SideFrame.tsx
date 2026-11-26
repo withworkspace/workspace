@@ -35,21 +35,21 @@ export function SideFrame({
   if (!v) {
     return (
       <ArtifactEmpty icon="search" title={`${d.id} has no v${side.n}`}>
-        Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
+        Versions: {d.all.map((x) => `v${x.n}`).join(", ")}.
       </ArtifactEmpty>
     );
   }
   if (d.gone || !v.size) {
     return (
-      <ArtifactEmpty icon="alert" title="There's no file to run">
-        {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}.` : `v${v.n}'s files aren't in ${d.where}.`}
+      <ArtifactEmpty icon="alert" title="No file to run">
+        {d.gone ? `Folder gone from ${d.where.replace(/[^/]+\/$/, "")}.` : `v${v.n}'s files are missing from ${d.where}.`}
       </ArtifactEmpty>
     );
   }
   if (stopped) {
     return (
-      <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={onRun} keys="x">Run them</Button>}>
-        The frames are unloaded, and their scripts with them.
+      <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={onRun} keys="x">Run</Button>}>
+        Frames and scripts unloaded.
       </ArtifactEmpty>
     );
   }

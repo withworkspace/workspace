@@ -6,13 +6,13 @@ import { Prose } from "../ui/Prose";
 export function PRDescription({ body }: { body?: string }) {
   return (
     <>
-      <h2>What it says it does</h2>
+      <h2>Description</h2>
       {body?.trim() ? (
         <Prose>
           <Markdown text={body} />
         </Prose>
       ) : (
-        <Text as="p" dim>It has no description.</Text>
+        <Text as="p" dim>No description.</Text>
       )}
     </>
   );

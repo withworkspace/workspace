@@ -43,17 +43,17 @@ import { useWorkspace } from "../workspace/store";
 import { Text } from "../ui/Text";
 
 export const docKeys: [string, string][] = [
-  ["e", "Edit it, here: as the page tied to it"],
+  ["e", "Edit"],
   ["mod+D / mod+U", "Down / up half a page"],
   ["g / G", "Top / bottom"],
-  ["t", "Show or hide its contents"],
-  ["[ / ]", "Previous / next in its folder (or its kind's list)"],
-  ["u", "What's in its folder; again to go up"],
-  ["/", "Go to the ask bar: what you ask opens beside the page"],
-  ["a", "Ask (about what's selected, if anything)"],
-  ["o", "Open it in Files"],
+  ["t", "Show or hide contents"],
+  ["[ / ]", "Previous / next document"],
+  ["u", "Open folder; again to go up"],
+  ["/", "Go to ask bar"],
+  ["a", "Ask (about selection, if any)"],
+  ["o", "Open in Files"],
   ["r", "Reload"],
-  ["esc", "Back, or close what's open"],
+  ["esc", "Back, or close"],
 ];
 
 // DocPage is a document outside any mission, read: a markdown file in one
@@ -195,7 +195,7 @@ export function DocPage({ docRef }: { docRef: string }) {
   const toDoc = (p: string) => (where ? docAddress(fileRef(where.repo, where.worktree, p)) : "");
   const openIn = (s: Shelf) => {
     if (!where) return { to: files, label: "Open in Files" };
-    if (space) return { to: s.kind ? spaceTo(space.repo, { kind: s.kind }) : s.id ? spaceTo(space.repo, { folder: s.id }) : spaceTo(space.repo), label: "Open in the space" };
+    if (space) return { to: s.kind ? spaceTo(space.repo, { kind: s.kind }) : s.id ? spaceTo(space.repo, { folder: s.id }) : spaceTo(space.repo), label: "Open in space" };
     return { to: filesTo(where.repo, where.worktree, s.id ? s.id.slice(0, -1) : undefined), label: "Open in Files" };
   };
   // u opens the shelf it's on; again, the one above.
@@ -209,7 +209,7 @@ export function DocPage({ docRef }: { docRef: string }) {
     if (!sib) return;
     const to = n < 0 ? sib.prev : sib.next;
     if (to?.path) navigate(toDoc(to.path));
-    else toast(n < 0 ? `It's the first in ${sib.shelf.name}` : `It's the last in ${sib.shelf.name}`);
+    else toast(n < 0 ? `First in ${sib.shelf.name}` : `Last in ${sib.shelf.name}`);
   };
   // A link to it, or to one of its headings: its ws: address, which ws
   // reads back wherever it's pasted.
@@ -220,10 +220,10 @@ export function DocPage({ docRef }: { docRef: string }) {
     (anchor?: string) => {
       if (!repo || !worktree || !path) return;
       const link = wsAddress({ kind: "file", repo, worktree, path, ...(anchor ? { anchor } : {}) } satisfies PageRef);
-      if (!navigator.clipboard) return toast("Couldn't copy: the browser said no");
+      if (!navigator.clipboard) return toast("Could not copy: blocked by browser");
       navigator.clipboard.writeText(link).then(
         () => toast(`Copied ${link}`),
-        () => toast("Couldn't copy: the browser said no"),
+        () => toast("Could not copy: blocked by browser"),
       );
     },
     [repo, worktree, path],
@@ -236,7 +236,7 @@ export function DocPage({ docRef }: { docRef: string }) {
   const suggest = (p?: Passage) =>
     p
       ? ["Explain this passage", "Why does it say this?"]
-      : ["Summarise it", "What's still open?", "Where does it stand: what's built?", ...(others ? [`What does it mean for ${others.title || others.path.split("/").pop()}?`] : [])];
+      : ["Summarise", "What's still open?", "Where does it stand: what's built?", ...(others ? [`What does it mean for ${others.title || others.path.split("/").pop()}?`] : [])];
   const cite = (href: string) => {
     const s = citedSection(href, sections);
     if (s) toSection(s);
@@ -335,24 +335,25 @@ export function DocPage({ docRef }: { docRef: string }) {
           contents={folded && sections.length > 1 ? { open: menu, ref: contentsButton, onToggle: toggleMenu } : undefined}
           onAsk={askAbout}
           onEdit={edit}
-          editUnavailable={canEdit ? undefined : `Can't be edited here: ${a.uneditable}`}
+          editUnavailable={canEdit ? undefined : `Not editable: ${a.uneditable}`}
           filesTo={files}
         />
       )}
-      {error && <ErrorCard title="Couldn't open this document" error={error} retry={load} keys="r" />}
+      {error && <ErrorCard title="Could not open document" error={error} retry={load} keys="r" />}
       {!a && !error && <Skeleton rows={10} />}
       {a && !mission && draft && (
         <Callout
           tone="attention"
           icon="pencil"
-          title="You've an unsaved edit of this, from before it was edited as a page"
+          title="You have an older unsaved edit"
           actions={
             <Button variant="ghost" size="small" onClick={() => dropDraft("", a.ref).then(() => setDraft(null))}>
-              Discard it
+              Discard
             </Button>
           }
         >
-          Kept <Time iso={draft.at} as="relative" />. It's in <Text mono>.ws/docs/drafts</Text>: copy what you need into its page.
+          Saved <Time iso={draft.at} as="relative" /> in <Text mono>.ws/docs/drafts</Text>. Copy what you need
+          into the page.
         </Callout>
       )}
       {a && !mission && earlier > 0 && <ReaderEarlier count={earlier} docRef={a.ref} />}
@@ -362,13 +363,13 @@ export function DocPage({ docRef }: { docRef: string }) {
         </ReaderText>
       )}
       {a && !mission && cites && (cites.citedBy.length > 0 || cites.cites.length > 0) && (
-        <ReaderCites label="Cited by, and cites">
+        <ReaderCites label="Citations">
           {cites.citedBy.length > 0 && <DocCiteList title="Cited by" list={cites.citedBy} />}
-          {cites.cites.length > 0 && <DocCiteList title="It cites" list={cites.cites} />}
+          {cites.cites.length > 0 && <DocCiteList title="Cites" list={cites.cites} />}
         </ReaderCites>
       )}
       {a && !mission && talks.length > 0 && (
-        <ReaderCites label="Conversations about it">
+        <ReaderCites label="Conversations">
           <DocTalks list={talks} />
         </ReaderCites>
       )}

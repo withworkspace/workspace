@@ -22,7 +22,7 @@ export function RefMissionCard({ r, mission: m }: { r: Extract<PageRef, { kind: 
           )}
         </>
       )}
-      <RefGo to={refHref(r)}>Open the mission</RefGo>
+      <RefGo to={refHref(r)}>Open mission</RefGo>
     </>
   );
 }

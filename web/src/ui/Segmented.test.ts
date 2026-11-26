@@ -5,7 +5,7 @@ import { Segment, Segmented } from "./Segmented";
 
 const html = (value: string, props: Partial<Parameters<typeof Segmented>[0]> = {}) =>
   renderToStaticMarkup(
-    h(Segmented<string>, { value, onChange: () => {}, "aria-label": "Width", ...props, children: [h(Segment, { key: "a", value: "fit", title: "As wide as the page", children: "Fit" }), h(Segment, { key: "b", value: "390", disabled: true, children: "390" })] }),
+    h(Segmented<string>, { value, onChange: () => {}, "aria-label": "Width", ...props, children: [h(Segment, { key: "a", value: "fit", title: "Page width", children: "Fit" }), h(Segment, { key: "b", value: "390", disabled: true, children: "390" })] }),
   );
 
 describe("Segmented", () => {
@@ -24,7 +24,7 @@ describe("Segmented", () => {
   });
 
   it("keeps the browser's title on a disabled segment, which a tooltip isn't shown on", () => {
-    expect(html("fit", { disabled: true })).toContain('title="As wide as the page"');
+    expect(html("fit", { disabled: true })).toContain('title="Page width"');
   });
 
   it("disables a segment, or all of them", () => {

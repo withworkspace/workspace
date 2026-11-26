@@ -23,7 +23,7 @@ describe("what What's new says of what it shows", () => {
   });
 
   it("says a build of a clone is one", () => {
-    expect(ledeOf([entry("a")], info({ release: false }))).toMatch(/^A build of a clone/);
+    expect(ledeOf([entry("a")], info({ release: false }))).toMatch(/^Development build/);
   });
 
   it("says an entry's release, or that it's in none yet", () => {

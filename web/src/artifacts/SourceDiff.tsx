@@ -14,12 +14,12 @@ export function SourceDiff({ pair, split }: { pair: Pair; split: boolean }) {
   const a = sideRef(pair[0]);
   const b = sideRef(pair[1]);
   const { value, error, reload } = useLoaded(() => getArtifactCompare(a, b), [a, b]);
-  if (error) return <ErrorCard error={error} retry={reload} title={`Couldn't diff ${a} and ${b}`} />;
-  if (!value) return <Loading what="Diffing their sources…" />;
+  if (error) return <ErrorCard error={error} retry={reload} title={`Could not diff ${a} and ${b}`} />;
+  if (!value) return <Loading what="Diffing…" />;
   if (!value.files.length) {
     return (
-      <ArtifactEmpty icon="check" title="The same">
-        {value.a} and {value.b} are the same, byte for byte.
+      <ArtifactEmpty icon="check" title="Identical">
+        {value.a} and {value.b} are identical.
       </ArtifactEmpty>
     );
   }

@@ -200,7 +200,7 @@ export function App() {
       ]);
     } catch (e) {
       setArranged(undefined);
-      toast(`Couldn't keep the sidebar as arranged: ${humanError(String(e))}`, { tone: "danger" });
+      toast(`Could not save sidebar layout: ${humanError(String(e))}`, { tone: "danger" });
     }
   };
   const resetArrangement = async () => {
@@ -211,7 +211,7 @@ export function App() {
         { section: "ui", key: "menu", clear: true },
       ]);
     } catch (e) {
-      toast(`Couldn't reset the sidebar: ${humanError(String(e))}`, { tone: "danger" });
+      toast(`Could not reset the sidebar: ${humanError(String(e))}`, { tone: "danger" });
     }
   };
   // The sidebar's toggle, at the foot's start, which says how many need
@@ -222,15 +222,15 @@ export function App() {
 
   if (closed) {
     return (
-      <Notice title="The daemon is closed">
-        Its crew were hung up and its web UI went with it. Run <code>ws web</code> in the workspace to start it again.
+      <Notice title="Workspace shut down">
+        Workspace shutdown. Run <code>ws web</code> in the workspace to start it again.
       </Notice>
     );
   }
   if (error instanceof NotSignedIn) {
     return (
       <Notice title="Not signed in">
-        This page signs in through a link from your terminal. Run <code>ws web</code> in the workspace.
+        Sign in with the link from your terminal. Run <code>ws web</code> in the workspace.
       </Notice>
     );
   }

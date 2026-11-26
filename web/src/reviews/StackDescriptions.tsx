@@ -31,15 +31,15 @@ export function StackDescriptions({ layers }: { layers: PR[] }) {
               {i + 1}. {l.title} <Text mono>#{l.number}</Text>
             </h2>
             {body === undefined ? (
-              <Text as="p" dim>Reading it…</Text>
+              <Text as="p" dim>Loading…</Text>
             ) : body === null ? (
-              <Text as="p" dim>Its description couldn't be read.</Text>
+              <Text as="p" dim>Could not load description.</Text>
             ) : body.trim() ? (
               <Prose>
                 <Markdown text={body} />
               </Prose>
             ) : (
-              <Text as="p" dim>It has no description.</Text>
+              <Text as="p" dim>No description.</Text>
             )}
           </Fragment>
         );

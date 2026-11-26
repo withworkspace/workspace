@@ -7,7 +7,8 @@ export function ArtifactTweakProblems({ problems }: { problems: string[] }) {
   return (
     <details className={css.problems}>
       <summary>
-        <Icon name="alert" size={12} /> {problems.length === 1 ? "A problem" : `${problems.length} problems`} with what the page declares
+        <Icon name="alert" size={12} /> {problems.length === 1 ? "A problem" : `${problems.length} problems`}{" "}
+        with the declared tweaks
       </summary>
       <ul>
         {problems.map((p, i) => (

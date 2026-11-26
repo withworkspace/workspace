@@ -50,7 +50,7 @@ export function AddRepo({ seen, org, groups, groupLabels, taken, onClose, onAdde
   };
 
   return (
-    <Dialog title="Add a repo from GitHub" onClose={onClose} wide>
+    <Dialog title="Add repo from GitHub" onClose={onClose} wide>
       <SettingsAddRepoBar
         owners={list}
         owner={owner}
@@ -79,12 +79,12 @@ export function AddRepo({ seen, org, groups, groupLabels, taken, onClose, onAdde
       />
 
       {owners.value?.problem && list.length === 0 && (
-        <Callout tone="danger" title="GitHub couldn't say whose repos there are">
-          {owners.value.problem}. Name an owner to look at theirs.
+        <Callout tone="danger" title="Could not list repo owners from GitHub">
+          {owners.value.problem}. Enter an owner to browse their repos.
         </Callout>
       )}
       {repos.value?.problem && (
-        <Callout tone="danger" title={`GitHub couldn't list ${owner}'s repos`}>
+        <Callout tone="danger" title={`Could not list ${owner}'s repos`}>
           {repos.value.problem}
           {/SAML|SSO/i.test(repos.value.problem) && (
             <>
@@ -104,7 +104,7 @@ export function AddRepo({ seen, org, groups, groupLabels, taken, onClose, onAdde
         value={chosen?.name}
         onChange={(name) => setChosen(shown.find((r) => r.name === name))}
         loading={!repos.value ? !!owner : !!looking}
-        none={repos.value && !looking ? (q ? "None of these match." : "Nothing to add here.") : undefined}
+        none={repos.value && !looking ? (q ? "No matches." : "No repos to add.") : undefined}
       >
         {shown.map((r) => (
           <SettingsAddRepoOption key={r.name} repo={r} />

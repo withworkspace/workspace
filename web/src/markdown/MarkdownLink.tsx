@@ -41,7 +41,7 @@ export function MarkdownLink({ href, children }: { href?: string; children?: Rea
   if (!at) return <a href={href}>{children}</a>;
   if (t.kind === "outside" || !t.path) {
     return (
-      <span className={css.deadLink} title="This leads outside the repo">
+      <span className={css.deadLink} title="Links outside the repo">
         {children}
       </span>
     );

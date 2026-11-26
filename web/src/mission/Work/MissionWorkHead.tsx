@@ -31,7 +31,7 @@ export function MissionWorkHead({ icon, name, slug, kind, title, tags, actions, 
       <div className={css.top}>
         {icon && <Icon name={icon} size={16} />}
         {name && <h2>{name}</h2>}
-        {slug && <Copyable text={slug} className={css.slug} title="Copy the capsule" />}
+        {slug && <Copyable text={slug} className={css.slug} title="Copy capsule" />}
         {kind && <span className={css.kind}>{kind}</span>}
         {tags}
         <div className={css.actions}>{actions}</div>

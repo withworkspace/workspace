@@ -283,7 +283,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
       <FilesExplorer before={before}>
         {top}
         <div className="page narrow">
-          <ErrorCard title="Couldn't read the files" error={error} retry={loadTree} keys="r" />
+          <ErrorCard title="Could not load files" error={error} retry={loadTree} keys="r" />
         </div>
       </FilesExplorer>
     );
@@ -352,18 +352,18 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
                   counted={!!tree && !tree.baseRef}
                   changedOnly={changedOnly}
                   canChange={!!tree?.base}
-                  title={tree?.base ? `${tree.branch}, which left ${branchName(tree.baseRef)} at ${tree.base.slice(0, 7)}` : undefined}
+                  title={tree?.base ? `${tree.branch}, branched from ${branchName(tree.baseRef)} at ${tree.base.slice(0, 7)}` : undefined}
                   onShow={setChangedOnly}
                   onFind={() => setFinder(true)}
                   onSearch={search ? () => setSearching(true) : undefined}
                 />
               }
-              note={tree?.truncated && `Only the first ${files.length} files are listed.`}
+              note={tree?.truncated && `Showing first ${files.length} files.`}
             >
-              {!tree && <Loading what="Reading the files…" />}
+              {!tree && <Loading what="Loading files…" />}
               {tree && !nodes.length && (
-                <Empty icon={changedOnly ? "check-circle" : "file"} title={changedOnly ? "Nothing's changed yet" : "No files"}>
-                  {changedOnly ? `Nothing here differs from ${branchName(tree.baseRef)}, committed or not.` : empty}
+                <Empty icon={changedOnly ? "check-circle" : "file"} title={changedOnly ? "No changes yet" : "No files"}>
+                  {changedOnly ? `No differences from ${branchName(tree.baseRef)}, committed or not.` : empty}
                 </Empty>
               )}
               {tree && nodes.length > 0 && (
@@ -389,8 +389,8 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
             <FilesView solid={!narrow && !alone}>
               {missing ? (
                 <FilesOverview>
-                  <Empty icon="file" title="Not here" action={<Button onClick={unpick}>Pick another file</Button>}>
-                    There's no <Text mono>{path}</Text> in {label}.
+                  <Empty icon="file" title="File not found" action={<Button onClick={unpick}>Pick another file</Button>}>
+                    No <Text mono>{path}</Text> in {label}.
                   </Empty>
                 </FilesOverview>
               ) : path && !folder ? (

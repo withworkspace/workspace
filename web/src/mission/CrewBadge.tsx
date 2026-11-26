@@ -27,7 +27,7 @@ export function CrewBadge({ id, live, large }: { id: string; live?: boolean; lar
         ended={c.endedAt && <Time iso={c.endedAt} />}
         said={(c.note || c.lastReply) && <Inline text={c.note || c.lastReply || ""} lines={3} />}
         to={d && `/missions/${d.slug}/crew/${c.id}`}
-        more={c.ended ? "Read its transcript" : "Open its terminal"}
+        more={c.ended ? "Read transcript" : "Open terminal"}
       />
     </HoverCard>
   );

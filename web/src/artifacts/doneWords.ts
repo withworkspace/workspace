@@ -11,8 +11,8 @@ import type { ArtifactDone } from "../api";
 export function doneWords(what: string, d: ArtifactDone): string {
   let s = `${what} ${d.artifact.id}`;
   if (d.into) s += `, into ${d.into}`;
-  if (d.home) s += what === "Discarded" ? `, and took it out of ${d.home}` : what === "Restored" ? `, and put it back in ${d.home}` : `, and put v${d.artifact.promoted?.version} in ${d.home}`;
+  if (d.home) s += what === "Discarded" ? `, and removed from ${d.home}` : what === "Restored" ? `, and restored to ${d.home}` : `, and put v${d.artifact.promoted?.version} in ${d.home}`;
   if (d.landed) s += `: ${d.landed}`;
-  if (d.started) s += `. Mission ${d.started} waits to be briefed.`;
+  if (d.started) s += `. Mission ${d.started} needs a brief.`;
   return s;
 }

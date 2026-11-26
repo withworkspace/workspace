@@ -6,7 +6,8 @@ import { Text } from "../ui/Text";
 export function SettingsProcessNone({ name }: { name: string }) {
   return (
     <Text as="div" dim className={css.none}>
-      There's no process yet: write how work goes here in <code>{name}</code>, beside <code>ws.toml</code> (or name another file with <code>[agents] process</code>).
+      No process yet: describe how work goes in <code>{name}</code>, beside <code>ws.toml</code> (or set
+      another file with <code>[agents] process</code>).
     </Text>
   );
 }

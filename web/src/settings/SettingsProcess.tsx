@@ -21,9 +21,9 @@ export function SettingsProcess({ name, commit, uncommitted, children }: Setting
         <span className={css.where}>
           <code>{name}</code>
           <Text dim>
-            {commit && !uncommitted && <> · as committed in {commit}</>}
-            {commit && uncommitted && <> · changed since {commit}, not committed</>}
-            {!commit && <> · not committed</>}
+            {commit && !uncommitted && <> · committed in {commit}</>}
+            {commit && uncommitted && <> · uncommitted changes since {commit}</>}
+            {!commit && <> · uncommitted</>}
           </Text>
         </span>
       </div>

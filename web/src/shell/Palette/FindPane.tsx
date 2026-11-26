@@ -11,7 +11,7 @@ import css from "./FindPane.module.css";
 // (RefCardBody): it's a ref-card to the rules for those.
 export function FindPane({ scrolls, children }: { scrolls?: boolean; children: ReactNode }) {
   return (
-    <aside className={cx(css.pane, scrolls && css.scrolls, "ref-card")} aria-label="About it">
+    <aside className={cx(css.pane, scrolls && css.scrolls, "ref-card")} aria-label="Details">
       {children}
     </aside>
   );

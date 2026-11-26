@@ -33,7 +33,7 @@ export function WorkCrewLine({ d, k, steps, handoff, select }: { d: MissionDetai
       left={
         handoff ? (
           <MissionWorkLeft onOpen={() => select(outputKey(handoff))} title={`Read ${k.id}'s handoff`}>
-            <Inline text={handoff.label ?? k.note ?? "Its handoff"} lines={2} />
+            <Inline text={handoff.label ?? k.note ?? "Handoff"} lines={2} />
           </MissionWorkLeft>
         ) : (
           k.note && (
@@ -55,7 +55,7 @@ export function WorkCrewLine({ d, k, steps, handoff, select }: { d: MissionDetai
             to <Time iso={k.endedAt} as="clock" />
           </>
         ) : (
-          ", still here"
+          ", still running"
         )}
       </Text>
     </MissionWorkCrewLine>

@@ -28,10 +28,10 @@ export function SettingsRepoRow({ repo: r, lands, group, acts, children }: Setti
       <Text as="td" mono>
         <span className={css.name}>
           <span className={css.key}>{r.name}</span>
-          {r.yours && <Chip title="In ws.local.toml alone">yours</Chip>}
+          {r.yours && <Chip title="Only in ws.local.toml">yours</Chip>}
           {r.cloning && <Chip tone="progress">cloning…</Chip>}
           {!r.cloned && !r.cloning && !r.hidden && (
-            <Chip tone={r.problem ? "danger" : "quiet"} title={r.problem ? `${r.problem} (ws setup tries again)` : "ws setup clones it"}>
+            <Chip tone={r.problem ? "danger" : "quiet"} title={r.problem ? `${r.problem} (ws setup retries)` : "Cloned by ws setup"}>
               not cloned
             </Chip>
           )}

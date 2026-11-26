@@ -8,7 +8,7 @@ type Near = NonNullable<TeamItem["near"]>[number];
 // change near more of them than that says so on one line between them.
 const nearSaid = 3;
 
-const kind = { label: "Near you", icon: "box", tone: "progress", title: "A capsule of yours has changed some of the same files" } as const;
+const kind = { label: "Near you", icon: "box", tone: "progress", title: "Overlaps files changed in your capsules" } as const;
 
 // TeamNear is where a change is near you, under its row: the capsules of
 // yours that have changed some of the files it changes. A few are a line

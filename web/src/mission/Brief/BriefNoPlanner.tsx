@@ -10,18 +10,18 @@ import { Text } from "../../ui/Text";
 // its own.
 export function BriefNoPlanner({ briefing, busy, briefIt, field, fold }: { briefing: boolean; busy: boolean; briefIt: () => void; field: ReactNode; fold?: () => void }) {
   return (
-    <MissionBriefPlanner label="The planner" onFold={fold} foot={field}>
+    <MissionBriefPlanner label="Planner" onFold={fold} foot={field}>
       {briefing ? (
         <>
-          <Text as="p" dim>It's been written without a planner. Have it briefed, and a planner reads round it, asks what it needs to, and proposes its brief and a plan here.</Text>
+          <Text as="p" dim>Written without a planner. Brief the mission to have a planner propose a brief and plan here.</Text>
           <div>
             <Button type="button" onClick={briefIt} disabled={busy} aria-busy={busy}>
-              <Icon name="pencil" /> Brief it
+              <Icon name="pencil" /> Brief mission
             </Button>
           </div>
         </>
       ) : (
-        <Text as="p" dim>It was briefed without a conversation. Say what should change, and a planner reads the mission and revises its plan. The steps behind the mission stay as they are. A change to a checkpoint or Z comes back to you to accept; anything else applies.</Text>
+        <Text as="p" dim>Briefed without a conversation. Say what should change and a planner revises the plan. Finished steps stay as they are. Changes to a checkpoint or Z need your approval; others apply directly.</Text>
       )}
     </MissionBriefPlanner>
   );

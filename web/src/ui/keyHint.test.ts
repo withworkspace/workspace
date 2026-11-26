@@ -51,8 +51,8 @@ describe("a click on what isn't one of the library's parts", () => {
   it("hints at the key, then does what the click does", () => {
     setPref("keyHints", true);
     let did = 0;
-    const props = keyProps("o", "Open it in Files", () => did++);
-    expect(props.title).toBe("Open it in Files (o)");
+    const props = keyProps("o", "Open in Files", () => did++);
+    expect(props.title).toBe("Open in Files (o)");
     props.onClick?.(mouse);
     expect(did).toBe(1);
     expect(saying().map((t) => t.keys)).toEqual(["o"]);
@@ -70,13 +70,13 @@ describe("a click on what isn't one of the library's parts", () => {
 
 describe("a title with its key", () => {
   it("says the key after what it does, as it's read", () => {
-    expect(titleWithKeys("Review its changes", "v")).toBe("Review its changes (v)");
+    expect(titleWithKeys("Review changes", "v")).toBe("Review changes (v)");
     expect(titleWithKeys("Close", "Escape")).toBe("Close (esc)");
     expect(titleWithKeys("Open it", "Enter")).toBe("Open it (⏎)");
   });
 
   it("is the title alone with no key, and nothing with no title: a key by itself isn't a tooltip", () => {
-    expect(titleWithKeys("Review its changes", undefined)).toBe("Review its changes");
+    expect(titleWithKeys("Review changes", undefined)).toBe("Review changes");
     expect(titleWithKeys(undefined, "v")).toBeUndefined();
     expect(titleWithKeys(undefined, undefined)).toBeUndefined();
   });

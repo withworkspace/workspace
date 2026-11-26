@@ -27,7 +27,7 @@ export function ReaderCrumbs({ from, on, title, open, up, toggle, nav }: { from:
             data-folder-crumb={s.id}
             aria-haspopup="dialog"
             aria-expanded={open === s.id}
-            {...keyProps(s.id === up ? "u" : undefined, `What's in ${s.name}`, () => toggle(s.id))}
+            {...keyProps(s.id === up ? "u" : undefined, `Browse ${s.name}`, () => toggle(s.id))}
           >
             {s.label}
             <Icon name="chevron-down" size={11} />

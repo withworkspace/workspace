@@ -15,7 +15,7 @@ export function RowPasses({ marks }: { marks?: PassMark[] }) {
           spin={m.standing.status === "running"}
           moved={m.moved}
           size={11}
-          title={`The ${m.title} pass: ${standingWords(m.standing).toLowerCase()}${m.moved ? ". It's been pushed to since it ran" : ""}`}
+          title={`${m.title} pass: ${standingWords(m.standing).toLowerCase()}${m.moved ? ". It's been pushed to since it ran" : ""}`}
         >
           {m.title}: {standingWords(m.standing).toLowerCase()}
         </PassStanding>

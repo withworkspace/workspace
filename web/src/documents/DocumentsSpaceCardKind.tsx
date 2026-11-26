@@ -23,7 +23,7 @@ export function DocumentsSpaceCardKind({ to, name, folder, count, last, stands }
       <TLink to={to} className={css.link}>
         <span className={cx(css.kind, folder && css.folder, folder && textClass("mono"))}>{name}</span> <Count>{count}</Count>
         {last && (
-          <span className={css.last} title={`Changed last: ${last.title}`}>
+          <span className={css.last} title={`Last changed: ${last.title}`}>
             {last.title} · <Time iso={last.at} as="age" />
           </span>
         )}

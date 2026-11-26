@@ -18,13 +18,13 @@ import { statusWords } from "./words";
 export function filesTreeLook(n: TreeNode<TreeFile>, at: { open: boolean }, counts?: ReadonlyMap<string, number>): TreeLook {
   if (n.children) {
     const changed = counts?.get(n.id) ?? 0;
-    return { end: !at.open && changed > 0 && <Count title={`${changed} changed in it`}>{changed}</Count> };
+    return { end: !at.open && changed > 0 && <Count title={`${changed} changed`}>{changed}</Count> };
   }
   const f = n.value!;
   return {
     mark: f.status && <ChangeMark status={f.status} title={`${statusWords[f.status] ?? f.status} since the branch point${f.uncommitted ? ", not committed" : ""}`} />,
     icon: <FileIcon path={n.id} />,
     tone: f.status === "deleted" ? "gone" : undefined,
-    end: f.uncommitted && <TreeDot tone="attention" title="Not committed" />,
+    end: f.uncommitted && <TreeDot tone="attention" title="Uncommitted" />,
   };
 }

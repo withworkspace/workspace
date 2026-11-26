@@ -35,7 +35,7 @@ export function useStands(pin: FocusPin, r: PageRef, workspace: Workspace, known
     case "pr": {
       const tone = pr?.checks === "failure" ? "danger" : pr?.state === "needs-review" || pr?.state === "back-with-you" ? "attention" : "quiet";
       return {
-        icon: <StatusIcon icon="pr" tone={tone} title={pr?.checks === "failure" ? "Its checks fail" : undefined} />,
+        icon: <StatusIcon icon="pr" tone={tone} title={pr?.checks === "failure" ? "Checks failing" : undefined} />,
         title: `${r.repo}#${r.number} ${pr?.title ?? pin.title ?? ""}`.trim(),
       };
     }

@@ -24,7 +24,7 @@ export const isThingDoing = (d: Doing): d is ThingDoing => "act" in d || "ws" in
 async function stopCrew(slug: string, crew: string) {
   const yes = await confirm({
     title: `Stop ${crew}?`,
-    body: "Its session can be resumed later if it recorded one: what it's in the middle of is lost.",
+    body: "Work in progress is lost. Session can be resumed later, if recorded.",
     confirm: `Stop ${crew}`,
     danger: true,
   });

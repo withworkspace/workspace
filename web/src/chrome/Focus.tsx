@@ -33,7 +33,7 @@ export function Focus({
     >
       {children}
       {bringing && !count && (
-        <div className={css.drop}>Drop it here to pin it</div>
+        <div className={css.drop}>Drop here to pin</div>
       )}
     </SidebarSection>
   );

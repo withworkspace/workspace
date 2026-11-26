@@ -18,13 +18,13 @@ export type PaneChoice = PaneWords & { n: Panes };
 export const paneWords: Record<Panes, PaneWords> = {
   3: { label: "3 panes", sub: "Repos, tree and file" },
   2: { label: "2 panes", sub: "Tree and file" },
-  1: { label: "1 pane", sub: "The file alone" },
+  1: { label: "1 pane", sub: "File only" },
 };
 
 // On a tab other than Files, the panes are the repos beside it, or not.
 export const otherWords: Partial<Record<Panes, PaneWords>> = {
-  3: { label: "With the repos", sub: "The repos, beside this tab" },
-  2: { label: "This tab alone", sub: "The repos folded away" },
+  3: { label: "With repos", sub: "Repos beside this tab" },
+  2: { label: "This tab only", sub: "Repos hidden" },
 };
 
 // What the panes menu offers, and which it's on: on a tab other than

@@ -12,7 +12,7 @@ export function TeamFilter({ ref, value, onChange }: { ref?: Ref<HTMLInputElemen
       className={css.filter}
       value={value}
       placeholder="Filter: text, repo, person"
-      aria-label="Filter what happened"
+      aria-label="Filter changes"
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Escape" || e.key === "Enter") {

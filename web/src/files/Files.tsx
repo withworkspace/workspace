@@ -24,21 +24,21 @@ import { WorktreeSwitch } from "./Repos/WorktreeSwitch";
 // explorer reads a capsule's. The title says which, and switches (w).
 
 export const filesKeys: [string, string][] = [
-  ["w", "Switch to the ground, or another capsule"],
+  ["w", "Switch capsule or ground"],
   ["t / mod+P", "Find a file"],
-  ["mod+shift+F", "Search what a capsule's files say (on a repo's ground: Find, tagged to it)"],
+  ["mod+shift+F", "Search in files"],
   ["j / k", "Next / previous in the tree"],
-  ["⏎ / o", "Open a file, or open or close a folder"],
-  ["⏎", "On the markdown file that's open: open it as a document, to comment on"],
-  ["h / l", "Close / open a folder"],
-  ["c", "Only what's changed, or every file (a capsule)"],
+  ["⏎ / o", "Open file, or toggle folder"],
+  ["⏎", "Open markdown as document"],
+  ["h / l", "Close / open folder"],
+  ["c", "Changed files, or all files (capsules)"],
   ["[ / ]", "Previous / next changed file"],
-  ["m", "Markdown: rendered, or as text"],
-  ["v", "Review the capsule's changes (a mission's)"],
-  ["y", "Copy the file's path"],
-  ["p", "Panes: the repos, the tree and the file; the tree and the file; or the file alone"],
+  ["m", "Markdown: rendered or source"],
+  ["v", "Review changes (mission capsules)"],
+  ["y", "Copy path"],
+  ["p", "Panes: repos, tree and file; tree and file; or file only"],
   ["r", "Reload"],
-  ["esc", "Close the file"],
+  ["esc", "Close file"],
 ];
 
 export function FilesPage() {
@@ -59,11 +59,11 @@ export function FilesPage() {
   if (error && !repos) {
     return (
       <div className="page narrow">
-        <ErrorCard title="Couldn't list the repos" error={error} retry={load} />
+        <ErrorCard title="Could not load repos" error={error} retry={load} />
       </div>
     );
   }
-  if (!repos) return <Loading what="Listing the repos…" />;
+  if (!repos) return <Loading what="Loading repos…" />;
   if (!repo || !r) {
     return (
       <FilesReposPage narrow={narrow} column={column}>
@@ -71,11 +71,12 @@ export function FilesPage() {
           <FilesPick>
             {repo && !r ? (
               <Empty icon="box" title={`No repo ${repo}`}>
-                The workspace has no repo called that. Pick one of its repos.
+                No repo by that name. Pick one from the list.
               </Empty>
             ) : (
               <Empty icon="layers" title="Pick a repo">
-                Its files as they are on its default branch (the ground), or in any of its capsules: its title switches between them (<Keys k="w" />).
+                Browse files on the default branch (ground) or any capsule. Switch with the title (
+                <Keys k="w" />).
               </Empty>
             )}
           </FilesPick>

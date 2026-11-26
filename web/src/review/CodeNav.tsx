@@ -179,7 +179,7 @@ export function useCodeNav(p: NavProps) {
   const usesOf = (place: At) => {
     getReferences(props.current.api, place).then(
       (refs) => {
-        if (!refs.def) return toast(`${refs.name} isn't defined in the repo`);
+        if (!refs.def) return toast(`${refs.name} not defined in the repo`);
         setCard(undefined);
         remember();
         setPanel({ rev: place.rev, path: refs.def.path, line: refs.def.line, side: place.side, uses: refs });
@@ -197,7 +197,7 @@ export function useCodeNav(p: NavProps) {
         return;
       }
       if (a.answer === "unresolved" || a.targets.length === 0) {
-        toast(`There's no definition of ${a.name} here`);
+        toast(`No definition of ${a.name} found`);
         return;
       }
       if (a.targets.length === 1 && a.answer === "resolved") {
@@ -349,7 +349,7 @@ export function useCodeNav(p: NavProps) {
   const pickOnRow = async () => {
     const at = cursorLine();
     if (!at) {
-      if (props.current.line === undefined && props.current.open) toast("Pick a line first: click its number");
+      if (props.current.line === undefined && props.current.open) toast("Select a line first: click its number");
       return;
     }
     const { side, rev, path } = at;
@@ -363,7 +363,7 @@ export function useCodeNav(p: NavProps) {
     }
     if (names.why) return toast(names.why);
     const on = names.lines[String(cell.num)] ?? [];
-    if (!on.length) return toast("There are no names on this line");
+    if (!on.length) return toast("No names on this line");
     const rect = at.el?.getBoundingClientRect() ?? new DOMRect(0, 0, 0, 0);
     const list = on.map(([from, to, part]) => ({ from, to, part, text: cell.text.slice(from, to) }));
     if (list.length === 1) {
@@ -381,7 +381,7 @@ export function useCodeNav(p: NavProps) {
         // In a file: the panel closes first, then back to where it was.
         if (panelNow.current) return setPanel(undefined);
         if (props.current.back?.()) return;
-        return toast("Nowhere to go back to");
+        return toast("Nothing to go back to");
       }
       const now = where();
       if (now) forward.current.push(now);

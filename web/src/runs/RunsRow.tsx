@@ -88,12 +88,12 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
               )}
             </RunCame>
           ) : live ? (
-            <RunLink href={r.link} title={`${r.up ? "Open it" : "Nothing's listening on its port yet"}${r.link !== r.local ? `: also ${bare(r.local)}` : ""}`}>
+            <RunLink href={r.link} title={`${r.up ? "Open" : "Not ready yet"}${r.link !== r.local ? `: also ${bare(r.local)}` : ""}`}>
               {bare(r.link)}
             </RunLink>
           ) : (
             <Text dim>
-              {r.state === "exited" ? `exited ${r.status ?? 0}` : "gone: ended outside ws"}
+              {r.state === "exited" ? `exited ${r.status ?? 0}` : "gone: ended outside Workspace"}
               {r.ended && (
                 <>
                   , <Time iso={r.ended} as="relative" />
@@ -103,7 +103,7 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
           )}
           {live && !task && !r.up && <Chip tone="quiet">not up</Chip>}
           {task && (r.n ?? 0) > 1 && (
-            <Text dim title={`${r.past ?? 0} of its earlier runs are kept behind it`}>
+            <Text dim title={`${r.past ?? 0} earlier runs kept`}>
               run {r.n}
             </Text>
           )}
@@ -137,7 +137,7 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
       started={live || !task ? r.started : undefined}
       actions={
         <>
-          <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide its output" : "Its output, and how it was started"}>
+          <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide output" : "Show output and details"}>
             <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
           </Button>
           <Button
@@ -145,7 +145,7 @@ export function RunsRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>
             size="small"
             disabled={busy}
             onClick={end}
-            title={live ? (task ? "Stop it now: it's kept as stopped" : "End it now, and run its recipe's stop") : task ? "Clear it away, with its output, its reports and the runs before it" : "Clear it away, its output with it"}
+            title={live ? (task ? "Stop now" : "Stop, and run recipe's stop") : task ? "Clear, with output, reports and earlier runs" : "Clear, with output"}
           >
             {busy ? <Spinner size={11} /> : <Icon name={live ? "stop" : "x"} size={11} />} {live ? "Stop" : "Clear"}
           </Button>

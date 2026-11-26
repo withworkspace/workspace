@@ -75,7 +75,7 @@ describe("anchorChip", () => {
   });
   it("is the lines of a pull request it was of, by the file's name", () => {
     expect(anchorChip({ pr: "api#89", path: "internal/cache.go", line: 12, endLine: 14, side: "new" })).toMatchObject({ kind: "lines", text: "cache.go:12–14", title: "internal/cache.go:12–14" });
-    expect(linesChip("cache.go", 3, 3, "old")).toMatchObject({ text: "cache.go:3", title: "cache.go:3 (lines it removes)" });
+    expect(linesChip("cache.go", 3, 3, "old")).toMatchObject({ text: "cache.go:3", title: "cache.go:3 (removed lines)" });
   });
   it("is none for an ask of the whole", () => {
     expect(anchorChip({ pr: "api#89" })).toBeUndefined();

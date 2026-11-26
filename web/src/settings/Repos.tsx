@@ -54,11 +54,10 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
       title={<SettingsReposTitle count={repos?.length} onAdd={() => setAdding(true)} />}
       about={
         <>
-          The team's are in <code>ws.toml</code>: shown here, changed there.
+          The team's are in <code>ws.toml</code>: edit them there.
           {yours > 0 && (
             <>
-              {" "}
-              Yours are in <code>ws.local.toml</code> alone: here, and not in a teammate's workspace.
+              {" "}Yours are in <code>ws.local.toml</code>: only in your workspace.
             </>
           )}
         </>

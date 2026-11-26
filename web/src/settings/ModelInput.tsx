@@ -21,16 +21,16 @@ export function ModelInput(p: ControlProps) {
   const [typing, setTyping] = useState(false);
   const cur = shown(s.value);
   const def = shown(s.default);
-  const placeholder = def ? `${def} (its default)` : "the agent's own default";
+  const placeholder = def ? `${def} (default)` : "Agent default";
   const note = got.error && (
     <SettingsNote left={stretch}>
-      Couldn't list {harness}'s models: {got.error}
+      Could not list {harness}'s models: {got.error}
     </SettingsNote>
   );
   if (typing || (models.length === 0 && !asking)) {
     return (
       <>
-        <TextInput {...p} placeholder={typing ? "in that agent's own naming" : placeholder} blank={typing} done={() => setTyping(false)} />
+        <TextInput {...p} placeholder={typing ? "Model name, as the agent names it" : placeholder} blank={typing} done={() => setTyping(false)} />
         {note}
       </>
     );

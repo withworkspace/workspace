@@ -31,7 +31,7 @@ function firstFor(r: RunDetail, missions: Mission[], talks: Talk[]): Said {
   switch (r.owner) {
     case "run":
       // Started because another run needed it: it lasts as long as one does.
-      return { text: r.neededBy?.length ? `${listed(r.neededBy)}, which ${r.neededBy.length === 1 ? "needs" : "need"} it` : "what needed it, which has ended" };
+      return { text: r.neededBy?.length ? `${listed(r.neededBy)}, which ${r.neededBy.length === 1 ? "needs" : "need"} it` : "an ended run" };
     case "pid":
       return { text: r.ownerCommand ? `${r.ownerCommand} (pid ${r.ownerPid})` : `pid ${r.ownerPid}` };
     case "capsule":
@@ -49,13 +49,13 @@ function firstFor(r: RunDetail, missions: Mission[], talks: Talk[]): Said {
     }
     case "looking":
       // An app: the workspace's page for it, or its tab on a worktree's.
-      if (r.app && !r.repo) return { text: "whoever has its page open", to: `/apps/${r.app}` };
-      if (r.app) return { text: "whoever has its tab open", to: `${filesOf(r)}?view=${encodeURIComponent(r.app)}` };
+      if (r.app && !r.repo) return { text: "anyone with the page open", to: `/apps/${r.app}` };
+      if (r.app) return { text: "anyone with the tab open", to: `${filesOf(r)}?view=${encodeURIComponent(r.app)}` };
       // Started from a mission's page, or with none, from the Files page.
-      if (mission) return { text: `whoever has ${mission.text} open`, to: mission.to };
-      return { text: "whoever has its files open", to: filesOf(r) };
+      if (mission) return { text: `anyone with ${mission.text} open`, to: mission.to };
+      return { text: "anyone with the files open", to: filesOf(r) };
     case "none":
-      return { text: "nobody: it lasts until it's stopped, or its time's up" };
+      return { text: "nobody: runs until stopped or timed out" };
   }
   return { text: r.owner };
 }
@@ -119,14 +119,14 @@ export function came(r: RunDetail): string {
     case "failed":
       return `failed (exit ${r.status ?? 1})${t ? ` in ${t}` : ""}`;
   }
-  return r.why ? `stopped: ${r.why}` : "stopped before it ended";
+  return r.why ? `stopped: ${r.why}` : "stopped early";
 }
 
 // commitSaid is the commit a task ran at, short, and whether the
 // worktree had changes that weren't committed.
 export function commitSaid(r: RunDetail): string {
   if (!r.commit) return "";
-  return r.commit.slice(0, 9) + (r.dirty ? ", with changes not committed" : "");
+  return r.commit.slice(0, 9) + (r.dirty ? ", with uncommitted changes" : "");
 }
 
 // bare is a link as it's read: no scheme, no trailing slash.
@@ -168,15 +168,15 @@ export const runId = (r: RunDetail) => r.nref ?? r.ref;
 // startedBy is who started a run, and how, in a few words: "you, from a
 // terminal", "crew c2", "ws, for check 1 of step 2".
 export function startedBy(r: RunDetail): string {
-  if (r.check) return `ws, for check ${r.check.n} of step ${r.check.step}`;
-  if (r.owner === "run") return r.neededBy?.length ? `ws, as ${listed(r.neededBy.map(nameOfRef))} ${r.neededBy.length === 1 ? "needs" : "need"} it` : "ws, for a run that needed it";
+  if (r.check) return `Workspace, for check ${r.check.n} of step ${r.check.step}`;
+  if (r.owner === "run") return r.neededBy?.length ? `Workspace, as ${listed(r.neededBy.map(nameOfRef))} ${r.neededBy.length === 1 ? "needs" : "need"} it` : "Workspace, for a run that needed it";
   const who = !r.by || r.by === "you" ? "you" : r.by === "ws" ? "ws" : `crew ${r.by}`;
   switch (r.owner) {
     case "pid":
       return `${who}, from a terminal`;
     case "looking":
-      if (r.app) return `${who}, by opening its ${r.app} tab`;
-      return r.mission ? `${who}, from the mission's page` : `${who}, from its files`;
+      if (r.app) return `${who}, by opening the ${r.app} tab`;
+      return r.mission ? `${who}, from the mission's page` : `${who}, from Files`;
     case "conversation":
       return `${who}, in a conversation`;
   }

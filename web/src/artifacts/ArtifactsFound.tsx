@@ -11,7 +11,7 @@ export function ArtifactsFound({ children }: { children: ReactNode }) {
       <h2 id="artifacts-found-title" className={css.title}>
         In the workspace's repos
       </h2>
-      <Text as="p" dim className={css.about}>Promoted by someone else, or by you on another machine: each runs from its repo's files.</Text>
+      <Text as="p" dim className={css.about}>Promoted by others, or by you on another machine.</Text>
       {children}
     </section>
   );

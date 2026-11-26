@@ -36,7 +36,7 @@ export function MissionDocCard({ artifact, title, kind, versions, state, desc, t
       {desc && <Text dim>{desc}</Text>}
       {to && (
         <Link to={to} className={hoverCardLinkClass()}>
-          {artifact ? "Open the artifact" : "Read it"} <Icon name="arrow-right" size={11} />
+          {artifact ? "Open artifact" : "Read"} <Icon name="arrow-right" size={11} />
         </Link>
       )}
     </>

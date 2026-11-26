@@ -164,18 +164,18 @@ export function PRSubmitDialog({
   const here = layers[Math.max(0, prs.findIndex((p) => p.number === d.pr.number))];
   return (
     <PullRequestSubmit
-      title={stack ? "Submit the review of the stack" : "Submit the review"}
+      title={stack ? "Submit stack review" : "Submit review"}
       onClose={onClose}
       intro={
         <>
-          Submitting posts to GitHub, as you. It's the one thing here that leaves your machine, and a review can't be unsent, only dismissed: what's below is exactly what goes.
-          {stack && " GitHub reviews one pull request at a time, so each layer has its own verdict; a layer with none is left alone."}
+          Posts to GitHub as you. A review cannot be unsent, only dismissed. Below is exactly what is posted.
+          {stack && " Each layer gets its own verdict. Layers without one are skipped."}
         </>
       }
       all={
         stack && (
           <>
-            <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval. Nothing's posted until you submit." keys="A">
+            <Button onClick={approveAll} disabled={busy} title="Approves every layer except drafts and your own. Nothing posts until you submit." keys="A">
               <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
             </Button>
             <Text dim>
@@ -187,8 +187,8 @@ export function PRSubmitDialog({
       start={
         here?.draft &&
         !busy && (
-          <Button variant="ghost" onClick={onDiscard} title={`Throw away your draft comments on #${d.pr.number}`}>
-            Discard the draft
+          <Button variant="ghost" onClick={onDiscard} title={`Discard draft comments on #${d.pr.number}`}>
+            Discard draft
           </Button>
         )
       }
@@ -240,9 +240,9 @@ export function PRSubmitDialog({
                 label={`Verdict for #${l.pr.number}`}
                 value={l.verdict}
                 keyed={i === focus}
-                unavailable={(v) => (l.pr.mine && v !== "comment" ? "It's your own pull request: GitHub takes comments on it, not a verdict" : undefined)}
+                unavailable={(v) => (l.pr.mine && v !== "comment" ? "Your own pull request: comment only" : undefined)}
                 onPick={(v) => pick(i, v)}
-                after={stack && !l.verdict && <Text dim className={pullRequestLeftAloneClass}>Left alone</Text>}
+                after={stack && !l.verdict && <Text dim className={pullRequestLeftAloneClass}>Skipped</Text>}
               />
             )}
             {l.verdict && !l.state && (
@@ -250,7 +250,7 @@ export function PRSubmitDialog({
                 ref={i === focus ? area : undefined}
                 value={l.summary}
                 rows={2}
-                placeholder="A summary, if it helps (optional)"
+                placeholder="Summary (optional)"
                 aria-label={`Summary for #${l.pr.number}`}
                 onFocus={() => setFocus(i)}
                 onChange={(e) => set(i, { summary: e.target.value })}
@@ -264,7 +264,8 @@ export function PRSubmitDialog({
             )}
             {l.verdict === "approve" && !l.state && l.pr.number === d.pr.number && noGo.length > 0 && (
               <Callout tone="attention" icon="alert" title={noGo.length === 1 ? `${noGo[0].title} is no go` : `${noGo.length} passes are no go`}>
-                {noGo.map((p) => `${p.title}: ${standingWords(p.standing).toLowerCase()}`).join("; ")}. Approving is yours to do: take what stands into your review, or dismiss what doesn't.
+                {noGo.map((p) => `${p.title}: ${standingWords(p.standing).toLowerCase()}`).join("; ")}. You
+                can still approve: add valid findings to your review, or dismiss the rest.
               </Callout>
             )}
             {l.error && <Banner>{humanError(l.error)}</Banner>}

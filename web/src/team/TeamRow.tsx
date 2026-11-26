@@ -46,7 +46,7 @@ export function TeamRow({ id, status, name, beside, under, words, people, additi
         <Status s={status} iconOnly size={16} className={rowStatusClass()} />
         <RowMain className={css.main}>
           <RowLine>
-            {fresh && <span className={css.new} title="Something's happened to it since you last looked" />}
+            {fresh && <span className={css.new} title="Updated since you last looked" />}
             <RowTitle>{name}</RowTitle>
             {beside}
           </RowLine>

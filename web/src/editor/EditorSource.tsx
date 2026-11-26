@@ -24,7 +24,7 @@ export function EditorSource({ text, setText, onRich, initial, label, placeholde
     <>
       {placed(
         <EditorToolbar compact={compact && toolbarIn === undefined} placed={toolbarIn !== undefined} source onSource={onRich}>
-          <Text dim>Markdown, as it's saved</Text>
+          <Text dim>Markdown source</Text>
         </EditorToolbar>,
         { toolbarIn, toolbarOn },
       )}

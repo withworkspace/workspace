@@ -6,7 +6,7 @@ import css from "./PageMap.module.css";
 // open, the files it rests on), or a PageMapEmpty.
 export function PageMap({ children }: { children: ReactNode }) {
   return (
-    <aside className={css.map} aria-label="This page's map">
+    <aside className={css.map} aria-label="Page map">
       {children}
     </aside>
   );

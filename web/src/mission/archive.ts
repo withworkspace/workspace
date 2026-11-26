@@ -11,7 +11,7 @@ export async function archiveMission(slug: string): Promise<Awaited<ReturnType<t
     return await act(slug, "archive");
   } catch (e) {
     if (!(e instanceof ApiError) || e.code !== "unmerged-capsules") throw e;
-    const yes = await confirm({ title: "Archive and burn its capsules?", body: humanError(e.message), confirm: "Archive and burn", danger: true });
+    const yes = await confirm({ title: "Archive and burn capsules?", body: humanError(e.message), confirm: "Archive and burn", danger: true });
     return yes ? act(slug, "archive", { burnAll: true }) : undefined;
   }
 }

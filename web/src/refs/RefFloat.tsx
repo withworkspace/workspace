@@ -23,7 +23,7 @@ export function RefFloat({ anchor, onEnter, onLeave, hint, pin, children }: RefF
     <FloatingCard anchor={anchor} className={css.float} onEnter={onEnter} onLeave={onLeave}>
       {children}
       <RefFoot>
-        {hint && <Text dim className={css.hint}>⌘-click its words to go there</Text>}
+        {hint && <Text dim className={css.hint}>⌘-click to open</Text>}
         {pin}
       </RefFoot>
     </FloatingCard>

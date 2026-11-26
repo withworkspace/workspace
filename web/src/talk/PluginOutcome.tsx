@@ -12,7 +12,7 @@ export function PluginOutcome({ p, made }: { p: TalkProposal; made: PluginPropos
       return (
         <TalkProposalSettled icon="arrow-down">
           <span>
-            Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>, proposed after it: nothing to confirm here
+            Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>
           </span>
         </TalkProposalSettled>
       );

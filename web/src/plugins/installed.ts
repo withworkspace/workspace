@@ -11,13 +11,13 @@ export type Tone = "done" | "attention" | "danger" | "quiet";
 export function stateOf(p: Pick<InstalledPlugin, "state">): { label: string; tone: Tone; title: string } {
   switch (p.state) {
     case "ready":
-      return { label: "Running", tone: "done", title: "It's running, and can be asked" };
+      return { label: "Running", tone: "done", title: "Running and ready" };
     case "setup":
-      return { label: "Needs setting up", tone: "attention", title: "Something it requires isn't set" };
+      return { label: "Needs setting up", tone: "attention", title: "Missing required settings" };
     case "failed":
-      return { label: "Failed", tone: "danger", title: "It didn't start, or keeps stopping" };
+      return { label: "Failed", tone: "danger", title: "Did not start, or keeps stopping" };
     default:
-      return { label: "Not running", tone: "quiet", title: "It's started when it's next needed: its view opened, a command of its run" };
+      return { label: "Not running", tone: "quiet", title: "Starts when next needed" };
   }
 }
 
@@ -34,7 +34,7 @@ export function fromOf(p: Pick<InstalledPlugin, "from">): string {
   const f = p.from;
   if (f.linked) return `Linked to ${home(f.linked)}`;
   if (!f.repo) return "Copied from a folder on this machine";
-  if (f.built) return f.tag ? `${f.repo} ${f.tag}, built here from its source` : `${f.repo}, built here from its source`;
+  if (f.built) return f.tag ? `${f.repo} ${f.tag}, built from source` : `${f.repo}, built from source`;
   return `${f.repo} ${f.tag ?? ""}`.trim();
 }
 
@@ -62,17 +62,17 @@ export function addsOf(p: Pick<InstalledPlugin, "views" | "commands" | "guide" |
 // built again.
 export function updateOf(p: Pick<InstalledPlugin, "from" | "latest" | "newer">): { can: boolean; out: boolean; label: string; title: string } {
   if (!p.from.repo) return { can: false, out: false, label: "", title: "" };
-  if (p.newer && p.latest) return { can: true, out: true, label: `Update to ${p.latest}`, title: `${p.latest} is out: fetch it, and start the plugin afresh. Its config and data stay.` };
-  if (p.from.built) return { can: true, out: false, label: "Fetch again", title: "It was built here from its source: fetch it and build it again, as there's no saying whether it's changed" };
-  return { can: true, out: false, label: "Look for an update", title: "Ask its repo for a later release now, and fetch one if there is" };
+  if (p.newer && p.latest) return { can: true, out: true, label: `Update to ${p.latest}`, title: `${p.latest} is out. Config and data are kept.` };
+  if (p.from.built) return { can: true, out: false, label: "Rebuild", title: "Built from source: fetch and rebuild" };
+  return { can: true, out: false, label: "Check for updates", title: "Check repo for a newer release" };
 }
 
 // changedSaid is what adding or updating a plugin did, for its toast.
 export function changedSaid(c: PluginChanged, was: "added" | "updated"): string {
-  const needs = c.missing?.length ? `. It needs setting up: ${c.missing.join(", ")}` : "";
+  const needs = c.missing?.length ? `. Needs setting up: ${c.missing.join(", ")}` : "";
   if (was === "added") return `Added ${c.name}${c.version ? ` ${c.version}` : ""}${needs}`;
   if (c.current) return `${c.name} ${c.now ?? ""} is the latest`.replace("  ", " ");
-  return `${c.name}: ${c.was ?? "what was here"} → ${c.now ?? "its latest"}${needs}`;
+  return `${c.name}: ${c.was ?? "previous"} → ${c.now ?? "latest"}${needs}`;
 }
 
 // wantedFrom is what adding one of the team's plugins is given: where it

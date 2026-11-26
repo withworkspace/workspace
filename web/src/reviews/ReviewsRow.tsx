@@ -88,7 +88,7 @@ export function ReviewsRow({
           target="_blank"
           rel="noreferrer"
           className={rowLinkClass(css.link)}
-          title="Opens on GitHub: it's merged there"
+          title="Merged: opens on GitHub"
           onClick={(e) => {
             e.preventDefault();
             onOpen();
@@ -98,7 +98,7 @@ export function ReviewsRow({
         </a>
       )}
       {fold && (
-        <Button variant="ghost" size="small" square className={css.fold} onClick={fold.onFold} title={`${fold.folded ? "Show" : "Hide"} its layers`} keys="l" aria-expanded={!fold.folded} aria-label="Its layers">
+        <Button variant="ghost" size="small" square className={css.fold} onClick={fold.onFold} title={`${fold.folded ? "Show" : "Hide"} layers`} keys="l" aria-expanded={!fold.folded} aria-label="Layers">
           <Icon name={fold.folded ? "chevron-right" : "chevron-down"} size={13} />
         </Button>
       )}

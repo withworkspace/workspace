@@ -43,7 +43,7 @@ export function SettingsPicks({ picks, label, example, onAdd, onDrop }: Settings
       {picks.map((p, i) => (
         <span key={p} className={css.pick}>
           {p}
-          <Button type="button" title={`Take ${p} off`} aria-label={`Take ${p} off`} onClick={() => onDrop(i)}>
+          <Button type="button" title={`Remove ${p}`} aria-label={`Remove ${p}`} onClick={() => onDrop(i)}>
             <Icon name="x" size={10} />
           </Button>
         </span>

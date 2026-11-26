@@ -141,8 +141,8 @@ export function CellPanel({
             <PageTurn kind="version">
               <PageVersion>
                 <Icon name="pencil" size={11} />
-                <span>Your words, as they were</span>
-                <Button variant="link" onClick={() => fillCell(view, cell.id, 0, cell.turns[0].edited!)} title="Put your own words back in the cell">
+                <span>Your original text</span>
+                <Button variant="link" onClick={() => fillCell(view, cell.id, 0, cell.turns[0].edited!)} title="Restore your text">
                   Use this
                 </Button>
               </PageVersion>
@@ -158,8 +158,8 @@ export function CellPanel({
                   {t.edited && (
                     <PageVersion yours>
                       <Icon name="pencil" size={11} />
-                      <span>With your edits to it</span>
-                      <Button variant="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Put the cell back as you'd edited it">
+                      <span>With your edits</span>
+                      <Button variant="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Restore your edits">
                         Use this
                       </Button>
                     </PageVersion>
@@ -194,7 +194,7 @@ export function CellPanel({
                   <span>{all.length > 1 ? `Version ${k}` : "Written"}</span>
                   <Time iso={t.at} as="clock" className={textClass("dim")} />
                   {t !== latest && (
-                    <Button variant="link" onClick={() => fillCell(view, cell.id, k, t.body)} title="Put this version back in the cell">
+                    <Button variant="link" onClick={() => fillCell(view, cell.id, k, t.body)} title="Restore this version">
                       Use this
                     </Button>
                   )}
@@ -212,7 +212,7 @@ export function CellPanel({
             <PageTurn kind="filling">
               <PageVersion>
                 <Spinner size={12} />
-                <span>{askingNow(cell) ? "Answering" : all.length ? "Writing it again" : "Filling it in"}</span>
+                <span>{askingNow(cell) ? "Answering" : all.length ? "Rewriting" : "Filling in"}</span>
               </PageVersion>
               <Calls calls={liveCalls(cell.run)} root={root} open live />
             </PageTurn>
@@ -224,9 +224,9 @@ export function CellPanel({
           {read.map((src) => {
             const name = sourceName(src);
             const href = sourceHref(src);
-            const said = src.state === "gone" ? `${name}: gone since this was written` : src.state ? `${name}: changed since this was written` : name;
+            const said = src.state === "gone" ? `${name}: deleted since written` : src.state ? `${name}: changed since written` : name;
             return (
-              <PageSourceChip key={src.path} to={href} moved={!!src.state} title={href ? `${said}. Open it in Files.` : said}>
+              <PageSourceChip key={src.path} to={href} moved={!!src.state} title={href ? `${said}. Open in Files.` : said}>
                 <Icon name={src.state ? "alert" : "file"} size={11} />
                 {name.length > 40 ? `${name.split("/")[0]}/…/${baseName(src)}` : name}
               </PageSourceChip>
@@ -237,12 +237,12 @@ export function CellPanel({
       {stale && !cell.answering && !unstarted && (
         <PageStale words={`${stale} since this was written.`}>
           <Button size="small" disabled={busy} onClick={again}>
-            Write it again
+            Rewrite
           </Button>
         </PageStale>
       )}
       {unstarted && (
-        <PageUnstarted words={last?.by === "ws" ? (askingNow(cell) ? "It couldn't be answered." : "It couldn't be filled.") : "Its agent hasn't started."}>
+        <PageUnstarted words={last?.by === "ws" ? (askingNow(cell) ? "Could not answer." : "Could not fill.") : "Agent not started."}>
           <Button size="small" disabled={busy} onClick={() => run(onRetry)}>
             Try again
           </Button>
@@ -263,24 +263,24 @@ export function CellPanel({
               ? "Say what to change: group them by service, drop the last column… Or ask about it."
               : "Add to what you asked for…"
         }
-        aria-label={question ? "Ask more, or say what to put in the page" : "Change this cell, or ask about it"}
+        aria-label={question ? "Ask or add to page" : "Change or ask about cell"}
         escape="leave"
       >
         {question ? (
           <>
-            <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say" keys={sendKeys(sendKey, true)}>
-              Put it in the page
+            <Button size="small" disabled={busy} onClick={() => send(false)} title="Write into the page" keys={sendKeys(sendKey, true)}>
+              Add to page
             </Button>
-            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is" keys={sendKeys(sendKey)}>
+            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask without changing the page" keys={sendKeys(sendKey)}>
               Ask <SendKeys />
             </Button>
           </>
         ) : (
           <>
-            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is" keys={sendKeys(sendKey, true)}>
+            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask without changing the cell" keys={sendKeys(sendKey, true)}>
               Just ask
             </Button>
-            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way" keys={sendKeys(sendKey)}>
+            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Rewrite the cell this way" keys={sendKeys(sendKey)}>
               Change <SendKeys />
             </Button>
           </>
@@ -290,7 +290,7 @@ export function CellPanel({
         {!question && (
           <Button
             variant="link"
-            title="Leave what it holds in the page as your own words: no longer a cell"
+            title="Keep content as plain text"
             onClick={() => {
               keepCell(view, cell.id);
               onClose();
@@ -301,7 +301,7 @@ export function CellPanel({
         )}
         <Button
           variant="link"
-          title={question ? "Take the question out of the page" : "Take the cell out of the page, with what it holds"}
+          title={question ? "Remove question" : "Remove cell and its content"}
           onClick={() => {
             dropCell(view, cell.id);
             onClose();

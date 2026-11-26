@@ -61,9 +61,9 @@ export function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell;
             <PageTurn key={t.n} kind="version">
               <PageVersion>
                 <Icon name="sparkle" size={12} />
-                <span>Written into the page</span>
+                <span>Added to page</span>
                 <Button variant="link" onClick={onCell}>
-                  Go to it
+                  Show in page
                 </Button>
               </PageVersion>
             </PageTurn>
@@ -73,14 +73,14 @@ export function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell;
           <PageTurn kind="filling">
             <PageVersion>
               <Spinner size={12} />
-              <span>{askingNow(cell) ? "Finding out" : "Writing it into the page"}</span>
+              <span>{askingNow(cell) ? "Finding out" : "Adding to page"}</span>
             </PageVersion>
             <PageCalls calls={liveCalls(cell.run)} root={root} open live />
           </PageTurn>
         )}
         {!cell.answering && last?.by === "you" && (
           <PageTurn kind="failed">
-            <Text dim>Its agent hasn't started.</Text>
+            <Text dim>Agent not started.</Text>
           </PageTurn>
         )}
       </PageTurns>
@@ -96,11 +96,11 @@ export function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell;
           escape="leave"
         >
           {!written && (
-            <Button size="small" disabled={busy} onClick={() => onPut(text.trim())} title="Have it written into the page, under the words this is about: what it's answered, or what you say">
-              Put it in the page
+            <Button size="small" disabled={busy} onClick={() => onPut(text.trim())} title="Write into the page, under the passage">
+              Add to page
             </Button>
           )}
-          <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is" keys={sendKeys(sendKey)}>
+          <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask without changing the page" keys={sendKeys(sendKey)}>
             Ask <SendKeys />
           </Button>
         </PageComposer>

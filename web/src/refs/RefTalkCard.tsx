@@ -16,7 +16,7 @@ export function RefTalkCard({ r, talk: t }: { r: Extract<PageRef, { kind: "talk"
           <Inline text={t.summary} lines={4} />
         </Text>
       )}
-      <RefGo to={refHref(r)}>Open the conversation</RefGo>
+      <RefGo to={refHref(r)}>Open conversation</RefGo>
     </>
   );
 }

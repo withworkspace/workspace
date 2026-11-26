@@ -21,8 +21,8 @@ export function NotifyToggle({
       onClick={onToggle}
       title={
         on
-          ? "Desktop notifications are on: turn them off"
-          : "Notify me on the desktop when something needs me"
+          ? "Turn off desktop notifications"
+          : "Turn on desktop notifications"
       }
       aria-pressed={on}
     >

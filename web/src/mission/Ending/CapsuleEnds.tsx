@@ -34,10 +34,10 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
   };
   return (
     <>
-      <Button variant="ghost" size="small" onClick={() => setOpen("hand-on")} title="Hand it on to a mission of its own, which takes it">
+      <Button variant="ghost" size="small" onClick={() => setOpen("hand-on")} title="Move to another mission">
         <Icon name="arrow-right" size={12} /> Hand on
       </Button>
-      <Button variant="ghost" size="small" onClick={() => setOpen("drop")} title="Drop it: its work won't be part of the mission">
+      <Button variant="ghost" size="small" onClick={() => setOpen("drop")} title="Drop: work won't be part of the mission">
         <Icon name="x" size={12} /> Drop
       </Button>
       {open && <MissionEndingDialog ending={open} name={name} text={text} onText={setText} to={to} onTo={setTo} error={error} busy={busy} onClose={close} onEnd={submit} />}

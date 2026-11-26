@@ -83,18 +83,18 @@ export function RunPanel({
             target="_blank"
             rel="noopener noreferrer"
             className={buttonClass({ variant: "primary", size: "small" })}
-            title={r.up ? "Open it in a tab of its own, as its recipe says it's shown" : "Nothing's answering on its port yet: it opens once it does"}
+            title={r.up ? "Open in new tab" : "Not ready yet"}
           >
             <Icon name="external" size={11} /> Open
           </a>
         )}
         {onRunAgain && (
-          <Button size="small" disabled={!!busy} onClick={onRunAgain} title={r.recipe ? `Run its ${r.recipe} recipe again, here` : "Run it again"}>
+          <Button size="small" disabled={!!busy} onClick={onRunAgain} title={r.recipe ? `Run ${r.recipe} again` : "Run again"}>
             {busy === "again" ? <Spinner size={11} /> : <Icon name="play" size={11} />} Run again
           </Button>
         )}
         {live && onStop && (
-          <Button variant="ghost" size="small" disabled={!!busy} onClick={onStop} title={task ? "Stop it now: it's kept as stopped" : "End it now, and run its recipe's stop"}>
+          <Button variant="ghost" size="small" disabled={!!busy} onClick={onStop} title={task ? "Stop now" : "Stop, and run recipe's stop"}>
             {busy === "stop" ? <Spinner size={11} /> : <Icon name="stop" size={11} />} Stop
           </Button>
         )}
@@ -104,7 +104,7 @@ export function RunPanel({
             size="small"
             disabled={!!busy}
             onClick={onClear}
-            title={task ? "Clear it away, with its output, its reports and the runs before it" : "Clear it away, its output with it"}
+            title={task ? "Clear, with output, reports and earlier runs" : "Clear, with output"}
           >
             {busy === "clear" ? <Spinner size={11} /> : <Icon name="x" size={11} />} Clear
           </Button>
@@ -125,7 +125,7 @@ export function RunPanel({
           !task && (
             <RunPanelFact label="For">
               <SaidTo s={forWhom(r, missions, talks)} span />
-              {r.ends && <RunPanelAside>so it ends {r.ends}</RunPanelAside>}
+              {r.ends && <RunPanelAside>ends {r.ends}</RunPanelAside>}
             </RunPanelFact>
           )
         )}
@@ -133,7 +133,7 @@ export function RunPanel({
         {!live && r.ended && (
           <RunPanelFact label="Ended">
             <Time iso={r.ended} as="relative" />
-            {!task && <RunPanelAside>{r.state === "exited" ? `exit status ${r.status ?? 0}` : "outside ws"}</RunPanelAside>}
+            {!task && <RunPanelAside>{r.state === "exited" ? `exit status ${r.status ?? 0}` : "outside Workspace"}</RunPanelAside>}
           </RunPanelFact>
         )}
         {task && r.commit && (
@@ -141,19 +141,19 @@ export function RunPanel({
             <Text mono title={r.commit}>
               {r.commit.slice(0, 9)}
             </Text>
-            {r.dirty && <RunPanelAside>with changes not committed</RunPanelAside>}
+            {r.dirty && <RunPanelAside>with uncommitted changes</RunPanelAside>}
           </RunPanelFact>
         )}
         <RunPanelFact label="Recipe">
           {r.recipe ? (
             <>
-              <Text mono title="Its ws.repo.toml's recipe">
+              <Text mono title="Recipe in ws.repo.toml">
                 [run.{task ? "task" : "service"}.{r.recipe}]
               </Text>
               {recipe && !task && <RunPanelAside>{shownAs(recipe)}</RunPanelAside>}
             </>
           ) : (
-            <span>None: a command, run as it is</span>
+            <span>None: plain command</span>
           )}
         </RunPanelFact>
         {(r.needs?.length ?? 0) > 0 && (
@@ -164,11 +164,11 @@ export function RunPanel({
               {r.needs?.map((n) => (
                 <RunPanelNeed key={n.name} name={n.name}>
                   {n.folder ? (
-                    <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className={textClass("mono")} title={n.env ? `Handed to it as $${n.env}: ${n.dir}` : n.dir}>
+                    <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className={textClass("mono")} title={n.env ? `Passed as $${n.env}: ${n.dir}` : n.dir}>
                       {n.repo} / {n.worktree}
                     </Link>
                   ) : (
-                    <a href={n.address} target="_blank" rel="noopener noreferrer" className={textClass("mono")} title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
+                    <a href={n.address} target="_blank" rel="noopener noreferrer" className={textClass("mono")} title={n.env ? `Passed as $${n.env}: ${n.address}` : n.address}>
                       {n.run ?? bare(n.address)}
                     </a>
                   )}
@@ -198,7 +198,7 @@ export function RunPanel({
       </RunPanelFacts>
 
       <RunPanelViews framed={framed} shown={shown} onChange={setView} controls={panel} name={r.name} />
-      <RunPanelBody id={panel} tabpanel={framed} label={shown === "preview" ? `${r.name}, framed` : `${r.name}'s output`}>
+      <RunPanelBody id={panel} tabpanel={framed} label={shown === "preview" ? `${r.name} preview` : `${r.name}'s output`}>
         {shown === "preview" ? (
           <RunPreview
             link={r.link}

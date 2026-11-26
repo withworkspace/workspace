@@ -39,25 +39,25 @@ describe("what a row is", () => {
 
 describe("what can be done to it", () => {
   it("is a mission's headline first, then what changes it as it stands, then its brief", () => {
-    expect(titles({ kind: "mission", slug: "ready" })).toEqual(["Accept it", "Park it", "Stop c1", "Archive it", "Its brief"]);
-    expect(titles({ kind: "mission", slug: "aside" })).toEqual(["Unpark it", "Archive it", "Its brief"]);
-    expect(titles({ kind: "mission", slug: "gone" })).toEqual(["Unarchive it", "Its brief"]);
+    expect(titles({ kind: "mission", slug: "ready" })).toEqual(["Accept it", "Park", "Stop c1", "Archive", "Open brief"]);
+    expect(titles({ kind: "mission", slug: "aside" })).toEqual(["Unpark", "Archive", "Open brief"]);
+    expect(titles({ kind: "mission", slug: "gone" })).toEqual(["Unarchive", "Open brief"]);
     expect(actsFor({ kind: "mission", slug: "ready" }, workspace)[2].doing).toEqual({ act: "stop", slug: "ready", crew: "c1" });
   });
 
   it("is a conversation resolved or reopened, and where it went", () => {
-    expect(titles({ kind: "talk", id: "w1" })).toEqual(["Resolve it", "The mission it became"]);
-    expect(titles({ kind: "talk", id: "w2" })).toEqual(["Reopen it", "Its pull request, demo#12"]);
+    expect(titles({ kind: "talk", id: "w1" })).toEqual(["Resolve", "Open mission"]);
+    expect(titles({ kind: "talk", id: "w2" })).toEqual(["Reopen", "Open pull request demo#12"]);
     expect(actsFor({ kind: "talk", id: "w2" }, workspace)[1].to).toBe("/reviews/demo/12");
   });
 
   it("is an artifact compared, or a discarded one restored", () => {
-    expect(titles({ kind: "artifact", id: "a1" })).toEqual(["Compare its versions"]);
-    expect(titles({ kind: "artifact", id: "a2" })).toEqual(["Restore it"]);
+    expect(titles({ kind: "artifact", id: "a1" })).toEqual(["Compare versions"]);
+    expect(titles({ kind: "artifact", id: "a2" })).toEqual(["Restore"]);
   });
 
   it("is a pull request docked, or opened on GitHub", () => {
-    expect(titles({ kind: "pr", repo: "demo", number: 12 })).toEqual(["Dock it here", "Open it on GitHub"]);
+    expect(titles({ kind: "pr", repo: "demo", number: 12 })).toEqual(["Dock here", "Open on GitHub"]);
     expect(actsFor({ kind: "pr", repo: "demo", number: 12 }, workspace)[1].to).toBe("https://github.com/acme/demo/pull/12");
   });
 
@@ -69,7 +69,7 @@ describe("what can be done to it", () => {
   it("isn't found among everything: Resolve is under its conversation, not a row of its own", () => {
     const local = localItems(workspace);
     const b = build({ q: "resolve", scope: "all", local, found: [] });
-    expect(b.rows.some((it) => it.title === "Resolve it")).toBe(false);
+    expect(b.rows.some((it) => it.title === "Resolve")).toBe(false);
   });
 });
 
@@ -97,30 +97,30 @@ describe("pinning it", () => {
 
   it("is the last thing offered, by the name ws writes the thing with", () => {
     const w = pinned();
-    expect(last({ kind: "mission", slug: "ready" }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "ready" } } });
-    expect(last({ kind: "talk", id: "w1" }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "w1" } } });
-    expect(last({ kind: "artifact", id: "a1" }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "a1" } } });
-    expect(last({ kind: "pr", repo: "demo", number: 12 }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "demo#12" } } });
+    expect(last({ kind: "mission", slug: "ready" }, w)).toMatchObject({ title: "Pin", doing: { ws: { pin: "ready" } } });
+    expect(last({ kind: "talk", id: "w1" }, w)).toMatchObject({ title: "Pin", doing: { ws: { pin: "w1" } } });
+    expect(last({ kind: "artifact", id: "a1" }, w)).toMatchObject({ title: "Pin", doing: { ws: { pin: "a1" } } });
+    expect(last({ kind: "pr", repo: "demo", number: 12 }, w)).toMatchObject({ title: "Pin", doing: { ws: { pin: "demo#12" } } });
   });
 
   it("is unpinning it, for what's pinned", () => {
     const w = pinned("ready", "demo#12");
-    expect(last({ kind: "mission", slug: "ready" }, w)).toMatchObject({ title: "Unpin it", doing: { ws: { unpin: "ready" } } });
-    expect(last({ kind: "pr", repo: "demo", number: 12 }, w)).toMatchObject({ title: "Unpin it", doing: { ws: { unpin: "demo#12" } } });
-    expect(last({ kind: "talk", id: "w1" }, w)?.title).toBe("Pin it");
+    expect(last({ kind: "mission", slug: "ready" }, w)).toMatchObject({ title: "Unpin", doing: { ws: { unpin: "ready" } } });
+    expect(last({ kind: "pr", repo: "demo", number: 12 }, w)).toMatchObject({ title: "Unpin", doing: { ws: { unpin: "demo#12" } } });
+    expect(last({ kind: "talk", id: "w1" }, w)?.title).toBe("Pin");
   });
 
   // A pin of one would leave your focus at once: it's not offered. One
   // pinned before it ended can still be unpinned.
   it("isn't offered for what's come to an end", () => {
     const titles = (s: Parameters<typeof actsFor>[0], w: Workspace) => actsFor(s, w).map((it) => it.title);
-    expect(titles({ kind: "mission", slug: "gone" }, pinned())).not.toContain("Pin it");
-    expect(titles({ kind: "talk", id: "w2" }, pinned())).not.toContain("Pin it");
-    expect(titles({ kind: "artifact", id: "a2" }, pinned())).not.toContain("Pin it");
-    expect(titles({ kind: "mission", slug: "gone" }, pinned("gone"))).toContain("Unpin it");
+    expect(titles({ kind: "mission", slug: "gone" }, pinned())).not.toContain("Pin");
+    expect(titles({ kind: "talk", id: "w2" }, pinned())).not.toContain("Pin");
+    expect(titles({ kind: "artifact", id: "a2" }, pinned())).not.toContain("Pin");
+    expect(titles({ kind: "mission", slug: "gone" }, pinned("gone"))).toContain("Unpin");
   });
 
   it("isn't offered by a daemon that keeps no pins", () => {
-    expect(actsFor({ kind: "mission", slug: "ready" }, workspace).map((it) => it.title)).not.toContain("Pin it");
+    expect(actsFor({ kind: "mission", slug: "ready" }, workspace).map((it) => it.title)).not.toContain("Pin");
   });
 });

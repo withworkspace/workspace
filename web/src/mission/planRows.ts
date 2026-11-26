@@ -88,17 +88,17 @@ export function waitHow(s: Stage): WaitHow | undefined {
   if (s.type !== "Wait") return undefined;
   const yours = s.on === "you";
   if (s.passes === "watched") {
-    return { auto: true, word: "Watched", says: yours ? "ws runs its check every few minutes, and passes it; or mark it done, and ws looks then" : "ws runs its check every few minutes, and passes it by itself" };
+    return { auto: true, word: "Watched", says: yours ? "checked every few minutes and passed automatically, or mark done to check now" : "checked every few minutes and passed automatically" };
   }
-  if (yours) return { auto: false, word: "Manual", says: "nothing's watching for it: it moves when you mark it done" };
-  return { auto: false, word: "Manual", says: "nothing's watching for it: it moves when someone marks it done" };
+  if (yours) return { auto: false, word: "Manual", says: "passes when you mark done" };
+  return { auto: false, word: "Manual", says: "passes when someone marks done" };
 }
 
 // watchWords is what ws's watch of a Wait step last came to: "ws last
 // looked 14:02: not yet", or that it hasn't looked.
 export function watchWords(s: Stage, at: (iso: string) => string): string {
   const w = s.watch;
-  if (!w?.looked) return "ws hasn't looked yet";
+  if (!w?.looked) return "Not checked yet";
   return `ws last looked ${at(w.looked)}${w.came ? `: ${w.came}` : ""}`;
 }
 
@@ -161,7 +161,7 @@ export function stepText(s: Stage): string {
 export function checksWords(s: Stage, at: (iso: string) => string): string {
   const checks = s.checks ?? [];
   // A Wait's checks aren't run in rounds: ws looks, every so often.
-  if (s.type === "Wait") return s.state === "accepted" ? (checks.length === 1 ? "Its check, as ws last saw it" : "Its checks, as ws last saw them") : upperFirst(watchWords(s, at));
+  if (s.type === "Wait") return s.state === "accepted" ? (checks.length === 1 ? "Check, as last seen" : "Checks, as last seen") : upperFirst(watchWords(s, at));
   if (!s.round) return `${checks.length} ${checks.length === 1 ? "check" : "checks"}, not run yet`;
   return `Checks, round ${s.round}: ${checks.filter((c) => c.result === "met").length} of ${checks.length} met`;
 }

@@ -148,7 +148,8 @@ export function ComparePage() {
     return (
       <div className="page narrow">
         <Empty icon="search" title="Nothing to compare" action={<Link to="/artifacts">Artifacts</Link>}>
-          A comparison is of two versions: <code>/artifacts/a3/compare?v=1,3</code>, or of two artifacts, <code>/artifacts/compare?a=a3.v2&amp;b=a5.v1</code>.
+          Compare two versions, <code>/artifacts/a3/compare?v=1,3</code>, or two artifacts,{" "}
+          <code>/artifacts/compare?a=a3.v2&amp;b=a5.v1</code>.
         </Empty>
       </div>
     );
@@ -156,14 +157,14 @@ export function ComparePage() {
   if (error && (!left || !right)) {
     return (
       <div className="page narrow">
-        <ErrorCard error={error} retry={reload} title={`Couldn't compare ${sideRef(pair[0])} and ${sideRef(pair[1])}`} />
+        <ErrorCard error={error} retry={reload} title={`Could not compare ${sideRef(pair[0])} and ${sideRef(pair[1])}`} />
         <p>
           <Link to="/artifacts">Back to Artifacts</Link>
         </p>
       </div>
     );
   }
-  if (!left || !right) return <Loading what="Opening them…" />;
+  if (!left || !right) return <Loading what="Opening…" />;
 
   const px = widths.find((w) => w.key === width)?.px ?? 0;
   const sides: (0 | 1)[] = narrow ? [shown] : [0, 1];
@@ -185,17 +186,17 @@ export function ComparePage() {
           </Chip>
         </ArtifactTitleLine>
         <ArtifactTools>
-          <Segmented value={diff ? "diff" : "frames"} onChange={(v) => setDiff(v === "diff")} aria-label="What's compared">
-            <Segment value="frames" title="Each running in its frame" keys="d">
+          <Segmented value={diff ? "diff" : "frames"} onChange={(v) => setDiff(v === "diff")} aria-label="View">
+            <Segment value="frames" title="Live pages, side by side" keys="d">
               <Icon name="monitor" size={13} /> Frames
             </Segment>
-            <Segment value="diff" title="Their files, the left's against the right's" keys="d">
+            <Segment value="diff" title="File diff, left against right" keys="d">
               <Icon name="code" size={13} /> Source diff
             </Segment>
           </Segmented>
           {diff ? (
             !narrow && (
-              <Segmented value={split ? "split" : "unified"} onChange={(v) => setSplit(v === "split")} aria-label="The diff">
+              <Segmented value={split ? "split" : "unified"} onChange={(v) => setSplit(v === "split")} aria-label="Diff layout">
                 <Segment value="unified" title="Unified" keys="u">
                   <Icon name="unified" size={13} /> Unified
                 </Segment>
@@ -214,24 +215,24 @@ export function ComparePage() {
             </Segmented>
           )}
           {narrow && (
-            <Segmented value={shown ? "right" : "left"} onChange={(v) => setShown(v === "right" ? 1 : 0)} aria-label="Which one's shown">
+            <Segmented value={shown ? "right" : "left"} onChange={(v) => setShown(v === "right" ? 1 : 0)} aria-label="Side">
               {([0, 1] as const).map((i) => (
-                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "The right" : "The left"} one`} keys="t">
+                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "Right" : "Left"} one`} keys="t">
                   {sideRef(pair[i])}
                 </Segment>
               ))}
             </Segmented>
           )}
           <ArtifactToolsEnd>
-            <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about" keys="S">
+            <Button variant="ghost" size="small" onClick={swap} title="Swap sides" keys="S">
               <Icon name="swap" size={13} /> Swap <Keys k="S" />
             </Button>
             {!diff && (
               <>
-                <Button variant="ghost" size="small" onClick={again} title="Run them again" keys="r">
+                <Button variant="ghost" size="small" onClick={again} title="Run again" keys="r">
                   <Icon name="rotate" size={13} /> Reload <Keys k="r" />
                 </Button>
-                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"} keys="x">
+                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run again" : "Unload: a script that loops stops"} keys="x">
                   <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
                 </Button>
               </>

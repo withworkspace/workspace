@@ -43,7 +43,7 @@ export function VerifyCheck({
       meta={
         <>
           {r.n ? `Check ${r.n}, ` : ""}
-          {r.ran ? "ws ran it" : r.verdict === "yours" ? `left for you by ${b.crew}` : `${b.crew}${b.own ? ", who did the work" : ", its verifier"}`}
+          {r.ran ? "Run by Workspace" : r.verdict === "yours" ? `left for you by ${b.crew}` : `${b.crew}${b.own ? ", who did the work" : ", its verifier"}`}
         </>
       }
       title={<Inline text={r.title} />}

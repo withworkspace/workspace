@@ -30,7 +30,7 @@ export function DocumentsFresh({ fetching, behind, remote, dirty, pulling, onPul
         <>
           <Icon name="alert" size={12} /> {behind} {behind === 1 ? "commit" : "commits"} behind {remote}
           {dirty ? (
-            <span> · its ground has changes of its own, so it isn't moved</span>
+            <span> · has local changes: not pulled</span>
           ) : (
             <Button size="small" onClick={onPull} disabled={pulling}>
               {pulling ? "Pulling…" : "Pull"}

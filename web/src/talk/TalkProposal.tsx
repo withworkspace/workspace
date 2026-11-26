@@ -44,7 +44,7 @@ export function TalkProposal({
         {title && <span className={css.title}>{title}</span>}
         <span className={css.spacer} />
         {!!revises && (
-          <a className={cx(textClass("dim"), css.revises)} href={`#proposal-${revises}`} title={`It takes the place of proposal ${revises}`}>
+          <a className={cx(textClass("dim"), css.revises)} href={`#proposal-${revises}`} title={`Replaces proposal ${revises}`}>
             Revises {revises}
           </a>
         )}

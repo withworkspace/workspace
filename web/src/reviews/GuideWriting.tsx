@@ -20,9 +20,9 @@ export function GuideWriting({ since, thinking, given, again }: { since?: string
   return (
     <div className={css.writing}>
       <Text as="p" dim>
-        <Spinner size={12} /> {!since ? "Waiting to start…" : again ? "Writing it again" : "Writing the guide"}
+        <Spinner size={12} /> {!since ? "Waiting to start…" : again ? "Rewriting" : "Writing the guide"}
         {since && <span title="Since it started"> · {duration(since, now)}</span>}
-        {thinking && <span title="Its agent thinks before it writes: what it thinks isn't shown"> · thinking it over</span>}
+        {thinking && <span title="Thinking isn't shown"> · thinking it over</span>}
       </Text>
       {given && (
         <Text as="p" dim className={css.given} title={left.length ? `Not shown to it:\n${left.map((l) => `${l.path} (${l.why})`).join("\n")}` : undefined}>

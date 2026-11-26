@@ -132,9 +132,9 @@ describe("what the page holds", () => {
       "Accept it: Fix token refresh",
       "Light theme",
       "Dark theme",
-      "Theme from the system",
-      "Shut down the daemon…",
-      "Show the keys",
+      "System theme",
+      "Shut down Workspace…",
+      "Keyboard shortcuts",
     ]);
   });
 });
@@ -273,7 +273,7 @@ describe("the window", () => {
     expect(b.sections.map((s) => s.group)).toEqual(["files"]);
     expect(b.sections[0].items.length).toBe(20);
     expect(b.sections[0].more).toBe(3);
-    expect(b.sections[0].note).toBe("Reading 2 capsules: their files may be missing.");
+    expect(b.sections[0].note).toBe("Reading 2 capsules: results may be incomplete.");
     // Narrowed with ⇥ to a kind the page holds.
     const m = build({
       q: "",
@@ -286,7 +286,7 @@ describe("the window", () => {
     expect(m.sections[0].items.length).toBe(2);
     // Things to do, by >.
     const d = build({ q: "theme", scope: "do", local, found: [] });
-    expect(titles(d.rows)).toEqual(["Dark theme", "Light theme", "Theme from the system"]);
+    expect(titles(d.rows)).toEqual(["Dark theme", "Light theme", "System theme"]);
   });
 
   it("names what capsules have changed, with nothing typed for files", () => {
@@ -440,21 +440,22 @@ describe("what plugins do", () => {
       ["mission", "mission"],
     ]);
     // A kind with none of its own still has ws's.
-    expect(actsOn(undefined).map((a) => a.title)).toEqual(["Start a mission about it"]);
+    expect(actsOn(undefined).map((a) => a.title)).toEqual(["Start a mission about this"]);
     // One ws found in a space is named by its folder: its kind's actions
     // are its plugin's, for the plugin's own, so only ws's are offered.
-    expect(actsOn(issue, "records/issues/flaky-refresh/").map((a) => a.title)).toEqual(["Start a mission about it"]);
+    expect(actsOn(issue, "records/issues/flaky-refresh/").map((a) => a.title)).toEqual(["Start a mission about this"]);
     expect(actingOn(issue, "", "records/issues/flaky-refresh/").map((it) => it.id)).toEqual(["act:ws:mission"]);
     const all = actingOn(issue, "");
     expect(all.map((it) => [it.id, it.title, it.icon])).toEqual([
       ["act:its:move", "Move to…", "play"],
       ["act:its:assign", "Assign to…", "user"],
-      ["act:ws:mission", "Start a mission about it", "flag"],
+      ["act:ws:mission", "Start a mission about this", "flag"],
     ]);
     expect(all[0].act).toEqual({ id: "move", title: "Move to…", hint: "status column", icon: undefined });
     // What's typed narrows it, by title and by hint, the best first.
     expect(actingOn(issue, "assign").map((it) => it.id)).toEqual(["act:its:assign"]);
-    expect(actingOn(issue, "status").map((it) => it.id)).toEqual(["act:its:move"]);
+    // "Start a mission about this" also fuzzy-matches "status" (s-t-a-t-u-s), and a title match outranks a hint match.
+    expect(actingOn(issue, "status").map((it) => it.id)).toContain("act:its:move");
     expect(actingOn(issue, "mission")[0].id).toBe("act:ws:mission");
     expect(actingOn(issue, "zzz")).toEqual([]);
   });

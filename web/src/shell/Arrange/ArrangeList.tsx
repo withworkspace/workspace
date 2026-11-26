@@ -32,8 +32,8 @@ const words = {
     icon: "arrow-down",
   },
   menu: {
-    label: "In the workspace's menu",
-    empty: "Drag a place here to keep it in the menu, out of the sidebar.",
+    label: "In workspace menu",
+    empty: "Drag a place here to move it out of the sidebar.",
     across: (label: string) => `Move ${label} back to the sidebar`,
     icon: "arrow-up",
   },

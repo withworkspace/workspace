@@ -22,7 +22,7 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
     return (
       <>
         <h2>Guide</h2>
-        <Text as="p" dim>Reading the guide…</Text>
+        <Text as="p" dim>Loading guide…</Text>
       </>
     );
   }
@@ -41,10 +41,8 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
       <GuideBox>
         {!g && !running && (
           <Text as="p" dim>
-            What the change does, where that differs from what it says it does, and the order to read its files in. An agent writes it from the change and the description alone.{" "}
-            <Button size="small" onClick={run}>
-              Write the guide
-            </Button>
+            What the change does, where it differs from its description, and the order to read its files.{" "}
+            <Button size="small" onClick={run}>Write guide</Button>
           </Text>
         )}
         {running && <GuideWriting since={guide.since} thinking={guide.thinking} given={guide.given} again={!!g} />}

@@ -7,7 +7,7 @@ export function ArtifactExpiryNote({ words, expired }: { words: string; expired:
   return (
     <ArtifactNote expiry={expired ? "expired" : "soon"}>
       <Icon name="clock" size={12} />{" "}
-      {expired ? "Expired: it's had no new version for a while, and the daemon discards it today. Promote it to keep it." : `It ${words}: a new version, or promoting it, keeps it.`}
+      {expired ? "Expired: no new version for a while, and the Workspace discards it today. Promote it to keep it." : `Artifact ${words}. Promote to keep it, or add a version.`}
     </ArtifactNote>
   );
 }

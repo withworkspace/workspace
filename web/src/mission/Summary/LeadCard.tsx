@@ -33,7 +33,7 @@ export function LeadCard({ d, c, lead, reload, step, latest }: { d: MissionDetai
       {detail &&
         (c.kind === "resume" || (long && !lead) ? (
           <details className="fold">
-            <summary>{c.kind === "resume" ? `What ${c.primary?.target ?? "crew"} will be told` : "Read it all"}</summary>
+            <summary>{c.kind === "resume" ? `What ${c.primary?.target ?? "crew"} will be told` : "Show all"}</summary>
             <Inline text={detail} />
           </details>
         ) : long ? (

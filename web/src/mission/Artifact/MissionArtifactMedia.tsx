@@ -6,7 +6,7 @@ import css from "./MissionArtifactMedia.module.css";
 export function MissionArtifactMedia({ src, video, label }: { src: string; video?: boolean; label: string }) {
   return (
     <figure className={css.media}>
-      {video ? <video src={src} controls preload="metadata" aria-label={label} /> : <img src={src} alt={label} data-viewable={label} title="Open it larger" />}
+      {video ? <video src={src} controls preload="metadata" aria-label={label} /> : <img src={src} alt={label} data-viewable={label} title="Enlarge" />}
     </figure>
   );
 }

@@ -12,11 +12,11 @@ export function RunPanelViews({ framed, shown, onChange, controls, name }: { fra
   return (
     <div className={css.views}>
       {framed ? (
-        <Tabs value={shown} onChange={onChange} controls={controls} className={css.tabs} aria-label={`What's shown of ${name}`}>
-          <Tab value="preview" title="It, in a frame">
+        <Tabs value={shown} onChange={onChange} controls={controls} className={css.tabs} aria-label={`${name} view`}>
+          <Tab value="preview" title="Live preview">
             <Icon name="eye" size={13} /> Preview
           </Tab>
-          <Tab value="output" title="What it's printing, as it does">
+          <Tab value="output" title="Live output">
             <Icon name="terminal" size={13} /> Output
           </Tab>
         </Tabs>

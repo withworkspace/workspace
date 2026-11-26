@@ -11,7 +11,7 @@ export const standingWords = (st: PassMark["standing"]): string => {
     case "running":
       return "Running";
     case "failed":
-      return "Couldn't run";
+      return "Could not run";
     case "nogo":
       return `No go · ${st.blocking} blocking`;
     case "notes":

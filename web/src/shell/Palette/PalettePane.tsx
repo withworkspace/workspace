@@ -96,7 +96,7 @@ export function PalettePane({
       ) : on ? (
         <FindItemCard mark={on.status ? <Status s={on.status} iconOnly size={13} /> : <Icon name={on.icon ?? "chevron-right"} size={13} className={textClass("dim")} />} title={on.title} kind={on.kind} hint={on.hint} />
       ) : (
-        <HoverCardLine dim>What the cursor's on shows here.</HoverCardLine>
+        <HoverCardLine dim>Details of the selected item show here.</HoverCardLine>
       )}
     </FindPane>
   );

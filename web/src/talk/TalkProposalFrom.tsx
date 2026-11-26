@@ -7,8 +7,7 @@ import { Text } from "../ui/Text";
 export function TalkProposalFrom({ plugin, proposes }: { plugin: string; proposes?: string }) {
   return (
     <Text as="div" dim className={css.from}>
-      Proposed through the {plugin} plugin ({plugin}:{proposes}),
-      which does what it says here once you accept it.
+      Proposed through the {plugin} plugin ({plugin}:{proposes}). The plugin carries this out when you accept.
     </Text>
   );
 }

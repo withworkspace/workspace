@@ -50,7 +50,7 @@ describe("settled", () => {
     expect(marker(1)).toEqual({ accepted: true, what: "mission token-cache", to: "/missions/token-cache", edits: undefined });
     expect(marker(2)?.what).toBe("decision “Round half to even”");
     expect(marker(3)).toMatchObject({ what: "document records:adr/0008-how-loud.md", to: "/documents/records/adr/0008-how-loud.md" });
-    expect(marker(4)?.what).toBe("the brief and its plan");
+    expect(marker(4)?.what).toBe("the brief and plan");
     expect(marker(5)?.what).toBe("the edit to the plan");
     expect(marker(6)?.what).toBe("crew c3");
     expect(marker(7)?.what).toBe("review comment on cache.go:12");
@@ -78,7 +78,7 @@ describe("settled", () => {
       prop(1, "replan", "accepted", { text: "Add a step for the dropdown.", result: "t2" }),
       prop(2, "replan", "declined", { text: "Drop the browser check." }),
     ];
-    expect(settled(turn(1, "Accepted proposal 1, …"), ps)).toEqual({ accepted: true, what: "replan, asked of the planner in t2", edits: undefined });
+    expect(settled(turn(1, "Accepted proposal 1, …"), ps)).toEqual({ accepted: true, what: "replan, in t2", edits: undefined });
     expect(settled(turn(2, "Declined proposal 2, …", false), ps)).toEqual({ accepted: false, what: "replan “Drop the browser check”", edits: undefined });
   });
   it("names what was declined as it was proposed", () => {
@@ -148,12 +148,12 @@ describe("addedVersion", () => {
 describe("artifactWhere", () => {
   it("says a new one goes where the workspace keeps new ones", () => {
     expect(artifactWhere({ path: ".ws/artifacts/2026-11-16-glow/" })).toBe("Adds .ws/artifacts/2026-11-16-glow/, on this machine");
-    expect(artifactWhere({ path: "records:artifacts/2026-11-16-glow/v1.html" })).toBe("Adds records:artifacts/2026-11-16-glow/v1.html, in a commit on records");
+    expect(artifactWhere({ path: "records:artifacts/2026-11-16-glow/v1.html" })).toBe("Adds records:artifacts/2026-11-16-glow/v1.html, committed to records");
     expect(artifactWhere({})).toBe("");
   });
 
   it("says a version goes where its artifact is", () => {
-    expect(artifactWhere({ to: "a1", on: 1, latest: 1 }, { latest: { n: 1 }, place: "records" })).toBe("Adds v2 to a1, in a commit on records");
+    expect(artifactWhere({ to: "a1", on: 1, latest: 1 }, { latest: { n: 1 }, place: "records" })).toBe("Adds v2 to a1, committed to records");
     expect(artifactWhere({ to: "a1", on: 1, latest: 1 }, { latest: { n: 2 }, place: ".ws" })).toBe("Adds v3 to a1, on this machine");
     expect(artifactWhere({ to: "a1", on: 1, latest: 1 })).toBe("Adds v2 to a1");
   });
@@ -187,7 +187,7 @@ describe("made", () => {
     const ps = [prop(1, "brief", "accepted", { brief: "a" }), prop(2, "plan", "accepted", { plan: "p" }), prop(3, "brief", "accepted", { brief: "b", plan: "p" }), prop(4, "brief", "open", { brief: "c" })];
     expect(made(ps, "token-cache").map((m) => [m.n, m.name, m.to])).toEqual([
       [2, "The plan", "/missions/token-cache/brief"],
-      [3, "The brief and its plan", "/missions/token-cache/brief"],
+      [3, "The brief and plan", "/missions/token-cache/brief"],
       [4, "The brief", undefined],
     ]);
   });

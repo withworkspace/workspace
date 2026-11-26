@@ -64,13 +64,13 @@ describe("a plugin's thing, drawn", () => {
       fields: [...issue.fields!, { name: "sprint", type: "text" }],
       views: {
         card: [
-          { block: "field", field: "assignee", label: "Whose" },
+          { block: "field", field: "assignee", label: "Add for" },
           { block: "field", field: "assignee" },
           { block: "field", field: "sprint" },
         ],
       },
     };
-    expect(thingBlocks(named, { key: "RAM-12", fields: { assignee: "Dana", sprint: "4" } }, "card").map((d) => d.label)).toEqual(["Whose", "Assignee", "sprint"]);
+    expect(thingBlocks(named, { key: "RAM-12", fields: { assignee: "Dana", sprint: "4" } }, "card").map((d) => d.label)).toEqual(["Add for", "Assignee", "sprint"]);
   });
 
   it("says a time as a time, and draws a type ws doesn't know as text", () => {

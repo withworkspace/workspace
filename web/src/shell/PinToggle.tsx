@@ -31,7 +31,7 @@ export function PinToggle({ on, compact, end, keys, onToggle }: PinToggleProps) 
         e.stopPropagation();
         onToggle();
       }}
-      title={on ? "Take it out of your focus" : "Keep it in your focus, in the sidebar"}
+      title={on ? "Remove from Focus" : "Add to Focus"}
       keys={keys}
       aria-pressed={on}
       aria-label={compact ? (on ? "Pinned" : "Pin") : undefined}

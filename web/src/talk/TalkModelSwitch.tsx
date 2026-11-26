@@ -24,13 +24,13 @@ export function TalkModelSwitch({ slug, id, chosen }: { slug: string; id: string
       value={on.value.model}
       placeholder={`${on.value.harness}'s default`}
       busy={busy}
-      aria-label="This conversation's model"
+      aria-label="Model"
       onSwitch={(model) => {
         setBusy(true);
         setTalkModel(slug, id, model).then(
           (m) => {
             on.set(m);
-            toast(`Its next turn runs on ${m.model}.`, { tone: "done" });
+            toast(`Next turn runs on ${m.model}.`, { tone: "done" });
           },
           (e: Error) => toast(humanError(e.message), { tone: "danger" }),
         ).finally(() => setBusy(false));

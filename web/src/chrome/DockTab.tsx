@@ -56,7 +56,7 @@ export function DockTab({
           data-ui=""
           tabIndex={on ? 0 : -1}
           aria-label={`Close ${name}`}
-          title="Close it"
+          title="Close"
           className={css.close}
           onClick={onClose}
         >

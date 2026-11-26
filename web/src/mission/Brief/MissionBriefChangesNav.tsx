@@ -14,14 +14,14 @@ type MissionBriefChangesNavProps = {
 export function MissionBriefChangesNav({ onBefore, onNext, onAcceptAll }: MissionBriefChangesNavProps) {
   return (
     <div className={css.nav}>
-      <Button size="small" className={css.button} type="button" onClick={onBefore} title="The change before" keys="k" aria-label="The change before">
+      <Button size="small" className={css.button} type="button" onClick={onBefore} title="Previous change" keys="k" aria-label="Previous change">
         <Icon name="chevron-up" size={12} /> <Keys k="k" />
       </Button>
-      <Button size="small" className={css.button} type="button" onClick={onNext} title="The next change" keys="j" aria-label="The next change">
+      <Button size="small" className={css.button} type="button" onClick={onNext} title="Next change" keys="j" aria-label="Next change">
         <Icon name="chevron-down" size={12} /> <Keys k="j" />
       </Button>
       <span className={css.spacer} />
-      <Button size="small" className={css.button} type="button" onClick={onAcceptAll} title="Take each as it's proposed">
+      <Button size="small" className={css.button} type="button" onClick={onAcceptAll} title="Accept all remaining changes">
         Accept all
       </Button>
     </div>

@@ -6,7 +6,7 @@ import css from "./FilesRunsBack.module.css";
 // where there's no room for both.
 export function FilesRunsBack({ to }: { to: To }) {
   return (
-    <Link to={to} replace className={css.back} aria-label="Its runs" title="Its runs">
+    <Link to={to} replace className={css.back} aria-label="Back to runs" title="Back to runs">
       <Icon name="arrow-left" size={14} />
     </Link>
   );

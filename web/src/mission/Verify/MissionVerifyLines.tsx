@@ -6,11 +6,11 @@ import css from "./MissionVerifyLines.module.css";
 export function MissionVerifyLines({ lines }: { lines: string[] }) {
   return (
     <p className={css.lines}>
-      Where it's done:{" "}
+      Location:{" "}
       {lines.map((l, i) => (
         <span key={l}>
           {i > 0 && ", "}
-          <Copyable text={l} title="Copy where it is" />
+          <Copyable text={l} title="Copy location" />
         </span>
       ))}
     </p>

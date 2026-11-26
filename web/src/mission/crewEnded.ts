@@ -6,9 +6,9 @@ import { exitWords } from "../ui/statusOf";
 export function endedWords(c: Pick<CrewDetail, "how" | "exit">): string | undefined {
   switch (c.how) {
     case "interrupted":
-      return "stopped by a daemon restart";
+      return "stopped by a Workspace restart";
     case "handed-back":
-      return "closed: it had handed its work back";
+      return "closed: work handed back";
     case "stopped":
       return "stopped";
   }

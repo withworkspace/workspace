@@ -22,7 +22,7 @@ export function MissionVerifyMenu({ groups, label, onPick, end }: { groups: Miss
     <Menu
       className={css.menu}
       placement={end ? "bottom end" : "bottom"}
-      aria-label="This mission's verification bundles"
+      aria-label="Verification bundles"
       onAction={onPick}
       trigger={
         <Button className={cx(css.more, end && css.end)} data-field>

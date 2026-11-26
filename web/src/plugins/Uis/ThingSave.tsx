@@ -34,7 +34,7 @@ export function ThingSave({ what, saved, why, onAgain, onClose }: ThingSaveProps
     <ThingUi role="status">
       {!saved && why === undefined && (
         <p className={css.line}>
-          <Spinner size={14} /> Saving {what} to its repo…
+          <Spinner size={14} /> Saving {what} to repo…
         </p>
       )}
       {saved && (
@@ -45,14 +45,14 @@ export function ThingSave({ what, saved, why, onAgain, onClose }: ThingSaveProps
               {saved.repo}:{saved.path}
             </code>
           </p>
-          {saved.merged && <Text as="p" dim>It had changed there since: what was there is in it now.</Text>}
-          {saved.capsule && <Text as="p" dim>{saved.repo} takes pull requests: it's in {saved.capsule}, for you to open one from.</Text>}
-          {!saved.changed && !saved.capsule && <Text as="p" dim>It's there as it is here.</Text>}
+          {saved.merged && <Text as="p" dim>Changed in the repo since: changes merged.</Text>}
+          {saved.capsule && <Text as="p" dim>{saved.repo} uses pull requests: saved in {saved.capsule} for you to open one.</Text>}
+          {!saved.changed && !saved.capsule && <Text as="p" dim>Already up to date.</Text>}
         </>
       )}
       {!saved && why !== undefined && (
         <>
-          <ThingUiTitle>{what} wasn't saved</ThingUiTitle>
+          <ThingUiTitle>Could not save {what}</ThingUiTitle>
           <ThingUiFailed>{why}</ThingUiFailed>
           <ThingUiButtons>
             <Button variant="primary" size="small" type="button" onClick={onAgain}>

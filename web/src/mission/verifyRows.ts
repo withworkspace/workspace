@@ -131,16 +131,16 @@ export function shown(c: BundleCheck): string {
   if (images) parts.push(count(images, "image"));
   if (videos) parts.push(count(videos, "recording"));
   if (texts) parts.push(count(texts, "transcript"));
-  if (!parts.length && c.lines?.length) parts.push("the lines it's done in");
+  if (!parts.length && c.lines?.length) parts.push("the relevant lines");
   return parts.join(", ");
 }
 
 // rowLine is a check in a line, under its title: what it came to, who
 // said, and what shows it.
 export function rowLine(b: Bundle, r: CheckRow): string {
-  if (r.ran) return `${verdictWords[r.verdict]}, ws ran it`;
+  if (r.ran) return `${verdictWords[r.verdict]}, run by Workspace`;
   const c = r.check!;
-  let line = c.verdict === "yours" ? `Yours: ${b.crew} left it for you` : `${verdictWords[c.verdict]}, ${b.crew}`;
+  let line = c.verdict === "yours" ? `Yours, from ${b.crew}` : `${verdictWords[c.verdict]}, ${b.crew}`;
   const what = shown(c);
   if (what) line += `: ${what}`;
   if (c.judged && c.judged.result !== c.verdict) line += `. The judge says ${c.judged.result}`;
@@ -171,10 +171,10 @@ export function standing(b: Bundle): string {
 export function nothingLeftWords(bundles: Bundle[]): string {
   const n = (g: BundleGroup) => bundles.filter((b) => bundleGroup(b) === g).length;
   const parts: string[] = [];
-  if (n("approved")) parts.push(n("approved") === 1 ? "You've approved its one standing bundle." : `You've approved all ${n("approved")} of its standing bundles.`);
-  if (n("back")) parts.push(n("back") === 1 ? "1 is back with its crew: what they hand over next will wait for you." : `${n("back")} are back with their crew: what they hand over next will wait for you.`);
-  if (n("stale")) parts.push(n("stale") === 1 ? "1 was replaced or has gone stale." : `${n("stale")} were replaced or have gone stale.`);
-  return parts.join(" ") || "No bundle waits for you.";
+  if (n("approved")) parts.push(n("approved") === 1 ? "Bundle approved." : `All ${n("approved")} bundles approved.`);
+  if (n("back")) parts.push(n("back") === 1 ? "1 sent back to crew: the next one will wait for you." : `${n("back")} sent back to crew: the next ones will wait for you.`);
+  if (n("stale")) parts.push(n("stale") === 1 ? "1 replaced or stale." : `${n("stale")} replaced or stale.`);
+  return parts.join(" ") || "No bundles waiting for you.";
 }
 
 // allClearWords says, once the last check left for you is approved, how

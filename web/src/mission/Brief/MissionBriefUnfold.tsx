@@ -12,9 +12,9 @@ type MissionBriefUnfoldProps = {
 // documents, from the tab's bar, with a dot when it has something for you.
 export function MissionBriefUnfold({ waits, onUnfold }: MissionBriefUnfoldProps) {
   return (
-    <Button variant="ghost" square type="button" className={css.unfold} onClick={onUnfold} title="Show the planner's conversation" keys="p" aria-label="Show the planner's conversation">
+    <Button variant="ghost" square type="button" className={css.unfold} onClick={onUnfold} title="Show planner" keys="p" aria-label="Show planner">
       <Icon name="panel" size={14} />
-      {waits && <span className={css.dot} aria-label="It has something for you" />}
+      {waits && <span className={css.dot} aria-label="Planner needs you" />}
     </Button>
   );
 }

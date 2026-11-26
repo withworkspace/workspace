@@ -34,7 +34,7 @@ export function MissionTimeline({ bars = [], ticks = [], lanes = 1 }: { bars?: T
   const shown = hover.shown === undefined ? undefined : ticks[hover.shown];
   const anchor = hover.shown === undefined ? undefined : els.current.get(hover.shown);
   return (
-    <div className={css.timeline} style={{ "--lanes": Math.max(1, Math.min(lanes, most)) } as React.CSSProperties} aria-label="The mission over time" data-mission-timeline="">
+    <div className={css.timeline} style={{ "--lanes": Math.max(1, Math.min(lanes, most)) } as React.CSSProperties} aria-label="Mission timeline" data-mission-timeline="">
       <div className={css.track}>
         {bars
           .filter((b) => b.lane < most)

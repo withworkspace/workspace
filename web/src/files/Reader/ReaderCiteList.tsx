@@ -32,7 +32,7 @@ export function ReaderCiteList({ title, items }: { title: string; items: CiteIte
               <RowMain>
                 <RowTitle>{c.title}</RowTitle>
               </RowMain>
-              <Text dim mono className={css.at} title={c.how === "link" ? "A link in it" : "It names it"}>
+              <Text dim mono className={css.at} title={c.how === "link" ? "By link" : "By name"}>
                 {c.file}:{c.line}
               </Text>
             </Link>

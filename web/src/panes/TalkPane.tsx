@@ -72,7 +72,7 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
   const gone = !!held?.gone;
   useEffect(() => {
     if (!gone) return;
-    if (talk?.ephemeral) toast("That ask's gone: nobody kept it.");
+    if (talk?.ephemeral) toast("Conversation gone: not kept.");
     useTalks.getState().forget(to);
     onGone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,8 +130,8 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
     e.preventDefault();
     e.stopPropagation();
     const go = gives?.cite;
-    if (!go) toast("It cites a section of what it was asked about: open that to go there.");
-    else if (!go(a.getAttribute("href") ?? "")) toast("It cites a section the document doesn't have.");
+    if (!go) toast("Open the document to go to this section.");
+    else if (!go(a.getAttribute("href") ?? "")) toast("Section not found in the document.");
   };
 
   const following = waiting(talk);
@@ -145,7 +145,7 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
           to={talk && !talk.ephemeral ? to : undefined}
           more={
             talk?.ephemeral && (
-              <Button size="small" onClick={keep} disabled={keeping} aria-busy={keeping} title="Keep it as a conversation, in Conversations">
+              <Button size="small" onClick={keep} disabled={keeping} aria-busy={keeping} title="Save to Conversations">
                 <Icon name="message" size={12} /> Keep
               </Button>
             )
@@ -160,13 +160,13 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
                     <span className="q">{of.text}</span>
                   </span>
                 )}
-                {talk.ephemeral && <span className={css.unkept}>Gone an hour after its last turn, unless you keep it</span>}
+                {talk.ephemeral && <span className={css.unkept}>Deleted an hour after the last turn, unless kept</span>}
               </>
             )
           }
         />
-        {held?.error && !talk && <ErrorCard title="Couldn't read the conversation" error={held.error} retry={() => void useTalks.getState().load(to)} />}
-        {!talk && !held?.error && <Loading what="Reading the conversation…" />}
+        {held?.error && !talk && <ErrorCard title="Could not load conversation" error={held.error} retry={() => void useTalks.getState().load(to)} />}
+        {!talk && !held?.error && <Loading what="Loading conversation…" />}
         {talk && (
           <div onClickCapture={cite}>
             <Turns talk={talk} root={root} following={following} settle={settle} />
@@ -174,7 +174,8 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
         )}
         {talk && elsewhere > 0 && (
           <p className={css.proposed}>
-            It proposed {elsewhere === 1 ? "something" : `${elsewhere} things`} for you to confirm. <Link to={to}>Open it</Link> to see {elsewhere === 1 ? "it" : "them"}.
+            Proposed {elsewhere === 1 ? "something" : `${elsewhere} things`} to confirm.{" "}
+            <Link to={to}>Open conversation</Link> to see {elsewhere === 1 ? "it" : "them"}.
           </p>
         )}
       </DockBody>

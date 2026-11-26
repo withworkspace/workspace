@@ -30,7 +30,7 @@ export function KindHead({
     return c;
   }, [docs]);
   const states = kind.states ?? [];
-  const sorts: [Sort, string][] = [["made", docs.some((d) => d.number) ? "By number" : "Newest first"], ["title", "By title"], ...(states.length > 0 ? [["stands", "By where it stands"] as [Sort, string]] : []), ["changed", "Changed lately"]];
+  const sorts: [Sort, string][] = [["made", docs.some((d) => d.number) ? "By number" : "Newest first"], ["title", "By title"], ...(states.length > 0 ? [["stands", "By status"] as [Sort, string]] : []), ["changed", "Recently changed"]];
   return (
     <SpaceKindHead
       title={kind.title}

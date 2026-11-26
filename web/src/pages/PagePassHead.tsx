@@ -10,7 +10,7 @@ export function PagePassHead({ about, how, unavailable, action }: { about: React
       <div className={css.about}>
         <p>{about}</p>
         <Text as="p" dim className={css.how}>{how}</Text>
-        {unavailable && <p className={css.unavailable}>It can't be run: {unavailable}.</p>}
+        {unavailable && <p className={css.unavailable}>Cannot run: {unavailable}.</p>}
       </div>
       {action}
     </header>

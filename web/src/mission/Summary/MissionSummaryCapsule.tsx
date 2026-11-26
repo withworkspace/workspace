@@ -32,7 +32,7 @@ export function MissionSummaryCapsule({
         <Icon name="box" size={14} className={textClass("dim")} />
         <Text mono className={css.name}>{name}</Text>
         {branch && (
-          <Chip tone="quiet" title="Its branch">
+          <Chip tone="quiet" title="Branch">
             <Icon name="branch" size={11} />
             {branch}
           </Chip>
@@ -40,7 +40,7 @@ export function MissionSummaryCapsule({
         {badges}
         <span className={css.spacer} />
         {onReview && (
-          <Button size="small" onClick={onReview} title="Review its changes" keys="v">
+          <Button size="small" onClick={onReview} title="Review changes" keys="v">
             <Icon name="eye" /> Review
           </Button>
         )}

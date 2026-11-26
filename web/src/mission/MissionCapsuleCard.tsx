@@ -24,12 +24,12 @@ export function MissionCapsuleCard({ name, branch, badges, review, files }: { na
         <HoverCardLinks>
           {review && (
             <Link to={review} className={hoverCardLinkClass()}>
-              Review its changes <Icon name="arrow-right" size={11} />
+              Review changes <Icon name="arrow-right" size={11} />
             </Link>
           )}
           {files && (
             <Link to={files} className={hoverCardLinkClass()}>
-              Its files <Icon name="arrow-right" size={11} />
+              Files <Icon name="arrow-right" size={11} />
             </Link>
           )}
         </HoverCardLinks>

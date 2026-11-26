@@ -21,8 +21,8 @@ describe("Change", () => {
   });
 
   it("says what's gone where there's nothing in its place, and only then", () => {
-    expect(lines(html({ was: ["a"], now: [], gone: "(delete it)" }))).toEqual(["a", "(delete it)"]);
-    expect(lines(html({ was: ["a"], now: ["b"], gone: "(delete it)" }))).toEqual(["a", "b"]);
+    expect(lines(html({ was: ["a"], now: [], gone: "(delete)" }))).toEqual(["a", "(delete)"]);
+    expect(lines(html({ was: ["a"], now: ["b"], gone: "(delete)" }))).toEqual(["a", "b"]);
   });
 
   it("draws each passage of several", () => {

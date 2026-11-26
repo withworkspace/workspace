@@ -8,7 +8,7 @@ import css from "./MissionVerifyBundles.module.css";
 // MissionVerifyBundle each, and the rest behind a MissionVerifyMenu.
 export function MissionVerifyBundles({ label, attention, children }: { label: ReactNode; attention?: boolean; children: ReactNode }) {
   return (
-    <div className={css.bundles} role="group" aria-label="This mission's verification bundles">
+    <div className={css.bundles} role="group" aria-label="Verification bundles">
       <span className={cx(css.label, attention && toneClass("attention"), attention && css.attention)}>{label}</span>
       {children}
     </div>

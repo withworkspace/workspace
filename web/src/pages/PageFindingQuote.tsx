@@ -7,12 +7,12 @@ import css from "./PageFindingQuote.module.css";
 export function PageFindingQuote({ lost, onClick, children }: { lost?: boolean; onClick?: () => void; children: ReactNode }) {
   if (onClick && !lost)
     return (
-      <button className={css.quote} onClick={onClick} title="Go to these words on the page">
+      <button className={css.quote} onClick={onClick} title="Go to text">
         {children}
       </button>
     );
   return (
-    <span className={cx(css.quote, lost && css.lost)} title={lost ? "These words aren't on the page any more" : undefined}>
+    <span className={cx(css.quote, lost && css.lost)} title={lost ? "Text no longer on the page" : undefined}>
       {children}
     </span>
   );

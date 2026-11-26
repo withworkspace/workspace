@@ -11,7 +11,7 @@ export function FilesFileHead({ onBack, path, size, tools }: { onBack?: () => vo
   return (
     <header className={css.head}>
       {onBack && (
-        <Button variant="ghost" square onClick={onBack} aria-label="Back to the files">
+        <Button variant="ghost" square onClick={onBack} aria-label="Back to files">
           <Icon name="arrow-left" size={15} />
         </Button>
       )}

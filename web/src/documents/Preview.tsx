@@ -61,7 +61,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
   const canEdit = !!shown?.editable && !shown.mission;
   const heads = sections.filter((s) => s.level === 2);
   return (
-    <SpacePreview label={`${doc.title}, previewed`} paneRef={pane}>
+    <SpacePreview label={`${doc.title} preview`} paneRef={pane}>
       <SpacePreviewHead
         chips={
           <>
@@ -86,15 +86,15 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         }
         actions={
           <>
-            <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} {...keyProps("⏎", "Read it in the reader, where it's asked about")}>
-              <Icon name="book" size={13} /> Read it <Keys k="⏎" />
+            <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} {...keyProps("⏎", "Open in reader")}>
+              <Icon name="book" size={13} /> Read <Keys k="⏎" />
             </Link>
             {canEdit && (
-              <Link to={docAddress(ref, shown?.page ?? true)} className={buttonClass()} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say">
+              <Link to={docAddress(ref, shown?.page ?? true)} className={buttonClass()} title="Edit as a page; save to the repo when ready">
                 <Icon name="pencil" size={13} /> Edit as a page
               </Link>
             )}
-            <Link to={filesTo(repo, GROUND, doc.path)} className={buttonClass({ variant: "ghost" })} title="Open it in Files">
+            <Link to={filesTo(repo, GROUND, doc.path)} className={buttonClass({ variant: "ghost" })} title="Open in Files">
               <Icon name="layers" size={13} /> In Files
             </Link>
           </>
@@ -102,7 +102,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
       />
       {flights && flights.length > 0 && <SpacePreviewFlight capsules={flights.map((c) => ({ name: c, to: docAddress(`${repo}/${c}:${doc.path}`) }))} />}
       {heads.length > 1 && <SpacePreviewSections sections={heads} onGo={(anchor) => goToSection(body.current, anchor)} />}
-      {error && <ErrorCard title="Couldn't read it" error={error} retry={load} />}
+      {error && <ErrorCard title="Could not load document" error={error} retry={load} />}
       {!shown && !error && <SpacePreviewSkeleton />}
       {shown && text !== undefined && (
         <SpacePreviewBody bodyRef={body}>

@@ -94,7 +94,7 @@ describe("what can be done here", () => {
     const mission = hereAt("/missions/fix-token-refresh", "", workspace, known);
     const items = hereItems(mission, workspace, known);
     expect(items[0]).toMatchObject({ group: "here", title: "Accept it", doing: { act: "accept", slug: "fix-token-refresh" } });
-    expect(items.map((it) => it.title).slice(1)).toEqual(expect.arrayContaining(["Park it", "Archive it", "Its brief"]));
+    expect(items.map((it) => it.title).slice(1)).toEqual(expect.arrayContaining(["Park", "Archive", "Open brief"]));
     expect(items.every((it) => it.group === "here")).toBe(true);
   });
 
@@ -106,7 +106,7 @@ describe("what can be done here", () => {
 
   it("is a plugin's thing's actions, then ws's own", () => {
     const items = hereItems(hereAt("/x/jira/issue/RAM-12", "", workspace, known), workspace, known);
-    expect(titles(items)).toEqual(["Move it", "Start a mission about it"]);
+    expect(titles(items)).toEqual(["Move it", "Start a mission about this"]);
     expect(items[0].doing).toMatchObject({ thing: { id: "RAM-12" }, does: { id: "move" } });
   });
 });

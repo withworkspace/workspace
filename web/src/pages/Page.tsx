@@ -119,11 +119,11 @@ export default function PagePage({ id: given, back }: { id?: string; back?: Back
   if (error) {
     return (
       <div className="page narrow">
-        <ErrorCard error={humanError(error)} title="Couldn't open this page" retry={() => setReads((n) => n + 1)} />
+        <ErrorCard error={humanError(error)} title="Could not open page" retry={() => setReads((n) => n + 1)} />
       </div>
     );
   }
-  if (!d) return <Loading what="Opening the page…" />;
+  if (!d) return <Loading what="Opening page…" />;
   return <Doc key={`${d.id}:${reads}`} d={d} back={back ?? { to: "/documents", label: "Documents" }} reread={() => setReads((n) => n + 1)} />;
 }
 
@@ -132,7 +132,7 @@ export default function PagePage({ id: given, back }: { id?: string; back?: Back
 // it (a check, a cold read) is a pass, on a tab of its own, and never in
 // the page.
 const firstDraft = {
-  title: "Ask for a first draft from what's here: its sections are laid out at once, and written one by one. Keep as text makes each yours",
+  title: "Draft from what's here, section by section",
   prompt:
     "a first draft of what this page is working towards, from what it says and what the code shows: the goal, the context, what's in and out, and how we'd know it's done, under a heading each",
 };
@@ -140,7 +140,7 @@ const firstDraft = {
 // A page started as a kind of document is drafted as one: laid out as the
 // kind's guide says (its agent is told where the guide is).
 const kindDraft = (k: DocKind) => ({
-  title: `Ask for a first draft of this ${k.title}, laid out as the workspace's guide to one says${k.guide ? "" : " (it has no guide: as one usually is)"}, from what's here and what the code shows. Keep as text makes each part yours`,
+  title: `Draft this ${k.title} following the workspace guide${k.guide ? "" : " (it has no guide: as one usually is)"}, from what's here and the code`,
   prompt: `a first draft of this ${k.title}, laid out and written as the guide to one says${k.guide ? ` (${k.guide}: read it first)` : ""}, from what the page says and what the code shows, under a heading each`,
 });
 
@@ -174,7 +174,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
     try {
       await save().catch(() => {});
       const r = await bringIn(id);
-      toast(r.clashes ? `Brought in. ${r.clashes === 1 ? "One place clashes" : `${r.clashes} places clash`}: marked on the page (<<<<<<<), for you to settle before saving` : "Brought in what changed", { tone: r.clashes ? "info" : "done" });
+      toast(r.clashes ? `Brought in. ${r.clashes === 1 ? "One place clashes" : `${r.clashes} places clash`}: marked on the page (<<<<<<<); resolve before saving` : "Brought in changes", { tone: r.clashes ? "info" : "done" });
       reread();
     } catch (e) {
       toast(humanError((e as Error).message), { tone: "danger" });
@@ -360,7 +360,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           return { from: f.from, to: f.to, href: refAddress(ref, where) };
         }),
     );
-    toast(n ? `Linked ${n} ${n === 1 ? "name" : "names"}: undo takes them back` : "Nothing's named here that isn't linked already", { tone: n ? "done" : "info" });
+    toast(n ? `Linked ${n} ${n === 1 ? "name" : "names"}. Undo to remove.` : "No unlinked names", { tone: n ? "done" : "info" });
   };
   // What a card's on may have moved, or gone.
   useEffect(() => hovering.clear(), [rev, tab, hovering.clear]);
@@ -490,7 +490,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
     if (!v || !host) return;
     caughtUp(v);
     const range = blocksAt(v.state);
-    if (!range) return toast("Put the cursor in the words to change, or select them. A cell is asked from its own panel.", { tone: "info" });
+    if (!range) return toast("Place the cursor in or select the text to change. For a cell, use its panel.", { tone: "info" });
     const end = v.coordsAtPos(range.to - 1);
     setOpen(undefined);
     setChanging({ ...range, top: end.bottom - host.getBoundingClientRect().top + 8 });
@@ -553,7 +553,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
   };
 
   const remove = async () => {
-    if (!(await confirm({ title: `Remove “${title}”?`, body: "It's taken out of your pages. Its file is kept in .ws/pages.", confirm: "Remove", danger: true }))) return;
+    if (!(await confirm({ title: `Remove “${title}”?`, body: "Removed from your pages. File is kept in .ws/pages.", confirm: "Remove", danger: true }))) return;
     stopped.current = true;
     removePage(id).then(
       () => navigate("/documents"),
@@ -610,7 +610,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
   // it's done.
   const take = (pass: PagePass, f: PassFinding) => {
     if (!view || !f.quote || !f.suggest) return;
-    if (!putInstead(view, f.quote, f.suggest)) return toast("Its words aren't on the page in one place any more: edit them by hand.", { tone: "info" });
+    if (!putInstead(view, f.quote, f.suggest)) return toast("Quoted text no longer in one place on the page: edit by hand.", { tone: "info" });
     setNote(undefined);
     settle(pass, f, "done");
   };
@@ -672,7 +672,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           </Chip>
         )}
         {tied?.in && (
-          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", textClass("mono"))} title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
+          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", textClass("mono"))} title={`Tied to ${tied.ref}: saving writes there. Open in Files`}>
             <Icon name="file" size={11} /> {tied.ref.replace(":", " · ")}
           </Link>
         )}
@@ -680,7 +680,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         {planning &&
           (planning.turns.at(-1)?.by === "ws" ? (
             <PageRetry title={planning.turns.at(-1)?.body} onClick={() => startFilling(id, planning.id).then(put, failed)}>
-              Couldn't plan it: try again
+              Could not plan: try again
             </PageRetry>
           ) : (
             <Chip tone="progress" title={planning.turns[0]?.body}>
@@ -691,43 +691,43 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           variant="ghost" size="small"
           disabled={!view || tab !== "page"}
           pressed={adding}
-          title="Ask for something to be added to the page, anywhere in it: a section after Constraints on X, and one after Release on roll out. What's coming is put in at once, and written as you go on"
+          title="Add sections anywhere in the page"
           onChange={setAdding}
         >
           <Icon name="plus" size={12} /> Add
         </ToggleButton>
         <Button variant="ghost" size="small" disabled={!view || tab !== "page"} title={draftAs.title} onClick={() => plan(draftAs.prompt)}>
-          <Icon name="pencil" size={12} /> Draft it
+          <Icon name="pencil" size={12} /> Draft
         </Button>
         <Button
           variant="ghost" size="small"
           disabled={!view || tab !== "page"}
-          unavailable={onAnyGitHub ? undefined : "The workspace's repos aren't on GitHub to link to (ws.toml's org, or a repo's github)"}
+          unavailable={onAnyGitHub ? undefined : "Repos not on GitHub: set the org in ws.toml, or a repo's github"}
           onClick={linkWhatsNamed}
-          title="Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read"
+          title="Link files, pull requests and repos named in the page"
         >
           <Icon name="link" size={12} /> Link names
         </Button>
-        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Ask for the words the cursor's in (or those selected) to be changed" keys="mod+⏎">
+        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Change text at cursor or selection" keys="mod+⏎">
           <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
         </Button>
         {wide && (
-          <ToggleButton variant="ghost" size="small" pressed={mapOn} onChange={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
+          <ToggleButton variant="ghost" size="small" pressed={mapOn} onChange={toggleMap} title="Page map">
             <Icon name="panel" size={12} /> Map
           </ToggleButton>
         )}
         {tied && !tied.gone && (
-          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} unavailable={tied.changed ? "The file's changed since: bring in what changed first" : undefined} title={`Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
+          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} unavailable={tied.changed ? "File changed since: bring in changes first" : undefined} title={`Save to ${tied.ref}: cells as text, questions left out`}>
             <Icon name="check" size={12} /> Save to repo
           </Button>
         )}
         {!filed && !tied && (
-          <Button variant="ghost" size="small" onClick={() => setFiling(true)} title="File it as a document: of one of the workspace's kinds, where the kind says, or in a folder of a repo; landed, or in a capsule lifted for it">
+          <Button variant="ghost" size="small" onClick={() => setFiling(true)} title="File as a document">
             <Icon name="file" size={12} /> File as…
           </Button>
         )}
         <PageSaveState state={saving} retry={() => save().catch(() => {})} />
-        <Button variant="ghost" size="small" onClick={remove} title="Remove this page">
+        <Button variant="ghost" size="small" onClick={remove} title="Remove page">
           Remove
         </Button>
       </PageHeader>
@@ -775,16 +775,17 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           role="alert"
           actions={
             <Button size="small" onClick={bringItIn} disabled={bringing}>
-              {bringing ? "Bringing it in…" : "Bring in what changed"}
+              {bringing ? "Bringing in…" : "Bring in changes"}
             </Button>
           }
         >
-          <Text mono>{tied.in?.path ?? tied.ref}</Text> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
+          <Text mono>{tied.in?.path ?? tied.ref}</Text> changed since this page loaded it. Bring in changes
+          before saving; they merge with your edits.
         </Banner>
       )}
       {tied?.gone && (
         <Banner tone="attention" role="alert">
-          The file this page is tied to ({tied.ref}) isn't there any more: {tied.gone}.
+          Tied file ({tied.ref}) no longer exists: {tied.gone}.
         </Banner>
       )}
       {filed && !tied && (
@@ -798,8 +799,10 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             </Link>
           }
         >
-          Filed as <Link to={docTo(filed.ref)} className={textClass("mono")}>{filed.ref.replace(":", " · ")}</Link>
-          {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
+          Filed as{" "}
+          <Link to={docTo(filed.ref)} className={textClass("mono")}>{filed.ref.replace(":", " · ")}</Link>
+          {filed.landed ? ", landed" : ", in a new capsule"} <Time iso={filed.at} as="relative" />. Edit there
+          now; changes here stay in the page.
         </Banner>
       )}
       {saving === "changed" && (
@@ -809,15 +812,15 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           actions={
             <>
               <Button size="small" onClick={reread}>
-                Read it again
+                Reload
               </Button>
               <Button size="small" onClick={keepMine}>
-                Keep what's here
+                Keep this version
               </Button>
             </>
           }
         >
-          This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.
+          Page changed elsewhere, maybe in another tab. Saving paused until you choose.
         </Banner>
       )}
       <PageTabs value={tab} onChange={setTab}>
@@ -866,7 +869,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
       <PageDoc ref={wrap}>
         <MarkdownEditor
           initial={d.text}
-          label="The page"
+          label="Page"
           placeholder="Write the problem down. Start a line with >> to ask for something there: >> a table of the existing routes"
           autoFocus
           onChange={changed}
@@ -904,8 +907,8 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           <ChangeBox
             top={4}
             placeholder="What should be added, and where? A section after Constraints on X, and one after Release on roll out…"
-            hint="Its headings and empty blocks go into the page at once, and are written one by one while you go on."
-            label="Ask for something to be added to the page"
+            hint="Headings appear now and fill in while you keep writing."
+            label="Add to page"
             onClose={() => {
               setAdding(false);
               view.focus();
@@ -919,7 +922,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         )}
         {view && picked && !changing && !askingAbout && !adding && (
           <PageSelectPop top={picked.top} left={picked.left}>
-            <Button variant="ghost" size="small" onClick={askOfSelection} title="Ask about these words: answered beside the page, and nothing's put in it">
+            <Button variant="ghost" size="small" onClick={askOfSelection} title="Ask about selection without changing the page">
               <Icon name="question" size={12} /> Ask
             </Button>
             <Button
@@ -928,7 +931,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
                 setPicked(undefined);
                 change();
               }}
-              title="Ask for these words to be changed: an agent writes them again, and yours are kept to put back"
+              title="Rewrite selection; your original is kept"
               keys="mod+⏎"
             >
               <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
@@ -939,8 +942,8 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           <ChangeBox
             top={askingAbout.top}
             placeholder="What do you want to know about these words?"
-            hint="It's answered beside the page, by an agent that reads the page and the workspace. Nothing's put in the page unless you say."
-            label="Ask about the words selected"
+            hint="Answered beside the page. Nothing is added to the page unless you say."
+            label="Ask about selection"
             onClose={() => {
               setAskingAbout(undefined);
               view.focus();

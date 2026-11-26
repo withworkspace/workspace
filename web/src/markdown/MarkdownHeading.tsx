@@ -13,7 +13,7 @@ export function MarkdownHeading({ level, children, ...props }: { level: 2 | 3; c
   if (!link || typeof anchor !== "string") return <H {...props}>{children}</H>;
   return (
     <H {...props} className={cx(props.className, css.linked)}>
-      <button type="button" className={css.headingLink} data-skip="" title="Copy a link to this section" aria-label="Copy a link to this section" onClick={() => link(anchor)} />
+      <button type="button" className={css.headingLink} data-skip="" title="Copy link to section" aria-label="Copy link to section" onClick={() => link(anchor)} />
       {children}
     </H>
   );

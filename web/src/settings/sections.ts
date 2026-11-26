@@ -51,24 +51,24 @@ export type Row =
 export const words = {
   places: {
     label: "Sidebar",
-    about: "Which places are in the sidebar and in what order, and which are moved out of it into the workspace's menu. Yours, setting either, replaces the team's arrangement.",
+    about: "Which places show in the sidebar, in what order, and which move to the workspace menu. Yours replaces the team's.",
   },
-  theme: { label: "Theme", about: "Light, dark, or as your system has it." },
+  theme: { label: "Theme", about: "Light, dark, or match system." },
   sendKey: {
     label: "Send with",
-    about: "The key that sends what you write in a box: a reply, a message to crew, a comment. A form with more than one box keeps its own key.",
+    about: "Key that sends a reply, message to crew, or comment. Forms with several fields keep their own key.",
   },
   keyHints: {
     label: "Key hints",
-    about: "When you press something with the pointer that has a key, ws says which, in passing. A key is in the tooltip of what it's for either way.",
+    about: "Show the shortcut when you click something that has one. Tooltips show shortcuts either way.",
   },
   notify: {
     label: "Desktop notifications",
-    about: "A notification for each new thing that needs you, and for what happened that you've asked to be told of below, while this tab is in the background. With it in front, what happened is told in the page instead. The tab's icon lights either way.",
+    about: "Notify when something needs you, or for what you choose below, while this tab is in the background. In front, notices show in the page. The tab icon lights up either way.",
   },
   daemon: {
-    label: "The daemon",
-    about: "Shutting it down hangs up every crew it holds, as ws daemon stop does, and this page closes with it. ws web starts it again.",
+    label: "Workspace",
+    about: "Shutting down stops all crew and closes this page. Run ws web to start again.",
   },
 };
 
@@ -104,7 +104,7 @@ export interface Under {
 // fromPlugins heads where each plugin's kinds of notification are sent.
 export const fromPlugins: Under = {
   title: "Plugins",
-  about: "What each plugin tells you of, kind by kind, and where each kind is sent. A plugin's kinds are listed once it has started.",
+  about: "Each plugin's notification kinds, and where each is sent. Kinds show once the plugin has started.",
 };
 
 // pluginNotifyGroup is the group of where a plugin's kinds of
@@ -119,25 +119,25 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const groups = info?.groups ?? [];
   const section = (id: string, title: string, icon: IconName, about: string, heading?: string): Section => ({ id, title, icon, about, heading, blocks: [] });
   const appearance = section("appearance", "Appearance", "sun", "How the web UI looks.", "Interface");
-  const keyboard = section("keyboard", "Keyboard", "keyboard", "The key you send with, and being told of the keys you could have pressed.");
-  const notifications = section("notifications", "Notifications", "bell", "What ws tells you of outside the page, and where what happened is sent.");
+  const keyboard = section("keyboard", "Keyboard", "keyboard", "Send key and shortcut hints.");
+  const notifications = section("notifications", "Notifications", "bell", "Desktop notifications, and where updates are sent.");
   let feed: Block | undefined;
   const fromEach: Block[] = [];
-  const agents = section("agents", "Agents", "terminal", "The agent CLI each role runs in, and the model it's given.", "How work goes");
-  const missions = section("missions", "Missions", "flag", "How a mission is briefed and moved on, and what ws holds on every one.");
-  const team = section("team", "Team page", "user", "What the Team page says of each change, and how far back it looks.");
-  const repos = section("repos", "Repos", "branch", "How repos are cloned and fetched, and the repos the team has here.");
-  const runs = section("runs", "Runs", "play", "Where what ws runs for you and your agents is reached.");
+  const agents = section("agents", "Agents", "terminal", "Agent CLI and model for each role.", "How work goes");
+  const missions = section("missions", "Missions", "flag", "How missions are briefed and moved on, and guarantees for every mission.");
+  const team = section("team", "Team page", "user", "What the Team page says about each change, and how far back it looks.");
+  const repos = section("repos", "Repos", "branch", "The team's repos, and how they are cloned and fetched.");
+  const runs = section("runs", "Runs", "play", "Addresses for runs started by you and your agents.");
   const process = section("process", "Process", "book", "How work goes here, in prose.");
   const plugins = section(
     "plugins",
     "Plugins",
     "box",
-    "Programs that add to the workspace without being part of ws: a view in the sidebar, commands after ws, names for their things, a guide for agents. The daemon runs each as one process, started when it's first needed.",
+    "Add-ons for the workspace: sidebar views, ws commands, refs for their things, a guide for agents. Each starts when first needed.",
     "This workspace",
   );
-  const yours = section("yours", "Set by you", "pencil", "What's yours alone: your file's settings, each with what it would be without yours, and what this browser keeps.");
-  const about = section("about", "About", "info", "Which ws this is and whether a later one's out, and where the workspace keeps its files.");
+  const yours = section("yours", "Set by you", "pencil", "Your own settings, from your file and this browser, with what each would otherwise be.");
+  const about = section("about", "About", "info", "Version, updates, and where the workspace's files are.");
   const others: Section[] = [];
 
   const rows = (settings: Setting[], crumb?: string): Row[] => settings.map((s) => ({ kind: "setting", s, crumb }));
@@ -191,7 +191,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   if (feed) notifications.blocks.push(feed);
   notifications.blocks.push(...fromEach);
-  about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });
+  about.blocks.push({ id: "daemon", title: "Workspace", rows: [{ kind: "daemon" }] });
   return [appearance, keyboard, notifications, agents, missions, team, repos, runs, ...others, process, plugins, yours, about];
 }
 

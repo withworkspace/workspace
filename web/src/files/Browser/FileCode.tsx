@@ -81,7 +81,7 @@ export function FileCode({
     open: onDefinition,
     back: onBackFromDefinition,
     line: from && file.lines[from - 1] !== undefined ? { path, line: from, text: file.lines[from - 1] } : undefined,
-    sideWords: () => "as the files are now",
+    sideWords: () => "current files",
   });
   useKeys(rev ? codeNav.keys : {});
   return (

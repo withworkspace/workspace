@@ -16,10 +16,10 @@ export function ReviewFinding({ id, title, finding: f, cursor, actions, onClick 
   return (
     <NoteCard id={id} className={css.card} found blocks={f.blocks} cursor={cursor} onClick={onClick}>
       <NoteHead end={actions}>
-        <span className={css.pass} title={`Found by the ${title} pass. Nobody's said it: take it into your review, or dismiss it`}>
+        <span className={css.pass} title={`Found by the ${title} pass. Take into your review, or dismiss`}>
           <Icon name="sparkle" size={11} /> {title}
         </span>
-        <span className={`kind k-found${f.blocks ? " k-blocking" : ""}`} title={f.blocks ? "A finding of this kind blocks: the pass is no go while it's open" : undefined}>
+        <span className={`kind k-found${f.blocks ? " k-blocking" : ""}`} title={f.blocks ? "Blocking: the pass fails while this is open" : undefined}>
           {f.kind}
         </span>
         <Text dim className={css.where}>

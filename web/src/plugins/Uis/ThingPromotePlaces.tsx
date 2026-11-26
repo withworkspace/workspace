@@ -16,8 +16,8 @@ type ThingPromotePlacesProps = {
 export function ThingPromotePlaces({ places, pick, onPick, busy }: ThingPromotePlacesProps) {
   return (
     <fieldset className={css.places} disabled={busy}>
-      <legend>Where it'll live</legend>
-      <RadioGroup className={css.list} value={String(pick)} onChange={(v) => onPick(v === "else" ? "else" : Number(v))} disabled={busy} aria-label="Where it'll live">
+      <legend>Location</legend>
+      <RadioGroup className={css.list} value={String(pick)} onChange={(v) => onPick(v === "else" ? "else" : Number(v))} disabled={busy} aria-label="Location">
         {places.map((p, i) => (
           <Radio key={p.key} value={String(i)}>
             <span className={css.place}>

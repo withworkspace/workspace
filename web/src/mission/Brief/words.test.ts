@@ -33,17 +33,17 @@ describe("what a proposal's called", () => {
   it("is a draft or the plan while it's briefed", () => {
     expect(proposedName({ briefing: true, kind: "brief", draft: 2 })).toBe("Draft 2");
     expect(proposedName({ briefing: true, kind: "brief", draft: 0 })).toBe("Draft 1");
-    expect(proposedName({ briefing: true, kind: "plan", draft: 2 })).toBe("The plan");
+    expect(proposedName({ briefing: true, kind: "plan", draft: 2 })).toBe("Plan");
     expect(proposedTitle({ briefing: true, kind: "brief", draft: 2, plan: true })).toBe("Draft 2 of the brief, with its plan");
     expect(proposedTitle({ briefing: true, kind: "brief", draft: 1 })).toBe("Draft 1 of the brief");
-    expect(proposedTitle({ briefing: true, kind: "plan", draft: 1 })).toBe("The plan, proposed");
+    expect(proposedTitle({ briefing: true, kind: "plan", draft: 1 })).toBe("Proposed plan");
   });
 
   it("is an edit or a revision once it's under way", () => {
     expect(proposedName({ briefing: false, kind: "brief", draft: 1 })).toBe("Brief edit");
     expect(proposedName({ briefing: false, kind: "plan", draft: 1 })).toBe("Plan revision");
-    expect(proposedTitle({ briefing: false, kind: "brief", draft: 1 })).toBe("An edit to the brief");
-    expect(proposedTitle({ briefing: false, kind: "plan", draft: 1 })).toBe("A revision of the plan");
+    expect(proposedTitle({ briefing: false, kind: "brief", draft: 1 })).toBe("Proposed brief edit");
+    expect(proposedTitle({ briefing: false, kind: "plan", draft: 1 })).toBe("Proposed plan revision");
   });
 });
 
@@ -62,7 +62,7 @@ describe("acceptLabel", () => {
 
 describe("unplaced", () => {
   it("says one change or how many", () => {
-    expect(unplaced(1)).toBe("A change couldn't be shown in place: it's in as proposed.");
-    expect(unplaced(3)).toBe("3 changes couldn't be shown in place: they're in as proposed.");
+    expect(unplaced(1)).toBe("1 change not shown in place: included as proposed.");
+    expect(unplaced(3)).toBe("3 changes not shown in place: included as proposed.");
   });
 });

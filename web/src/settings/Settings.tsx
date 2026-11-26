@@ -121,7 +121,7 @@ export function SettingsPage({
                       faded={finding && hits === 0}
                       count={finding ? (hits > 0 ? hits : undefined) : yours && mine > 0 ? mine : undefined}
                       countTitle={yours && mine > 0 ? `${mine} set by you` : undefined}
-                      unread={yours && unread > 0 ? (unread === 1 ? "A key ws doesn't read" : `${unread} keys ws doesn't read`) : undefined}
+                      unread={yours && unread > 0 ? (unread === 1 ? "1 unknown key" : `${unread} unknown keys`) : undefined}
                       onClick={clear}
                     >
                       {sec.title}

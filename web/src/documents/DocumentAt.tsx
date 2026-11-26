@@ -56,15 +56,15 @@ function EditAt({ docRef, page }: { docRef: string; page?: string }) {
     const [repo, capsule] = docRef.slice(0, at).split("/");
     return (
       <div className="page narrow">
-        <ErrorCard error={error} title="Couldn't open it to edit" />
+        <ErrorCard error={error} title="Could not open for editing" />
         <p>
-          <Link to={docTo(docRef)}>Read it</Link> · <a href={filesTo(repo, capsule || GROUND, docRef.slice(at + 1))}>Open it in Files</a>
+          <Link to={docTo(docRef)}>Read</Link> · <a href={filesTo(repo, capsule || GROUND, docRef.slice(at + 1))}>Open in Files</a>
         </p>
       </div>
     );
   }
-  if (!id) return <Loading what="Opening it to edit…" />;
-  return <PagePage key={id} id={id} back={{ to: docTo(docRef), label: "Read it" }} />;
+  if (!id) return <Loading what="Opening for editing…" />;
+  return <PagePage key={id} id={id} back={{ to: docTo(docRef), label: "Read" }} />;
 }
 
 // LocalPageAt is /documents/local/<id>: a page that isn't in a space.

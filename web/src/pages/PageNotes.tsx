@@ -8,7 +8,7 @@ import { Text } from "../ui/Text";
 export function PageNotes({ old, children }: { old?: boolean; children: ReactNode }) {
   return (
     <div className={cx(css.notes, old && css.old)}>
-      <Text dim className={css.label}>Its agent's notes, to you</Text>
+      <Text dim className={css.label}>Agent notes</Text>
       {children}
     </div>
   );

@@ -5,8 +5,8 @@ import css from "./SettingsUnknown.module.css";
 // said with its file.
 export function SettingsUnknown({ keys }: { keys: string[] }) {
   return (
-    <Callout tone="attention" title="ws doesn't read these">
-      Misspelt, or in the wrong file, they're passed over without a word:
+    <Callout tone="attention" title="Unknown keys">
+      Misspelt or in the wrong file, so ignored:
       <ul className={css.list}>
         {keys.map((u) => (
           <li key={u}>

@@ -25,7 +25,7 @@ export function FilesFilePath({ path, onReveal }: { path: string; onReveal: (fol
           </strong>
         ),
       )}
-      <Copyable text={path} className={css.copy} icon="inline" title="Copy its path" keys="y">
+      <Copyable text={path} className={css.copy} icon="inline" title="Copy path" keys="y">
         {""}
       </Copyable>
     </div>

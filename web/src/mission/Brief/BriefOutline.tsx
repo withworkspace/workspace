@@ -79,7 +79,7 @@ export function BriefOutline({
       {toRead > 0 && (
         <MissionBriefOutlineSection
           kind="changes"
-          title="To read"
+          title="To review"
           count={toRead}
           at={
             at >= 0 && (
@@ -90,7 +90,7 @@ export function BriefOutline({
           }
         >
           <p>
-            {toRead === 1 ? "A change" : `${toRead} changes`} {briefing ? "since the draft before" : "to what's written"}
+            {toRead === 1 ? "A change" : `${toRead} changes`} {briefing ? "since previous draft" : "to current version"}
           </p>
           <MissionBriefChangesNav onBefore={() => move(-1)} onNext={() => move(1)} onAcceptAll={acceptAll} />
         </MissionBriefOutlineSection>
@@ -102,10 +102,10 @@ export function BriefOutline({
           </p>
         </MissionBriefOutlineSection>
       )}
-      <MissionBriefOutlineSection title="The brief">
+      <MissionBriefOutlineSection title="Brief">
         {of("brief").length ? <MissionBriefOutlineList>{of("brief").map(row)}</MissionBriefOutlineList> : <MissionBriefOutlineEmpty>No sections yet.</MissionBriefOutlineEmpty>}
       </MissionBriefOutlineSection>
-      <MissionBriefOutlineSection title="The plan" fresh={fresh}>
+      <MissionBriefOutlineSection title="Plan" fresh={fresh}>
         {planned ? (
           <>
             {of("plan").length > 0 && <MissionBriefOutlineList>{of("plan").map(row)}</MissionBriefOutlineList>}
@@ -117,7 +117,7 @@ export function BriefOutline({
             )}
           </>
         ) : (
-          <MissionBriefOutlineEmpty>{briefing ? "No plan yet: its planner writes one with the brief." : "No plan: it works from its brief's stages."}</MissionBriefOutlineEmpty>
+          <MissionBriefOutlineEmpty>{briefing ? "No plan yet: the planner writes one with the brief." : "No plan: mission works from the brief's stages."}</MissionBriefOutlineEmpty>
         )}
       </MissionBriefOutlineSection>
       {request && (

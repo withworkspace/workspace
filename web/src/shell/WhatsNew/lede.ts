@@ -12,7 +12,7 @@ export function releasesIn(entries: WhatsNewEntry[]): number {
 // ledeOf is the line under the title: since which release, and how many
 // things across how many releases; for a build of a clone, that it's one.
 export function ledeOf(entries: WhatsNewEntry[], info: WhatsNewInfo): string {
-  if (!info.release) return "A build of a clone: everything it says is new, with what's in no release yet, as it'll read.";
+  if (!info.release) return "Development build: shows everything, including unreleased changes.";
   const releases = releasesIn(entries);
   const things = entries.length === 1 ? "one thing" : `${entries.length} things`;
   const since = info.seen && info.unseen.length > 0 && entries === info.unseen ? `Since ${shortVersion(info.seen)}` : undefined;

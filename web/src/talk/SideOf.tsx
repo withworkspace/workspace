@@ -63,7 +63,7 @@ export function SideOf({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug:
         </TalkSideSection>
       )}
       {(d?.capsules?.length ?? 0) > 0 && (
-        <TalkSideSection title="Capsules" tip="Capsules its agent works in: lifted or docked for the conversation and put away with it, or joined, there already and left where they are">
+        <TalkSideSection title="Capsules" tip="Capsules the agent works in. Lifted or docked ones are put away with the conversation; joined ones are left as they are.">
           <TalkSideNamed>
             {d!.capsules!.map((c) => (
               <li key={`${c.repo}/${c.name}`} title={capsuleTip(c)}>
@@ -71,7 +71,7 @@ export function SideOf({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug:
                   {c.repo}/{c.name}
                 </code>
                 {c.joined && !c.away && <Text dim> joined</Text>}
-                {c.away && <Text dim>{c.joined ? " left as it was" : " put away"}</Text>}
+                {c.away && <Text dim>{c.joined ? " left as is" : " put away"}</Text>}
               </li>
             ))}
           </TalkSideNamed>
@@ -107,7 +107,7 @@ export function SideOf({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug:
 // what became of it when the conversation was put away.
 function capsuleTip(c: TalkCapsule): string {
   if (c.joined) {
-    return c.away ? `Joined, there already: left where it is, on ${c.branch}, when the conversation was put away` : `Joined, there already, on branch ${c.branch}: left where it is when the conversation's put away`;
+    return c.away ? `Joined: left on ${c.branch} when the conversation was put away` : `Joined, on branch ${c.branch}: left as is when the conversation is put away`;
   }
-  return c.away ? `Put away with the conversation, its branch (${c.branch}) kept${c.kept ? ", with what wasn't committed" : ""}` : `On branch ${c.branch}`;
+  return c.away ? `Put away with the conversation; branch ${c.branch} kept${c.kept ? ", with what wasn't committed" : ""}` : `On branch ${c.branch}`;
 }

@@ -12,7 +12,7 @@ export function FoundRow({ a }: { a: ArtifactFound }) {
   const menu = useThingMenu();
   return (
     <ArtifactRow to={foundHref(a.name)} onContextMenu={menu(foundHref(a.name), a.name)} title={a.title} chips={<Chip tone="done">Promoted</Chip>} when={{ by: foundBy(a), at: a.changed, title: foundBy(a) }}>
-      <span title={`It lives in ${a.where}`}>
+      <span title={`Lives in ${a.where}`}>
         <Icon name="branch" size={11} /> {a.label}
       </span>
       <Text mono className={artifactRowCodeClass}>{a.where}</Text>

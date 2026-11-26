@@ -8,7 +8,7 @@ import { Spacer } from "../ui/Spacer";
 export function PageNoteFrom({ pass, onPass, onClose }: { pass: string; onPass: () => void; onClose: () => void }) {
   return (
     <div className={css.from}>
-      <Button variant="link" onClick={onPass} title="Open the pass it's from">
+      <Button variant="link" onClick={onPass} title="Open pass">
         {pass}
       </Button>
       <Spacer />

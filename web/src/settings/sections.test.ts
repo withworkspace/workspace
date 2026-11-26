@@ -30,13 +30,13 @@ const info = (extra: SettingsGroup[] = []): SettingsInfo => ({
     role("orchestrator", "Orchestrator", [
       setting("orchestrator", "enabled", "bool", { label: "Runs by itself", value: true }),
       setting("orchestrator", "dispatch", "choice", {
-        label: "Crew it starts",
+        label: "Starting crew",
         value: "ask",
         yours: "ask",
         source: "yours",
         choices: [
           { value: "auto", label: "Start at once" },
-          { value: "ask", label: "Wait for you to launch them" },
+          { value: "ask", label: "Wait for you to launch" },
         ],
       }),
     ]),
@@ -191,7 +191,7 @@ describe("minesOf", () => {
     expect(minesOf(sectionsOf(i)).map((m) => [m.section.id, m.what])).toEqual([
       ["appearance", "In the menu"],
       ["agents", "Crew model"],
-      ["missions", "Crew it starts"],
+      ["missions", "Starting crew"],
     ]);
   });
 

@@ -8,7 +8,7 @@ import { textClass } from "../ui/Text";
 export function TalkProposalChanges({ n, children }: { n: number; children: ReactNode }) {
   return (
     <details className={css.changes}>
-      <summary className={textClass("dim")}>What changed since proposal {n}</summary>
+      <summary className={textClass("dim")}>Changes since proposal {n}</summary>
       {children}
     </details>
   );

@@ -14,7 +14,7 @@ export function BriefPassageTool({ within, ask }: { within: RefObject<HTMLElemen
       ref={tool}
       left={at.left}
       top={at.top}
-      askTitle="Ask the planner about this passage"
+      askTitle="Ask planner about passage"
       onAsk={() => {
         gone();
         ask(at.passage);

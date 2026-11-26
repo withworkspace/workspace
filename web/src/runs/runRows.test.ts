@@ -24,8 +24,8 @@ describe("forWhom", () => {
   it("names the mission, its step, crew and conversation, with somewhere to go", () => {
     expect(forWhom(run({ owner: "step", mission: "cache-it", step: 2 }), missions)).toEqual({ text: "step 2 of Cache it", to: "/missions/cache-it" });
     expect(forWhom(run({ owner: "crew", mission: "cache-it", crew: "c3" }), missions)).toEqual({ text: "crew c3 of Cache it", to: "/missions/cache-it/crew/c3" });
-    expect(forWhom(run({ owner: "looking", mission: "cache-it" }), missions).text).toBe("whoever has Cache it open");
-    expect(forWhom(run({ owner: "looking" }), missions)).toEqual({ text: "whoever has its files open", to: "/files/frontend/cache" });
+    expect(forWhom(run({ owner: "looking", mission: "cache-it" }), missions).text).toBe("anyone with Cache it open");
+    expect(forWhom(run({ owner: "looking" }), missions)).toEqual({ text: "anyone with the files open", to: "/files/frontend/cache" });
     expect(forWhom(run({ owner: "looking", worktree: "ground" }), missions).to).toBe("/files/frontend");
     expect(forWhom(run({ owner: "conversation", conversation: "t1" }), missions, [{ id: "t1", title: "Try the cache" } as never])).toEqual({
       text: "the conversation “Try the cache”",
@@ -41,7 +41,7 @@ describe("forWhom", () => {
     expect(forWhom(run({ owner: "run", neededBy: ["web.cache.frontend", "admin.cache.frontend", "docs.cache.frontend"] }), missions).text).toBe(
       "web.cache.frontend, admin.cache.frontend and docs.cache.frontend, which need it",
     );
-    expect(forWhom(run({ owner: "run" }), missions).text).toBe("what needed it, which has ended");
+    expect(forWhom(run({ owner: "run" }), missions).text).toBe("an ended run");
   });
   it("says how many others asked for a run since it started", () => {
     expect(forWhom(run({ owner: "pid", ownerPid: 812, ownerCommand: "zsh", also: 1 }), missions).text).toBe("zsh (pid 812), and one other who asked for it since");
@@ -99,12 +99,12 @@ describe("a task's result", () => {
     expect(came(task({ result: "passed", took: 42_000 }))).toBe("passed in 42s");
     expect(came(task({ result: "failed", status: 2, took: 185_000 }))).toBe("failed (exit 2) in 3m 05s");
     expect(came(task({ result: "stopped", why: "its time was up" }))).toBe("stopped: its time was up");
-    expect(came(task({ result: "stopped" }))).toBe("stopped before it ended");
+    expect(came(task({ result: "stopped" }))).toBe("stopped early");
     expect(came(task({ state: "running", result: "running" }))).toBe("running");
   });
   it("says the commit it ran at", () => {
     expect(commitSaid(run({ commit: "0123456789abcdef" }))).toBe("012345678");
-    expect(commitSaid(run({ commit: "0123456789abcdef", dirty: true }))).toBe("012345678, with changes not committed");
+    expect(commitSaid(run({ commit: "0123456789abcdef", dirty: true }))).toBe("012345678, with uncommitted changes");
     expect(commitSaid(run())).toBe("");
   });
 });
@@ -138,17 +138,17 @@ describe("runStatus", () => {
 describe("startedBy", () => {
   it("says who started it, and from where", () => {
     expect(startedBy(run({ owner: "pid", by: "you", ownerCommand: "zsh" }))).toBe("you, from a terminal");
-    expect(startedBy(run({ owner: "looking", by: "you" }))).toBe("you, from its files");
+    expect(startedBy(run({ owner: "looking", by: "you" }))).toBe("you, from Files");
     expect(startedBy(run({ owner: "looking", by: "you", mission: "cache-it" }))).toBe("you, from the mission's page");
-    expect(startedBy(run({ owner: "looking", by: "you", app: "docs" }))).toBe("you, by opening its docs tab");
+    expect(startedBy(run({ owner: "looking", by: "you", app: "docs" }))).toBe("you, by opening the docs tab");
     expect(startedBy(run({ owner: "crew", by: "c2", mission: "cache-it", crew: "c2" }))).toBe("crew c2");
     expect(startedBy(run({ owner: "none" }))).toBe("you");
   });
   it("says ws ran it for a step's check, or for what needs it", () => {
-    expect(startedBy(run({ type: "task", owner: "mission", by: "ws", check: { mission: "cache-it", step: 2, n: 1 } }))).toBe("ws, for check 1 of step 2");
-    expect(startedBy(run({ owner: "run", by: "ws", neededBy: ["web.cache.frontend"] }))).toBe("ws, as web needs it");
-    expect(startedBy(run({ owner: "run", by: "ws", neededBy: ["web.cache.frontend", "admin.cache.frontend"] }))).toBe("ws, as web and admin need it");
-    expect(startedBy(run({ owner: "run", by: "ws" }))).toBe("ws, for a run that needed it");
+    expect(startedBy(run({ type: "task", owner: "mission", by: "ws", check: { mission: "cache-it", step: 2, n: 1 } }))).toBe("Workspace, for check 1 of step 2");
+    expect(startedBy(run({ owner: "run", by: "ws", neededBy: ["web.cache.frontend"] }))).toBe("Workspace, as web needs it");
+    expect(startedBy(run({ owner: "run", by: "ws", neededBy: ["web.cache.frontend", "admin.cache.frontend"] }))).toBe("Workspace, as web and admin need it");
+    expect(startedBy(run({ owner: "run", by: "ws" }))).toBe("Workspace, for a run that needed it");
   });
 });
 

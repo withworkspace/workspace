@@ -51,11 +51,11 @@ export function usePeekKey() {
         // On nothing: the peek that's showing closes, as it would on its
         // own thing.
         if (front) close(open);
-        else toast("Point at a mission, a document, a pull request or a conversation, and z peeks at it beside the page.");
+        else toast("Point at a mission, document, pull request or conversation, then press z to peek.");
         return;
       }
       // What the page itself is of has nothing more to show beside it.
-      if (to === peekAt(window.location.href, window.location.origin) && to !== open) return void toast("That's the page you're on.");
+      if (to === peekAt(window.location.href, window.location.origin) && to !== open) return void toast("Already on this page.");
       peek(to);
     },
   });

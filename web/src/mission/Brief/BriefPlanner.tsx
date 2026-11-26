@@ -70,7 +70,7 @@ export function BriefPlanner({
   const card = (p: TalkProposal, replying?: boolean) => <ProposalCard key={p.n} p={p} slug={slug} replying={replying} onSettle={onSettle} />;
   return (
     <MissionBriefPlanner
-      label="The planner's conversation"
+      label="Planner conversation"
       centre={centre}
       talk={{ id: t.id, to: `/missions/${slug}/conversations/${t.id}` }}
       action={action}

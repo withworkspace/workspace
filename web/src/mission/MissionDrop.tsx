@@ -14,11 +14,11 @@ export function MissionDrop({ busy, open, onDrop }: { busy?: boolean; open?: boo
   const [why, setWhy] = useState("");
   return (
     <Popover
-      aria-label="Drop the mission"
+      aria-label="Drop mission"
       placement="bottom end"
       defaultOpen={open}
       trigger={
-        <Button variant="ghost" size="small" title="Give it up: it ends dropped, and Reopen takes that back">
+        <Button variant="ghost" size="small" title="End as dropped. Reopen to undo.">
           <Icon name="x" size={12} /> Drop
         </Button>
       }
@@ -30,9 +30,9 @@ export function MissionDrop({ busy, open, onDrop }: { busy?: boolean; open?: boo
           onDrop(why.trim());
         }}
       >
-        <Input className={css.why} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Why, if you want to say" aria-label="Why it's dropped" autoFocus disabled={busy} />
+        <Input className={css.why} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Reason (optional)" aria-label="Reason" autoFocus disabled={busy} />
         <Button variant="danger" type="submit" disabled={busy}>
-          Drop it
+          Drop
         </Button>
       </form>
     </Popover>

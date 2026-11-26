@@ -4,7 +4,7 @@ import css from "./FilesChangeLegend.module.css";
 // kinds of change there are in the file, each by its mark.
 export function FilesChangeLegend({ added, modified, deleted }: { added?: boolean; modified?: boolean; deleted?: boolean }) {
   return (
-    <span className={css.legend} title="Marked beside the line numbers">
+    <span className={css.legend} title="Line markers">
       {added && (
         <span>
           <i className={css.added} /> added

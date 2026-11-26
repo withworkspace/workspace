@@ -58,12 +58,12 @@ export function ThingCard({
       )}
       {error && (
         <HoverCardLine dim>
-          {r.plugin} couldn't be asked about it: {error}
+          Could not reach {r.plugin}: {error}
         </HoverCardLine>
       )}
-      {thing === undefined && !error && <HoverCardLine dim>Asking {r.plugin}…</HoverCardLine>}
+      {thing === undefined && !error && <HoverCardLine dim>Loading from {r.plugin}…</HoverCardLine>}
       {/* One that isn't there has nowhere to go. */}
-      {thing === null ? null : isOutside(href) ? <RefGo href={href}>Open the {what}</RefGo> : <RefGo to={href}>Open the {what}</RefGo>}
+      {thing === null ? null : isOutside(href) ? <RefGo href={href}>Open {what}</RefGo> : <RefGo to={href}>Open {what}</RefGo>}
     </>
   );
 }

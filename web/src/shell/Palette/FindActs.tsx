@@ -6,7 +6,7 @@ import css from "./FindActs.module.css";
 // fit.
 export function FindActs({ children }: { children: ReactNode }) {
   return (
-    <div className={css.acts} aria-label="Do to it">
+    <div className={css.acts} aria-label="Actions">
       {children}
     </div>
   );

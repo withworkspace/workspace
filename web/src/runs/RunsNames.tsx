@@ -11,15 +11,16 @@ export function RunsNames({ names: n }: { names: Names }) {
   const example = `web.<capsule>.<repo>.${n.want}.localhost`;
   if (!n.on) {
     return (
-      <Callout tone="quiet" icon="link" title="Runs are reached at 127.0.0.1 and a port">
-        Turn on <Link to="/settings/runs">local names</Link> and each gets a name that stays put, <code>{example}</code>, with this page at <code>{n.want}.localhost</code>.
-        Browsers send any <code>.localhost</code> to this machine by themselves.
+      <Callout tone="quiet" icon="link" title="Runs use 127.0.0.1 and a port">
+        Turn on <Link to="/settings/runs">local names</Link> to give each a stable name, like{" "}
+        <code>{example}</code>, and this page <code>{n.want}.localhost</code>. No setup needed: browsers send{" "}
+        <code>.localhost</code> to this machine.
       </Callout>
     );
   }
   let state: React.ReactNode;
-  if (!n.port) state = <>No router is serving yet: this workspace's daemon becomes it within a few seconds.</>;
-  else if (!n.name) state = <>The daemon hasn't written this workspace's routes yet: it does within a few seconds.</>;
+  if (!n.port) state = <>Router starting: ready in a few seconds.</>;
+  else if (!n.name) state = <>Setting up routes: ready in a few seconds.</>;
   else
     state = (
       <>
@@ -33,14 +34,13 @@ export function RunsNames({ names: n }: { names: Names }) {
   return (
     <RunsPageNames
       names={state}
-      note={n.name && n.name !== n.want ? <>{n.want} was another workspace's first: this one is {n.name} while that one's daemon runs.</> : undefined}
+      note={n.name && n.name !== n.want ? <>{n.want} is taken by another workspace: this one is {n.name} while that one runs.</> : undefined}
       router={
         n.port ? (
           <>
-            On :{n.port}
-            {n.fallback && <Text dim>, as 80 is another program's or kept by the system</Text>}
-            {n.heldBy ? <Text dim>, held by the daemon at pid {n.heldBy}</Text> : null}
-            <Text dim>. One serves every workspace on this machine.</Text>
+            On :{n.port}{n.fallback && <Text dim>, as port 80 is taken</Text>}
+            {n.heldBy ? <Text dim>, held by Workspace at pid {n.heldBy}</Text> : null}
+            <Text dim>. Shared by every workspace on this machine.</Text>
           </>
         ) : (
           <Text dim>None running</Text>

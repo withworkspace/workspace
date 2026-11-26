@@ -84,7 +84,7 @@ export function crewStatus(c: Pick<Crew, "ended" | "starting" | "activity" | "st
     case "working":
       return { icon: "circle-dot", tone: "progress", words: "Working", live: true };
     case "waiting":
-      if (c.waitingOn) return { icon: "clock", tone: "progress", words: "Waiting on its work" };
+      if (c.waitingOn) return { icon: "clock", tone: "progress", words: "Waiting on background work" };
       return { icon: "circle-half", tone: "attention", words: "Waiting for you" };
     case "permission":
       return { icon: "lock", tone: "danger", words: "Needs permission" };
@@ -119,7 +119,7 @@ export function exitWords(exit?: string): string | undefined {
   const words: Record<number, string> = {
     0: "finished",
     1: "stopped with an error",
-    129: "its terminal closed",
+    129: "terminal closed",
     130: "interrupted",
     137: "killed",
     143: "stopped",

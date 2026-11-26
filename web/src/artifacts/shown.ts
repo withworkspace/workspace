@@ -79,7 +79,7 @@ export const keptIcon = (a: Pick<ArtifactInfo, "home">) => (a.home ? "branch" : 
 // keptTitle says where it's kept, in full.
 export function keptTitle(a: Pick<ArtifactInfo, "where" | "home">): string {
   if (!a.home) return `On this machine only: ${a.where}`;
-  return `v${a.home.version} lives in ${a.home.where}, for everyone with ${a.home.repo}. Every version is on this machine: ${a.where}`;
+  return `v${a.home.version} in ${a.home.where}, shared via ${a.home.repo}. All versions on this machine: ${a.where}`;
 }
 
 // behind is how many versions an artifact has that are newer than the one
@@ -125,10 +125,10 @@ export interface Width {
 }
 
 export const widths: Width[] = [
-  { key: "fit", px: 0, label: "Fit", title: "As wide as the page" },
-  { key: "1280", px: 1280, label: "1280", title: "A desktop's width, 1280px" },
-  { key: "768", px: 768, label: "768", title: "A tablet's width, 768px" },
-  { key: "390", px: 390, label: "390", title: "A phone's width, 390px" },
+  { key: "fit", px: 0, label: "Fit", title: "Page width" },
+  { key: "1280", px: 1280, label: "1280", title: "Desktop, 1280px" },
+  { key: "768", px: 768, label: "768", title: "Tablet, 768px" },
+  { key: "390", px: 390, label: "390", title: "Phone, 390px" },
 ];
 
 // filesWords says how much a version is: "3 files, 240 KB", or its size
@@ -220,9 +220,9 @@ export function promotion(version: number, kind: IntoKind, text: string, lives: 
 // promoteBlocked says why the Promote dialog can't promote yet, as it's
 // filled in: "" when it can.
 export function promoteBlocked(kind: IntoKind, text: string, lives: Lives = "home", folder = ""): string {
-  if (kind !== "nothing" && !text.trim()) return kind === "start" ? "Say what the mission is." : kind === "mission" ? "Choose the mission." : "Name the document, as repo:path.";
+  if (kind !== "nothing" && !text.trim()) return kind === "start" ? "Describe the mission." : kind === "mission" ? "Choose the mission." : "Name the document, as repo:path.";
   if (lives === "other" && !/^[^:\s]+:[^:]+$/.test(folder.trim())) return "Name the folder, as repo:folder/.";
-  if (kind === "document" && lives === "here") return "A document cites it by its folder in a repo, so the link works for everyone: give it a folder there to live in.";
+  if (kind === "document" && lives === "here") return "A document can only cite it from a repo: choose a folder in one.";
   return "";
 }
 

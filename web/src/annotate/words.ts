@@ -3,17 +3,17 @@ import type { ThreadKind } from "../api";
 // What a document's threads are called, and the keys that comment on it.
 
 export const annotateKeys: [string, string][] = [
-  ["select, then c", "Comment on the text selected"],
+  ["select, then c", "Comment on selection"],
   ["j / k", "Next / previous paragraph"],
-  ["⇧↓ / ⇧↑", "Take in the next / previous paragraph"],
-  ["c", "Comment on the paragraphs (or the text selected)"],
+  ["⇧↓ / ⇧↑", "Extend to next / previous paragraph"],
+  ["c", "Comment on paragraphs or selection"],
   ["n / p", "Next / previous open thread"],
   ["⏎", "Reply"],
-  ["a / d", "Accept / decline the thread's suggested edit"],
-  ["v", "See the suggested edits in place, as tracked changes"],
-  ["x", "Resolve / reopen the thread"],
-  ["i", "Show / hide what's changed since you last commented"],
-  ["⇧A", "Approve the document"],
+  ["a / d", "Accept / decline suggested edit"],
+  ["v", "Show suggested edits as tracked changes"],
+  ["x", "Resolve / reopen thread"],
+  ["i", "Show / hide changes since last comment"],
+  ["⇧A", "Approve document"],
   ["tab", "While writing: ask, change or note"],
 ];
 

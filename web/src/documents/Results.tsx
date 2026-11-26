@@ -13,9 +13,9 @@ import { hitTo } from "./useDocSearch";
 export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[]; more: number; error?: string; index: number; setIndex: (i: number) => void }) {
   const navigate = useNavigate();
   const menu = useThingMenu();
-  if (error) return <ErrorCard title="Couldn't search" error={error} />;
+  if (error) return <ErrorCard title="Could not search" error={error} />;
   if (!hits) return <DocumentsEmpty>Searching…</DocumentsEmpty>;
-  if (!hits.length) return <DocumentsEmpty>No documents say that.</DocumentsEmpty>;
+  if (!hits.length) return <DocumentsEmpty>No matching documents.</DocumentsEmpty>;
   return (
     <section aria-label="Found">
       <GroupHead count={hits.length + more}>Found</GroupHead>
@@ -38,7 +38,7 @@ export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[
           />
         ))}
       </Rows>
-      {more > 0 && <DocumentsEmpty>{more} more: say more of what you're after.</DocumentsEmpty>}
+      {more > 0 && <DocumentsEmpty>{more} more: refine your search.</DocumentsEmpty>}
     </section>
   );
 }

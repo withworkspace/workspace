@@ -22,7 +22,7 @@ export function WorkNow({ d, x, review }: { d: MissionDetail; x: WorkCapsule; re
         <>
           {s.who === "you" && s.type === "Review" && x.c.exists && (
             <Button variant="primary" size="small" onClick={() => review(x.c)} keys="v">
-              <Icon name="eye" /> Review the change
+              <Icon name="eye" /> Review changes
             </Button>
           )}
           {bundle && (
@@ -41,7 +41,7 @@ export function WorkNow({ d, x, review }: { d: MissionDetail; x: WorkCapsule; re
       <strong>
         Step {s.n} · {s.title}
       </strong>{" "}
-      {s.who === "you" ? "is yours." : live ? <>has {live.id} on it, since <Time iso={live.started} as="clock" />.</> : s.who === "ws" ? "is ws's." : s.who === "crew" ? "waits for crew." : `is ${s.whoSays ?? s.who ?? "next"}.`}
+      {s.who === "you" ? "is yours." : live ? <>has {live.id} on it, since <Time iso={live.started} as="clock" />.</> : s.who === "ws" ? "is Workspace's." : s.who === "crew" ? "waits for crew." : `is ${s.whoSays ?? s.who ?? "next"}.`}
     </MissionWorkNow>
   );
 }

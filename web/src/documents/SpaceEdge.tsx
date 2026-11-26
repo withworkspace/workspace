@@ -40,9 +40,9 @@ export function SpaceEdge({ width, setWidth }: { width?: number; setWidth: (w: n
       className={css.edge}
       role="separator"
       aria-orientation="vertical"
-      aria-label="The list's width"
+      aria-label="List width"
       tabIndex={0}
-      title="Drag to make the list wider or narrower; double-click to put it back"
+      title="Drag to resize; double-click to reset"
       onPointerDown={drag}
       onDoubleClick={() => {
         setWidth(undefined);

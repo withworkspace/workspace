@@ -85,7 +85,7 @@ describe("where it's kept", () => {
     expect(keptWords({ home })).toBe("records · v2");
     expect(keptIcon({ home })).toBe("branch");
     expect(keptTitle({ where: ".ws/artifacts/x/" })).toBe("On this machine only: .ws/artifacts/x/");
-    expect(keptTitle({ where: ".ws/artifacts/x/", home })).toBe("v2 lives in records:artifacts/x/, for everyone with records. Every version is on this machine: .ws/artifacts/x/");
+    expect(keptTitle({ where: ".ws/artifacts/x/", home })).toBe("v2 in records:artifacts/x/, shared via records. All versions on this machine: .ws/artifacts/x/");
   });
 
   it("says how many versions are newer than the one that's there", () => {

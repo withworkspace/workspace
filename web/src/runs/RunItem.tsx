@@ -29,7 +29,7 @@ export function ServiceItem({ s, to, picked }: { s: ServiceRow; to: To; picked: 
       status={r ? runStatus(r) : { icon: "circle", tone: "quiet", words: "Not running" }}
       title={title || s.name}
       name={title && title !== s.name ? s.name : undefined}
-      sub={r ? `${at(r)} · ${startedBy(r)}` : tab ? "not running · opens in a tab" : "not running"}
+      sub={r ? `${at(r)} · ${startedBy(r)}` : tab ? "not running · opens in new tab" : "not running"}
       when={r && (r.state === "running" ? r.started : (r.ended ?? r.started))}
     />
   );

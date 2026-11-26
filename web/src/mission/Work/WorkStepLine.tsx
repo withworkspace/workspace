@@ -17,7 +17,7 @@ export function WorkStepLine({ d, x, s }: { d: MissionDetail; x: WorkCapsule; s:
       {s.type && s.type !== s.title && <Text dim>{s.type}</Text>}
       {s.state === "current" && <Chip tone="info">now</Chip>}
       {bundles.map((b) => (
-        <MissionWorkStepBundle key={b.id} id={b.id} to={bundleLink(d.slug, b.id)} title={`${b.id}${b.verdict ? `: ${b.verdict}` : ""}${b.stale ? ", of a commit the capsule has moved on from" : ""}`} />
+        <MissionWorkStepBundle key={b.id} id={b.id} to={bundleLink(d.slug, b.id)} title={`${b.id}${b.verdict ? `: ${b.verdict}` : ""}${b.stale ? ", from an older commit" : ""}`} />
       ))}
     </MissionWorkStep>
   );

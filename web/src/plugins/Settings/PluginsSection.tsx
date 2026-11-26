@@ -45,9 +45,9 @@ export function PluginsSection() {
     checkUpdates()
       .then(async (up) => {
         await reload();
-        toast(up.plugins > 0 ? `${up.plugins} ${up.plugins === 1 ? "plugin has" : "plugins have"} a later release` : "No plugin has a later release", { tone: "done" });
+        toast(up.plugins > 0 ? `${up.plugins} ${up.plugins === 1 ? "plugin has" : "plugins have"} updates` : "All plugins up to date", { tone: "done" });
       })
-      .catch((e: Error) => toast(`Couldn't look: ${humanError(e.message)}`, { tone: "danger", ms: 8000 }))
+      .catch((e: Error) => toast(`Could not check for updates: ${humanError(e.message)}`, { tone: "danger", ms: 8000 }))
       .finally(() => setLooking(false));
   };
   const installed = info?.plugins ?? [];
@@ -69,7 +69,7 @@ export function PluginsSection() {
             </GroupHead>
             {installed.length === 0 ? (
               <Empty icon="box" title="No plugins yet">
-                Add one above: <code>withworkspace/plugin-plugin-dev</code> writes a plugin of your own, and runs it here as you change it.
+                Add one above. To write your own, start with <code>withworkspace/plugin-plugin-dev</code>.
               </Empty>
             ) : (
               <PluginsList>
@@ -82,7 +82,7 @@ export function PluginsSection() {
           {info.wanted.length > 0 && (
             <section>
               <GroupHead count={info.wanted.length}>
-                The team's, not installed here
+                From your team, not installed
               </GroupHead>
               <PluginsNote>
                 In <code>ws.toml</code>, under <code>[plugins]</code>.
@@ -96,7 +96,8 @@ export function PluginsSection() {
           )}
           {info.checks === false && fromRepo && (
             <PluginsNote>
-              The daemon isn't looking for updates by itself: <Link to="/settings/about#updates">Look for updates</Link> is off.
+              Not checking for updates automatically:{" "}
+              <Link to="/settings/about#updates">Look for updates</Link> is off.
             </PluginsNote>
           )}
         </>

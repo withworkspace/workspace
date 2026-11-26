@@ -8,7 +8,7 @@ import css from "./MissionWorkLoose.module.css";
 // the crew after don't see it.
 export function MissionWorkLoose({ loose, children }: { loose: boolean; children: ReactNode }) {
   return (
-    <span className={loose ? cx(toneClass("attention"), css.loose) : undefined} title={loose ? "Changed in the capsule and not committed: reviews and crew after don't see them" : undefined}>
+    <span className={loose ? cx(toneClass("attention"), css.loose) : undefined} title={loose ? "Uncommitted changes" : undefined}>
       {children}
     </span>
   );

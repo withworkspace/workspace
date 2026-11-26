@@ -30,13 +30,13 @@ export function About({ info, section }: { info?: SettingsInfo; section: Section
             <Text mono title={workspace.version}>
               {workspace.version ? shortVersion(workspace.version) : "—"}
             </Text>
-            <Text as="div" dim>The daemon's, which serves this page.</Text>
+            <Text as="div" dim>Of the running Workspace.</Text>
           </SettingsFact>
           <SettingsFact term="What's new" id="whats-new">
             <Button size="small" onClick={openWhatsNew}>
               Show what's new
             </Button>
-            <Text as="div" dim>Said once after an upgrade, and kept here.</Text>
+            <Text as="div" dim>Shown once after each upgrade.</Text>
           </SettingsFact>
         </SettingsFacts>
       </SettingsBlock>
@@ -63,20 +63,20 @@ export function About({ info, section }: { info?: SettingsInfo; section: Section
               {workspace.defaultBranch}
             </SettingsFact>
           )}
-          <SettingsFact term="Where it is" mono>
+          <SettingsFact term="Location" mono>
             {workspace.root}
           </SettingsFact>
-          <SettingsFact term="The team's settings">
-            <code title={info?.team}>{info ? fileName(info.team) : "ws.toml"}</code> <Text dim>in the config repo, changed by commit</Text>
+          <SettingsFact term="Team settings">
+            <code title={info?.team}>{info ? fileName(info.team) : "ws.toml"}</code> <Text dim>in the config repo, committed</Text>
           </SettingsFact>
-          <SettingsFact term="Yours">
-            <code title={info?.file}>{info ? fileName(info.file) : "ws.local.toml"}</code> <Text dim>beside it, not committed</Text>
+          <SettingsFact term="Your settings">
+            <code title={info?.file}>{info ? fileName(info.file) : "ws.local.toml"}</code> <Text dim>local, not committed</Text>
           </SettingsFact>
           {process && (
             <SettingsFact term="Process">
               <code title={process.file}>{process.name}</code>{" "}
               <Link to="/settings/process" className={textClass("link")}>
-                as it's written
+                View
               </Link>
             </SettingsFact>
           )}

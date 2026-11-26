@@ -28,12 +28,12 @@ import { useWorkspace } from "../../workspace/store";
 const CrewTerminal = lazy(() => import("./CrewTerminal"));
 
 export const crewKeys: [string, string][] = [
-  ["r", "Write to the crew"],
-  ["mod+⏎", "Send it"],
-  ["t", "The terminal, or back to the conversation"],
-  ["(any key)", "In the terminal, while it has focus: goes to the crew, Esc included"],
-  ["mod+C / mod+V", "Copy what's selected / paste into the crew"],
-  ["(click outside)", "Stop typing into it"],
+  ["r", "Message crew"],
+  ["mod+⏎", "Send"],
+  ["t", "Terminal / conversation"],
+  ["(any key)", "In terminal while focused, Esc included"],
+  ["mod+C / mod+V", "Copy / paste"],
+  ["(click outside)", "Leave terminal"],
 ];
 
 // CrewPage is crew at work: first as a conversation (the agent view: what
@@ -71,7 +71,7 @@ export function CrewPage() {
   const stop = async () => {
     const yes = await confirm({
       title: `Stop ${id}?`,
-      body: "Its session can be resumed later if it recorded one: what it's in the middle of is lost.",
+      body: "Current work is lost. The session can be resumed later, if recorded.",
       confirm: `Stop ${id}`,
       danger: true,
     });
@@ -137,11 +137,11 @@ export function CrewPage() {
             title={`${id} isn't running`}
             action={
               <Button onClick={() => setView("conversation")} keys="t">
-                <Icon name="message" /> Read its conversation
+                <Icon name="message" /> Open conversation
               </Button>
             }
           >
-            There's no terminal to show: crew run in the workspace's daemon, and {id} isn't running there now.
+            No terminal: {id} isn't running.
           </Empty>
         ) : (
           <Suspense fallback={<Loading what="Opening the terminal…" />}>

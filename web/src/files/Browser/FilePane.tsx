@@ -130,12 +130,12 @@ export function FilePane({
               </Segmented>
             )}
             {docTo && text && !file.deleted && (
-              <Link to={docTo} className={buttonClass({ size: "small" })} {...keyProps("⏎", "Edit it as a page: cells, questions and passes, and saved back to the repo when you say")}>
+              <Link to={docTo} className={buttonClass({ size: "small" })} {...keyProps("⏎", "Edit as a page")}>
                 <Icon name="pencil" size={12} /> Edit as a page <Keys k="⏎" />
               </Link>
             )}
             {reviewTo && entry?.status && entry.status !== "added" && (
-              <Link to={reviewTo} className={buttonClass({ size: "small" })} {...keyProps("v", "Review the capsule's changes")}>
+              <Link to={reviewTo} className={buttonClass({ size: "small" })} {...keyProps("v", "Review changes")}>
                 <Icon name="eye" size={12} /> Changes
               </Link>
             )}
@@ -149,26 +149,26 @@ export function FilePane({
         uncommitted={entry?.uncommitted}
         legend={file && !image && file.changes.length > 0 && !(md && preview) && <FilesChangeLegend added={has("added")} modified={has("modified")} deleted={has("deleted")} />}
       />
-      {error && <ErrorCard className={filesFileNoteClass} title="Couldn't open this file" error={error} retry={() => setTries((n) => n + 1)} />}
-      {!file && !error && <Loading className={filesFileNoteClass} what="Opening it…" />}
+      {error && <ErrorCard className={filesFileNoteClass} title="Could not open file" error={error} retry={() => setTries((n) => n + 1)} />}
+      {!file && !error && <Loading className={filesFileNoteClass} what="Opening…" />}
       {file && file.deleted && (
-        <Callout className={filesFileNoteClass} tone="danger" icon="minus" title={`Deleted since it left ${base}`}>
-          This is how it was there.
+        <Callout className={filesFileNoteClass} tone="danger" icon="minus" title={`Deleted since ${base}`}>
+          Showing the file before deletion.
         </Callout>
       )}
       {file &&
         (image && !file.deleted ? (
           <FilesImage src={rawURL(api, path)} path={path} />
         ) : file.binary ? (
-          <Empty className={filesFileNoteClass} icon="file" title="A binary file">
-            {sizeWords(file.size)}: there's no text to show.
+          <Empty className={filesFileNoteClass} icon="file" title="Binary file">
+            {sizeWords(file.size)}: no text to show.
           </Empty>
         ) : file.tooLarge ? (
           <Empty className={filesFileNoteClass} icon="file" title="Too large to show">
-            It's {sizeWords(file.size)}. Open it in an editor: <Copyable text={path} />
+            {sizeWords(file.size)}. Open in an editor: <Copyable text={path} />
           </Empty>
         ) : !file.lines.length ? (
-          <Empty className={filesFileNoteClass} icon="file" title="An empty file" />
+          <Empty className={filesFileNoteClass} icon="file" title="Empty file" />
         ) : md && preview ? (
           <FilesMarkdown>
             <Markdown text={file.lines.join("\n")} at={place} />

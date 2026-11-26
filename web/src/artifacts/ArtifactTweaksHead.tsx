@@ -19,7 +19,7 @@ export function ArtifactTweaksHead({ changed, copy, children }: ArtifactTweaksHe
       <h2>Tweaks</h2>
       {changed ? <Chip>{changed} changed</Chip> : null}
       <span className={css.end}>
-        <Copyable text={copy} className={css.copy} title="Copy what each is set to, as text: to say which you'd keep">
+        <Copyable text={copy} className={css.copy} title="Copy settings as text">
           Copy
         </Copyable>
         {children}

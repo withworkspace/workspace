@@ -5,13 +5,12 @@ import { textClass } from "../ui/Text";
 export function ProcessAbout() {
   return (
     <>
-      How work goes here, in prose: the steps work takes, whose turn each is, what done means, and when it's yours. It's the team's, in the config repo, changed by commit
-      like the rest of it. The planner reads it as it's written to plan a mission, and the orchestrator to know what to do when something happens. What ws holds whatever
-      they read is under{" "}
+      How work goes here, in prose: the steps, whose turn each is, what done means, and when it's yours. The
+      team's file, in the config repo, changed by commit. The planner reads it to plan missions, and the
+      orchestrator to decide what to do next. What Workspace guarantees regardless is under{" "}
       <Link to="/settings/missions#missions" className={textClass("link")}>
         Guarantees
-      </Link>
-      .
+      </Link>.
     </>
   );
 }

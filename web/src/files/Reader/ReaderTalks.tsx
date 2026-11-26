@@ -26,7 +26,7 @@ export interface TalkItem {
 export function ReaderTalks({ items }: { items: TalkItem[] }) {
   return (
     <section>
-      <GroupHead count={items.length}>Conversations about it</GroupHead>
+      <GroupHead count={items.length}>Conversations about this</GroupHead>
       <Rows>
         {items.map((t) => (
           <Row key={t.id}>

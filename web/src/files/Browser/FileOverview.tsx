@@ -11,7 +11,7 @@ import { branchName } from "./words";
 // FileOverview is the worktree before a file's open: what's changed, a
 // click each, and how to find the rest.
 export function FileOverview({ tree, changed, onOpen, onFind }: { tree?: FileTree; changed: TreeFile[]; onOpen: (p: string) => void; onFind: () => void }) {
-  if (!tree) return <Loading what="Reading the files…" />;
+  if (!tree) return <Loading what="Loading files…" />;
   return (
     <FilesOverview>
       <Empty
@@ -23,7 +23,7 @@ export function FileOverview({ tree, changed, onOpen, onFind }: { tree?: FileTre
           </Button>
         }
       >
-        {tree.files.length} files{tree.base ? `; ${changed.length} changed since the capsule left ${branchName(tree.baseRef)}` : ""}.
+        {tree.files.length} files{tree.base ? `; ${changed.length} changed since ${branchName(tree.baseRef)}` : ""}.
       </Empty>
       {changed.length > 0 && <FilesChanged files={changed.slice(0, 40)} count={changed.length} onOpen={onOpen} />}
     </FilesOverview>

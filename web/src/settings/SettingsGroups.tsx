@@ -17,17 +17,17 @@ export function SettingsGroups({ none, children }: SettingsGroupsProps) {
     <div className={css.groups}>
       <h3 className={css.head}>Groups</h3>
       {none ? (
-        <SettingsAbout>None yet: put a repo in one from its row. A hidden group is left out of what covers every repo, its repos cloned when they're first needed.</SettingsAbout>
+        <SettingsAbout>None yet: set a repo's group from its row. Hidden groups are left out of commands that cover every repo, and cloned when first needed.</SettingsAbout>
       ) : (
         <>
-          <SettingsAbout>A hidden group is left out of what covers every repo (status, rg, debrief, sync), its repos cloned when they're first needed. Shown or hidden is yours, in ws.local.toml.</SettingsAbout>
+          <SettingsAbout>Hidden groups are left out of commands that cover every repo (status, rg, debrief, sync), and cloned when first needed. Shown or hidden is your setting, in ws.local.toml.</SettingsAbout>
           <SettingsTable>
             <thead>
               <tr>
                 <th>Group</th>
                 <th>Repos</th>
                 <th>For you</th>
-                <th aria-label="The team's" />
+                <th aria-label="Team setting" />
               </tr>
             </thead>
             <tbody>{children}</tbody>

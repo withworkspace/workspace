@@ -88,7 +88,7 @@ export function groupByOrder(files: DiffFile[], o: Order): FileGroups {
   });
   const rest = files.flatMap((f, i) => (placed.has(f.path) ? [] : [i]));
   if (rest.length) {
-    const why = o.stale ? "The change has moved on since the guide was written: these weren't in it" : "The guide didn't say where these are read";
+    const why = o.stale ? "Added since the guide was written" : "Not placed by the guide";
     const g: FileGroup = { key: "rest", label: unplaced(o), title: why, named: true, why, files: rest };
     if (o.stale) groups.unshift(g);
     else groups.push(g);
@@ -105,16 +105,16 @@ export function groupFiles(files: DiffFile[]): FileGroups {
     const key = f.skim ? "skim" : `dir:${dir}`;
     const last = groups[groups.length - 1];
     if (last?.key === key) return void last.files.push(i);
-    groups.push(f.skim ? { key, label: "To skim", title: "Lockfiles, generated files and files that were only renamed", skim: true, files: [i] } : { key, label: dir.slice(common.length), title: dir || "The top of the repo", files: [i] });
+    groups.push(f.skim ? { key, label: "To skim", title: "Lockfiles, generated and renamed-only files", skim: true, files: [i] } : { key, label: dir.slice(common.length), title: dir || "Repo root", files: [i] });
   });
   return { common, groups };
 }
 
 // skimWords says why a file is one to skim.
 export const skimWords: Record<NonNullable<DiffFile["skim"]>, string> = {
-  lockfile: "A lockfile",
+  lockfile: "Lockfile",
   generated: "Generated",
-  snapshot: "A snapshot",
-  renamed: "Renamed, and nothing else",
-  guide: "The guide says to skim it",
+  snapshot: "Snapshot",
+  renamed: "Renamed only",
+  guide: "Guide says skim",
 };

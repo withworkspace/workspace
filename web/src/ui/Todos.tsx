@@ -23,7 +23,7 @@ export function Todos({ todos, live, className }: { todos: Todo[]; live?: boolea
             {t.status === "completed" ? <Icon name="check" size={10} /> : t.status === "in_progress" && live ? <Spinner size={10} /> : null}
           </span>
           <span>{t.status === "in_progress" && t.active ? t.active : t.content}</span>
-          <SrOnly>{t.status === "completed" ? " (done)" : t.status === "in_progress" ? " (in hand)" : ""}</SrOnly>
+          <SrOnly>{t.status === "completed" ? " (done)" : t.status === "in_progress" ? " (in progress)" : ""}</SrOnly>
         </li>
       ))}
     </ul>

@@ -55,7 +55,7 @@ export function useWorktreeTabs(at: AppAt): WorktreeTabs {
   if (view === "runs") {
     other =
       error && !info ? (
-        <ErrorCard title="Couldn't read its runs" error={error} retry={reload} />
+        <ErrorCard title="Could not load runs" error={error} retry={reload} />
       ) : (
         <WorktreeRuns repo={at.repo} name={at.worktree} value={info} reload={reload} />
       );
@@ -66,7 +66,7 @@ export function useWorktreeTabs(at: AppAt): WorktreeTabs {
       other = (
         <div className="page narrow">
           <Empty icon="box" title={`No ${view} here`}>
-            This worktree has no app called {view}: an app is a recipe in its ws.repo.toml with a page.
+            No app called {view} here. Apps are recipes in ws.repo.toml with a page.
           </Empty>
         </div>
       );

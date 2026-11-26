@@ -15,7 +15,7 @@ export function stepLine(d: MissionDetail): ReactNode {
           {d.plan ? "Step" : "Stage"} {now.n} of {d.stages.length}: <strong>{now.title}</strong>
         </span>
         {now.checkIn && <Text dim> · check in after</Text>}
-        {now.who === "you" && !waitHow(now) && <Text dim> · yours: only you pass it</Text>}
+        {now.who === "you" && !waitHow(now) && <Text dim> · yours: only you can pass</Text>}
         {waitHow(now) && (
           <span>
             {" "}

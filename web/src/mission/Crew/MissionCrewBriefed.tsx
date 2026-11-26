@@ -11,8 +11,7 @@ export function MissionCrewBriefed({ id, text, time }: { id: string; text: strin
     <details className={css.briefed}>
       <summary>
         <Icon name="chevron-right" size={12} className={css.chevron} />
-        <TurnAvatar by="agent" className={css.avatar} />
-        ws briefed {id}: the mission, and how to report back
+        <TurnAvatar by="agent" className={css.avatar} />Workspace briefed {id}
         {time && <Time iso={time} className={textClass("dim")} />}
       </summary>
       <div className={css.said}>{text}</div>

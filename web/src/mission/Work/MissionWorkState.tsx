@@ -17,7 +17,7 @@ export function MissionWorkState({ text, tone, icon, live, url, keys }: { text: 
   );
   const cls = chipClass(tone ?? "quiet");
   return url ? (
-    <a href={url} target="_blank" rel="noopener noreferrer" className={cls} {...keyProps(keys, keys ? "Open its pull request" : undefined, (e: MouseEvent) => e.stopPropagation())}>
+    <a href={url} target="_blank" rel="noopener noreferrer" className={cls} {...keyProps(keys, keys ? "Open pull request" : undefined, (e: MouseEvent) => e.stopPropagation())}>
       {body}
     </a>
   ) : (

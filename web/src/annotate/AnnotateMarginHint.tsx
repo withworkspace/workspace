@@ -9,8 +9,8 @@ export function AnnotateMarginHint() {
     <div className={css.hint}>
       <Icon name="message" size={14} className={css.icon} />
       <span>
-        Select text to comment on it, or move with <Keys k="j" /> <Keys k="k" /> and press <Keys k="c" />. Ask a question, ask for a change, or leave a note: an
-        agent answers in the thread.
+        Select text to comment, or move with <Keys k="j" /> <Keys k="k" /> and press <Keys k="c" />. Ask a
+        question, request a change, or leave a note: an agent replies in the thread.
       </span>
     </div>
   );

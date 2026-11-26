@@ -23,7 +23,7 @@ export function SummaryNotices({ d }: { d: MissionDetail }) {
             key={t}
             tone="quiet"
             icon="alert"
-            title={signIn ? "The agents' sign-in ends soon" : "The orchestrator's agent warned"}
+            title={signIn ? "Agent sign-in expires soon" : "Orchestrator warning"}
             actions={
               <Button size="small" onClick={() => dismiss(t)}>
                 Dismiss

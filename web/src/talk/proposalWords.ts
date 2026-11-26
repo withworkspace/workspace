@@ -29,7 +29,7 @@ export function proposalAccept(p: TalkProposal, briefing: boolean, kindTitle: st
   return {
     decision: "Record decision",
     mission: withBrief ? "Create mission" : "Save as an idea",
-    brief: briefing ? "Confirm and start" : p.plan ? "Confirm the goal and its plan" : "Accept the brief",
+    brief: briefing ? "Confirm and start" : p.plan ? "Confirm goal and plan" : "Accept the brief",
     dispatch: "Start crew",
     replan: "Ask the planner",
     comment: "Add to my review",
@@ -41,4 +41,4 @@ export function proposalAccept(p: TalkProposal, briefing: boolean, kindTitle: st
 }
 
 export const proposalBusy = (p: TalkProposal): string =>
-  ({ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Doing it…" })[p.kind];
+  ({ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Working…" })[p.kind];

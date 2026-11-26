@@ -203,6 +203,6 @@ export function stepDoing(c: Step, table: readonly CommandLabel[]): string {
   if (/^(grep|glob|search|find|ls)/.test(tool)) return "Searching the code";
   if (tool === "websearch") return "Searching the web";
   if (/^(webfetch|fetch)/.test(tool)) return "Reading the web";
-  if (/^(task|agent)/.test(tool)) return "Handing it to an agent";
+  if (/^(task|agent)/.test(tool)) return "Delegating to an agent";
   return c.tool;
 }

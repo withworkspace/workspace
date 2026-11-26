@@ -8,8 +8,8 @@ export function RefGone({ r, there }: { r: Extract<PageRef, { kind: "file" | "di
   return (
     <>
       <HoverCardLine dim>
-        The capsule {r.worktree} is gone{r.commit ? ` (it was at ${r.commit.slice(0, 7)})` : ""}.{" "}
-        {there ? "On the default branch now:" : "It isn't on the default branch either."}
+        Capsule {r.worktree} is gone{r.commit ? ` (was at ${r.commit.slice(0, 7)})` : ""}.{" "}
+        {there ? "On the default branch now:" : "Not on the default branch either."}
       </HoverCardLine>
       {there && <RefGo to={refHref({ ...r, worktree: GROUND })}>On the default branch now</RefGo>}
     </>

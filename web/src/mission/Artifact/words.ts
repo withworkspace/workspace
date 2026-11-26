@@ -4,10 +4,10 @@ import { annotateKeys } from "../../annotate/Annotate";
 // document's own, to move through it and comment, then the page's.
 export const artifactKeys: [string, string][] = [
   ...annotateKeys.map(([k, what]): [string, string] => (k === "j / k" ? [k, `${what} (in code: scroll)`] : [k, what])),
-  ["e", "Edit it (a document in a capsule, or the mission's own)"],
+  ["e", "Edit"],
   ["mod+D / mod+U", "Down / up half a page"],
   ["g / G", "Top / bottom"],
-  ["o", "Open it on GitHub (or where it lives)"],
+  ["o", "Open in repo"],
   ["r", "Reload"],
   ["esc", "Back"],
 ];

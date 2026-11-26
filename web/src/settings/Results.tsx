@@ -17,7 +17,7 @@ export function Results({ found, query, clear }: { found: Found[]; query: string
           {n} {n === 1 ? "setting" : "settings"}
         </Text>
       </PageHead>
-      {found.length === 0 && <div className="quiet-line">No setting says that. What only a file sets (a repo's commands, paths) isn't here.</div>}
+      {found.length === 0 && <div className="quiet-line">No matching setting. File-only settings (repo commands, paths) aren't listed.</div>}
       {found.map(({ section, rows }) => (
         <SettingsBlock
           key={section.id}

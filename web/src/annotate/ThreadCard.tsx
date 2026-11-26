@@ -92,7 +92,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
       ) : (
         <>
           {unplaced && (
-            <AnnotateLostQuote title={`opened on version ${thread.anchor.version} of the document, ${linesWord(thread.anchor)}`}>
+            <AnnotateLostQuote title={`Opened on version ${thread.anchor.version}, ${linesWord(thread.anchor)}`}>
               {thread.anchor.quote?.exact ? clip(thread.anchor.quote.exact, 240) : `The whole of ${linesWord(thread.anchor)}`}
             </AnnotateLostQuote>
           )}
@@ -101,14 +101,14 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
             <NoteThread>
               {rest.map((t) => (
                 <NoteTurn key={t.n} who={t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by} quiet={t.by === "ws"} said={t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}>
-                  {t.changed && <Text dim>changed it</Text>}
+                  {t.changed && <Text dim>edited</Text>}
                   {t.commit && <Text mono dim>{t.commit.slice(0, 7)}</Text>}
                 </NoteTurn>
               ))}
             </NoteThread>
           )}
-          {thread.answering && <AnnotateTyping>{resolved ? "Drafting what was decided" : "Answering"}</AnnotateTyping>}
-          {thread.sent?.finished && !resolved && <AnnotateSettled>{thread.sent.crew} finished without saying it changed the document for this.</AnnotateSettled>}
+          {thread.answering && <AnnotateTyping>{resolved ? "Drafting decision" : "Answering"}</AnnotateTyping>}
+          {thread.sent?.finished && !resolved && <AnnotateSettled>{thread.sent.crew} finished without reporting a change to the document.</AnnotateSettled>}
           {settled.map((s) => (
             <AnnotateSettled key={s.n}>{s.state === "accepted" ? `Edit accepted${s.commit ? `, committed ${s.commit.slice(0, 7)}` : ""}` : "Edit declined"}</AnnotateSettled>
           ))}
@@ -118,7 +118,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
           {!own && resolved && !thread.draft && !thread.answering && active && !deciding && (
             <NoteHint>
               <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), setDeciding(true))}>
-                Record what was decided
+                Record decision
               </Button>
             </NoteHint>
           )}
@@ -132,7 +132,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
                 <Button
                   variant="link"
                   disabled={sending}
-                  title="Too big for an edit: hand it to crew (the crew that wrote it, or fresh crew in its capsule)"
+                  title="Too big for an edit: send to crew"
                   onClick={(e) => (e.stopPropagation(), onSend())}
                 >
                   Send to crew

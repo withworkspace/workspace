@@ -39,8 +39,8 @@ export function ArtifactCompareSide({ label, picked, choices, onPick, versions, 
         <span className={css.end}>
           {tweaks}
           {alone && (
-            <a className={buttonClass({ variant: "ghost" }, css.alone)} href={alone} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
-              <Icon name="external" size={13} /> Open alone
+            <a className={buttonClass({ variant: "ghost" }, css.alone)} href={alone} target="_blank" rel="noopener noreferrer" title="In new tab, still sandboxed">
+              <Icon name="external" size={13} /> Open in new tab
             </a>
           )}
         </span>

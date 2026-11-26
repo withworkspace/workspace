@@ -77,10 +77,10 @@ export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; ma
       actions={
         x.state === "current" && (
           <>
-            <Button variant="ghost" size="small" onClick={() => start("replace", x.id)} title={`Record another in place of ${x.id}`}>
+            <Button variant="ghost" size="small" onClick={() => start("replace", x.id)} title={`Replace ${x.id}`}>
               Replace
             </Button>
-            <Button variant="ghost" size="small" onClick={() => start("withdraw", x.id)} title={`Take ${x.id} back, saying why`}>
+            <Button variant="ghost" size="small" onClick={() => start("withdraw", x.id)} title={`Withdraw ${x.id}`}>
               Withdraw
             </Button>
           </>
@@ -98,19 +98,19 @@ export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; ma
 
   if (!d.decisions.length && !open) {
     return (
-      <Empty icon="gavel" title="Nothing's decided yet">
-        What you answer when you're asked is kept here as a decision of yours, beside what crew and the orchestrator settle as they go.
+      <Empty icon="gavel" title="No decisions yet">
+        Your answers to questions are kept here as decisions, beside those crew and the orchestrator make.
         <div className={css.emptyAct}>{record}</div>
       </Empty>
     );
   }
   return (
     <div className={css.tab}>
-      <MissionDecisionGroup title="Yours" count={g.yours.length + g.answered.length} note="They stand over what the plan asks." end={!(open?.kind === "record") && record}>
+      <MissionDecisionGroup title="Yours" count={g.yours.length + g.answered.length} note="These override the plan." end={!(open?.kind === "record") && record}>
         {form()}
         {g.yours.map((x) => row(x, true))}
         {!g.yours.length && !g.answered.length && open?.kind !== "record" && (
-          <p className={css.none}>None yet. What you answer when you're asked is kept here, and you can record one of your own.</p>
+          <p className={css.none}>None yet. Your answers are kept here, or record your own.</p>
         )}
         {g.answered.length > 0 && (
           <MissionDecisionGroup step title="When you were asked">
@@ -119,7 +119,7 @@ export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; ma
         )}
       </MissionDecisionGroup>
       {g.work.length > 0 && (
-        <MissionDecisionGroup title="From the work" count={g.worked} note="What crew and the orchestrator settled as they went.">
+        <MissionDecisionGroup title="From the work" count={g.worked} note="Made by crew and the orchestrator.">
           {g.work.map((s) => (
             <MissionDecisionGroup
               key={s.n}
@@ -131,7 +131,7 @@ export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; ma
                     {s.step && <span className={css.stepTitle}>{s.step.title}</span>}
                   </>
                 ) : (
-                  "At no step"
+                  "No step"
                 )
               }
             >
