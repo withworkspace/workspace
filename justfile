@@ -26,6 +26,13 @@ check:
     go run ./scripts/wiretypes -check
     go run ./scripts/whatsnew -check
 
+golangci := "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0"
+
+# golangci-lint (.golangci.yml) on all of ws, then errcheck and noctx on what's changed since main (main has hundreds of each from before they were checked). Built with this repo's Go, which a released binary may be older than.
+lint base="origin/main":
+    go run {{golangci}} run ./...
+    go run {{golangci}} run --enable-only errcheck,noctx --new-from-merge-base {{base}} ./...
+
 # Write web/src/wire.gen.ts, the web UI's types of the API, from internal/web's Go types (scripts/wiretypes says how).
 wire:
     go run ./scripts/wiretypes
