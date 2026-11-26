@@ -139,8 +139,8 @@ importers:
         specifier: 1.65.1
         version: 1.65.1
       shotta:
-        specifier: 0.2.0
-        version: 0.2.0(playwright@1.65.1)
+        specifier: 0.3.0
+        version: 0.3.0(playwright@1.65.1)
       storybook:
         specifier: 10.6.7
         version: 10.6.7(@types/react@19.3.0)(react@19.3.1)
@@ -2278,8 +2278,8 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  shotta@0.2.0:
-    resolution: {integrity: sha512-RhjqSU2cQpToWl65z+ckuIuxp1Nf8XXlR/TVcDZeMbLpcZcwOgULLsQqEjRiko9bUaFQeDSek70a+hnaJHrNyg==}
+  shotta@0.3.0:
+    resolution: {integrity: sha512-BvhoztYI4jQxI1X6HlmHQ6acRsNBQbBT1BUXX+VV0/PeusivcL3uqYd0INbvncNzKx27n3K/n7oHdEgxzCGIhw==}
     engines: {node: '>=22.18'}
     hasBin: true
     peerDependencies:
@@ -4847,7 +4847,7 @@ snapshots:
 
   semver@7.8.6: {}
 
-  shotta@0.2.0(playwright@1.65.1):
+  shotta@0.3.0(playwright@1.65.1):
     dependencies:
       pixelmatch: 7.2.0
       playwright: 1.65.1
