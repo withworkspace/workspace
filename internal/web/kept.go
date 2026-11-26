@@ -108,6 +108,13 @@ func (k *keptReads) Seen() int64 { return k.seen.Load() }
 // behind the read as the type says; unread when it's never been read and
 // the first read is still under way after firstWait.
 func (k *keptReads) soon(key, dir string, read func() (any, error)) (v any, unread bool, err error) {
+	return k.soonWithin(key, dir, readFloor, read)
+}
+
+// soonWithin is soon, what's kept being fresh for floor at most: with 0,
+// every ask is answered as kept and has it read again behind (for what
+// the capsule's stamp doesn't see, its files as they're edited).
+func (k *keptReads) soonWithin(key, dir string, floor time.Duration, read func() (any, error)) (v any, unread bool, err error) {
 	stamp := ops.CapsuleStamp(dir)
 	now := time.Now()
 	k.mu.Lock()
@@ -119,7 +126,7 @@ func (k *keptReads) soon(key, dir string, read func() (any, error)) (v any, unre
 		k.soons[key] = e
 	}
 	e.asked, e.dir, e.read = now, dir, read
-	fresh := e.value != nil && stamp != "" && e.stamp == stamp && now.Sub(e.at) < readFloor
+	fresh := e.value != nil && stamp != "" && e.stamp == stamp && now.Sub(e.at) < floor
 	failed := e.value == nil && e.err != nil && e.stamp == stamp && now.Sub(e.at) < readFloor
 	switch {
 	case fresh:

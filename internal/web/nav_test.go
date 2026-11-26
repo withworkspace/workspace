@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/nav"
 	"github.com/withworkspace/workspace/internal/review"
@@ -123,20 +124,44 @@ func TestNavNow_AWorktreesFilesAsTheyAre(t *testing.T) {
 	}
 	s.Nav = nav.New("")
 	head := gitT(t, dir, "rev-parse", "HEAD")
-	var now NavNow
-	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/now", &now); code != 200 || now.Rev != head {
+	// A first ask waits a moment for it, and says it's unread if that's
+	// not long enough: read until it's in.
+	read := func(path string) (int, NavNow) {
+		var now NavNow
+		for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+			now = NavNow{}
+			if code := getInto(t, s, path, &now); code != 200 || !now.Unread || time.Now().After(deadline) {
+				return code, now
+			}
+		}
+	}
+	if code, now := read("/api/repos/api/worktrees/fix/nav/now"); code != 200 || now.Rev != head {
 		t.Errorf("clean: %d %q, want %s", code, now.Rev, head)
 	}
-	if code := getInto(t, s, "/api/missions/m/capsules/api/fix/nav/now", &now); code != 200 || now.Rev != head {
+	if code, now := read("/api/missions/m/capsules/api/fix/nav/now"); code != 200 || now.Rev != head {
 		t.Errorf("as a capsule: %d %q", code, now.Rev)
 	}
+	var now NavNow
 	if res := do(t, s, "GET", "/api/repos/api/worktrees/other/nav/now", true, nil); res.StatusCode != http.StatusNotFound {
 		t.Errorf("another worktree: %d", res.StatusCode)
 	}
 
+	// Edited: answered as it was, and read again behind the answer; read
+	// until that's in.
 	os.WriteFile(filepath.Join(dir, "a.go"), []byte("package a\n\nvar x = 2\n\nvar y = x\n"), 0o644)
-	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/now", &now); code != 200 || now.Rev == head || !fullSHA.MatchString(now.Rev) {
-		t.Fatalf("changed: %d %q", code, now.Rev)
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/now", &now); code != 200 {
+			t.Fatalf("changed: %d", code)
+		}
+		if now.Rev != head {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("an edit never reached nav/now")
+		}
+	}
+	if !fullSHA.MatchString(now.Rev) {
+		t.Fatalf("changed: %q", now.Rev)
 	}
 	var n nav.Names
 	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/names?rev="+now.Rev+"&path=a.go", &n); code != 200 || len(n.Lines[5]) != 2 {

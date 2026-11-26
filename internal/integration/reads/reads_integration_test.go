@@ -104,10 +104,7 @@ func TestReads_StartNoGit(t *testing.T) {
 // anyRead and firstReads are the reads that still run git, each with
 // why: the lists shrink, and nothing joins them without a reason.
 var (
-	anyRead = map[string]string{
-		"/api/repos/{repo}/worktrees/{name}/nav/now":          "where code navigation's names are of: git status of the working tree, each read",
-		"/api/missions/{slug}/capsules/{repo}/{name}/nav/now": "as the worktree's nav/now",
-	}
+	anyRead    = map[string]string{}
 	firstReads = map[string]string{}
 )
 
