@@ -1,8 +1,12 @@
 version: "2"
 
-# `just lint` runs these on all of ws. errcheck and noctx are set up here but
-# not on: `just lint` runs them only on what's changed since main (see the
-# justfile), since main has hundreds of each from before they were checked.
+# `just lint` runs these on all of ws. errcheck is set up here but not on:
+# `just lint` runs it only on what's changed since main (see the justfile),
+# since main has hundreds from before it was checked.
+#
+# noctx: a command, request or query with no context to end it is marked
+# `//nolint:noctx // why`, where it outlives its caller on purpose or
+# something else bounds it.
 linters:
   default: none
   enable:
@@ -14,6 +18,7 @@ linters:
     - rowserrcheck
     - unconvert
     - copyloopvar
+    - noctx
   settings:
     staticcheck:
       # Bugs and simplifications; not style (ST) or quick fixes (QF).
@@ -25,6 +30,10 @@ linters:
     rules:
       - path: _test\.go
         linters: [errcheck, noctx]
+      # Listening on a socket, or dialling one with a timeout: nothing for a
+      # context to end.
+      - linters: [noctx]
+        text: "net\\.(Listen|DialTimeout) must not be called"
 
 issues:
   max-issues-per-linter: 0

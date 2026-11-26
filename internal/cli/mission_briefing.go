@@ -264,7 +264,7 @@ briefing crew's WS_MISSION pointing nowhere).`,
 // the crew sees its output.
 func hangUpLater(pid int) {
 	script := fmt.Sprintf("sleep %s; kill -HUP -- -%d 2>/dev/null || kill -HUP %d 2>/dev/null", briefingHangupDelay, pid, pid)
-	c := exec.Command("/bin/sh", "-c", script)
+	c := exec.Command("/bin/sh", "-c", script) //nolint:noctx // it's to outlive ws: it hangs up later
 	c.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if c.Start() == nil {
 		c.Process.Release()

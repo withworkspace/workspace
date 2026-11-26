@@ -87,7 +87,7 @@ var noFollow = &http.Client{
 // checksums.txt lists.
 func releaseAsAnyone(repo, tag string) (name string, files []string, ok bool, err error) {
 	if tag == "" {
-		res, err := noFollow.Get(githubHost + "/" + repo + "/releases/latest")
+		res, err := noFollow.Get(githubHost + "/" + repo + "/releases/latest") //nolint:noctx // the client's Timeout bounds it
 		if err != nil {
 			return "", nil, false, fmt.Errorf("reading %s's releases: %w", repo, err)
 		}
@@ -100,7 +100,7 @@ func releaseAsAnyone(repo, tag string) (name string, files []string, ok bool, er
 		}
 		tag = after
 	}
-	res, err := anyone.Get(githubHost + "/" + repo + "/releases/download/" + tag + "/checksums.txt")
+	res, err := anyone.Get(githubHost + "/" + repo + "/releases/download/" + tag + "/checksums.txt") //nolint:noctx // the client's Timeout bounds it
 	if err != nil {
 		return "", nil, false, fmt.Errorf("reading %s's release %s: %w", repo, tag, err)
 	}
@@ -144,7 +144,7 @@ func (Releases) Download(repo, tag string, files []string, dir string) error {
 }
 
 func fetchFile(url, to string) error {
-	res, err := anyone.Get(url)
+	res, err := anyone.Get(url) //nolint:noctx // the client's Timeout bounds it
 	if err != nil {
 		return err
 	}
@@ -179,6 +179,7 @@ func (Releases) Clone(repo, ref, dir string) error {
 		return nil
 	}
 	args := append(append([]string{"clone", "--quiet"}, depth...), githubHost+"/"+repo+".git", dir)
+	//nolint:noctx // no context comes through Releases.Clone yet
 	cmd := exec.Command("git", args...)
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0") // a repo that wants a login isn't asked for one
 	if out, err := cmd.CombinedOutput(); err != nil {

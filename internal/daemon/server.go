@@ -510,7 +510,7 @@ func (s *Server) launch(spec Spec) (int, error) {
 	if err := s.reserve(spec.Key()); err != nil {
 		return 0, err
 	}
-	cmd := exec.Command(spec.Args[0], spec.Args[1:]...)
+	cmd := exec.Command(spec.Args[0], spec.Args[1:]...) //nolint:noctx // crew outlive the request that starts them: the daemon ends them
 	cmd.Dir = spec.Dir
 	cmd.Env = spec.Env
 	pane, err := termpane.Start(cmd, spec.Width, spec.Height)

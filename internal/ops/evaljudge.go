@@ -367,7 +367,7 @@ func (f fixtureWork) layOut(repo string, keep bool, branch string) (dir, commit 
 // evalGit runs git in dir as the eval: its commits are nobody's, and no
 // config of the user's (a hook, a signing key) has a say.
 func evalGit(dir string, args ...string) error {
-	cmd := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=ws eval", "-c", "user.email=eval@ws.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"}, args...)...)
+	cmd := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=ws eval", "-c", "user.email=eval@ws.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"}, args...)...) //nolint:noctx // laying out a fixture, with no context to end it with
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
 	}
@@ -435,7 +435,7 @@ func (f fixtureWork) layOutGit(dir, repo, branch string) error {
 			return fmt.Errorf("%s has no commit %s: fetch it there first", repo, c)
 		}
 	}
-	if out, err := exec.Command("git", "clone", "-q", "--shared", "--no-checkout", repo, dir).CombinedOutput(); err != nil {
+	if out, err := exec.Command("git", "clone", "-q", "--shared", "--no-checkout", repo, dir).CombinedOutput(); err != nil { //nolint:noctx // laying out a fixture, with no context to end it with
 		return fmt.Errorf("cloning %s: %w: %s", repo, err, strings.TrimSpace(string(out)))
 	}
 	if err := evalGit(dir, "checkout", "-q", "--detach", f.Git.Commit); err != nil {

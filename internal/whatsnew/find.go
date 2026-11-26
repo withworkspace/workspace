@@ -75,7 +75,7 @@ func releasedIn(root, path string) (string, error) {
 }
 
 func git(root string, args ...string) (string, error) {
-	cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+	cmd := exec.Command("git", append([]string{"-C", root}, args...)...) //nolint:noctx // run at release time, with no context to end it with
 	out, err := cmd.Output()
 	if err != nil {
 		if exit, ok := err.(*exec.ExitError); ok {
