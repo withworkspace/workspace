@@ -152,6 +152,7 @@ func (s *Server) docHub() *keyedHub {
 		}
 		return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
 	})
+	h.pathOf = pathOf
 	h.gone = func(key string) {
 		mu.Lock()
 		delete(paths, key)

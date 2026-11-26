@@ -36,6 +36,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/cost"
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/nav"
@@ -166,7 +167,11 @@ type Server struct {
 	prs    *prHub
 	findMu sync.Mutex // guards giving Find its pull requests
 	// reads are a capsule's files as pages have read them (kept.go).
-	reads  keptReads
+	reads keptReads
+	// followedFiles are the files the followed topics show, watched
+	// (filewatch.go).
+	followedFiles *fileWatch
+
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -301,14 +306,24 @@ func (s *Server) Start() error {
 	})
 	// A conversation's followers hold it, and are told how it's changed.
 	s.talks.change = func(key string, was any) (any, any) { return conversationChange(s.Root, key, was) }
+	// What's written to a followed file (a conversation's agent's steps, a
+	// crew's session, a run's output, a document) is told as it's written.
+	s.followedFiles = newFileWatch(s.Log.Printf)
+	go s.followedFiles.run(s.ctx)
+	s.talks.watch, s.talks.pathOf = s.followedFiles, func(key string) string {
+		scope, id, _ := strings.Cut(key, "/")
+		return conversation.For(s.Root, scope).RunFile(id)
+	}
 	go s.talks.run(s.ctx)
 	s.transcripts = s.transcriptHub()
+	s.transcripts.watch = s.followedFiles
 	go s.transcripts.run(s.ctx)
 	// A worktree's runs in Files: told when the runs move (WatchRuns,
 	// below), its poll only for what that missed.
 	s.filesFollowed = newKeyedHub(worktreeTopic, max(s.Poll, s.Sweep), func(string) string { return s.App.RunsStamp() })
 	go s.filesFollowed.run(s.ctx)
 	s.runLogs = s.runLogHub()
+	s.runLogs.watch = s.followedFiles
 	go s.runLogs.run(s.ctx)
 	s.apps = newKeyedHub(appTopic, s.Poll, func(key string) string {
 		name, p, _ := appOfKey(key)
@@ -316,6 +331,7 @@ func (s *Server) Start() error {
 	})
 	go s.apps.run(s.ctx)
 	s.docs = s.docHub()
+	s.docs.watch = s.followedFiles
 	go s.docs.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
