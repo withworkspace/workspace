@@ -1565,6 +1565,55 @@ func TestLoad_UIAccent(t *testing.T) {
 	}
 }
 
+// The tint is the team's, or yours over it (yours at 0 too), and out of
+// 0 to 100 it's refused.
+func TestLoad_UITint(t *testing.T) {
+	root := t.TempDir()
+	team := func(s string) {
+		os.WriteFile(filepath.Join(root, FileName), []byte("[workspace]\norg = \"o\"\n"+s), 0o644)
+	}
+	local := func(s string) { os.WriteFile(filepath.Join(root, LocalFileName), []byte(s), 0o644) }
+	tint := func() int {
+		t.Helper()
+		cfg, _, err := Load(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(cfg.Unknown) > 0 {
+			t.Errorf("unknown keys: %v", cfg.Unknown)
+		}
+		return cfg.UITint()
+	}
+
+	team("")
+	if n := tint(); n != 0 {
+		t.Errorf("unset: %d", n)
+	}
+	team("\n[ui]\ntint = 40\n")
+	if n := tint(); n != 40 {
+		t.Errorf("the team's: %d", n)
+	}
+	local("[ui]\ntint = 0\n")
+	if n := tint(); n != 0 {
+		t.Errorf("yours at 0 over the team's: %d", n)
+	}
+	local("[ui]\ntint = 75\n")
+	if n := tint(); n != 75 {
+		t.Errorf("yours: %d", n)
+	}
+	for _, bad := range []string{"-1", "101"} {
+		local("[ui]\ntint = " + bad + "\n")
+		if _, _, err := Load(root); err == nil || !strings.Contains(err.Error(), "[ui] tint") {
+			t.Errorf("yours %s: %v, want it refused", bad, err)
+		}
+	}
+	// Out of range never comes out, however the config was made.
+	big := 500
+	if n := (&Config{UI: UIConfig{Tint: &big}}).UITint(); n != 100 {
+		t.Errorf("a config not loaded: %d", n)
+	}
+}
+
 // Where the web UI's places go is one arrangement: yours, saying either
 // list, replaces the team's two; saying neither, the team's stands.
 func TestLoad_UIPlaces(t *testing.T) {

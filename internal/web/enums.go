@@ -118,7 +118,7 @@ const (
 
 // SettingKind is what kind of value a setting takes, which says how the
 // Settings page edits it: picks, a list of harness:model; color, #rrggbb;
-// places, the sidebar's, by id.
+// places, the sidebar's, by id; tint, a whole number from 0 to 100.
 type SettingKind string
 
 const (
@@ -131,6 +131,7 @@ const (
 	KindPicks   SettingKind = "picks"
 	KindColor   SettingKind = "color"
 	KindPlaces  SettingKind = "places"
+	KindTint    SettingKind = "tint"
 )
 
 // ThreadStatus is whether a conversation or thread is still open.

@@ -518,6 +518,7 @@ func settingDefs(root string) []struct {
 		settings []settingDef
 	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{
 		accentSetting(),
+		tintSetting(),
 		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end, or the menu's for one whose home is the menu (Runs). Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
 		placesSetting("menu", "In the menu", "The places moved out of the sidebar into the workspace's menu, in order. Arrange them from Settings, under Appearance (Arrange the sidebar…)."),
 	}})
@@ -683,6 +684,37 @@ func accentSetting() settingDef {
 	}
 }
 
+// tintSetting is [ui] tint: how far the web UI's greys are tinted
+// towards the accent, 0 to 100.
+func tintSetting() settingDef {
+	get := func(t *int) any {
+		if t == nil {
+			return nil
+		}
+		return *t
+	}
+	return settingDef{
+		section: "ui", key: "tint", label: "Tint", kind: "tint",
+		about: "How far the accent tints the rest of the web UI: the page, the panels, lines and text. 0 leaves them grey.",
+		team:  func(c *config.Config) any { return get(c.UI.Tint) },
+		yours: func(l *config.LocalConfig) any { return get(l.UI.Tint) },
+		def:   func(config.Config) any { return 0 },
+		set: func(l *config.LocalConfig, v any) error {
+			if v == nil {
+				l.UI.Tint = nil
+				return nil
+			}
+			f, ok := v.(float64)
+			if !ok || f != float64(int(f)) || f < 0 || f > config.MaxTint {
+				return fmt.Errorf("a whole number from 0 to %d", config.MaxTint)
+			}
+			t := int(f)
+			l.UI.Tint = &t
+			return nil
+		},
+	}
+}
+
 // placesSetting is [ui] sidebar or [ui] menu: where the web UI's places
 // go, as their ids in order. What a place's id is is the web UI's to say
 // (a plugin's view's is its plugin's name and path), so any id is kept:
@@ -746,6 +778,10 @@ func placesSetting(key, label, about string) settingDef {
 // #rrggbb, for the page to have before it first paints: "" for none, and
 // the web UI's own default applies.
 func (w *Workspace) Accent() string { return w.Config().UIAccent() }
+
+// Tint is how far the web UI's greys are tinted towards the accent as set,
+// 0 to 100, for the page to have before it first paints.
+func (w *Workspace) Tint() int { return w.Config().UITint() }
 
 // allowedSetting is [crew] allowed: the other harnesses and models crew
 // may be launched on from a mission's page, as a list.

@@ -569,24 +569,33 @@ func TestAppAccent(t *testing.T) {
 	}
 }
 
-// Only a hex colour is put on a page's <html>, whatever it's given, and a
-// page with no <html> is left as it is.
-func TestWithAccent(t *testing.T) {
-	for _, c := range []struct{ page, accent, want string }{
-		{`<!doctype html><html lang="en"><head>`, "#abc", `<!doctype html><html lang="en" style="--accent-pick: #abc"><head>`},
-		{"<HTML>\n<head>", "#A1B2C3", "<HTML style=\"--accent-pick: #A1B2C3\">\n<head>"},
-		{"<html\n  lang=\"en\"\n>", "#123456", "<html\n  lang=\"en\"\n style=\"--accent-pick: #123456\">"},
-		{"<!doctype html><title>app</title>", "#123456", "<!doctype html><title>app</title>"},
-		{"<htmlx><html>", "#123456", "<htmlx><html style=\"--accent-pick: #123456\">"},
-		{"<html>", "", "<html>"},
-		{"<html>", "#12345", "<html>"},
-		{"<html>", "#1234567", "<html>"},
-		{"<html>", `#fff" x="`, "<html>"},
-		{"<html>", "#ggg", "<html>"},
-		{"<html>", "red", "<html>"},
+// Only a hex colour and a tint from 1 to 100 are put on a page's <html>,
+// whatever it's given, and a page with no <html> is left as it is.
+func TestWithLook(t *testing.T) {
+	for _, c := range []struct {
+		page, accent string
+		tint         int
+		want         string
+	}{
+		{`<!doctype html><html lang="en"><head>`, "#abc", 0, `<!doctype html><html lang="en" style="--accent-pick: #abc"><head>`},
+		{"<HTML>\n<head>", "#A1B2C3", 0, "<HTML style=\"--accent-pick: #A1B2C3\">\n<head>"},
+		{"<html\n  lang=\"en\"\n>", "#123456", 0, "<html\n  lang=\"en\"\n style=\"--accent-pick: #123456\">"},
+		{"<!doctype html><title>app</title>", "#123456", 40, "<!doctype html><title>app</title>"},
+		{"<htmlx><html>", "#123456", 0, "<htmlx><html style=\"--accent-pick: #123456\">"},
+		{"<html>", "", 0, "<html>"},
+		{"<html>", "#12345", 0, "<html>"},
+		{"<html>", "#1234567", 0, "<html>"},
+		{"<html>", `#fff" x="`, 0, "<html>"},
+		{"<html>", "#ggg", 0, "<html>"},
+		{"<html>", "red", 0, "<html>"},
+		{"<html>", "#123456", 40, `<html style="--accent-pick: #123456; --accent-tint: 0.4">`},
+		{"<html>", "", 100, `<html style="--accent-tint: 1">`},
+		{"<html>", "red", 5, `<html style="--accent-tint: 0.05">`},
+		{"<html>", "", 101, "<html>"},
+		{"<html>", "", -3, "<html>"},
 	} {
-		if got := string(withAccent([]byte(c.page), c.accent)); got != c.want {
-			t.Errorf("withAccent(%q, %q) = %q, want %q", c.page, c.accent, got, c.want)
+		if got := string(withLook([]byte(c.page), rootStyle(c.accent, c.tint))); got != c.want {
+			t.Errorf("withLook(%q, %q, %d) = %q, want %q", c.page, c.accent, c.tint, got, c.want)
 		}
 	}
 }

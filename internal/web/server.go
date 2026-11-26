@@ -1024,25 +1024,39 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	w.Write(withAccent(index, s.App.Accent()))
+	w.Write(withLook(index, rootStyle(s.App.Accent(), s.App.Tint())))
 }
 
-// withAccent is the app's index.html with the accent set on its <html>
-// (:root) as --accent-pick, so the page has it before it first paints and
-// never flashes the default first. It's a style attribute, not a script,
-// as the page's Content-Security-Policy runs no inline script, and allows
-// inline style. With no accent, or one that isn't #rgb or #rrggbb, the
-// page is as built, and foundations.css's default applies: nothing but a hex
-// colour reaches the attribute.
-func withAccent(index []byte, accent string) []byte {
+// rootStyle is the look as set, as what goes in <html>'s style: the
+// accent as --accent-pick and the tint as --accent-tint (0 to 1). What
+// isn't set, or isn't a hex colour or a tint from 1 to 100, is left out,
+// and foundations.css's default applies: nothing but a hex colour and a
+// number reaches the attribute. "" for neither.
+func rootStyle(accent string, tint int) string {
+	var parts []string
+	if hexColor(accent) {
+		parts = append(parts, "--accent-pick: "+accent)
+	}
+	if tint > 0 && tint <= 100 {
+		parts = append(parts, "--accent-tint: "+strconv.FormatFloat(float64(tint)/100, 'f', -1, 64))
+	}
+	return strings.Join(parts, "; ")
+}
+
+// withLook is the app's index.html with the look (rootStyle) set on its
+// <html> (:root), so the page has it before it first paints and never
+// flashes the default first. It's a style attribute, not a script, as the
+// page's Content-Security-Policy runs no inline script, and allows inline
+// style. With no style the page is as built.
+func withLook(index []byte, style string) []byte {
 	tag := htmlTag.FindIndex(index)
-	if tag == nil || !hexColor(accent) {
+	if tag == nil || style == "" {
 		return index
 	}
 	at := tag[1] - 1 // the tag's closing >
-	out := make([]byte, 0, len(index)+40)
+	out := make([]byte, 0, len(index)+len(style)+10)
 	out = append(out, index[:at]...)
-	out = append(out, ` style="--accent-pick: `+accent+`"`...)
+	out = append(out, ` style="`+style+`"`...)
 	return append(out, index[at:]...)
 }
 
