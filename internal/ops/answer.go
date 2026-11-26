@@ -140,9 +140,12 @@ var responders = func() map[string]responder {
 		talkRun(a, r)
 		r.Alone = a.rpass.Def.Cold
 	}
+	// About a pull request: docked first, for its agent to read.
+	pr := talk
+	pr.ready = prReady
 	return map[string]responder{
 		conversation.WhatThreadAsk: thread, conversation.WhatThreadChange: thread, conversation.WhatThreadNote: thread,
-		conversation.WhatTalk: talk, conversation.WhatPR: talk, conversation.WhatDoc: talk, conversation.WhatThing: talk, conversation.WhatBriefing: briefing,
+		conversation.WhatTalk: talk, conversation.WhatPR: pr, conversation.WhatDoc: talk, conversation.WhatThing: talk, conversation.WhatBriefing: briefing,
 		conversation.WhatCell: cell, conversation.WhatAsk: cell, conversation.WhatOutline: cell,
 		conversation.WhatPass: pass, conversation.WhatReviewPass: rpass,
 	}
@@ -335,6 +338,24 @@ func talkRead(a *answering, rep harness.Report, err error) reply {
 	// started: what's said while it runs is told it next (Missed).
 	t := conversation.Turn{By: conversation.Agent, At: a.w.now(), Body: body, Calls: turnCalls(rep.Calls), Block: a.block, Seen: len(a.c.Turns)}
 	return reply{turns: []conversation.Turn{t}, title: title, summary: summary}
+}
+
+// prReady docks the pull request a conversation's about, for its agent to
+// read as files, before it first answers (as asking it did before: what's
+// said after, it answers where it's docked, or from the repo's clone once
+// that's tidied away). One that can't be docked isn't answered: it's said
+// why.
+func prReady(a *answering) (bool, error) {
+	for _, t := range a.c.Turns {
+		if t.By == conversation.Agent {
+			return false, nil
+		}
+	}
+	if err := a.w.dockForAnswer(a.c); err != nil {
+		_, serr := a.store.Say(a.c.ID, conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "Couldn't check " + a.c.Anchor.PR + " out here for the agent to read: " + err.Error()})
+		return true, serr
+	}
+	return false, nil
 }
 
 // talkReadPaths are where a conversation's agent may run read-only git:

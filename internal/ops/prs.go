@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -129,11 +130,15 @@ func (w *Workspace) dockQuietly(pr *pulls.PR) (string, error) {
 }
 
 // askPR starts an ask about a pull request, and about lines of its diff
-// when the question is: it docks the PR first (a stack at its top layer),
-// so the agent reads the code as files, and has it answer. It's an ask as
-// one about a document is (conversation/ask.go): ephemeral until you keep
-// it, but its agent may propose review comments from the start, since
-// they go to your draft review, which is yours to keep or not.
+// when the question is, and has its agent answer. It's an ask as one about
+// a document is (conversation/ask.go): ephemeral until you keep it, but
+// its agent may propose review comments from the start, since they go to
+// your draft review, which is yours to keep or not.
+//
+// The PR's docked for the agent to read the code as files, but by its
+// answer (prReady), not here: docking fetches the repo and checks the
+// branch out, seconds over the network, and the ask's there to see at
+// once. Only what refuses docking (a fork) is refused here.
 func (w *Workspace) askPR(svc *pulls.Service, repo string, number int, q PRQuestion) (*conversation.Conversation, error) {
 	pr, st, err := svc.Open(repo, number)
 	if err != nil {
@@ -142,8 +147,8 @@ func (w *Workspace) askPR(svc *pulls.Service, repo string, number int, q PRQuest
 	if _, _, err := Roles(w.Config()).ForConversation(); err != nil {
 		return nil, fmt.Errorf("no agent can answer here: %w", err)
 	}
-	if _, err := w.dockQuietly(DockedTop(pr, st)); err != nil {
-		return nil, err
+	if top := DockedTop(pr, st); top.Fork {
+		return nil, fmt.Errorf("%s is from a fork: ws dock looks for its branch on origin, so it can't be docked", top.Ref())
 	}
 	anchor := conversation.Anchor{PR: pr.Ref()}
 	if q.Path != "" {
@@ -163,8 +168,38 @@ func (w *Workspace) askPR(svc *pulls.Service, repo string, number int, q PRQuest
 		return nil, &Invalid{Reason: err.Error()}
 	}
 	w.answer(job.Answer, doc.Scope{}, c.ID)
-	svc.Stale() // it's docked now: the list says where
 	return c, nil
+}
+
+// dockForAnswer docks the pull request a conversation's about, if it
+// isn't already, for its agent to read: what askPR leaves to the answer.
+// One that's merged or closed since isn't docked: its agent reads what it
+// can of it from the repo's clone.
+func (w *Workspace) dockForAnswer(c *conversation.Conversation) error {
+	repo, number, err := w.ParsePRRef(c.Anchor.PR)
+	if err != nil {
+		return err
+	}
+	svc, err := w.reviews()
+	if err != nil {
+		return err
+	}
+	pr, st, err := svc.Open(repo, number)
+	if errors.Is(err, pulls.ErrNotOpen) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	top := DockedTop(pr, st)
+	if w.CapsuleOnBranch(top.Repo, top.Branch) != "" {
+		return nil
+	}
+	if _, err := w.dockQuietly(top); err != nil {
+		return err
+	}
+	svc.Stale() // it's docked now: the list says where
+	return nil
 }
 
 // DockForReview docks a PR's branch as ws dock does (boarded, the repo's

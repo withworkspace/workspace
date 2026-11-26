@@ -1,6 +1,6 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { act, type Artifact, type CapsuleDetail, getMission, type MissionDetail, useEvents } from "../api";
+import { act, type Artifact, type CapsuleDetail } from "../api";
 import { type KeyMap, useKeys, useShortcut } from "../keys";
 import { Icon } from "../ui/Icon";
 import { keyProps } from "../ui/keyHint";
@@ -10,8 +10,6 @@ import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { humanError } from "../ui/strings";
 import { ErrorCard } from "../ui/ErrorCard";
-import { Status } from "../ui/Status";
-import { headlineStatus } from "../ui/statusOf";
 import { RefContext } from "../refs/context";
 import { Brief } from "./Brief/Brief";
 import { briefKeys } from "./Brief/words";
@@ -23,18 +21,16 @@ import { DecisionsTab } from "./DecisionsTab";
 import { Verify } from "./Verify/Verify";
 import { Work } from "./Work/Work";
 import { crewElsewhere, work } from "./workRows";
-import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
-import { useLoaded } from "../load";
+import { checkRows, rowKey, shownBundle, toApprove } from "./verifyRows";
 import { PagePin } from "../shell/PagePin";
-import { Count } from "../ui/Count";
 import { buttonClass } from "../ui/Button";
 import { MissionTimeline } from "./MissionTimeline";
 import { useTimeline } from "./timeline";
-import { PageBar, pageBarTabsClass } from "../ui/PageBar";
-import { Tab, Tabs } from "../ui/Tabs";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
-import { MissionFrame, MissionFrameBody, MissionFrameMain, MissionFramePanel, missionFrameBarClass } from "./Frame/MissionFrame";
+import { MissionFrame, MissionFrameBody, MissionFrameMain, MissionFramePanel } from "./Frame/MissionFrame";
+import { MissionBar, type MissionTab, missionTabNames, missionTabs } from "./Frame/MissionBar";
+import { useMissionDetail } from "./useMissionDetail";
 import { Log } from "./Log/Log";
 import { Side, sideArtifacts } from "./Side/Side";
 import { Summary } from "./Summary/Summary";
@@ -54,9 +50,9 @@ import { TalkTab } from "./TalkTab";
 // the page. Summary, Log and Talk are read, in a column; Brief, Verify and
 // Work take the page's width.
 
-const tabs = ["summary", "brief", "work", "verify", "log", "talk", "decisions"] as const;
-type Tab = (typeof tabs)[number];
-const tabNames: Record<Tab, string> = { summary: "Summary", brief: "Brief", work: "Work", verify: "Verify", log: "Log", talk: "Talk", decisions: "Decisions" };
+const tabs = missionTabs;
+type Tab = MissionTab;
+const tabNames = missionTabNames;
 // The tabs that are somewhere to work, not something to read.
 const wideTabs: Tab[] = ["work", "verify"];
 
@@ -110,30 +106,8 @@ export function MissionPage() {
   useEffect(() => setOver(false), [tab, slug]);
   const docked = tab === "summary" && side;
 
-  // As the daemon has it, with the capsules' PRs as GitHub last said;
-  // again whenever the mission changes (GitHub answering differently, too).
-  const mission = useLoaded<MissionDetail>(() => getMission(slug), [slug], { keep: true });
-  const { value: d, error, reload: load } = mission;
-  // The mission follows its own topic: told at once when its records
-  // change, and of its files and capsules at the server's next look. A
-  // stream opened again (the page shown again) catches up; the first is
-  // what was just loaded.
-  const opened = useRef(false);
-  useEffect(() => {
-    opened.current = false;
-  }, [slug]);
-  // Where a capsule stands may not have been read when the page first
-  // asked (unread): the daemon reads it behind that, and may be done
-  // before this stream's open to say so. So the first is read again too.
-  const unread = useRef(false);
-  unread.current = !!d?.capsules?.some((c) => c.unread);
-  useEvents(`mission:${slug}`, {
-    hello: () => {
-      if (opened.current || unread.current) load();
-      opened.current = true;
-    },
-    changed: load,
-  });
+  // As the daemon has it, followed.
+  const { value: d, error, reload: load } = useMissionDetail(slug);
   useTitle(d?.title ?? "Mission");
   const strip = useTimeline(d);
   const refs = useMemo(() => (d ? missionRefs(d) : undefined), [d]);
@@ -266,16 +240,6 @@ export function MissionPage() {
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
   const wayBack = { to: "/", title: "Missions", keys: "esc", label: "Back to missions" };
-  const tabRow = (count?: (t: Tab) => ReactNode) => (
-    <Tabs className={pageBarTabsClass()} value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
-      {tabs.map((t) => (
-        <Tab key={t} value={t} title={tabNames[t]} keys={String(tabs.indexOf(t) + 1)}>
-          {tabNames[t]}
-          {count?.(t)}
-        </Tab>
-      ))}
-    </Tabs>
-  );
 
   if (error && !d) {
     return (
@@ -300,7 +264,7 @@ export function MissionPage() {
     return (
       <MissionFrame>
         <MissionTimeline />
-        <PageBar className={missionFrameBarClass} back={wayBack} status={listed && <Status s={headlineStatus(listed.headline)} iconOnly size={16} />} title={listed?.title} tabs={tabRow()} />
+        <MissionBar back={wayBack} title={listed?.title} headline={listed?.headline} tab={tab} onTab={setTab} keys />
         <MissionFrameBody>
           <MissionFrameMain>
             <Skeleton rows={6} />
@@ -310,19 +274,6 @@ export function MissionPage() {
     );
   }
   const selected = (key: string) => item?.key === key;
-  // Your turn in them, or something they proposed to confirm. Its
-  // planner's is Brief's, where it's beside the brief and plan.
-  const waitingTalks = d.talks.filter((x) => x.id !== d.planner && (x.waiting || !!x.proposed)).length;
-
-  // What its planner has for you on Brief: what it proposed (a draft of
-  // the brief and plan, a change to them, anything else), or your turn.
-  const planning = d.talks.find((x) => x.id === d.planner);
-  const briefWaiting = planning?.proposed || (planning?.waiting ? 1 : 0);
-
-  // Bundles waiting for you, and those nothing has taken the place of:
-  // what Verify has to show.
-  const waitingBundles = d.bundles.filter(bundleWaiting).length;
-  const standing = d.bundles.filter((b) => !b.replacedBy).length;
 
   const toWork = () => setTab("work");
   // The details: beside Summary, or over another tab (open while over's set).
@@ -342,41 +293,9 @@ export function MissionPage() {
     <RefContext.Provider value={refs}>
     <MissionFrame fills={tab === "verify" || tab === "work" || tab === "brief"}>
       {strip && <MissionTimeline {...strip} />}
-      <PageBar
-        className={missionFrameBarClass}
-        back={wayBack}
-        status={d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} />}
-        title={d.title}
-        onRename={rename}
-        renameLabel="Rename mission"
-        tabs={tabRow((t) => (
-          <>
-            {t === "brief" && briefWaiting > 0 && (
-              <Count tone="attention" title={planning?.proposed ? "Planner proposal to confirm" : "Planner waiting on you"}>
-                {briefWaiting}
-              </Count>
-            )}
-            {t === "verify" && waitingBundles > 0 && (
-              <Count tone="attention" title="Bundles to approve">
-                {waitingBundles}
-              </Count>
-            )}
-            {t === "verify" && !waitingBundles && standing > 0 && (
-              <Count title="Verification bundles">
-                {standing}
-              </Count>
-            )}
-            {t === "talk" && waitingTalks > 0 && (
-              <Count tone="attention" title="Your turn, or something to confirm">
-                {waitingTalks}
-              </Count>
-            )}
-          </>
-        ))}
-        under={tab !== "summary" && details(true)}
-      >
+      <MissionBar d={d} back={wayBack} tab={tab} onTab={setTab} keys onRename={rename} hangs={tab !== "summary" && details(true)}>
         <PagePin r={{ kind: "mission", slug: d.slug }} />
-      </PageBar>
+      </MissionBar>
       {tab === "brief" ? (
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.

@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DirtyDot } from "./DirtyDot";
 import { RepoDot } from "./RepoDot";
+import { RepoTag } from "./RepoTag";
 
 // The dots beside a name: a repo's colour (RepoDot), and changes not
-// committed (DirtyDot), each beside the words they're said with.
+// committed (DirtyDot), each beside the words they're said with; and a
+// repo's colour and name as a tag (RepoTag), where a thing says which
+// repo it's in.
 
 const meta: Meta = { title: "Components/Dots" };
 export default meta;
@@ -18,6 +21,9 @@ export const Dots: StoryObj = {
           <RepoDot color={c} /> a repo in {c}
         </div>
       ))}
+      <div style={line}>
+        <RepoTag label="web" color="#7c6cf0" /> <RepoTag label="api" color="#e0a030" /> <RepoTag label="records" />
+      </div>
       <div style={line}>
         src/report/summary.ts <DirtyDot />
       </div>

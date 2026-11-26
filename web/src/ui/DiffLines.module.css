@@ -20,8 +20,27 @@
      with the code, past the numbers and the sign; side by side, past the
      old side's numbers. */
   .other {
-    padding-left: calc((var(--diff-digits) * 1ch + 16px) * 2 + 18px);
+    --number: calc(var(--diff-digits) * 1ch + 16px);
+    position: relative;
+    z-index: 1;
+    padding-left: calc(var(--number) * 2 + 18px);
     font-family: var(--font);
+  }
+
+  /* Between two lines of one kind: their colour carries on, the
+     numbers' stronger shade under where the numbers are. What it draws
+     keeps its margins inside, so the colour has no gap. */
+  .added,
+  .removed {
+    display: flow-root;
+  }
+
+  .added {
+    background: linear-gradient(to right, var(--add-strong) 0 calc(var(--number) * 2), var(--add-bg) 0);
+  }
+
+  .removed {
+    background: linear-gradient(to right, var(--del-strong) 0 calc(var(--number) * 2), var(--del-bg) 0);
   }
 
   .beside {

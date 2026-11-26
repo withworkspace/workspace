@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   addNote,
   deleteNote,
@@ -16,38 +16,43 @@ import {
   respond,
   setViewed,
 } from "../api";
+import { commentsAt } from "../chrome/panes";
+import { useBeside, useChromeStore } from "../chrome/store";
 import { type KeyMap, useKeys } from "../keys";
 import { useLatest } from "../load";
 import { usePref } from "../prefs";
 import { Banner } from "../ui/Banner";
-import { Button, buttonClass } from "../ui/Button";
+import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
 import type { DiffPick } from "../ui/diffLayout";
 import { Icon, type IconName } from "../ui/Icon";
+import { ToggleButton } from "../ui/ToggleButton";
 import { Keys } from "../ui/Keys";
 import { Loading } from "../ui/Loading";
-import { Segment, Segmented } from "../ui/Segmented";
+import { MenuItem, MenuText } from "../ui/Menu";
 import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
 import { useCodeNav } from "./CodeNav";
 import { CommentCard } from "./CommentCard";
+import { commentEntries, stepFrom, useReviewComments } from "./comments";
 import { FileList } from "./FileList";
 import { FileSection } from "./FileSection";
 import type { FindingAct } from "./findings";
 import { groupByOrder, orderFiles } from "./files";
 import { useHighlighter } from "./highlight";
 import { type Editing, type FileState, fileRows, type Found, isChange, isHead, navigable, type Placed, type Row, sameLine, type Target } from "./model";
-import { ReviewCommits } from "./ReviewCommits";
+import { ReviewBar } from "./ReviewBar";
+import { ReviewChangesBar } from "./ReviewChangesBar";
+import { ReviewCommitCount } from "./ReviewCommitCount";
 import { ReviewEarlier } from "./ReviewEarlier";
 import { ReviewFileJump } from "./ReviewFileJump";
 import { ReviewGuideGroup } from "./ReviewGuideGroup";
-import { ReviewHead } from "./ReviewHead";
 import { ReviewLayout } from "./ReviewLayout";
 import { ReviewOrphanPath } from "./ReviewOrphanPath";
 import { ReviewOrphans } from "./ReviewOrphans";
-import { ReviewScope } from "./ReviewScope";
+import { ReviewOpenMenu } from "./ReviewOpenMenu";
 import { ReviewStatus } from "./ReviewStatus";
 import { ReviewTabs } from "./ReviewTabs";
 import { ReviewViewBody } from "./ReviewViewBody";
@@ -71,6 +76,7 @@ export const reviewKeys: [string, string][] = [
   ["⏎", "Reply to or edit comment; take finding; expand hidden lines or file"],
   ["x", "Resolve or reopen comment; else mark file viewed"],
   ["D", "Delete draft comment; dismiss finding (then 1, 2 or 3 for why)"],
+  ["N / P", "Next / previous comment"],
   ["s", "Submit review"],
   ["i", "Since last review / all changes"],
   ["e", "Show 20 more lines around this change"],
@@ -627,6 +633,52 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     goTo(`${file}:f:${pass}:${key}`);
     return true;
   };
+  // The comments, as the list beside the review has them (the Comments
+  // tab, ReviewCommentList): said while the page is open, with how to go
+  // to one, which shows the changes with it in the middle of the pane.
+  const location = useLocation();
+  const comments = useMemo(() => commentEntries(rows, orphans, files), [rows, orphans, files]);
+  const said = useReviewComments((c) => c.say);
+  const gone = useReviewComments((c) => c.gone);
+  // Going to one waits for the changes to show (it may come from another
+  // view), then puts it in the middle of the pane and lights it a moment.
+  const centerOn = useRef<string>(undefined);
+  const goToComment = useRef<(key: string) => void>(() => {});
+  goToComment.current = (key: string) => {
+    useReviewComments.getState().setAt(key);
+    centerOn.current = key;
+    show("changes");
+    setCursor(key);
+    setJump((n) => n + 1);
+  };
+  useEffect(() => {
+    const key = centerOn.current;
+    if (!key || view !== "changes" || row?.key !== key) return;
+    centerOn.current = undefined;
+    requestAnimationFrame(() => {
+      const el = rowEl(key);
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      el.classList.remove("nav-flash");
+      void el.offsetWidth;
+      el.classList.add("nav-flash");
+    });
+  }, [view, row?.key, jump]);
+  const of = location.pathname;
+  useEffect(() => said(of, comments, (key) => goToComment.current(key)), [said, of, comments]);
+  useEffect(() => () => gone(of), [gone, of]);
+  const stepComment = (n: 1 | -1) => {
+    const from = useReviewComments.getState().at ?? (row?.type === "comment" ? row.key : undefined);
+    const to = stepFrom(comments, from, n);
+    if (to) goToComment.current(to.key);
+  };
+  // Beside, the Comments tab: open, and in front, or not.
+  const beside = useBeside();
+  const openBeside = useChromeStore((c) => c.open);
+  const closeBeside = useChromeStore((c) => c.close);
+  const commentsTab = commentsAt(of);
+  const commentsShown = beside.shown && beside.front === commentsTab;
+  const toggleComments = () => (commentsShown ? closeBeside(commentsTab, { yours: true }) : openBeside(commentsTab, { here: true }));
   // toComment shows the changes with the cursor on a comment, if it's in
   // them.
   const toComment = (id: string) => {
@@ -758,6 +810,8 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     ...(view === "changes" ? diffKeys : {}),
     ...Object.fromEntries(viewKeys.map((v, i) => [`${i + 1}`, () => show(v)])),
     s: submit,
+    N: () => stepComment(1),
+    P: () => stepComment(-1),
     t: () => setFinder(true),
     r: load,
     Escape: () => {
@@ -784,42 +838,38 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     return { key: p.key, ...viewNames[p.key], n: i + 1, mark: p.mark, count: p.count, news: kept !== undefined && view !== p.key ? p.news?.(kept) : undefined };
   });
 
-  const scopeLine = diff && (
-    <ReviewScope
-      since={sinceShown ? { name: sinceName, title: diff.since ? `Changes since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file compared with your review (${sinceName})` } : undefined}
-      commits={diff.commits.length}
-      base={diff.since ? undefined : diff.baseRef}
-      additions={totals.a}
-      deletions={totals.d}
-    />
+  // The review's bar: where it stands, its name, what's said of it (what
+  // it's in, who by), how many commits it's of, whether it can go in; at
+  // its end, what's done to it, where else it opens, and submitting.
+  const about = (
+    <>
+      {source.about}
+      {diff && diff.commits.length > 0 && <ReviewCommitCount commits={diff.commits} since={sinceShown && !diff.rebased} />}
+      {source.health}
+    </>
   );
+  const toSettle = comments.filter((c) => c.state !== "resolved" && c.state !== "wontfix").length;
   const actions = (
     <>
-      {changes && diff && sinceable !== undefined && (
-        <Button variant="ghost" size="small" onClick={toggleSince} title="Since last review / all changes" keys="i">
-          {sinceShown ? "Show all changes" : `Only since ${sinceName}`} <Keys k="i" />
-        </Button>
-      )}
       {source.actions}
-      {source.browse && (
-        <Link to={source.browse} className={buttonClass({ size: "small" }, css.desktopOnly)} title="Browse current files">
-          <Icon name="file" size={12} /> Browse files
-        </Link>
+      <ToggleButton variant="ghost" size="small" pressed={commentsShown} onChange={toggleComments} title={`Comments: ${toSettle} to settle, ${comments.length} in all`} aria-label="Comments">
+        <Icon name="message" size={13} /> {toSettle}
+      </ToggleButton>
+      {(source.opens || source.browse) && (
+        <ReviewOpenMenu>
+          {source.opens}
+          {source.browse && (
+            <MenuItem id="browse" textValue="Browse files" onAction={() => navigate(source.browse!)}>
+              <Icon name="file" size={13} />
+              <MenuText>Browse files</MenuText>
+            </MenuItem>
+          )}
+        </ReviewOpenMenu>
       )}
       <Button variant="ghost" size="small" className={css.mobileOnly} onClick={() => setFinder(true)} title="Jump to a file" keys="t">
         <Icon name="file" size={13} /> Files
       </Button>
-      {changes && (
-        <Segmented className={css.desktopOnly} value={split ? "split" : "unified"} onChange={toggleSplit} aria-label="Diff layout">
-          <Segment value="unified" title="Unified" keys="u">
-            <Icon name="unified" size={13} /> Unified
-          </Segment>
-          <Segment value="split" title="Side by side" keys="u">
-            <Icon name="split" size={13} /> Split
-          </Segment>
-        </Segmented>
-      )}
-      <Button variant="primary" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys="s">
+      <Button variant="primary" size="small" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys="s">
         {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
       </Button>
     </>
@@ -828,6 +878,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   return (
     <ReviewLayout
       width={filesWidth}
+      back={source.back}
       side={
         <>
           {source.side}
@@ -889,8 +940,16 @@ export function ReviewView({ source }: { source: ReviewSource }) {
         </>
       }
     >
-      <ReviewHead back={source.back} name={source.name} scope={scopeLine} actions={actions} />
+      <ReviewBar back={source.back} stand={source.stand} name={source.name} about={about} actions={actions} />
       {entries.length > 0 && <ReviewTabs views={[...entries, { key: "changes", ...viewNames.changes, n: viewKeys.length }]} here={view} onPick={(k) => show(k as ViewKey)} />}
+      {changes && diff && (
+        <ReviewChangesBar
+          scope={sinceable !== undefined ? { since: scope === "auto", sinceName, onChange: (on) => setScope(on ? "auto" : "all") } : undefined}
+          additions={totals.a}
+          deletions={totals.d}
+          split={{ on: split, onChange: (on) => on !== split && toggleSplit() }}
+        />
+      )}
       {submitted && source.submitted(submitted.review, submitted.state)}
       {source.notices}
       {changes && scopeNote && (
@@ -938,7 +997,6 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           </Callout>
         )}
         {!diff && !error && <Loading what="Loading changes…" />}
-        {diff && diff.commits.length > 0 && <ReviewCommits commits={diff.commits} />}
         {rs.reviews.length > 0 && <ReviewEarlier reviews={rs.reviews} />}
         {diff && !files.length && <Text as="p" dim>{source.empty}</Text>}
         {files.map((f, i) => (

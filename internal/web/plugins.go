@@ -849,8 +849,8 @@ func (s *Server) writeShell(w http.ResponseWriter, status int, p shell) {
 	}
 	var b strings.Builder
 	b.WriteString("<!doctype html>\n<html lang=\"en\"")
-	if accent := s.App.Accent(); hexColor(accent) {
-		b.WriteString(` style="--accent-pick: ` + accent + `"`)
+	if style := rootStyle(s.App.Accent(), s.App.Tint()); style != "" {
+		b.WriteString(` style="` + style + `"`)
 	}
 	b.WriteString(">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"color-scheme\" content=\"light dark\">\n<script src=\"/theme.js\"></script>\n")
 	b.WriteString("<title>" + html.EscapeString(p.Title) + "</title>\n<style>")

@@ -1,0 +1,19 @@
+/* Who a change is by (ReviewBy.tsx): the name in the page's colour. */
+
+.by {
+  flex: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.by strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .by {
+    display: none;
+  }
+}

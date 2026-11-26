@@ -152,7 +152,8 @@ type leaf struct {
 // leaves are local's values, as it would be written, by path
 // ("crew.harness"). An empty string, a zero and an empty list are left
 // out: in ws's config each means unset (the default), and the encoder
-// writes some of them anyway (a field without omitempty, a number).
+// writes some of them anyway (a field without omitempty, a number). A
+// number in zeroSet is the exception: it's a pointer, so 0 there is set.
 func leaves(local LocalConfig) (map[string]leaf, error) {
 	var buf bytes.Buffer
 	if err := toml.NewEncoder(&buf).Encode(local); err != nil {
@@ -176,7 +177,7 @@ func leaves(local LocalConfig) (map[string]leaf, error) {
 					continue
 				}
 			case int64:
-				if x == 0 {
+				if x == 0 && !zeroSet[strings.Join(p, ".")] {
 					continue
 				}
 			case []any:
@@ -190,6 +191,10 @@ func leaves(local LocalConfig) (map[string]leaf, error) {
 	walk(nil, doc)
 	return out, nil
 }
+
+// zeroSet are the numbers whose 0 is a value, not unset: [ui] tint, where
+// yours at 0 (grey) is over the team's.
+var zeroSet = map[string]bool{"ui.tint": true}
 
 // pathKey is a path as one string, for a map key.
 func pathKey(p []string) string { return strings.Join(p, "\x00") }

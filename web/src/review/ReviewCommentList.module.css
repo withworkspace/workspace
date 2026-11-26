@@ -1,0 +1,34 @@
+/* A review's comments, listed (ReviewCommentList.tsx): which to show,
+   kept at the top as the list scrolls. */
+
+.list {
+  padding-bottom: 12px;
+}
+
+.filter {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--backdrop);
+}
+
+.n {
+  font: var(--text-xs) var(--mono);
+  color: var(--faint);
+}
+
+.none {
+  margin: 0;
+  padding: 16px 14px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.keys {
+  margin: 8px 0 0;
+  padding: 0 14px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+}

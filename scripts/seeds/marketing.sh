@@ -270,7 +270,7 @@ cat >"$dir/.remotes/github.json" <<JSON
     "api": {
       "prs": [
         {"number": 41, "title": "Idempotency keys for POST /invoices", "authorLogin": "maya", "headRefName": "maya/idempotency-keys", "baseRefName": "main", "headRefOid": "$(sha api maya/idempotency-keys)",
-         "url": "$url/api/pull/41", "statusRollup": "success", "reviewDecision": "REVIEW_REQUIRED", "additions": 68, "deletions": 0, "changedFiles": 2,
+         "url": "$url/api/pull/41", "mergeable": "MERGEABLE", "statusRollup": "success", "reviewDecision": "REVIEW_REQUIRED", "additions": 68, "deletions": 0, "changedFiles": 2,
          "createdAt": "${d2}T10:05:00Z", "updatedAt": "${d1}T09:20:00Z",
          "requested": [{"login": "you"}],
          "latest": [{"author": "tomas", "state": "APPROVED", "submittedAt": "${d1}T09:20:00Z", "commit": "$(sha api maya/idempotency-keys)"}]},
@@ -279,7 +279,7 @@ cat >"$dir/.remotes/github.json" <<JSON
          "createdAt": "${d3}T09:30:00Z", "updatedAt": "${d2}T15:40:00Z",
          "latest": [{"author": "you", "state": "APPROVED", "submittedAt": "${d2}T15:40:00Z", "commit": "$(sha api tomas/rate-cache)"}]},
         {"number": 44, "title": "Refresh exchange rates in the background", "authorLogin": "tomas", "headRefName": "tomas/rate-refresh", "baseRefName": "tomas/rate-cache", "headRefOid": "$(sha api tomas/rate-refresh)",
-         "url": "$url/api/pull/44", "statusRollup": "pending", "reviewDecision": "REVIEW_REQUIRED", "additions": 42, "deletions": 0, "changedFiles": 1,
+         "url": "$url/api/pull/44", "mergeable": "MERGEABLE", "statusRollup": "pending", "reviewDecision": "REVIEW_REQUIRED", "additions": 42, "deletions": 0, "changedFiles": 1,
          "createdAt": "${d2}T16:20:00Z", "updatedAt": "${d1}T08:05:00Z",
          "requested": [{"login": "you"}]},
         {"number": 39, "title": "Bump go from 1.22 to 1.23", "authorLogin": "dependabot[bot]", "authorIsBot": true, "headRefName": "dependabot/go-1.23", "baseRefName": "main", "headRefOid": "$(sha api dependabot/go-1.23)",
@@ -324,11 +324,11 @@ cat >"$dir/.remotes/github.json" <<JSON
     "web": {
       "prs": [
         {"number": 27, "title": "Keyboard shortcuts for the invoice list", "authorLogin": "ines", "headRefName": "ines/keyboard-shortcuts", "baseRefName": "main", "headRefOid": "$(sha web ines/keyboard-shortcuts)",
-         "url": "$url/web/pull/27", "statusRollup": "failure", "reviewDecision": "REVIEW_REQUIRED", "additions": 11, "deletions": 0, "changedFiles": 1,
+         "url": "$url/web/pull/27", "mergeable": "CONFLICTING", "statusRollup": "failure", "reviewDecision": "REVIEW_REQUIRED", "additions": 11, "deletions": 0, "changedFiles": 1,
          "createdAt": "${d2}T11:40:00Z", "updatedAt": "${d2}T11:40:00Z",
          "requested": [{"team": "dashboard"}]},
         {"number": 25, "title": "An empty state for a new account", "authorLogin": "jun", "headRefName": "jun/empty-state", "baseRefName": "main", "headRefOid": "$(sha web jun/empty-state)",
-         "url": "$url/web/pull/25", "statusRollup": "success", "reviewDecision": "CHANGES_REQUESTED", "additions": 9, "deletions": 0, "changedFiles": 1,
+         "url": "$url/web/pull/25", "mergeable": "MERGEABLE", "statusRollup": "success", "reviewDecision": "CHANGES_REQUESTED", "additions": 9, "deletions": 0, "changedFiles": 1,
          "createdAt": "${d4}T14:00:00Z", "updatedAt": "${d1}T08:10:00Z",
          "latest": [{"author": "you", "state": "CHANGES_REQUESTED", "submittedAt": "${d3}T10:00:00Z", "commit": "$jun_reviewed"}]},
         {"number": 28, "title": "WIP: an onboarding checklist", "authorLogin": "maya", "isDraft": true, "headRefName": "maya/onboarding", "baseRefName": "main", "headRefOid": "$(sha web maya/onboarding)",

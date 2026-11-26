@@ -370,6 +370,9 @@ type UIConfig struct {
 	// the web UI's own default (in its foundations.css). See
 	// workspace-records:docs/customisable-ui-accent.md.
 	Accent string `toml:"accent,omitempty"`
+	// Tint is how far the web UI's greys (the page, panels, lines, text)
+	// are tinted towards the accent, from 0 (greys) to 100: unset, 0.
+	Tint *int `toml:"tint,omitempty"`
 	// Sidebar and Menu are where the web UI's places go (Missions,
 	// Conversations, a plugin's views…), each a list of their ids in
 	// order: Sidebar is the sidebar's, Menu the workspace menu's (from the
@@ -409,6 +412,18 @@ func (c *Config) UIAccent() string {
 		return ""
 	}
 	return a
+}
+
+// MaxTint is the most [ui] tint may be.
+const MaxTint = 100
+
+// UITint is how far the web UI's greys are tinted towards the accent as
+// set (yours, else the team's), 0 to MaxTint: 0 where neither sets it.
+func (c *Config) UITint() int {
+	if c.UI.Tint == nil {
+		return 0
+	}
+	return min(max(*c.UI.Tint, 0), MaxTint)
 }
 
 // MissionsConfig holds workspace-wide settings for missions.
@@ -1385,6 +1400,9 @@ func Load(startDir string) (*Config, string, error) {
 		if local.UI.Accent != "" {
 			cfg.UI.Accent = local.UI.Accent
 		}
+		if local.UI.Tint != nil {
+			cfg.UI.Tint = local.UI.Tint
+		}
 		if local.UI.Sidebar != nil || local.UI.Menu != nil {
 			cfg.UI.Sidebar, cfg.UI.Menu = local.UI.Sidebar, local.UI.Menu
 		}
@@ -1458,6 +1476,9 @@ func Load(startDir string) (*Config, string, error) {
 		if _, err := ParseAccent(cfg.UI.Accent); err != nil {
 			return nil, "", fmt.Errorf("invalid [ui] accent: %w", err)
 		}
+	}
+	if t := cfg.UI.Tint; t != nil && (*t < 0 || *t > MaxTint) {
+		return nil, "", fmt.Errorf("invalid [ui] tint %d: from 0 to %d", *t, MaxTint)
 	}
 
 	for name := range cfg.Groups {

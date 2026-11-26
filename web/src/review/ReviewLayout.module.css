@@ -59,9 +59,18 @@
   background: var(--hover);
 }
 
+/* The pane's gutter, which its bars and the changes run out across; and
+   what stays at its top as it scrolls, for a file's head to stay under:
+   the review's bar, and the changes' bar where that's showing. */
 .pane {
+  --review-gutter: 24px;
+  --review-stick: 40px;
   overflow: auto;
-  padding: 0 24px 40vh;
+  padding: 0 var(--review-gutter) 40vh;
+}
+
+.pane:has([data-review-changes-bar]) {
+  --review-stick: 81px;
 }
 
 @media (min-width: 861px) {
@@ -99,7 +108,7 @@
   }
 
   .pane {
-    padding: 0 12px 40vh;
+    --review-gutter: 12px;
   }
 
   .foot {

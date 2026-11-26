@@ -3,6 +3,7 @@ import type { Workspace } from "../api";
 import { talkName, useTalks } from "../conversation/talks";
 import { titleOf } from "../documents/peek";
 import { AskPane } from "../panes/AskPane";
+import { CommentsPane } from "../panes/CommentsPane";
 import { DocumentPane } from "../panes/DocumentPane";
 import { EmptyPane } from "../panes/EmptyPane";
 import { MissionPane } from "../panes/MissionPane";
@@ -142,6 +143,7 @@ export function Beside({ sheet }: BesideProps) {
       {at.kind === "mission" && <MissionPane key={front} to={front} slug={at.slug} />}
       {at.kind === "document" && <DocumentPane key={front} to={front} docRef={at.ref} />}
       {at.kind === "pr" && <PullRequestPane key={front} to={front} repo={at.repo} number={at.number} />}
+      {at.kind === "comments" && <CommentsPane key={front} of={at.of} />}
     </Dock>
   );
 }
@@ -160,6 +162,7 @@ function tabOf(listed: Pick<Workspace, "conversations" | "missions">, at: PaneAt
     return { name: m?.title ?? at.slug, lead: m ? <Status s={headlineStatus(m.headline)} iconOnly size={13} /> : <Icon name="flag" size={13} /> };
   }
   if (at.kind === "document") return { name: read ?? titleOf("", at.ref.slice(at.ref.indexOf(":") + 1)), lead: <Icon name="file" size={13} /> };
+  if (at.kind === "comments") return { name: "Comments", lead: <Icon name="message" size={13} /> };
   if (at.kind === "pr") return { name: read ?? `${at.repo}#${at.number}`, lead: <Icon name="pr" size={13} /> };
   const t = at.slug ? undefined : listed.conversations.find((c) => c.id === at.id);
   return { name: t?.title || t?.opening || read || "Conversation", lead: t ? <Status s={talkStatus(t)} iconOnly size={13} /> : <Icon name="sparkle" size={13} /> };

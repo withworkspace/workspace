@@ -1,0 +1,15 @@
+/* One fact of a review's (ReviewFact.tsx). */
+
+.term {
+  color: var(--dim);
+}
+
+.is {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}

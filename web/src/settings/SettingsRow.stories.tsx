@@ -10,6 +10,7 @@ import { SettingsBlock } from "./SettingsBlock";
 import { SettingsMarked } from "./SettingsMarked";
 import { SettingsNote } from "./SettingsNote";
 import { SettingsRow } from "./SettingsRow";
+import { SettingsLevel } from "./SettingsLevel";
 import { SettingsRows } from "./SettingsRows";
 
 // The Settings page's rows: one of each control (a switch, a few to pick
@@ -73,6 +74,11 @@ function Accent({ picked: was, pulled }: { picked: string; pulled?: { way: strin
   );
 }
 
+function Tint({ value: was }: { value: number }) {
+  const [value, setValue] = useState(was);
+  return <SettingsLevel label="Tint" ends={["Grey", "Tinted"]} value={value} onPreview={setValue} />;
+}
+
 function Rows() {
   return (
     <>
@@ -114,6 +120,9 @@ function Rows() {
           </SettingsRow>
           <SettingsRow label="Accent, another, which the theme darkens" tomlKey="[ui] accent" source={yours()}>
             <Accent picked="#ffd84d" pulled={{ way: "darker", as: "#8a6d00" }} />
+          </SettingsRow>
+          <SettingsRow label="Tint" tomlKey="[ui] tint" about="How far the accent tints the page, the panels, lines and text." source={yours()}>
+            <Tint value={40} />
           </SettingsRow>
         </SettingsRows>
       </SettingsBlock>

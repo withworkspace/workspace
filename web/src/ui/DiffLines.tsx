@@ -4,7 +4,7 @@ import { DiffGap } from "./DiffGap";
 import { type DiffAt, DiffLine } from "./DiffLine";
 import css from "./DiffLines.module.css";
 import { DiffNote } from "./DiffNote";
-import { type DiffCell, type DiffPick, digitsOf, isGap, isLine, isNote, type Keyed, pickedRows, pickFrom } from "./diffLayout";
+import { type DiffCell, type DiffPick, digitsOf, isGap, isLine, isNote, type Keyed, pickedRows, pickFrom, bandAt } from "./diffLayout";
 
 // How many rows are in a run: what's laid out together, or not at all.
 const RUN = 200;
@@ -29,6 +29,11 @@ const RUN = 200;
 //   onGap    a gap's pressed: the page reads the file and opens it. With
 //            every gap open it's the whole file, the change in place
 //   onNote   a note that stands for lines (a large diff) is pressed
+//
+// A row of the page's own between two lines of one kind (a comment among
+// added lines) carries their colour on behind it, in one column: the run
+// reads as one change with something said in it. What it draws stands
+// over the lines after it, so a card's shadow falls on them.
 //
 // Long lines wrap: a diff's two sides can't each scroll sideways. Rows
 // far from what's in view aren't laid out, so a long diff opens as a
@@ -119,9 +124,10 @@ export function DiffLines<R extends Keyed>({
       if (isGap(row)) return <DiffGap key={row.key} row={row} cursor={here} onShow={() => onGap?.(row)} />;
       if (isNote(row)) return <DiffNote key={row.key} row={row} cursor={here} onShow={() => onNote?.(row)} />;
       const drawn = draw?.(row);
+      const band = drawn && !split ? bandAt(rows, n) : undefined;
       return (
         drawn && (
-          <div key={row.key} data-row={row.key} className={cx(css.other, split && css.beside)}>
+          <div key={row.key} data-row={row.key} className={cx(css.other, split && css.beside, band === "a" && css.added, band === "d" && css.removed)}>
             {drawn}
           </div>
         )

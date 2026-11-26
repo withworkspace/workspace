@@ -30,7 +30,7 @@ import { Loading } from "./ui/Loading";
 import { humanError } from "./ui/strings";
 import { Confirmer } from "./ui/Confirm";
 import { Below } from "./chrome/Below";
-import { useBelowViews } from "./chrome/belowViews";
+import { useBelow } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
 import { docksQuery, floatBeside, hideSidebar, keepsSidebarQuery, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
 import { ConnectionBanner } from "./chrome/ConnectionBanner";
@@ -133,9 +133,10 @@ export function App() {
   // (panes/NewTalkPane.tsx). Again, it's the same one, with the keys.
   const openBeside = useChromeStore((c) => c.open);
   useKeys({ C: () => openBeside(newTalkAt, { keys: true }) });
-  // Below, under the page: there while it has something to show, which
-  // it hasn't yet (belowViews.ts). It has no key yet either.
-  const belowViews = useBelowViews();
+  // Below, under the page: what's running (belowViews.tsx), opened from
+  // its toggle in the foot, Runs, which says how many run and when one's
+  // just started. It has no key yet.
+  const { views: belowViews, toggle: belowToggle } = useBelow(!!workspace);
   const belowShown = chrome.below.open && belowViews.length > 0;
 
   // The drawer (on a narrow window) closes on going somewhere.
@@ -268,6 +269,8 @@ export function App() {
           start={
             <>
               <FootSidebar shown={!out} count={needs.length} fresh={arrived.size > 0} onPress={toggleSidebar} />
+              {/* Below's toggle, Runs: what's running, next to the sidebar's. */}
+              {workspace && belowViews.length > 0 && <FootBelow open={belowShown} count={belowToggle.count} fresh={belowToggle.fresh} onPress={() => changeChrome(toggleBelow)} />}
               {ready > 0 && <FootSep />}
               <FootReady count={ready} />
               {sends && <FootSep />}
@@ -279,14 +282,12 @@ export function App() {
             </>
           }
           // The bell (what happened: the feed of notifications, opened over
-          // the page), then the docks' toggles, in the order they're in the window. Below's
-          // is there while it has something to show. Beside's is there
-          // while there's something to peek at here; closed, it's marked.
+          // the page), then Beside's toggle, there while there's something to
+          // peek at here; marked, closed, with what's new.
           end={
             workspace && (
               <>
                 <NotificationsBell />
-                {belowViews.length > 0 && <FootBelow open={belowShown} onPress={() => changeChrome(toggleBelow)} />}
                 {besideToggles && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} over={beside.over} onOver={roomy ? (over) => changeChrome((c) => floatBeside(c, over)) : undefined} />}
               </>
             )

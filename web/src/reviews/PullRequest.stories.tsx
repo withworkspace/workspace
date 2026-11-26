@@ -7,11 +7,18 @@ import { ReviewVerdicts } from "../review/ReviewVerdicts";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
-import { Status, type StatusInfo } from "../ui/Status";
+import type { StatusInfo } from "../ui/Status";
 import { TextArea } from "../ui/TextArea";
 import { PullRequestLayers } from "./PullRequestLayers";
-import { PullRequestMeta, pullRequestMetaChipClass, pullRequestMetaCodeClass } from "./PullRequestMeta";
-import { PullRequestMetaChecks } from "./PullRequestMetaChecks";
+import { ReviewBar } from "../review/ReviewBar";
+import { ReviewBase } from "../review/ReviewBase";
+import { ReviewBy } from "../review/ReviewBy";
+import { ReviewFact } from "../review/ReviewFact";
+import { ReviewFacts } from "../review/ReviewFacts";
+import { ReviewHealth } from "../review/ReviewHealth";
+import { ReviewStand } from "../review/ReviewStand";
+import { chipClass } from "../ui/Chip";
+import { RepoTag } from "../ui/RepoTag";
 import { PullRequestName } from "./PullRequestName";
 import { PullRequestPosting } from "./PullRequestPosting";
 import { PullRequestReviewer } from "./PullRequestReviewer";
@@ -46,6 +53,7 @@ function Head() {
   return (
     <div style={{ height: 520 }}>
       <ReviewLayout
+        back={{ to: "/reviews", label: "Reviews" }}
         side={
           <PullRequestLayers
             layers={[
@@ -63,25 +71,44 @@ function Head() {
         onResize={none}
         onResetWidth={none}
       >
-        <div style={{ padding: "16px 0", display: "grid", gap: 16 }}>
-          <h1>{whole ? <PullRequestName title="Rate-limit the public API" whole={{ layers: 3 }} /> : <PullRequestName title="Answer 429 over the limit" at="api#45" layer={{ n: 2, of: 3 }} />}</h1>
-          <PullRequestMeta>
-            <Status s={needs} />
-            <span>
-              mira · <Text mono className={pullRequestMetaCodeClass}>rate-429</Text> <Icon name="arrow-right" size={11} /> <Text mono className={pullRequestMetaCodeClass}>rate-redis</Text>
-            </span>
-            <PullRequestMetaChecks checks="failure" />
-            <PullRequestReviewer login="tomas" kind="approved" />
-            <PullRequestReviewer login="jun" kind="changes" stale />
-            <PullRequestReviewer login="ana" kind="dismissed" />
-            <Link to="/missions/rate" className={pullRequestMetaChipClass("quiet")}>
-              <Icon name="flag" size={11} /> Rate-limit the public API
-            </Link>
-            <Link to="/conversations/c1" className={pullRequestMetaChipClass("attention")}>
-              <Icon name="message" size={11} /> Answered: what calls this?
-            </Link>
-          </PullRequestMeta>
-        </div>
+        <ReviewBar
+          back={{ to: "/reviews", label: "Reviews" }}
+          stand={
+            whole ? undefined : (
+              <ReviewStand s={needs}>
+                <ReviewFacts>
+                  <ReviewFact term="Branch">
+                    <Text mono>rate-429</Text> <Icon name="arrow-right" size={11} /> <Text mono>rate-redis</Text>
+                  </ReviewFact>
+                  <ReviewFact term="Reviewers">
+                    <PullRequestReviewer login="tomas" kind="approved" />
+                    <PullRequestReviewer login="jun" kind="changes" stale />
+                    <PullRequestReviewer login="ana" kind="dismissed" />
+                  </ReviewFact>
+                  <ReviewFact term="Also">
+                    <Link to="/missions/rate" className={chipClass("quiet")}>
+                      <Icon name="flag" size={11} /> Rate-limit the public API
+                    </Link>
+                  </ReviewFact>
+                </ReviewFacts>
+              </ReviewStand>
+            )
+          }
+          name={whole ? <PullRequestName title="Rate-limit the public API" whole={{ layers: 3 }} /> : <PullRequestName title="Answer 429 over the limit" layer={{ n: 2, of: 3 }} />}
+          about={
+            <>
+              <RepoTag label="api" color="#e0a030" />
+              {!whole && <ReviewBy name="mira" />}
+              {!whole && <ReviewBase base="rate-redis" />}
+              {!whole && <ReviewHealth checks="failure" merges="clean" base="rate-redis" author="mira" />}
+            </>
+          }
+          actions={
+            <Button variant="primary" size="small">
+              Submit review <Keys k="s" />
+            </Button>
+          }
+        />
       </ReviewLayout>
     </div>
   );

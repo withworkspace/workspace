@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { askAt, newTalkAt, paneAt, peekAt, talkAt } from "./panes";
+import { askAt, commentsAt, newTalkAt, paneAt, peekAt, talkAt } from "./panes";
 
 describe("what has a pane", () => {
   it("is a conversation, the workspace's or about a mission", () => {
@@ -29,6 +29,9 @@ describe("what has a pane", () => {
 
   it("is a pull request", () => {
     expect(paneAt("/reviews/api/42")).toEqual({ kind: "pr", repo: "api", number: 42 });
+    // A review's comments: the pull request's, a capsule's.
+    expect(paneAt(commentsAt("/reviews/api/42"))).toEqual({ kind: "comments", of: "/reviews/api/42" });
+    expect(paneAt(commentsAt("/missions/totals/review/api/tax"))).toEqual({ kind: "comments", of: "/missions/totals/review/api/tax" });
   });
 
   it("isn't a page with no narrow form yet", () => {

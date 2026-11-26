@@ -11,7 +11,9 @@ export type PaneAt =
   | { kind: "mission"; slug: string }
   // ref: the document as ws names it (repo:path, or repo/capsule:path).
   | { kind: "document"; ref: string }
-  | { kind: "pr"; repo: string; number: number };
+  | { kind: "pr"; repo: string; number: number }
+  // A review's comments, listed to go to: of is the review's address.
+  | { kind: "comments"; of: string };
 
 // The address a conversation has beside the page: its own page's.
 export const talkAt = (id: string, slug = "") => (slug ? `/missions/${encodeURIComponent(slug)}/conversations/${encodeURIComponent(id)}` : `/conversations/${encodeURIComponent(id)}`);
@@ -26,6 +28,11 @@ export const askAt = (thing: string) => `/ask/${encodeURIComponent(thing)}`;
 // conversation for it until something is: then it's that conversation, in
 // this tab's place. (No conversation is called new: they're w1, t3.)
 export const newTalkAt = "/conversations/new";
+
+// The address of a review's comments beside it: its own address, under
+// /comments. It has no page of its own: the list is the review's, while
+// it's open.
+export const commentsAt = (review: string) => `/comments${review}`;
 
 // A piece of an address as it was written, or as it is if it wasn't
 // written as one.
@@ -46,6 +53,7 @@ function piece(s: string): string {
 export function paneAt(to: string): PaneAt | undefined {
   const path = to.split(/[?#]/)[0];
   if (path === newTalkAt) return { kind: "new" };
+  if (path.startsWith("/comments/")) return { kind: "comments", of: path.slice("/comments".length) };
   let m = /^\/missions\/([^/]+)\/conversations\/([^/]+)\/?$/.exec(path);
   if (m) return { kind: "conversation", slug: piece(m[1]), id: piece(m[2]) };
   m = /^\/conversations\/([^/]+)\/?$/.exec(path);

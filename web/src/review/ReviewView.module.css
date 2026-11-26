@@ -1,6 +1,5 @@
-/* A review's controls in its head (ReviewView.tsx): what's only for a
-   wide window (the list down the side is there), or a narrow one (it
-   isn't). */
+/* A review's controls in its bar (ReviewView.tsx): what's only for a
+   narrow window, where the list down the side isn't. */
 
 .mobileOnly {
   display: none !important;
@@ -9,10 +8,6 @@
 @media (max-width: 860px) {
   .mobileOnly {
     display: inline-flex !important;
-  }
-
-  .desktopOnly {
-    display: none !important;
   }
 }
 

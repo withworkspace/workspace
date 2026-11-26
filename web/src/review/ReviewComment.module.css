@@ -8,6 +8,12 @@
   margin: 6px 14px 10px 0;
 }
 
+/* Among the lines, it stands off the code: a shadow falls on them (the
+   cursor's ring says it's the one in hand instead). */
+.lifted {
+  box-shadow: var(--shadow);
+}
+
 .card.apart {
   margin: 6px 14px 10px 118px;
 }
@@ -30,13 +36,10 @@
   word-break: normal;
 }
 
-.by {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--dim);
+/* Its comments, under the line that says what it is: the first, then
+   each reply (ReviewSaid). */
+.thread {
+  margin-top: 8px;
 }
 
 .where {

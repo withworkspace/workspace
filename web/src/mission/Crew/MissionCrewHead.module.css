@@ -1,53 +1,100 @@
-/* The head of a crew's page (MissionCrewHead.tsx). */
+/* The bar of a crew's page, under the mission's (MissionCrewHead.tsx):
+   one row of 36px over a rule, which stays while the page scrolls. Where
+   the page scrolls a part of itself, it's over that part, and stays put;
+   where the whole page scrolls, it sticks under the mission's bar. */
 .head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.title {
-  flex: 1;
-  min-width: 0;
-}
-
-.title h1 {
+  position: sticky;
+  top: var(--mission-bar-h, 0px);
+  z-index: 9;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: var(--text-xl);
-  letter-spacing: -0.01em;
-  line-height: 1.3;
+  gap: 14px;
+  min-height: 36px;
+  padding: 0 var(--space-8);
+  background: var(--backdrop);
+}
+
+/* Its rule, inside the page's padding as the mission bar's is. */
+.head::after {
+  content: "";
+  position: absolute;
+  inset: auto var(--space-8) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.who {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1;
 }
 
 .status {
-  font-size: var(--text-sm);
-  padding: 1px 8px 1px 6px;
+  font-size: var(--text-xs);
+  padding: 1px 7px 1px 5px;
   border-radius: 999px;
   background: var(--tone-soft);
 }
 
-.sub {
+/* What it runs on and where: they give way before its name and what's at
+   its end, cut short, its terminal's title first. */
+.facts {
+  flex: 1 1 auto;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 14px;
-  margin-top: 2px;
+  gap: 14px;
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--text-sm);
   color: var(--dim);
+  white-space: nowrap;
 }
 
-/* Its capsule and its terminal's title, in code's letters. */
-.sub .fact {
+.fact {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .termTitle {
-  max-width: 320px;
+  flex: 0 100 auto;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 320px;
+}
+
+.end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 639.98px) {
+  .head {
+    padding-inline: var(--space-4);
+  }
+
+  .head::after {
+    inset-inline: var(--space-4);
+  }
+
+  .facts {
+    display: none;
+  }
+
+  .end {
+    margin-left: auto;
+  }
 }

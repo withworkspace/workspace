@@ -4,6 +4,11 @@
   scroll-margin-top: var(--space-5);
 }
 
+/* Its heading on the same edge as what it holds. */
+.block > .head {
+  padding-inline: 0;
+}
+
 .block > .head a:hover {
   color: var(--fg);
 }

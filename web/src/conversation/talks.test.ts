@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TalkDetail, TalkTurn } from "../api";
 import type { ConversationOp } from "../wire.gen";
-import { applied } from "./talks";
+import { applied, asking, askingAt, isAsking, useTalks } from "./talks";
 
 let n = 0;
 const turn = (body: string): TalkTurn => ({ n: ++n, by: "you", at: "2026-11-24T10:00:00Z", body }) as TalkTurn;
@@ -35,5 +35,20 @@ describe("applied", () => {
     const answering = applied(held, op({ run: { calls: [], said: "Reading." } })) as TalkDetail;
     expect(answering.run?.said).toBe("Reading.");
     expect((applied(answering, op({ version: 7 })) as TalkDetail).run).toBeUndefined();
+  });
+});
+
+describe("asking", () => {
+  it("is held at an address of its own, which is never read from the daemon", async () => {
+    const to = askingAt();
+    expect(isAsking(to)).toBe(true);
+    expect(isAsking("/conversations/w1")).toBe(false);
+    expect(askingAt()).not.toBe(to);
+    useTalks.getState().told(to, asking("Why?"));
+    await useTalks.getState().load(to); // nothing to read: what's held stays
+    const d = useTalks.getState().talks[to]?.detail;
+    expect(d?.turns.map((t) => t.body)).toEqual(["Why?"]);
+    expect(d?.answering).toBe(true);
+    await expect(useTalks.getState().say(to, "And?")).rejects.toThrow();
   });
 });

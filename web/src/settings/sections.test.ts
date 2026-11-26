@@ -54,7 +54,7 @@ const info = (extra: SettingsGroup[] = []): SettingsInfo => ({
     {
       id: "ui",
       title: "Appearance",
-      settings: [setting("ui", "accent", "color", { label: "Accent" }), setting("ui", "sidebar", "places", { label: "Sidebar" }), setting("ui", "menu", "places", { label: "In the menu" })],
+      settings: [setting("ui", "accent", "color", { label: "Accent" }), setting("ui", "tint", "tint", { label: "Tint" }), setting("ui", "sidebar", "places", { label: "Sidebar" }), setting("ui", "menu", "places", { label: "In the menu" })],
     },
     ...extra,
   ],
@@ -101,7 +101,7 @@ describe("sectionsOf", () => {
       ["updates", ["[updates] check"]],
       ["daemon", ["daemon"]],
     ]);
-    expect(rowsOf("appearance")).toEqual([["ui", ["theme", "[ui] accent", "places"]]]);
+    expect(rowsOf("appearance")).toEqual([["ui", ["theme", "[ui] accent", "[ui] tint", "depth", "places"]]]);
   });
 
   it("holds every setting once", () => {
@@ -172,6 +172,7 @@ describe("find", () => {
 
   it("finds the page's own rows", () => {
     expect(found("theme")).toEqual([["appearance", ["theme"]]]);
+    expect(found("oled")).toEqual([["appearance", ["depth"]]]);
     expect(found("sidebar")).toEqual([["appearance", ["places"]]]);
     expect(found("send with")).toEqual([["keyboard", ["sendKey"]]]);
     expect(found("key hints")).toEqual([["keyboard", ["keyHints"]]]);
@@ -186,7 +187,7 @@ describe("minesOf", () => {
     const model = i.groups[0].settings[1];
     model.source = "yours";
     model.yours = "opus";
-    const menu = i.groups.at(-1)!.settings[2];
+    const menu = i.groups.at(-1)!.settings.find((s) => s.key === "menu")!;
     menu.source = "yours";
     expect(minesOf(sectionsOf(i)).map((m) => [m.section.id, m.what])).toEqual([
       ["appearance", "In the menu"],

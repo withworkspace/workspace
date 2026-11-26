@@ -92,7 +92,7 @@ func newWorld(t *testing.T) *world {
 		{Number: 89, Title: "Key by tenant", HeadRefName: "tenant", BaseRefName: "storage", Author: "alice", UpdatedAt: at, Additions: 3,
 			Requested: []github.ReviewRequest{{Login: "me"}}},
 		{Number: 90, Title: "Invalidate on revoke", HeadRefName: "revoke", BaseRefName: "tenant", Author: "alice", UpdatedAt: at, Additions: 3},
-		{Number: 92, Title: "Fix a typo", HeadRefName: "typo", BaseRefName: "main", Author: "bob", UpdatedAt: "2026-11-10T09:00:00Z"},
+		{Number: 92, Title: "Fix a typo", HeadRefName: "typo", BaseRefName: "main", Author: "bob", UpdatedAt: "2026-11-10T09:00:00Z", Mergeable: "CONFLICTING"},
 	}
 	for i := range w.prs {
 		w.prs[i].HeadRefOid = gitT(t, w.remote, "rev-parse", w.prs[i].HeadRefName)
@@ -190,6 +190,13 @@ func TestListSortsByWhatEachAsksOfYou(t *testing.T) {
 	others := section(l, Others)
 	if others == nil || len(others.Rows) != 1 || others.Rows[0].PR == nil || others.Rows[0].PR.Number != 92 {
 		t.Fatalf("everyone else's = %+v", others)
+	}
+	// Whether each merges cleanly, as GitHub says: unknown until it has.
+	if got := others.Rows[0].PR.Merges; got != "conflicts" {
+		t.Errorf("#92 merges = %q, want conflicts", got)
+	}
+	if got := st.Layers[2].Merges; got != "" {
+		t.Errorf("#90 merges = %q, want unknown (\"\")", got)
 	}
 	if l.Count != 1 || l.Me != "me" {
 		t.Errorf("count = %d, me = %q", l.Count, l.Me)
@@ -563,6 +570,9 @@ func TestThreadsReadAsComments(t *testing.T) {
 	}
 	if len(a.Excerpt) != 1 || !strings.Contains(a.Excerpt[0], "func key") {
 		t.Errorf("excerpt = %q", a.Excerpt)
+	}
+	if want := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC); !a.At.Equal(want) {
+		t.Errorf("said at %v, want its first comment's %v", a.At, want)
 	}
 	if len(a.Thread) != 2 || a.Thread[0].By != "alice" || a.Thread[1].By != "you" {
 		t.Errorf("thread = %+v", a.Thread)
