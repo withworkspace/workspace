@@ -836,8 +836,8 @@ func TestRoles_ForPRWriter(t *testing.T) {
 		t.Errorf("a model alone: %+v", p)
 	}
 	p, _, _ = Roles{PRWriter: Pick{Harness: "cursor-acp"}}.ForPRWriter()
-	if p.Harness != "cursor-acp" || p.Model != CursorOrchestratorModel {
-		t.Errorf("its own harness: %+v", p)
+	if p.Harness != "cursor-acp" || p.Model != "claude-haiku-5-5" {
+		t.Errorf("its own harness, its model as ACP names it: %+v", p)
 	}
 }
 

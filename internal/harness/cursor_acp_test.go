@@ -81,17 +81,21 @@ func TestCursorWorksIn(t *testing.T) {
 
 func TestCursorACPModel(t *testing.T) {
 	for in, want := range map[string]string{
-		CursorOrchestratorModel:     "claude-haiku-5-5",
-		CursorConverseModel:         "claude-sonnet-5-5",
-		"claude-opus-5-5-xhigh":     "claude-opus-5-5",
-		"claude-opus-5-5-high-fast": "claude-opus-5-5",
-		"gpt-5.3-codex-fast":        "gpt-5.3-codex",
-		"gpt-5.5-extra-high":        "gpt-5.5",
-		"auto":                      "auto",
-		"gpt-5.4-mini":              "gpt-5.4-mini",
-		"gemini-3.8-flash":          "gemini-3.8-flash",
-		" claude-sonnet-5-5-low ":   "claude-sonnet-5-5",
-		"":                          "",
+		CursorOrchestratorModel:             "claude-haiku-5-5",
+		CursorConverseModel:                 "claude-sonnet-5-5",
+		"claude-opus-5-5-xhigh":             "claude-opus-5-5",
+		"claude-opus-5-5-high-fast":         "claude-opus-5-5",
+		"gpt-5.3-codex-fast":                "gpt-5.3-codex",
+		"gpt-5.5-extra-high":                "gpt-5.5",
+		"auto":                              "auto",
+		"gpt-5.4-mini":                      "gpt-5.4-mini",
+		"gemini-3.8-flash":                  "gemini-3.8-flash",
+		" claude-sonnet-5-5-low ":           "claude-sonnet-5-5",
+		"claude-opus-5-thinking-high":       "claude-opus-5",
+		"claude-haiku-5-5-thinking-low":     "claude-haiku-5-5",
+		"claude-4.6-sonnet-medium-thinking": "claude-4.6-sonnet",
+		"claude-opus-5-thinking":            "claude-opus-5",
+		"":                                  "",
 	} {
 		if got := cursorACPModel(in); got != want {
 			t.Errorf("cursorACPModel(%q) = %q, want %q", in, got, want)
