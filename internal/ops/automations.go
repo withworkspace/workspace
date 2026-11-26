@@ -327,6 +327,19 @@ func (w *Workspace) DryRunAutomation(name string, show func(ref string) (map[str
 // automationDryRunBack is how far back a dry run looks.
 const automationDryRunBack = 30 * 24 * time.Hour
 
+// RunAutomationNow runs one of yours that's on a schedule now, as if its
+// time had come.
+func (w *Workspace) RunAutomationNow(name string) (events.Event, error) {
+	if !automation.ValidName(name) {
+		return events.Event{}, automation.ErrNotFound
+	}
+	ev, err := automation.RunNow(w.Root(), name)
+	if errors.Is(err, automation.ErrNoSchedule) {
+		return ev, &Invalid{Reason: err.Error()}
+	}
+	return ev, err
+}
+
 // AutomationsStamp names where your automations stand, cheaply.
 func (w *Workspace) AutomationsStamp() string {
 	return automation.Stamp(w.Root())

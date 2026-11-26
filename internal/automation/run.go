@@ -158,6 +158,7 @@ func (e *Engine) RunDue() []string {
 			return err
 		})
 		ours := func(ev events.Event) bool { return ev.By == events.ByWorkflow(name) || own[ev.Conversation] }
+		e.tick(a, &st)
 		said = append(said, e.resume(a, &st, ours)...)
 		list, err := events.List(e.Root, events.Filter{After: st.After})
 		if err == nil && len(list) > 0 {
@@ -511,6 +512,7 @@ func (r *run) step(builtin string, do func() (string, error)) (string, error) {
 func (r *run) builtins() starlark.StringDict {
 	return starlark.StringDict{
 		"event":    starlark.NewBuiltin("event", eventBuiltin),
+		"every":    starlark.NewBuiltin("every", everyBuiltin),
 		"notify":   starlark.NewBuiltin("notify", r.placed(r.notify)),
 		"converse": starlark.NewBuiltin("converse", r.placed(r.converse)),
 		"log":      starlark.NewBuiltin("log", r.logLine),

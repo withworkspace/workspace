@@ -51,6 +51,7 @@ var kindAbout = map[string][2]string{
 	events.RunUp:                {"a service run answering on its port", "repo, run"},
 	events.RunEnded:             {"a run ended", "repo, run, status (passed, failed (exit 1), stopped, gone)"},
 	events.DecisionMade:         {"a decision made on a mission", "mission"},
+	events.ScheduleDue:          {"an automation's own time come (when = every(...)): not one to write in when", "automation, title (its schedule)"},
 }
 
 // Guide is how an automation's written and proposed, for a conversation's
@@ -67,6 +68,7 @@ func Guide() string {
       notify("%s drew %s" % (e.by.short, e.title), open = e.thing)
 
 - when: which events it's for. event(kind, field = value, ...), each value a string, which may be a pattern (status = "failed*", path = "docs/*"). by is a person's name (brendan matches Brendan Ash) or "me". A list of event()s is any of them. ws matches it without running the script, so say as much of what it's for here as you can.
+- Or by the clock: when = every("day 03:00") (or "1h", "weekday 09:00", "mon,thu 17:30", a time of day here). e is then its schedule.due (e.title is the schedule). A time missed while the daemon was away runs once when it's back.
 - Pace, in event(): settle = "10m" runs once its events have been quiet ten minutes, with all of them as e.batch; at_most = "1/h" runs it at most once an hour (what's past it is held); per = "pr" keeps them apart by a field (each pull request, each thing).
 - may: what it may do. "notify" (a notification in the user's feed) and "converse" (start a conversation of the workspace's, for an agent to look into something and answer the user). Nothing else reaches outside a script.
 - def run(e): called with each event it's for. e has the event's fields (e.kind, e.by.who, e.by.short, e.title, e.text, e.pr, e.thing, e.status, e.changes, e.commits, e.paths, e.ref, e.refs, e.batch). Without run, the event's notified as ws events says it.

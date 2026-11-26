@@ -64,6 +64,10 @@ func init() {
 		-- Where in its script each step was called from (line:col), for
 		-- its outline to count them on.
 		ALTER TABLE automation_steps ADD COLUMN at TEXT NOT NULL DEFAULT '';
+	`), store.SQL(`
+		-- A schedule's (every()): when its time was last looked at, from
+		-- which its next is worked out.
+		ALTER TABLE automations ADD COLUMN ticked TEXT NOT NULL DEFAULT '';
 	`))
 }
 
@@ -89,6 +93,9 @@ type State struct {
 	After  int64
 	Added  time.Time
 	Failed string
+	// Ticked is when its schedule was last looked at (every()): its next
+	// time is after it.
+	Ticked time.Time
 }
 
 // Run is one run of an automation, on one event.
@@ -136,8 +143,8 @@ func read(root string, fn func(tx *store.Tx) error) error {
 
 // keep keeps that name's on, matched from after on.
 func keep(tx *store.Tx, name string, after int64, at time.Time) error {
-	_, err := tx.Exec(`INSERT INTO automations (name, on_, after, added) VALUES (?, 1, ?, ?)
-		ON CONFLICT (name) DO UPDATE SET on_ = 1, after = excluded.after, failed = ''`, name, after, stampOf(at))
+	_, err := tx.Exec(`INSERT INTO automations (name, on_, after, added, ticked) VALUES (?, 1, ?, ?, ?)
+		ON CONFLICT (name) DO UPDATE SET on_ = 1, after = excluded.after, failed = '', ticked = excluded.ticked`, name, after, stampOf(at), stampOf(at))
 	return err
 }
 
@@ -145,7 +152,7 @@ func keep(tx *store.Tx, name string, after int64, at time.Time) error {
 func States(root string) (map[string]State, error) {
 	out := map[string]State{}
 	err := read(root, func(tx *store.Tx) error {
-		rows, err := tx.Query(`SELECT name, on_, after, added, failed FROM automations`)
+		rows, err := tx.Query(`SELECT name, on_, after, added, failed, ticked FROM automations`)
 		if err != nil {
 			return err
 		}
@@ -153,11 +160,14 @@ func States(root string) (map[string]State, error) {
 		for rows.Next() {
 			var s State
 			var on int
-			var added string
-			if err := rows.Scan(&s.Name, &on, &s.After, &added, &s.Failed); err != nil {
+			var added, ticked string
+			if err := rows.Scan(&s.Name, &on, &s.After, &added, &s.Failed, &ticked); err != nil {
 				return err
 			}
 			s.On, s.Added = on == 1, timeOf(added)
+			if ticked != "" {
+				s.Ticked = timeOf(ticked)
+			}
 			out[s.Name] = s
 		}
 		return rows.Err()
@@ -176,7 +186,7 @@ func SetOn(root, name string, on bool) error {
 		q := `UPDATE automations SET on_ = 0 WHERE name = ?`
 		args := []any{name}
 		if on {
-			q, args = `UPDATE automations SET on_ = 1, after = ?, failed = '' WHERE name = ?`, []any{latest, name}
+			q, args = `UPDATE automations SET on_ = 1, after = ?, failed = '', ticked = ? WHERE name = ?`, []any{latest, stampOf(time.Now()), name}
 		}
 		res, err := tx.Exec(q, args...)
 		if err != nil {
@@ -677,4 +687,12 @@ func failedAt(name, why string) string {
 		return ""
 	}
 	return parts[0] + ":" + parts[1]
+}
+
+// tick keeps that name's schedule was looked at, at.
+func tick(root, name string, at time.Time) error {
+	return write(root, func(tx *store.Tx) error {
+		_, err := tx.Exec(`UPDATE automations SET ticked = ? WHERE name = ?`, stampOf(at), name)
+		return err
+	})
 }

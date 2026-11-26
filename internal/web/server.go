@@ -565,6 +565,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/automations/{name}", s.automationDetail)
 	mux.HandleFunc("POST /api/automations/{name}/on", s.automationOn)
 	mux.HandleFunc("POST /api/automations/{name}/dry-run", s.automationDryRun)
+	mux.HandleFunc("POST /api/automations/{name}/run", s.automationRunNow)
 	mux.HandleFunc("DELETE /api/automations/{name}", s.automationRemove)
 	mux.HandleFunc("GET /api/runs", s.allRuns)
 	mux.HandleFunc("POST /api/runs/stop", s.endRun)

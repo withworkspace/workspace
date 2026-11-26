@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/withworkspace/workspace/internal/automation"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/ops"
 )
 
@@ -22,6 +23,7 @@ type Automating interface {
 	Automation(name string) (ops.AutomationDetail, error)
 	SetAutomationOn(name string, on bool) error
 	RemoveAutomation(name string) error
+	RunAutomationNow(name string) (events.Event, error)
 	DryRunAutomation(name string, show func(ref string) (map[string]any, error)) (automation.DryRun, error)
 	// AutomationsStamp names where they stand, cheaply: it moves with each
 	// write to what's kept of them.
@@ -127,6 +129,17 @@ func (s *Server) automationDryRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// automationRunNow is POST /api/automations/{name}/run: one on a schedule
+// run now, as if its time had come.
+func (s *Server) automationRunNow(w http.ResponseWriter, r *http.Request) {
+	ev, err := s.App.RunAutomationNow(r.PathValue("name"))
+	if err != nil {
+		writeError(w, automationErr(err), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"event": ev.Ref()})
 }
 
 // automationErr is a "there's none by that name" as a 404, saying so.

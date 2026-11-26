@@ -79,6 +79,9 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 	if err != nil {
 		return out, err
 	}
+	if len(a.Schedules()) > 0 {
+		list = withSlots(list, a.slotsIn(out.Since, e.now(), maxSlots), a.Name)
+	}
 	out.Events = len(list)
 	var did *dryRun
 	dry := &Engine{Root: e.Root, Now: e.Now, Timeout: e.Timeout, Hooks: Hooks{
@@ -106,6 +109,9 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 	}
 	runOne := func(ev events.Event, pace Pace, batch []events.Event) {
 		line := DryLine{Event: ev.Ref(), At: ev.At, Says: ev.Says()}
+		if ev.Kind == events.ScheduleDue {
+			line.Event = "" // a time it'd have had, not an event kept
+		}
 		if len(batch) > 1 {
 			line.Batch = len(batch)
 		}
@@ -244,6 +250,31 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 		out.Steps = append(out.Steps, *counts[k])
 	}
 	return out, nil
+}
+
+// maxSlots is the most of a schedule's times a dry run runs it on.
+const maxSlots = 200
+
+// withSlots is list with a schedule's times in it, in order, in place of
+// any schedule.due kept for name: each numbered as the event before it,
+// so a wait() in a run on it looks at what came after.
+func withSlots(list, slots []events.Event, name string) []events.Event {
+	var out []events.Event
+	for _, ev := range list {
+		if ev.Kind != events.ScheduleDue || ev.Automation != name {
+			out = append(out, ev)
+		}
+	}
+	for i := range slots {
+		for _, ev := range out {
+			if ev.Kind != events.ScheduleDue && !ev.At.After(slots[i].At) {
+				slots[i].N = ev.N
+			}
+		}
+	}
+	out = append(out, slots...)
+	sort.SliceStable(out, func(i, j int) bool { return out[i].At.Before(out[j].At) })
+	return out
 }
 
 // waiting is the step a dry run's parked at, if it is.

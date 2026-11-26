@@ -66,6 +66,9 @@ func OutlineOf(a *Automation) (Outline, error) {
 	out := Outline{When: []OutlineWhen{}, Steps: []OutlineStep{}}
 	for i, m := range a.When {
 		w := OutlineWhen{Match: m.String()}
+		if s := a.scheduleAt(i); s != nil {
+			w.Match = "every " + s.Said
+		}
 		if i < len(a.Paces) {
 			w.Pace = a.Paces[i].String()
 		}

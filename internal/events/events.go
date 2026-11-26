@@ -70,6 +70,9 @@ const (
 	RunStarted         = "run.started"
 	RunUp              = "run.up" // a service answering on its port
 	RunEnded           = "run.ended"
+	// ScheduleDue is an automation's time come (every()): its own, which
+	// only it's for (Automation names it).
+	ScheduleDue = "schedule.due"
 )
 
 // Origins: whether this ws did it, or heard of it.
@@ -90,6 +93,7 @@ var Kinds = []string{
 	ThingAdded, ThingChanged,
 	RunStarted, RunUp, RunEnded,
 	DecisionMade,
+	ScheduleDue,
 }
 
 // Known is whether kind is one there is.
@@ -150,6 +154,8 @@ type Event struct {
 	// An automation doesn't run on what it's in the chain of, or on what's
 	// MaxChain deep (internal/automation).
 	Chain []string `json:"chain,omitempty"`
+	// Automation is the automation a schedule.due is for.
+	Automation string `json:"automation,omitempty"`
 	// What it's about, as ws names them.
 	Repo     string `json:"repo,omitempty"`
 	Capsule  string `json:"capsule,omitempty"` // its name, in Repo
@@ -464,6 +470,8 @@ func (e Event) Says() string {
 		return e.Title + " (" + e.Status + ")"
 	case e.Kind == RunEnded && e.Status != "":
 		return e.Status
+	case e.Kind == ScheduleDue:
+		return e.Automation + "'s time: " + e.Title
 	case e.Text != "":
 		return e.Text
 	}
