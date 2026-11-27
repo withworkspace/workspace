@@ -294,6 +294,16 @@ type ConverseRun struct {
 	// the words after ws ("sketch edit"): those a plugin marked for
 	// conversations.
 	Plugins []string
+	// Images are the pictures in Prompt, pasted as files (internal/images):
+	// it's told to read each, and a harness that can be given a picture
+	// with its words (ACP's image blocks) is given them too.
+	Images []Image
+}
+
+// Image is a picture an agent's given, as a file.
+type Image struct {
+	Path string `json:"path"`
+	Type string `json:"type"` // image/png, …
 }
 
 // Sandboxer is a harness that can run a conversation's shell in a sandbox

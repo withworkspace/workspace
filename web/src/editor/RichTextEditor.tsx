@@ -2,15 +2,18 @@ import { history } from "prosemirror-history";
 import { EditorState, type Plugin, Selection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { useEffect, useRef } from "react";
+import { pastePicture } from "../api";
 import { cx } from "../ui/cx";
 import type { InnerProps, RichTextAreaProps } from "../ui/RichTextArea";
 import css from "../ui/RichTextArea.module.css";
 import { useSendKey } from "../ui/sendKey";
+import { toast } from "../ui/toast";
 import { pasteMarkdown } from "./clipboard";
 import { setLink } from "./commands";
 import { composeKeys, composeRules, fit, placeholder, tidy } from "./compose";
 import { type Markdown, parseMarkdown, saveMarkdown } from "./markdown";
 import editorCss from "./MarkdownEditor.module.css";
+import { picturesIn, picturesPlugin, putPictures } from "./pictures";
 import { refreshRefs, refsPlugin } from "./refs";
 
 // RichTextEditor is RichTextArea (ui/RichTextArea.tsx) once its editor's here:
@@ -39,7 +42,8 @@ export default function RichTextEditor(props: InnerProps) {
   };
 
   useEffect(() => {
-    const f = { marks: props.marks, lists: props.lists, quote: props.quote, code: props.code };
+    const f = { marks: props.marks, lists: props.lists, quote: props.quote, code: props.code, pictures: props.pictures };
+    const failed = (why: string) => toast(`Couldn't paste the picture: ${why}`, { tone: "danger" });
     const plugins = [
       history(),
       composeRules(f),
@@ -50,6 +54,7 @@ export default function RichTextEditor(props: InnerProps) {
       // Always: a host can come after the box (once the workspace is read).
       refsPlugin(() => p.current.refs),
       placeholder(() => p.current.placeholder ?? "", css.empty),
+      ...(f.pictures ? [picturesPlugin()] : []),
     ];
     const v: EditorView = new EditorView(host.current!, {
       state: stateOf(props.value, plugins),
@@ -65,12 +70,27 @@ export default function RichTextEditor(props: InnerProps) {
       clipboardTextParser: (text, $context) => pasteMarkdown(text, $context),
       transformPasted: (slice) => fit(slice, f),
       handlePaste: (view, event) => {
+        // A picture pasted (a screenshot) is kept by ws, for the agent.
+        const pics = f.pictures ? picturesIn(event.clipboardData) : [];
+        if (pics.length) {
+          putPictures(view, pics, pastePicture, css.pasting, failed);
+          return true;
+        }
         if (!f.marks) return false;
         // An address pasted over words links them.
         const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
         const { from, to, empty, $from } = view.state.selection;
         if (empty || !/^(https?:\/\/|mailto:)\S+$/.test(text) || $from.parent.type.spec.code) return false;
         return setLink(from, to, text)(view.state, view.dispatch);
+      },
+      // A picture dropped in is kept as one pasted is, where it's dropped.
+      handleDrop: (view, event) => {
+        const pics = f.pictures ? picturesIn(event.dataTransfer) : [];
+        if (!pics.length) return false;
+        const at = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        putPictures(view, pics, pastePicture, css.pasting, failed, at?.pos);
+        event.preventDefault();
+        return true;
       },
       // The page's keys first, if it has any. Escape is the page's unless
       // the box hears it: then it's handed the press, to keep from the page

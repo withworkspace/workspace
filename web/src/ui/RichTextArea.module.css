@@ -114,6 +114,49 @@
     font-weight: 600;
   }
 
+  /* A picture pasted in: small, as a thumbnail of what's sent, and
+     ringed while it's selected (to take it out). */
+  .doc img {
+    display: inline-block;
+    max-width: min(240px, 100%);
+    max-height: 160px;
+    vertical-align: bottom;
+    margin: 2px 2px 2px 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--raised);
+  }
+
+  .doc img:global(.ProseMirror-selectednode) {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* Where a picture will be, while ws keeps it. */
+  .pasting {
+    display: inline-block;
+    width: 64px;
+    height: 48px;
+    vertical-align: bottom;
+    margin: 2px 2px 2px 0;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--raised);
+    animation: pasting 1s var(--ease) infinite alternate;
+  }
+
+  @keyframes pasting {
+    to {
+      opacity: 0.5;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pasting {
+      animation: none;
+    }
+  }
+
   /* What to write, while there's nothing. */
   .empty::before {
     content: attr(data-placeholder);

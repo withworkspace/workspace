@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/images"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -209,9 +210,14 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 	if err != nil {
 		return Launched{}, &Invalid{Reason: err.Error()}
 	}
-	prepare, err := w.prepare(m, h, d, place, resumed)
+	prepared, err := w.prepare(m, h, d, place, resumed)
 	if err != nil {
 		return Launched{}, err
+	}
+	// What you paste them is a picture they read where ws keeps it.
+	prepare := func() (harness.Launch, error) {
+		l, err := prepared()
+		return harness.ReadsPictures(h, l, images.Dir(w.Root())), err
 	}
 	counted := false
 	// Resuming crew (ws does, after a restart) isn't starting more.

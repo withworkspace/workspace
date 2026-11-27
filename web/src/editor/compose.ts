@@ -6,6 +6,7 @@ import { Fragment, type Mark, type Node as PMNode, Slice } from "prosemirror-mod
 import { liftListItem, sinkListItem } from "prosemirror-schema-list";
 import { type Command, Plugin, TextSelection } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
+import { pictureURL } from "../pictures";
 import { type SendKey, sent } from "../ui/sendKey";
 import { fence, indentCode, leaveCode, ruleSets, splitItem, toggleList, unItem } from "./commands";
 import { schema } from "./schema";
@@ -20,12 +21,16 @@ const { nodes: N, marks: M } = schema;
 
 // Features is the markdown a box offers. With none it's words, in
 // paragraphs: marks are bold, italic, struck, code and links; lists are
-// bullets and numbers; quote is a quote; code is a block of code.
+// bullets and numbers; quote is a quote; code is a block of code;
+// pictures are pictures pasted or dropped in, kept by ws for the agent
+// it's written to (pictures.ts): not for what's sent elsewhere (GitHub),
+// where nobody else could open them.
 export interface Features {
   marks?: boolean;
   lists?: boolean;
   quote?: boolean;
   code?: boolean;
+  pictures?: boolean;
 }
 
 // --- What's typed
@@ -130,7 +135,8 @@ export function composeKeys(f: Features, on: KeysOn): Plugin[] {
 // fit is what's pasted made of what the box offers: a heading (or what's
 // on) its words in a paragraph, a list's items or a quote's paragraphs as
 // paragraphs, a block of code its lines, a table a paragraph a row, a
-// rule nothing, a picture its words; marks it doesn't offer are taken off.
+// rule nothing, a picture its words (one pasted for the agent stays, where
+// pictures are offered); marks it doesn't offer are taken off.
 // A document pasted into a conversation, say, keeps its lists and its
 // code.
 export function fit(slice: Slice, f: Features): Slice {
@@ -143,7 +149,8 @@ export function fit(slice: Slice, f: Features): Slice {
     const out: PMNode[] = [];
     content.forEach((n) => {
       if (n.type === N.image) {
-        if (n.attrs.alt) out.push(schema.text(n.attrs.alt, marks(n.marks)));
+        if (f.pictures && pictureURL(n.attrs.src)) out.push(n);
+        else if (n.attrs.alt) out.push(schema.text(n.attrs.alt, marks(n.marks)));
       } else if (n.isText) out.push(n.mark(marks(n.marks)));
       else out.push(n);
     });

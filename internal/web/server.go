@@ -682,6 +682,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/missions/{slug}/threads/{id}/suggestion", s.settleSuggestion)
 	mux.HandleFunc("POST /api/missions/{slug}/threads/{id}/decision", s.recordDecision)
 	mux.HandleFunc("POST /api/asks", s.ask)
+	mux.HandleFunc("POST /api/images", s.saveImage)
+	mux.HandleFunc("GET /api/images/{name}", s.image)
 	mux.HandleFunc("POST /api/conversations", s.startTalk)
 	mux.HandleFunc("GET /api/conversations/{id}", s.getTalk)
 	mux.HandleFunc("POST /api/conversations/{id}/say", s.sayInTalk)

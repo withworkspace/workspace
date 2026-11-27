@@ -32,7 +32,7 @@ var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls
 // which keeps there what's still to be sent somewhere slow) and hold no
 // rule of anyone's. cost is what measures them, when the daemon's asked to.
 // report reads what a task's report files say, as numbers.
-var leaves = []string{"cost", "git", "slug", "events", "execlog", "job", "outbox", "ref", "release", "report", "store", "words"}
+var leaves = []string{"cost", "git", "slug", "events", "execlog", "images", "job", "outbox", "ref", "release", "report", "store", "words"}
 
 // allowed is what each package may import, of ws's own, beyond the leaves.
 // A package that isn't listed may import only the leaves.

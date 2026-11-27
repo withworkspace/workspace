@@ -229,6 +229,20 @@
   max-width: 100%;
 }
 
+/* A picture pasted for an agent (a screenshot, mostly): small enough to
+   read past, and opened whole in the viewer with a click. */
+.markdown img.pasted {
+  display: inline-block;
+  max-width: min(320px, 100%);
+  max-height: 240px;
+  vertical-align: bottom;
+  margin: 2px 4px 2px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  cursor: zoom-in;
+}
+
 /* While the reader loads: the text as written. */
 .loading {
   white-space: pre-wrap;
