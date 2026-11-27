@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/automation"
 	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/store"
 )
@@ -31,6 +32,10 @@ const (
 	ProposeArtifact = "artifact" // an artifact, or a version of one: an HTML file, run in a sandboxed frame
 	ProposeReplan   = "replan"   // the mission's planner asked to revise its plan, as ws mission replan asks it
 	ProposePlugin   = "plugin"   // something of a plugin's (issues to create), drafted by the plugin, done by it once accepted
+	// ProposeAutomation is an automation (internal/automation): its script
+	// in Text, what it is and would have done lately in Automation; added,
+	// on, once accepted.
+	ProposeAutomation = "automation"
 )
 
 // Proposal states.
@@ -69,6 +74,8 @@ func (p Proposal) supersedes(q Proposal) bool {
 			return q.Kind == ProposeDocument && q.To == p.To
 		}
 		return q.Kind == ProposeDocument && q.To == "" && p.DocKind == q.DocKind && same(p.Title, q.Title)
+	case ProposeAutomation:
+		return q.Kind == ProposeAutomation && p.Automation != nil && q.Automation != nil && same(p.Automation.Name, q.Automation.Name)
 	}
 	return false
 }
@@ -160,15 +167,18 @@ type Proposal struct {
 	// it would go (Path), its size (Size), and what in it won't load in
 	// the frame (Warnings). Accepting adds it as you, from this
 	// conversation, and Result is the version it made (a3.v1).
-	HTML     string         `json:"html,omitempty"`
-	Tree     string         `json:"tree,omitempty"`
-	Files    []ProposedFile `json:"files,omitempty"`
-	Note     string         `json:"note,omitempty"`
-	To       string         `json:"to,omitempty"`
-	On       int            `json:"on,omitempty"`
-	Latest   int            `json:"latest,omitempty"`
-	Size     int            `json:"size,omitempty"`
-	Warnings []string       `json:"warnings,omitempty"`
+	HTML   string         `json:"html,omitempty"`
+	Tree   string         `json:"tree,omitempty"`
+	Files  []ProposedFile `json:"files,omitempty"`
+	Note   string         `json:"note,omitempty"`
+	To     string         `json:"to,omitempty"`
+	On     int            `json:"on,omitempty"`
+	Latest int            `json:"latest,omitempty"`
+	Size   int            `json:"size,omitempty"`
+	// Automation is a proposed automation, as its card shows it (its
+	// script is Text).
+	Automation *automation.Proposed `json:"automation,omitempty"`
+	Warnings   []string             `json:"warnings,omitempty"`
 
 	// A plugin's: the plugin (Plugin), which of what it proposes (Proposes,
 	// its id), what the card calls that (Label), what the agent wrote
@@ -424,12 +434,14 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 		return nil, errors.New("a new artifact has a title")
 	case p.Kind == ProposeArtifact && p.Note == "":
 		return nil, errors.New("an artifact's version has a note: what it tries out, or what changed and why")
+	case p.Kind == ProposeAutomation && (p.Automation == nil || p.Automation.Name == "" || strings.TrimSpace(p.Text) == ""):
+		return nil, errors.New("an automation has a name and its script")
 	case p.Kind == ProposeReplan && p.Text == "":
 		return nil, errors.New("say what to change in the plan, or what doesn't fit it")
 	case p.Kind == ProposePlugin && (p.Plugin == "" || p.Proposes == "" || len(p.Items) == 0):
 		return nil, errors.New("a plugin's proposal is of something it proposes, and has something in it to do")
-	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan && p.Kind != ProposePlugin:
-		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document, an artifact or a plugin's, not %q", p.Kind)
+	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan && p.Kind != ProposePlugin && p.Kind != ProposeAutomation:
+		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document, an artifact, an automation or a plugin's, not %q", p.Kind)
 	case (p.Kind == ProposeBrief || p.Kind == ProposeDispatch || p.Kind == ProposePlan || p.Kind == ProposeReplan) && s.Workspace():
 		return nil, fmt.Errorf("a %s is a mission's: this conversation is the workspace's", p.Kind)
 	}
@@ -504,6 +516,10 @@ func (p Proposal) Says() string {
 		what = "an artifact: " + p.Title
 		if p.To != "" {
 			what = fmt.Sprintf("a version of %s, on v%d: %s", p.To, p.On, p.Note)
+		}
+	case ProposeAutomation:
+		if p.Automation != nil {
+			what = fmt.Sprintf("an automation, %s: when %s", p.Automation.Name, p.Automation.When)
 		}
 	case ProposePlugin:
 		what = fmt.Sprintf("%s:%s (%s): %s", p.Plugin, p.Proposes, firstNonEmptyString(p.Label, "a plugin's"), p.Title)

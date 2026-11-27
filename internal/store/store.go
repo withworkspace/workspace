@@ -269,6 +269,17 @@ func (tx *Tx) noteChanges() error {
 	return nil
 }
 
+// ChangedAt is the number of the latest change to topic, 0 for none: what
+// a page's stamp can be.
+func (tx *Tx) ChangedAt(topic string) (int64, error) {
+	var seq int64
+	err := tx.QueryRow(`SELECT seq FROM changes WHERE topic = ?`, topic).Scan(&seq)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	return seq, err
+}
+
 // Since is the topics changed after seq, and the latest number: what a
 // page that's been told something changed asks.
 func (db *DB) Since(ctx context.Context, seq int64) (topics []string, latest int64, err error) {

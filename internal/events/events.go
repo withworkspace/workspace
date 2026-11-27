@@ -70,6 +70,9 @@ const (
 	RunStarted         = "run.started"
 	RunUp              = "run.up" // a service answering on its port
 	RunEnded           = "run.ended"
+	// ScheduleDue is an automation's time come (every()): its own, which
+	// only it's for (Automation names it).
+	ScheduleDue = "schedule.due"
 )
 
 // Origins: whether this ws did it, or heard of it.
@@ -90,6 +93,7 @@ var Kinds = []string{
 	ThingAdded, ThingChanged,
 	RunStarted, RunUp, RunEnded,
 	DecisionMade,
+	ScheduleDue,
 }
 
 // Known is whether kind is one there is.
@@ -145,6 +149,16 @@ type Event struct {
 	// Cause is what caused it, where something did: the orchestrator's
 	// run whose agent did it, or (later) a workflow's run.
 	Cause string `json:"cause,omitempty"`
+	// Chain is the automations that led to it, first first: one that
+	// started the conversation it's from, and any that set that one off.
+	// An automation doesn't run on what it's in the chain of, or on what's
+	// MaxChain deep (internal/automation).
+	Chain []string `json:"chain,omitempty"`
+	// RunN is which run of a task a run's event is of (its #n), 0 for a
+	// service's.
+	RunN int `json:"runN,omitempty"`
+	// Automation is the automation a schedule.due is for.
+	Automation string `json:"automation,omitempty"`
 	// What it's about, as ws names them.
 	Repo     string `json:"repo,omitempty"`
 	Capsule  string `json:"capsule,omitempty"` // its name, in Repo
@@ -459,6 +473,8 @@ func (e Event) Says() string {
 		return e.Title + " (" + e.Status + ")"
 	case e.Kind == RunEnded && e.Status != "":
 		return e.Status
+	case e.Kind == ScheduleDue:
+		return e.Automation + "'s time: " + e.Title
 	case e.Text != "":
 		return e.Text
 	}

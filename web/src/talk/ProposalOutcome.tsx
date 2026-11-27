@@ -83,6 +83,8 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
         </>
       );
     }
+    case "automation":
+      return done(`On: ${p.result ?? p.automation?.name ?? "it"} runs from the next event (ws automation list)`);
     case "artifact": {
       // Added, as a version: a3.v1, drawn as its card.
       const v = addedVersion(p.result);

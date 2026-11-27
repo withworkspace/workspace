@@ -132,6 +132,7 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
     { id: "files", to: "/files", icon: "layers", label: "Repos", match: (p) => p === "/files" || p.startsWith("/files/") },
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
     { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
+    { id: "automations", to: "/automations", icon: "bolt", label: "Automations", match: (p) => p === "/automations" || p.startsWith("/automations/"), home: "menu" },
   ];
   const own = places.map((p) => ({ ...p, keys: goKeysTo(p.to) }));
 

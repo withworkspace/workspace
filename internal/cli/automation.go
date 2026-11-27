@@ -4,13 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/automation"
+	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
@@ -49,21 +54,27 @@ what it came to. And when can pace it:
   event("pr.checks_failed", at_most = "1/h", per = "pr")
       at most once an hour each pull request; what's past it is held
 
+Or it runs by the clock: when = every("day 03:00") (or "1h", "weekday
+09:00", "mon,thu 17:30"), on its own schedule.due; a time missed while the
+daemon was away is run once when it's back.
+
 It runs in the daemon, from the next event after it's added: once an
 event, each step that reaches outside it (notify, converse) done once
 even if the run's run again. You're told once when one can't run.
 
   ws automation add drawing.star     add it (by its file's name, or --name), on
   ws automation check drawing.star   say what's wrong with it, adding nothing
+  ws automation kinds                how one's written: every kind of event, and the builtins
   ws automation list                 each, what it's for and may do, and how its last run went
   ws automation runs [name]          its runs, the latest first
+  ws automation run <name>           run one that's on a schedule now, as if its time had come
   ws automation off <name>           stop it (on starts it again, from the next event)
   ws automation rm <name>            take it away`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error { return listAutomations(false) },
 	}
-	cmd.AddCommand(newAutomationAddCmd(), newAutomationCheckCmd(), newAutomationListCmd(), newAutomationRunsCmd(),
-		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd())
+	cmd.AddCommand(newAutomationAddCmd(), newAutomationCheckCmd(), newAutomationKindsCmd(), newAutomationListCmd(), newAutomationRunsCmd(),
+		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd(), newAutomationRunNowCmd())
 	return cmd
 }
 
@@ -82,19 +93,49 @@ func automationFile(path, name string) (string, []byte, error) {
 
 func newAutomationAddCmd() *cobra.Command {
 	var name string
+	var asProposal bool
 	cmd := &cobra.Command{
-		Use:   "add <file.star>",
-		Short: "Add an automation, on, run from the next event (one by its name already is replaced)",
-		Args:  cobra.ExactArgs(1),
+		Use:   "add <file.star | ->",
+		Short: "Add an automation, on, run from the next event (one by its name already is replaced); --propose, in a conversation",
+		Long: `Add an automation from its file (- for stdin, with --name), on: it's run
+in the daemon from the next event. One by its name already is replaced.
+
+In a conversation, its agent proposes one instead (--propose first): ws
+checks it and dry-runs it over the last 30 days of events, and the user
+reads what it would have done on its card before they turn it on. With
+--propose and no file, it prints how one's written (ws automation kinds).`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 			w, err := loadOps()
 			if err != nil {
 				return err
 			}
-			name, src, err := automationFile(args[0], name)
-			if err != nil {
+			if asProposal && len(args) == 0 {
+				fmt.Fprint(ui.Stdout, automation.Guide())
+				return nil
+			}
+			if len(args) == 0 {
+				return errors.New("say its file (or - for stdin, with --name)")
+			}
+			if !asProposal {
+				if err := refuseInConversation("an automation"); err != nil {
+					return err
+				}
+			}
+			var src []byte
+			if args[0] == "-" {
+				if name == "" {
+					return errors.New("give it a name (--name), as it's read from stdin")
+				}
+				if src, err = io.ReadAll(cmd.InOrStdin()); err != nil {
+					return err
+				}
+			} else if name, src, err = automationFile(args[0], name); err != nil {
 				return err
+			}
+			if asProposal {
+				return proposeAutomation(w, name, src)
 			}
 			a, err := (&automation.Engine{Root: w.Root()}).Add(name, src)
 			if err != nil {
@@ -106,7 +147,87 @@ func newAutomationAddCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "what it's called (default: its file's name)")
+	cmd.Flags().BoolVar(&asProposal, "propose", false, "propose it, for the user to turn on (a conversation's agent)")
+	revisesFlag(cmd)
 	return cmd
+}
+
+// dryRunBack is how far back a proposed automation's dry run looks.
+const dryRunBack = 30 * 24 * time.Hour
+
+// proposeAutomation checks an automation, dry-runs it, and proposes it in
+// the conversation the agent's answering, saying what the dry run found.
+func proposeAutomation(w *ops.Workspace, name string, src []byte) error {
+	a, err := automation.Check(name, src)
+	if err != nil {
+		return fmt.Errorf("not proposed: %w", err)
+	}
+	hooks := w.AutomationHooks()
+	hooks.Show = func(ref string) (map[string]any, error) {
+		shown, err := shownFor(w, protocol.ShowParams{Ref: ref})
+		if err != nil {
+			return nil, err
+		}
+		b, _ := json.Marshal(shown)
+		var out map[string]any
+		return out, json.Unmarshal(b, &out)
+	}
+	dr, err := (&automation.Engine{Root: w.Root(), Hooks: hooks}).DryRun(a, dryRunBack)
+	if err != nil {
+		return fmt.Errorf("not proposed: its dry run: %w", err)
+	}
+	_, had := os.Stat(automation.Path(w.Root(), name))
+	var outline *automation.Outline
+	if o, err := automation.OutlineOf(a); err == nil {
+		outline = &o
+	}
+	mine, _ := automation.List(w.Root())
+	states, _ := automation.States(w.Root())
+	var on []*automation.Automation
+	for _, b := range mine {
+		if states[b.Name].On {
+			on = append(on, b)
+		}
+	}
+	setsOff, setOffBy := automation.Linked(a, on)
+	p := conversation.Proposal{Kind: conversation.ProposeAutomation, Title: name, Text: string(src), Note: a.About,
+		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil, Outline: outline,
+			SetsOff: setsOff, SetOffBy: setOffBy}}
+	if err := propose(w, p); err != nil {
+		return err
+	}
+	said := fmt.Sprintf("over the last 30 days (%d events), it would have run %d %s", dr.Events, dr.Ran, plural(dr.Ran, "time"))
+	if dr.Held > 0 {
+		said += fmt.Sprintf(", %d held back", dr.Held)
+	}
+	if dr.Failed > 0 {
+		said += fmt.Sprintf(", %d failing", dr.Failed)
+	}
+	if dr.Settling > 0 {
+		said += fmt.Sprintf(", %d settling still", dr.Settling)
+	}
+	fmt.Fprintf(ui.Stderr, "  %s %s: the user reads it on the card\n", ui.Dim.Render("·"), said)
+	if len(setsOff) > 0 {
+		fmt.Fprintf(ui.Stderr, "  %s the conversations it starts would set off %s (a chain stops %d deep, and at a loop)\n", ui.Orange.Render("⚠"), strings.Join(setsOff, ", "), automation.MaxChain)
+	}
+	if len(setOffBy) > 0 {
+		fmt.Fprintf(ui.Stderr, "  %s it'd be set off by the conversations %s starts\n", ui.Orange.Render("⚠"), strings.Join(setOffBy, ", "))
+	}
+	for _, l := range dr.Lines {
+		if l.Error != "" {
+			fmt.Fprintf(ui.Stderr, "  %s %s failed: %s\n", ui.Orange.Render("⚠"), l.Event, firstLineOf(l.Error))
+		}
+	}
+	return nil
+}
+
+func newAutomationKindsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "kinds",
+		Short: "Print how an automation's written: every kind of event, what each says, and the builtins",
+		Args:  cobra.NoArgs,
+		Run:   func(cmd *cobra.Command, args []string) { fmt.Fprint(ui.Stdout, automation.Guide()) },
+	}
 }
 
 func newAutomationCheckCmd() *cobra.Command {
@@ -329,4 +450,25 @@ func maySaid(a *automation.Automation) string {
 func firstLineOf(s string) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(s), "\n")
 	return line
+}
+
+func newAutomationRunNowCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "run <name>",
+		Short: "Run an automation that's on a schedule now, as if its time had come",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			ev, err := w.RunAutomationNow(args[0])
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stderr, "%s %s: its time, now (%s); the daemon runs it\n", ui.Green.Render("✓"), args[0], ev.Ref())
+			return nil
+		},
+	}
 }

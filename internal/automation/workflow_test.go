@@ -1,6 +1,7 @@
 package automation
 
 import (
+	"fmt"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"strings"
 	"testing"
@@ -68,6 +69,21 @@ func TestWorkflow_Wait(t *testing.T) {
 	e.RunDue()
 	if len(got.notified) != 2 || got.notified[1] != "deploy: not deployed api#213 " {
 		t.Errorf("timed out: %q", got.notified)
+	}
+}
+
+// A wait is for what comes after the event its run's on: one that came
+// before the daemon got to the run (it was catching up) meets it, as a
+// dry run would have had it.
+func TestWorkflow_WaitCountsWhatCameWhileCatchingUp(t *testing.T) {
+	e, got := engine(t)
+	e.Add("deploy", []byte(deploy))
+	emit(t, e.Root, events.Event{Kind: events.PRMerged, Origin: events.Heard, By: events.ByPerson("alice"), PR: "api#212"})
+	emit(t, e.Root, events.Event{Kind: events.RunEnded, Run: "deploy.ground.api", Title: "deploy", Status: "passed"})
+	e.RunDue() // parks at the wait, which is met at once
+	e.RunDue()
+	if strings.Join(got.notified, "|") != "deploy: deployed api#212 (Idempotency keys) " {
+		t.Errorf("notified %q", got.notified)
 	}
 }
 
@@ -192,5 +208,116 @@ func TestWorkflow_IdlePassWritesNothing(t *testing.T) {
 	case <-told:
 		t.Error("a pass with nothing to do wrote")
 	default:
+	}
+}
+
+const looksInto = `when = [event("pr.merged"), event("conversation.answered")]
+may = ["converse"]
+
+def run(e):
+    converse("Look into " + e.ref)
+`
+
+const answers = `when = event("conversation.answered")
+may = ["converse"]
+
+def run(e):
+    converse("And again: " + e.ref)
+`
+
+// What an automation starts carries its chain: a conversation it starts
+// answers with the automations that led to it. One that'd set off an
+// automation already in its chain is held (a → b → a), and you're told,
+// once; so is one that's MaxChain deep, with nothing twice in it.
+func TestWorkflow_Loops(t *testing.T) {
+	e, got := engine(t)
+	n := 0
+	e.Hooks.Converse = func(a *Automation, text string, about, chain []string) (string, error) {
+		n++
+		id := fmt.Sprintf("w%d", n)
+		got.conversed = append(got.conversed, a.Name+" "+strings.Join(chain, ">"))
+		emit(t, e.Root, events.Event{Kind: events.ConversationAnswered, By: "ws", Conversation: id, Chain: chain})
+		return id, nil
+	}
+	var told []string
+	e.Hooks.Failed = func(a *Automation, why string) error { told = append(told, a.Name+": "+why); return nil }
+	e.Add("a", []byte(looksInto))
+	e.Add("b", []byte(answers))
+	emit(t, e.Root, events.Event{Kind: events.PRMerged, Origin: events.Heard, By: events.ByPerson("alice"), PR: "api#212"})
+	for range 6 {
+		e.RunDue()
+	}
+	if strings.Join(got.conversed, "|") != "a a|b a>b" {
+		t.Errorf("conversed %q", got.conversed)
+	}
+	runs, _ := Runs(e.Root, "a", 5)
+	if len(runs) != 2 || runs[0].State != Held || runs[0].Error != "it'd loop: a → b → a" {
+		t.Errorf("a's runs %+v", runs)
+	}
+	if len(told) != 1 || told[0] != "a: it'd loop: a → b → a" {
+		t.Errorf("told %q", told)
+	}
+
+	// Three deep, with neither in it: held all the same.
+	emit(t, e.Root, events.Event{Kind: events.ConversationAnswered, By: "ws", Conversation: "w9", Chain: []string{"x", "y", "z"}})
+	e.RunDue()
+	if runs, _ := Runs(e.Root, "b", 1); runs[0].State != Held || runs[0].Error != "it'd be more than 3 automations deep: x → y → z → b" {
+		t.Errorf("b's run %+v", runs[0])
+	}
+	if len(got.conversed) != 2 {
+		t.Errorf("conversed %q", got.conversed)
+	}
+}
+
+// A run's chain is the chains of what it ran on (a settled batch's too),
+// then itself.
+func TestWorkflow_ChainOf(t *testing.T) {
+	ev := events.Event{Chain: []string{"a"}}
+	batch := []events.Event{{Chain: []string{"c", "a"}}, {}}
+	if got := strings.Join(ChainOf("b", ev, batch), ">"); got != "c>a>b" {
+		t.Errorf("%q", got)
+	}
+	if got := strings.Join(ChainOf("b", events.Event{}, nil), ">"); got != "b" {
+		t.Errorf("%q", got)
+	}
+}
+
+// A dry run holds what would loop, as a run would.
+func TestWorkflow_DryRunHoldsLoops(t *testing.T) {
+	e, _ := engine(t)
+	emit(t, e.Root, events.Event{Kind: events.ConversationAnswered, By: "ws", Conversation: "w1", Chain: []string{"a", "b"}})
+	emit(t, e.Root, events.Event{Kind: events.ConversationAnswered, By: "ws", Conversation: "w2"})
+	a, err := Check("b", []byte(answers))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dr, err := e.DryRun(a, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dr.Matched != 2 || dr.Ran != 1 || dr.Held != 1 || dr.Lines[0].Held != "it'd loop: a → b → b" {
+		t.Errorf("%+v", dr)
+	}
+}
+
+// Which automations what one does would set off, and which would set it
+// off: a notification sets off nothing; a conversation it starts, what's
+// on conversations.
+func TestWorkflow_Linked(t *testing.T) {
+	check := func(name, src string) *Automation {
+		a, err := Check(name, []byte(src))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a
+	}
+	a, b := check("a", looksInto), check("b", answers)
+	quiet := check("quiet", drawing)
+	setsOff, setOffBy := Linked(a, []*Automation{a, b, quiet})
+	if strings.Join(setsOff, ",") != "b" || strings.Join(setOffBy, ",") != "b" {
+		t.Errorf("a sets off %q, is set off by %q", setsOff, setOffBy)
+	}
+	if setsOff, setOffBy := Linked(quiet, []*Automation{a, b}); len(setsOff) != 0 || len(setOffBy) != 0 {
+		t.Errorf("quiet sets off %q, is set off by %q", setsOff, setOffBy)
 	}
 }

@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"maps"
 	"slices"
 	"strings"
@@ -610,6 +611,30 @@ func plural(n int, word string) string {
 	return word + "s"
 }
 
+// showView is what ws show says of a ref, as the commands make it
+// (Config.Show), as a map: what an automation's show() is given. With no
+// Show, nothing's said of any ref (show() is None).
+func (d *daemon) showView() func(ref string) (map[string]any, error) {
+	return func(ref string) (map[string]any, error) {
+		if d.cfg.Show == nil {
+			return nil, errors.New("ws show isn't here")
+		}
+		params, _ := json.Marshal(protocol.ShowParams{Ref: ref})
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		got, err := d.cfg.Show(d.w, ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		b, err := json.Marshal(got)
+		if err != nil {
+			return nil, err
+		}
+		var out map[string]any
+		return out, json.Unmarshal(b, &out)
+	}
+}
+
 // automationsEvery is how often the automations are run regardless of a
 // write to the records, for one the watch missed.
 const automationsEvery = 30 * time.Second
@@ -619,23 +644,7 @@ const automationsEvery = 30 * time.Second
 // records has it look, and it looks every automationsEvery besides.
 func (d *daemon) automationsLoop(logf func(string, ...any), stop <-chan struct{}) {
 	hooks := d.w.AutomationHooks()
-	if d.cfg.Show != nil {
-		hooks.Show = func(ref string) (map[string]any, error) {
-			params, _ := json.Marshal(protocol.ShowParams{Ref: ref})
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			got, err := d.cfg.Show(d.w, ctx, params)
-			if err != nil {
-				return nil, err
-			}
-			b, err := json.Marshal(got)
-			if err != nil {
-				return nil, err
-			}
-			var out map[string]any
-			return out, json.Unmarshal(b, &out)
-		}
-	}
+	hooks.Show = d.showView()
 	e := &automation.Engine{Root: d.w.Root(), Hooks: hooks}
 	var told <-chan struct{}
 	if db, err := d.w.Records(); err == nil {

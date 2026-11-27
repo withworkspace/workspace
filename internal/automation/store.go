@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/store"
@@ -58,6 +60,14 @@ func init() {
 			events TEXT NOT NULL,              -- the events' numbers, as JSON, oldest first
 			PRIMARY KEY (name, key)
 		) WITHOUT ROWID;
+	`), store.SQL(`
+		-- Where in its script each step was called from (line:col), for
+		-- its outline to count them on.
+		ALTER TABLE automation_steps ADD COLUMN at TEXT NOT NULL DEFAULT '';
+	`), store.SQL(`
+		-- A schedule's (every()): when its time was last looked at, from
+		-- which its next is worked out.
+		ALTER TABLE automations ADD COLUMN ticked TEXT NOT NULL DEFAULT '';
 	`))
 }
 
@@ -83,6 +93,9 @@ type State struct {
 	After  int64
 	Added  time.Time
 	Failed string
+	// Ticked is when its schedule was last looked at (every()): its next
+	// time is after it.
+	Ticked time.Time
 }
 
 // Run is one run of an automation, on one event.
@@ -105,12 +118,19 @@ func timeOf(s string) time.Time {
 	return t
 }
 
+// Topic is what a write to what's kept of the automations says it changed
+// (store.Tx.Changed): the Automations page follows it.
+const Topic = "automations"
+
 func write(root string, fn func(tx *store.Tx) error) error {
 	db, err := store.Open(root)
 	if err != nil {
 		return err
 	}
-	return db.Write(context.Background(), fn)
+	return db.Write(context.Background(), func(tx *store.Tx) error {
+		tx.Changed(Topic)
+		return fn(tx)
+	})
 }
 
 func read(root string, fn func(tx *store.Tx) error) error {
@@ -123,8 +143,8 @@ func read(root string, fn func(tx *store.Tx) error) error {
 
 // keep keeps that name's on, matched from after on.
 func keep(tx *store.Tx, name string, after int64, at time.Time) error {
-	_, err := tx.Exec(`INSERT INTO automations (name, on_, after, added) VALUES (?, 1, ?, ?)
-		ON CONFLICT (name) DO UPDATE SET on_ = 1, after = excluded.after, failed = ''`, name, after, stampOf(at))
+	_, err := tx.Exec(`INSERT INTO automations (name, on_, after, added, ticked) VALUES (?, 1, ?, ?, ?)
+		ON CONFLICT (name) DO UPDATE SET on_ = 1, after = excluded.after, failed = '', ticked = excluded.ticked`, name, after, stampOf(at), stampOf(at))
 	return err
 }
 
@@ -132,7 +152,7 @@ func keep(tx *store.Tx, name string, after int64, at time.Time) error {
 func States(root string) (map[string]State, error) {
 	out := map[string]State{}
 	err := read(root, func(tx *store.Tx) error {
-		rows, err := tx.Query(`SELECT name, on_, after, added, failed FROM automations`)
+		rows, err := tx.Query(`SELECT name, on_, after, added, failed, ticked FROM automations`)
 		if err != nil {
 			return err
 		}
@@ -140,11 +160,14 @@ func States(root string) (map[string]State, error) {
 		for rows.Next() {
 			var s State
 			var on int
-			var added string
-			if err := rows.Scan(&s.Name, &on, &s.After, &added, &s.Failed); err != nil {
+			var added, ticked string
+			if err := rows.Scan(&s.Name, &on, &s.After, &added, &s.Failed, &ticked); err != nil {
 				return err
 			}
 			s.On, s.Added = on == 1, timeOf(added)
+			if ticked != "" {
+				s.Ticked = timeOf(ticked)
+			}
 			out[s.Name] = s
 		}
 		return rows.Err()
@@ -163,7 +186,7 @@ func SetOn(root, name string, on bool) error {
 		q := `UPDATE automations SET on_ = 0 WHERE name = ?`
 		args := []any{name}
 		if on {
-			q, args = `UPDATE automations SET on_ = 1, after = ?, failed = '' WHERE name = ?`, []any{latest, name}
+			q, args = `UPDATE automations SET on_ = 1, after = ?, failed = '', ticked = ? WHERE name = ?`, []any{latest, stampOf(time.Now()), name}
 		}
 		res, err := tx.Exec(q, args...)
 		if err != nil {
@@ -181,7 +204,7 @@ var ErrNotFound = errors.New("there's no automation by that name")
 
 // forget lets go of what's kept of name.
 func forget(tx *store.Tx, name string) error {
-	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`} {
+	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`, `DELETE FROM automation_tasks WHERE name = ? AND state = 'queued'`, `DELETE FROM automation_series WHERE name = ?`, `DELETE FROM automation_outputs WHERE name = ?`} {
 		if _, err := tx.Exec(q, name); err != nil {
 			return err
 		}
@@ -265,9 +288,12 @@ type waitingStep struct {
 // waitFor is a wait() as kept: what it waits for, after which event, till
 // when.
 type waitFor struct {
-	Match string    `json:"match"`
-	After int64     `json:"after"`
-	Due   time.Time `json:"due"`
+	// Match is a wait()'s event; Items a wait_all's or wait_any's (Any).
+	Match string     `json:"match,omitempty"`
+	Items []waitItem `json:"items,omitempty"`
+	Any   bool       `json:"any,omitempty"`
+	After int64      `json:"after"`
+	Due   time.Time  `json:"due"`
 }
 
 // waitingSteps are name's runs parked at a wait().
@@ -390,15 +416,17 @@ func stepState(root, name string, event int64, step int) (state, result string, 
 }
 
 // keepStep keeps a run's step as it stands: started, done (with what it
-// came to), or forgotten (state "": it failed, and may be done again).
-func keepStep(root, name string, event int64, step int, builtin, state, result string) error {
+// came to), or forgotten (state "": it failed, and may be done again);
+// at is where in its script it was called from ("" keeps what's kept).
+func keepStep(root, name string, event int64, step int, builtin, state, result, at string) error {
 	return write(root, func(tx *store.Tx) error {
 		if state == "" {
 			_, err := tx.Exec(`DELETE FROM automation_steps WHERE name = ? AND event = ? AND step = ?`, name, event, step)
 			return err
 		}
-		_, err := tx.Exec(`INSERT INTO automation_steps (name, event, step, builtin, state, result) VALUES (?, ?, ?, ?, ?, ?)
-			ON CONFLICT (name, event, step) DO UPDATE SET state = excluded.state, result = excluded.result`, name, event, step, builtin, state, result)
+		_, err := tx.Exec(`INSERT INTO automation_steps (name, event, step, builtin, state, result, at) VALUES (?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (name, event, step) DO UPDATE SET state = excluded.state, result = excluded.result,
+				at = CASE WHEN excluded.at != '' THEN excluded.at ELSE at END`, name, event, step, builtin, state, result, at)
 		return err
 	})
 }
@@ -427,6 +455,247 @@ func conversationsOf(tx *store.Tx, name string) (map[string]bool, error) {
 func setFailed(root, name, why string) error {
 	return write(root, func(tx *store.Tx) error {
 		_, err := tx.Exec(`UPDATE automations SET failed = ? WHERE name = ?`, why, name)
+		return err
+	})
+}
+
+// Stamp names where what's kept of the automations stands, cheaply: it
+// moves with each write to it. An automation's file changed by hand isn't
+// in it.
+func Stamp(root string) string {
+	var seq int64
+	err := read(root, func(tx *store.Tx) error {
+		var err error
+		seq, err = tx.ChangedAt(Topic)
+		return err
+	})
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	return strconv.FormatInt(seq, 10)
+}
+
+// Tally is how an automation's runs stand: how many it's had (held ones
+// aside), held, failed, waiting at a wait(), and its batches settling.
+type Tally struct {
+	Runs     int `json:"runs"`
+	Held     int `json:"held,omitempty"`
+	Failed   int `json:"failed,omitempty"`
+	Waiting  int `json:"waiting,omitempty"`
+	Settling int `json:"settling,omitempty"`
+}
+
+// Tallies is each automation's tally, by name.
+func Tallies(root string) (map[string]Tally, error) {
+	out := map[string]Tally{}
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT name, state, count(*) FROM automation_runs GROUP BY name, state`)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var name, state string
+			var n int
+			if err := rows.Scan(&name, &state, &n); err != nil {
+				rows.Close()
+				return err
+			}
+			t := out[name]
+			switch state {
+			case Held:
+				t.Held += n
+			case Failed, Unsure:
+				t.Failed += n
+				t.Runs += n
+			case Waiting:
+				t.Waiting += n
+				t.Runs += n
+			default:
+				t.Runs += n
+			}
+			out[name] = t
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows, err = tx.Query(`SELECT name, count(*) FROM automation_settling GROUP BY name`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			var n int
+			if err := rows.Scan(&name, &n); err != nil {
+				return err
+			}
+			t := out[name]
+			t.Settling = n
+			out[name] = t
+		}
+		return rows.Err()
+	})
+	return out, err
+}
+
+// Step is a step a run took that reached outside it: its builtin
+// (notify, converse, wait, show…), where it stands (started, done,
+// waiting) and what it came to (notify: what it said; converse: the
+// conversation it started; wait: what it waits for, or the event it got).
+type Step struct {
+	N       int    `json:"n"`
+	Builtin string `json:"builtin"`
+	State   string `json:"state"`
+	Result  string `json:"result,omitempty"`
+}
+
+// StepsOf is the steps of name's runs on events, by event, in order.
+func StepsOf(root, name string, evs []int64) (map[int64][]Step, error) {
+	out := map[int64][]Step{}
+	if len(evs) == 0 {
+		return out, nil
+	}
+	want := map[int64]bool{}
+	lo, hi := evs[0], evs[0]
+	for _, n := range evs {
+		want[n] = true
+		lo, hi = min(lo, n), max(hi, n)
+	}
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT event, step, builtin, state, result FROM automation_steps WHERE name = ? AND event BETWEEN ? AND ? ORDER BY event, step`, name, lo, hi)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var ev int64
+			var st Step
+			if err := rows.Scan(&ev, &st.N, &st.Builtin, &st.State, &st.Result); err != nil {
+				return err
+			}
+			if want[ev] {
+				out[ev] = append(out[ev], st)
+			}
+		}
+		return rows.Err()
+	})
+	return out, err
+}
+
+// StepCount is how a step of a script has gone, over its runs: where it
+// is (At, line:col, as an outline's steps are), its builtin, and how many
+// times it was done, begun and never said done (Started), is waiting
+// still, and, for a wait, was met or had its time up.
+type StepCount struct {
+	At       string `json:"at"`
+	Builtin  string `json:"builtin"`
+	Done     int    `json:"done,omitempty"`
+	Started  int    `json:"started,omitempty"`
+	Waiting  int    `json:"waiting,omitempty"`
+	Met      int    `json:"met,omitempty"`
+	TimedOut int    `json:"timedOut,omitempty"`
+}
+
+// count adds a step that stands so to c.
+func (c *StepCount) count(state, result string, n int) {
+	switch {
+	case state == "started":
+		c.Started += n
+	case state == "waiting":
+		c.Waiting += n
+	case c.Builtin == "wait" && result == "null":
+		c.TimedOut += n
+	case c.Builtin == "wait":
+		c.Met += n
+	default:
+		c.Done += n
+	}
+}
+
+// Counts is how each step of name's script has gone over its runs (those
+// kept where they were called from), and where its runs failed: line:col,
+// and how many.
+func Counts(root, name string) ([]StepCount, map[string]int, error) {
+	by := map[string]*StepCount{}
+	var order []string
+	failed := map[string]int{}
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT at, builtin, state, result = 'null', count(*) FROM automation_steps WHERE name = ? AND at != '' GROUP BY at, builtin, state, result = 'null'`, name)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var at, builtin, state string
+			var null bool
+			var n int
+			if err := rows.Scan(&at, &builtin, &state, &null, &n); err != nil {
+				rows.Close()
+				return err
+			}
+			c := by[at+" "+builtin]
+			if c == nil {
+				c = &StepCount{At: at, Builtin: builtin}
+				by[at+" "+builtin] = c
+				order = append(order, at+" "+builtin)
+			}
+			result := ""
+			if null {
+				result = "null"
+			}
+			c.count(state, result, n)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows, err = tx.Query(`SELECT error FROM automation_runs WHERE name = ? AND state = ?`, name, Failed)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var why string
+			if err := rows.Scan(&why); err != nil {
+				return err
+			}
+			if at := failedAt(name, why); at != "" {
+				failed[at]++
+			}
+		}
+		return rows.Err()
+	})
+	out := []StepCount{}
+	for _, k := range order {
+		out = append(out, *by[k])
+	}
+	return out, failed, err
+}
+
+// failedAt is where in name's script a run failed, as its error says it
+// (name.star:12:9: …): line:col, "" where it doesn't say.
+func failedAt(name, why string) string {
+	rest, ok := strings.CutPrefix(why, name+".star:")
+	if !ok {
+		return ""
+	}
+	parts := strings.SplitN(rest, ":", 3)
+	if len(parts) < 3 {
+		return ""
+	}
+	if _, err := strconv.Atoi(parts[0]); err != nil {
+		return ""
+	}
+	if _, err := strconv.Atoi(parts[1]); err != nil {
+		return ""
+	}
+	return parts[0] + ":" + parts[1]
+}
+
+// tick keeps that name's schedule was looked at, at.
+func tick(root, name string, at time.Time) error {
+	return write(root, func(tx *store.Tx) error {
+		_, err := tx.Exec(`UPDATE automations SET ticked = ? WHERE name = ?`, stampOf(at), name)
 		return err
 	})
 }

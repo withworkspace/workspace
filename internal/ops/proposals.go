@@ -165,6 +165,8 @@ func (w *Workspace) acceptOther(store conversation.Store, c *conversation.Conver
 		return w.acceptMission(store, c, *p)
 	case conversation.ProposeArtifact:
 		return w.acceptArtifact(store, c, *p)
+	case conversation.ProposeAutomation:
+		return w.acceptAutomation(store, c, *p)
 	}
 	// A kind ws no longer has (an edit to the process, from when it was
 	// read back): it can be declined, not accepted.

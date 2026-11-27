@@ -65,6 +65,9 @@ type RunAsk struct {
 	Wait time.Duration
 	// Env is the environment it runs in: nil is this process's.
 	Env []string
+	// Chain is the automations that led to it, for one an automation
+	// starts (runs.Record.Chain).
+	Chain []string
 
 	// hold is until when it isn't ended for nothing needing it: it's
 	// being started for a run that isn't recorded yet.
@@ -270,7 +273,7 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	st := runs.Start{
 		Name: name, Repo: a.Repo, Worktree: a.Worktree, Dir: a.Dir,
 		Command: command, Recipe: a.Recipe, Ready: rc.Ready, Stop: rc.Stop,
-		Owner: a.Owner, TTL: a.TTL, By: a.By, Env: env, Needs: needs, Hold: a.hold, Check: a.Check,
+		Owner: a.Owner, TTL: a.TTL, By: a.By, Env: env, Needs: needs, Hold: a.hold, Check: a.Check, Chain: a.Chain,
 	}
 	if typ == runs.Task {
 		st.Type = runs.Task

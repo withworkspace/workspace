@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -27,13 +28,26 @@ type Hooks struct {
 	// what's said, where it's unset).
 	Failed func(a *Automation, why string) error
 	// Converse starts a conversation of the workspace's with a first
-	// message, about refs, and says its id.
-	Converse func(a *Automation, text string, about []string) (string, error)
+	// message, about refs, and says its id; chain is the automations that
+	// led to it, a last, which its events carry.
+	Converse func(a *Automation, text string, about, chain []string) (string, error)
 	// Show is a ref as ws show has it, as JSON's types (nil where it
 	// can't be said).
 	Show func(ref string) (map[string]any, error)
 	// RefsIn are the refs a text names, each its name and its kind.
 	RefsIn func(text string) [][2]string
+	// RunTask starts a repo's task (its recipe) on its ground, for a, and
+	// says the run's ref and which run of the task it is; chain is the
+	// automations that led to it, which its events carry.
+	RunTask func(a *Automation, repo, recipe string, chain []string) (ref string, n int, err error)
+	// Report is what a task's run's reports say (internal/report), by
+	// report: each one's summary, or {"error": why}.
+	Report func(ref string, n int) map[string]map[string]any
+	// Repos is the workspace's repos, as repos() gives them.
+	Repos func() []RepoInfo
+	// Things are a plugin's things of a kind (jira:issue), as things()
+	// gives them.
+	Things func(kind string) ([]ThingInfo, error)
 }
 
 // Engine runs a workspace's automations on its events.
@@ -44,6 +58,8 @@ type Engine struct {
 	Timeout time.Duration
 	// Now is the clock (time.Now unset).
 	Now func() time.Time
+	// MaxTasks is how many tasks automations run at once (MaxTasks unset).
+	MaxTasks int
 
 	mu    sync.Mutex // one pass at a time
 	cache map[string]cached
@@ -139,7 +155,7 @@ func (e *Engine) RunDue() []string {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	var said []string
+	said := e.tasksPass()
 	for _, name := range names {
 		st := states[name]
 		if !st.On {
@@ -156,6 +172,7 @@ func (e *Engine) RunDue() []string {
 			return err
 		})
 		ours := func(ev events.Event) bool { return ev.By == events.ByWorkflow(name) || own[ev.Conversation] }
+		e.tick(a, &st)
 		said = append(said, e.resume(a, &st, ours)...)
 		list, err := events.List(e.Root, events.Filter{After: st.After})
 		if err == nil && len(list) > 0 {
@@ -165,6 +182,10 @@ func (e *Engine) RunDue() []string {
 			for _, ev := range list {
 				pace, ok := a.PaceOf(ev)
 				if !ok || ours(ev) {
+					continue
+				}
+				if why := LoopOf(name, ev.Chain); why != "" {
+					said = append(said, e.hold(a, &st, ev, why))
 					continue
 				}
 				if pace.Settle > 0 {
@@ -183,7 +204,7 @@ func (e *Engine) RunDue() []string {
 		// What's settled, run once on its last event, with all of them.
 		done, _ := settled(e.Root, name, e.now())
 		for _, s := range done {
-			batch := eventsNumbered(e.Root, s.events)
+			batch := EventsNumbered(e.Root, s.events)
 			if len(batch) == 0 {
 				continue
 			}
@@ -194,7 +215,8 @@ func (e *Engine) RunDue() []string {
 			}
 		}
 	}
-	return said
+	// What a pass asked for is started now, as there's room.
+	return append(said, e.tasksPass()...)
 }
 
 // resume picks up a's runs parked at a wait(): one whose event's come
@@ -207,29 +229,15 @@ func (e *Engine) resume(a *Automation, st *State, ours func(events.Event) bool) 
 	}
 	var said []string
 	for _, w := range waits {
-		m, err := events.ParseMatch(w.w.Match)
-		if err != nil {
-			continue
-		}
-		result := ""
-		list, _ := events.List(e.Root, events.Filter{After: w.w.After, Kinds: []string{m.Kind}})
-		for _, ev := range list {
-			if m.Matches(ev) && !ours(ev) {
-				b, _ := json.Marshal(ev)
-				result = string(b)
-				break
-			}
-		}
-		if result == "" && e.now().Before(w.w.Due) {
+		list, _ := events.List(e.Root, events.Filter{After: w.w.After})
+		result, done := waitCame(w.w, list, e.now(), ours, func(id int64) (Task, bool) { return taskByID(e.Root, id) })
+		if !done {
 			continue // still waiting
 		}
-		if result == "" {
-			result = "null" // its time's up
-		}
-		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result); err != nil {
+		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result, ""); err != nil {
 			continue
 		}
-		evs := eventsNumbered(e.Root, []int64{w.event})
+		evs := EventsNumbered(e.Root, []int64{w.event})
 		if len(evs) == 0 {
 			continue
 		}
@@ -250,8 +258,8 @@ func keyOf(p Pace, ev events.Event) string {
 	return events.FieldOf(ev, p.Per)
 }
 
-// eventsNumbered are the events numbered ns, in that order, as kept.
-func eventsNumbered(root string, ns []int64) []events.Event {
+// EventsNumbered are the events numbered ns, in that order, as kept.
+func EventsNumbered(root string, ns []int64) []events.Event {
 	if len(ns) == 0 {
 		return nil
 	}
@@ -334,6 +342,49 @@ func (e *Engine) runOn(a *Automation, st *State, ev events.Event, pace Pace, bat
 	return line
 }
 
+// MaxChain is how many automations deep what one causes can go: an
+// event that MaxChain of them led to sets off none, though none of them
+// is twice in it.
+const MaxChain = 3
+
+// LoopOf is why name doesn't run on an event chain led to: it's in it
+// (it'd set itself off again), or the chain's MaxChain deep. "" when it
+// runs.
+func LoopOf(name string, chain []string) string {
+	said := strings.Join(append(append([]string{}, chain...), name), " → ")
+	if slices.Contains(chain, name) {
+		return "it'd loop: " + said
+	}
+	if len(chain) >= MaxChain {
+		return fmt.Sprintf("it'd be more than %d automations deep: %s", MaxChain, said)
+	}
+	return ""
+}
+
+// ChainOf is what a run of name on ev (with batch, what settled with it)
+// causes is led to by: the automations that led to them, then name.
+func ChainOf(name string, ev events.Event, batch []events.Event) []string {
+	var out []string
+	for _, e := range append(append([]events.Event{}, batch...), ev) {
+		for _, n := range e.Chain {
+			if !slices.Contains(out, n) {
+				out = append(out, n)
+			}
+		}
+	}
+	return append(out, name)
+}
+
+// hold keeps a's run on ev as held, for why (a loop), and tells you, once
+// for each why.
+func (e *Engine) hold(a *Automation, st *State, ev events.Event, why string) string {
+	if err := startRun(e.Root, a.Name, ev.N, "", e.now()); err == nil {
+		_ = endRun(e.Root, a.Name, ev.N, Held, why, "")
+	}
+	e.failed(a.Name, st, why)
+	return fmt.Sprintf("%s on %s: %s", a.Name, ev.Ref(), why)
+}
+
 // failed tells you an automation failed, once for what it failed with.
 func (e *Engine) failed(name string, st *State, why string) {
 	if st.Failed == why {
@@ -370,13 +421,15 @@ type run struct {
 	batch []events.Event
 	steps int
 	log   []string
+	// at is where the builtin being called was called from (line:col).
+	at string
 }
 
 // do runs r: its run(e), or, without one, the event notified as it is.
 func (r *run) do() error {
 	if r.a.run == nil {
 		_, err := r.step("notify", func() (string, error) {
-			return "", r.e.Hooks.Notify(r.a, r.ev.Says(), r.ev.Refs())
+			return r.ev.Says(), r.e.Hooks.Notify(r.a, r.ev.Says(), r.ev.Refs())
 		})
 		return err
 	}
@@ -460,13 +513,37 @@ func (r *run) step(builtin string, do func() (string, error)) (string, error) {
 func (r *run) builtins() starlark.StringDict {
 	return starlark.StringDict{
 		"event":    starlark.NewBuiltin("event", eventBuiltin),
-		"notify":   starlark.NewBuiltin("notify", r.notify),
-		"converse": starlark.NewBuiltin("converse", r.converse),
+		"every":    starlark.NewBuiltin("every", everyBuiltin),
+		"notify":   starlark.NewBuiltin("notify", r.placed(r.notify)),
+		"converse": starlark.NewBuiltin("converse", r.placed(r.converse)),
 		"log":      starlark.NewBuiltin("log", r.logLine),
-		"show":     starlark.NewBuiltin("show", r.show),
-		"events":   starlark.NewBuiltin("events", r.events),
-		"refs_in":  starlark.NewBuiltin("refs_in", r.refsIn),
-		"wait":     starlark.NewBuiltin("wait", r.wait),
+		"show":     starlark.NewBuiltin("show", r.placed(r.show)),
+		"events":   starlark.NewBuiltin("events", r.placed(r.events)),
+		"refs_in":  starlark.NewBuiltin("refs_in", r.placed(r.refsIn)),
+		"wait":     starlark.NewBuiltin("wait", r.placed(r.wait)),
+		"wait_all": starlark.NewBuiltin("wait_all", r.placed(r.waitMany(false))),
+		"wait_any": starlark.NewBuiltin("wait_any", r.placed(r.waitMany(true))),
+		"run_task": starlark.NewBuiltin("run_task", r.placed(r.runTask)),
+		"repos":    starlark.NewBuiltin("repos", r.placed(r.repos)),
+		"keep":     starlark.NewBuiltin("keep", r.placed(r.keepBuiltin)),
+		"kept":     starlark.NewBuiltin("kept", r.placed(r.keptBuiltin)),
+		"output":   starlark.NewBuiltin("output", r.placed(r.outputBuiltin)),
+		"chart":    starlark.NewBuiltin("chart", chartBuiltin),
+		"things":   starlark.NewBuiltin("things", r.placed(r.thingsBuiltin)),
+	}
+}
+
+type builtinFn = func(*starlark.Thread, *starlark.Builtin, starlark.Tuple, []starlark.Tuple) (starlark.Value, error)
+
+// placed is a builtin that keeps where it's called from (r.at), for its
+// step: the call's place in the script, as an outline's steps are.
+func (r *run) placed(f builtinFn) builtinFn {
+	return func(th *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		r.at = ""
+		if th.CallStackDepth() > 1 {
+			r.at = PosKey(th.CallFrame(1).Pos)
+		}
+		return f(th, b, args, kwargs)
 	}
 }
 
@@ -485,7 +562,8 @@ func (r *run) notify(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		all = append(all, open)
 	}
 	all = append(all, stringsOf(refs)...)
-	_, err := r.step("notify", func() (string, error) { return "", r.e.Hooks.Notify(r.a, text, all) })
+	// What it said is kept, for its runs on the Automations page.
+	_, err := r.step("notify", func() (string, error) { return text, r.e.Hooks.Notify(r.a, text, all) })
 	return starlark.None, err
 }
 
@@ -503,7 +581,9 @@ func (r *run) converse(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	if r.e.Hooks.Converse == nil {
 		return nil, fmt.Errorf("converse: there's no conversation to start here")
 	}
-	id, err := r.step("converse", func() (string, error) { return r.e.Hooks.Converse(r.a, text, stringsOf(about)) })
+	id, err := r.step("converse", func() (string, error) {
+		return r.e.Hooks.Converse(r.a, text, stringsOf(about), ChainOf(r.a.Name, r.ev, r.batch))
+	})
 	return starlark.String(id), err
 }
 
@@ -615,52 +695,18 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if d > maxWait {
 		return nil, fmt.Errorf("wait: timeout: at most %s", shortDuration(maxWait))
 	}
-	r.steps++
-	n := r.steps
-	state, result, err := r.stepState(n)
-	switch {
-	case err != nil:
-		return nil, err
-	case state == "done":
-		if result == "null" || result == "" {
-			return starlark.None, nil
-		}
-		var ev events.Event
-		if err := json.Unmarshal([]byte(result), &ev); err != nil {
-			return nil, err
-		}
-		return eventValue(ev), nil
-	case state == "waiting":
-		return nil, errParked
-	}
-	// It waits for what's kept after it's reached: after the latest event
-	// now, or in a dry run, after the event it's run on, from when that was.
-	after, due := int64(0), r.e.now().Add(d)
+	// It waits for what comes after the event it's run on: what happened
+	// while the daemon was catching up counts, as a dry run has it. Its time
+	// is from now, or in a dry run, from when that event was.
+	after, due := r.ev.N, r.e.now().Add(d)
 	if r.dry != nil {
-		after, due = r.ev.N, r.ev.At.Add(d)
-	} else if after, err = latest(r.e.Root); err != nil {
-		return nil, err
+		due = r.ev.At.Add(d)
 	}
-	kept, _ := json.Marshal(waitFor{Match: m.m.String(), After: after, Due: due})
-	if err := r.keepStep(n, "wait", "waiting", string(kept)); err != nil {
-		return nil, err
-	}
-	return nil, errParked
+	return r.parkOn(waitFor{Match: m.m.String(), After: after, Due: due})
 }
 
 // maxWait is the longest a run may wait.
 const maxWait = 7 * 24 * time.Hour
-
-// latest is the number of the latest event kept.
-func latest(root string) (int64, error) {
-	var n int64
-	err := read(root, func(tx *store.Tx) error {
-		var err error
-		n, err = latestEvent(tx)
-		return err
-	})
-	return n, err
-}
 
 // refsIn is refs_in(text): the refs a text names, each with .ref and
 // .kind.
@@ -859,8 +905,11 @@ func (r *run) keepStep(n int, builtin, state, result string) error {
 			delete(r.dry.steps, n)
 		} else {
 			r.dry.steps[n] = [2]string{state, result}
+			if r.at != "" {
+				r.dry.at[n] = [2]string{r.at, builtin}
+			}
 		}
 		return nil
 	}
-	return keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, state, result)
+	return keepStep(r.e.Root, r.a.Name, r.ev.N, n, builtin, state, result, r.at)
 }

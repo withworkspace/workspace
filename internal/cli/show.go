@@ -1411,6 +1411,10 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 				if p.To != "" {
 					what = fmt.Sprintf("a version of %s, on v%d — %s", p.To, p.On, p.Note)
 				}
+			case conversation.ProposeAutomation:
+				if a := p.Automation; a != nil {
+					what = fmt.Sprintf("automation %s: when %s — would have run %d %s in the last 30 days", a.Name, a.When, a.DryRun.Ran, plural(a.DryRun.Ran, "time"))
+				}
 			}
 			state := p.State
 			switch {

@@ -33,7 +33,7 @@ type MatchField struct {
 }
 
 // matchKeys are the fields a Match asks of what an event says.
-var matchKeys = []string{"by", "repo", "capsule", "branch", "mission", "pr", "doc", "thing", "kind", "run", "conversation", "status", "title", "path", "origin"}
+var matchKeys = []string{"by", "repo", "capsule", "branch", "mission", "pr", "doc", "thing", "kind", "run", "conversation", "status", "title", "path", "origin", "automation"}
 
 // ParseMatch reads a Match: its kind, then field=value pairs. It says
 // what's wrong with one it can't read.
@@ -120,6 +120,8 @@ func fieldMatches(f MatchField, e Event) bool {
 		return slices.ContainsFunc(e.Paths, func(p string) bool { return like(f.Value, p) }) || like(f.Value, strings.TrimPrefix(e.Doc, e.Repo+":"))
 	case "origin":
 		return like(f.Value, e.Origin) || (f.Value == "did" && e.Origin == Did)
+	case "automation":
+		return like(f.Value, e.Automation)
 	}
 	// A thing's own field: changed to what's asked.
 	return slices.ContainsFunc(e.Changes, func(c FieldChange) bool { return strings.EqualFold(c.Field, f.Key) && like(f.Value, c.To) })
@@ -188,6 +190,8 @@ func FieldOf(e Event, key string) string {
 		return e.Title
 	case "origin":
 		return e.Origin
+	case "automation":
+		return e.Automation
 	}
 	for _, c := range e.Changes {
 		if strings.EqualFold(c.Field, key) {

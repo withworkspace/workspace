@@ -60,7 +60,7 @@ func engine(t *testing.T) (*Engine, *told) {
 			got.notified = append(got.notified, a.Name+": "+text+" "+strings.Join(refs, ","))
 			return nil
 		},
-		Converse: func(a *Automation, text string, about []string) (string, error) {
+		Converse: func(a *Automation, text string, about, chain []string) (string, error) {
 			got.conversed = append(got.conversed, text)
 			return "w9", nil
 		},
@@ -119,7 +119,7 @@ func TestEngine_StepsAreDoneOnce(t *testing.T) {
 	// As though the daemon stopped once notify had been done, before the
 	// run was said to have ended.
 	startRun(e.Root, "drawing", ev.N, "", e.now())
-	keepStep(e.Root, "drawing", ev.N, 1, "notify", "done", "")
+	keepStep(e.Root, "drawing", ev.N, 1, "notify", "done", "", "")
 	e.RunDue()
 	if len(got.notified) != 0 {
 		t.Errorf("a step done was done again: %q", got.notified)
@@ -130,7 +130,7 @@ func TestEngine_StepsAreDoneOnce(t *testing.T) {
 
 	ev = emit(t, e.Root, sketch)
 	startRun(e.Root, "drawing", ev.N, "", e.now())
-	keepStep(e.Root, "drawing", ev.N, 1, "notify", "started", "")
+	keepStep(e.Root, "drawing", ev.N, 1, "notify", "started", "", "")
 	e.RunDue()
 	runs, _ := Runs(e.Root, "drawing", 1)
 	if runs[0].State != Unsure || len(got.notified) != 1 || !strings.Contains(got.notified[0], "couldn't run") {

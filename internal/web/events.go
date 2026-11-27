@@ -52,6 +52,9 @@ const (
 	topicReviews   = "reviews"
 	topicTeam      = "team"
 	topicRuns      = "runs" // the Runs page's: every run, and the silos
+	// topicAutomations is the Automations page's: each automation, and its
+	// runs.
+	topicAutomations = "automations"
 )
 
 func newHub(name string, poll time.Duration, fingerprint func() string) *hub {

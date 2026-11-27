@@ -63,6 +63,8 @@ type Start struct {
 	Dirty   bool
 	Reports []Report
 	Check   *CheckOf
+	// Chain is the automations that led to it (Record.Chain).
+	Chain []string
 }
 
 // Start starts a run: claims its name, picks its port, starts its command
@@ -261,7 +263,7 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 		Command: command, Recipe: o.Recipe, Ready: o.Ready, Stop: o.Stop,
 		Port: port, PID: pid, Began: began, Owner: o.Owner, Needs: o.Needs,
 		Created: now.UTC().Truncate(time.Second), By: o.By,
-		Commit: o.Commit, Dirty: o.Dirty, Check: o.Check,
+		Commit: o.Commit, Dirty: o.Dirty, Check: o.Check, Chain: o.Chain,
 	}
 	if task {
 		rec.Type, rec.N, rec.Reports = Task, n, o.Reports

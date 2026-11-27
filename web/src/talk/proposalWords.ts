@@ -19,6 +19,7 @@ export function proposalLabel(p: TalkProposal, briefing: boolean, kindTitle: str
       document: p.to ? `Edit to the ${kindName(kindTitle)}` : kindTitle,
       artifact: p.to ? `A version of ${p.to}` : "Artifact",
       plugin: p.label ?? "Proposal", // drawn by PluginProposalCard
+      automation: "Automation",
     }[p.kind] ?? "Proposal" // a kind ws no longer has, from before
   );
 }
@@ -37,8 +38,9 @@ export function proposalAccept(p: TalkProposal, briefing: boolean, kindTitle: st
     document: p.to ? "Save the edit" : `Add ${kindName(kindTitle)}`,
     artifact: p.to ? `Add as v${artifactNext(p, artifact)}` : "Add artifact",
     plugin: "Accept",
+    automation: p.automation?.replaces ? "Replace and turn on" : "Turn it on",
   }[p.kind];
 }
 
 export const proposalBusy = (p: TalkProposal): string =>
-  ({ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Working…" })[p.kind];
+  ({ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Working…", automation: "Turning on…" })[p.kind];
