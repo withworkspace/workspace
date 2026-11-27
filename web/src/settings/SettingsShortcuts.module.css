@@ -1,0 +1,29 @@
+/* Every command a key does (SettingsShortcuts.tsx): a box to find one,
+   then a group for each scope. */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.filter {
+  flex: 1;
+  max-width: 420px;
+}
+
+.group {
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.none {
+  color: var(--dim);
+}

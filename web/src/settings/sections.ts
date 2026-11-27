@@ -121,7 +121,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const groups = info?.groups ?? [];
   const section = (id: string, title: string, icon: IconName, about: string, heading?: string): Section => ({ id, title, icon, about, heading, blocks: [] });
   const appearance = section("appearance", "Appearance", "sun", "How the web UI looks.", "Interface");
-  const keyboard = section("keyboard", "Keyboard", "keyboard", "Send key and shortcut hints.");
+  const keyboard = section("keyboard", "Keyboard", "keyboard", "Send key, shortcut hints, and the keys for each shortcut.");
   const notifications = section("notifications", "Notifications", "bell", "Desktop notifications, and where updates are sent.");
   let feed: Block | undefined;
   const fromEach: Block[] = [];
