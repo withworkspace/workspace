@@ -1434,6 +1434,8 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 				if p.To != "" {
 					what = fmt.Sprintf("an edit to the document %s (%s): %s", p.To, p.DocKind, p.Title)
 				}
+			case conversation.ProposeConfig:
+				what = fmt.Sprintf("a change to %s: %s (%s)", p.Path, p.Title, p.Where)
 			case conversation.ProposeArtifact:
 				what = fmt.Sprintf("artifact: %s — %s", p.Title, p.Note)
 				if p.To != "" {

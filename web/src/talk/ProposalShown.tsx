@@ -5,6 +5,7 @@ import { Excerpt } from "../ui/Excerpt";
 import { ArtifactProposalBody } from "./ArtifactProposal";
 import { AutomationProposed } from "./AutomationProposed";
 import { BriefDiff } from "./BriefDiff";
+import { TalkProposalConfig } from "./TalkProposalConfig";
 import { TalkProposalMeta } from "./TalkProposalMeta";
 import { TalkProposalPlan } from "./TalkProposalPlan";
 import { TalkProposalWhat } from "./TalkProposalWhat";
@@ -17,6 +18,8 @@ import { Prose } from "../ui/Prose";
 // (not being edited), by its kind. briefing: a brief that starts its
 // mission; prHref and lines, where a review comment goes; frame, where an
 // artifact proposed runs; artifact, the one a version's of.
+const upper = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: { p: TalkProposal; briefing: boolean; prHref: string; lines: string; frame: string; artifact?: ArtifactInfo }) {
   switch (p.kind) {
     case "decision":
@@ -101,6 +104,16 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
       return <ArtifactProposalBody p={p} src={frame} artifact={artifact} />;
     case "automation":
       return p.automation ? <AutomationProposed a={p.automation} script={p.text ?? ""} /> : null;
+    case "config":
+      // What it does to the file, as the agent read it (opening it merges
+      // in what's changed there since).
+      return (
+        <>
+          {p.why && <TalkProposalWhat why>{p.why}</TalkProposalWhat>}
+          <TalkProposalConfig was={p.was ?? ""} now={p.text ?? ""} />
+          <TalkProposalMeta items={[`${p.was?.trim() ? "Changes" : "Adds"} ${p.path}`, p.where && upper(p.where)]} />
+        </>
+      );
   }
   return null;
 }

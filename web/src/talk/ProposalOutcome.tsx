@@ -85,6 +85,20 @@ export function ProposalOutcome({ p, briefing, slug, prHref, inReview }: { p: Ta
     }
     case "automation":
       return done(`On: ${p.result ?? p.automation?.name ?? "it"} runs from the next event (ws automation list)`);
+    case "config":
+      // A pull request, by its URL; or, in a repo with no pull requests,
+      // the capsule it's committed in.
+      if (p.lands === "capsule") return done(`Committed in ${p.result}, ready to land`);
+      return (
+        <>
+          {done("Pull request opened: in once it's merged")}
+          {p.result && (
+            <a href={p.result} target="_blank" rel="noreferrer" className={buttonClass()}>
+              Open pull request <Icon name="external" size={13} />
+            </a>
+          )}
+        </>
+      );
     case "artifact": {
       // Added, as a version: a3.v1, drawn as its card.
       const v = addedVersion(p.result);

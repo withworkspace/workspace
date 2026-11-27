@@ -7,11 +7,20 @@ ws does a lot more once it's configured, and most of that is about the repos it 
 1. Start from where the workspace stands, which is printed above this guide. It lists what each file already sets, which repos have no ws.repo.toml, and the signs found in each repo's ground.
 2. Look at the repos before you recommend anything. Each one's default branch is at `repos/<repo>/.ground`. Read its package.json scripts, justfile, Makefile, compose file, README and CI workflows. Don't guess a command: take it from the repo.
 3. Recommend the most useful settings first, and only what the workspace doesn't already set. Runs and capsule setup for the repos the user works in most usually come first.
-4. For each recommendation, say what it gets the user in a sentence, which file it goes in, and give TOML that's ready to paste. When a setting could go in more than one file, choose by whose fact it is (see *The three files*).
+4. For each recommendation, say what it gets the user in a sentence and which file it goes in. When a setting could go in more than one file, choose by whose fact it is (see *The three files*).
 5. Ask when you'd otherwise be guessing, such as which repo holds their documents, or whether a repo takes pull requests.
-6. After a change, `ws doctor` lists the keys ws doesn't read, such as one that's misspelt or in the wrong file.
+6. Propose the changes they want, one file at a time (see *Making the change*).
 
-You don't change these files yourself. For a key the Settings page has a row for (listed above), point the user there. ws.toml is the team's, so the user commits it in the workspace's config repo. A ws.repo.toml is part of its repo's code and lands the way the repo's changes land: through a mission, or a capsule and a pull request.
+## Making the change
+
+You don't write these files yourself. You propose a change, and the user confirms it under your reply, which opens it as a pull request:
+
+1. `ws config edit --propose <file>` prints the file as it is and the `--on` value to propose with. The file is `ws.toml`, or `<repo>:ws.repo.toml`, which can be one that isn't there yet.
+2. `ws config edit --propose <file> --on <value> --title "<what it sets up>" --why "<what it gets the user>" -`, with the whole file as it should read on stdin. Keep what's there that isn't changing, comments too.
+
+ws checks the file as it would read it, and refuses TOML that doesn't parse or a key it doesn't read, saying which. Confirmed, a repo's ws.repo.toml is committed in a capsule lifted for it and opened as a pull request on that repo; in a repo with no pull requests it's left committed in the capsule, for the user to land. ws.toml is opened as a pull request on the workspace's config repo, and `ws sync` brings it in once it's merged.
+
+ws.local.toml is the user's own and committed nowhere, so it isn't proposed. For a key the Settings page has a row for (listed above), point the user there; for any other, give the lines to paste.
 
 ## The three files
 

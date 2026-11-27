@@ -1145,11 +1145,11 @@ export const getThreadVersion = (slug: string, ref: string, v: string) =>
 // TalkProposal is something the agent proposed: a decision, a mission
 // (with a brief, ready; without, an idea to brief later), an edit to the
 // brief, crew, a replan by the mission's planner, a review comment, a
-// document of one of the workspace's kinds, or an artifact (or a version
-// of one).
+// document of one of the workspace's kinds, an artifact (or a version
+// of one), or a change to ws's config.
 export interface TalkProposal {
   n: number;
-  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin" | "automation";
+  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin" | "automation" | "config";
   by: string;
   at: string;
   what?: string;
@@ -1216,6 +1216,13 @@ export interface TalkProposal {
   // an automation: what it is and would have done lately (its script is
   // text), as internal/automation.Proposed says it.
   automation?: ProposedAutomation;
+  // a change to ws's config: path is its file (ws.toml, repo:ws.repo.toml),
+  // text the whole of it as it should read, was as the agent read it;
+  // title and why are the pull request's. lands is how it goes in ("pr";
+  // "capsule", a repo with no pull requests), where says it in words.
+  // Result, accepted, is the pull request's URL, or the capsule.
+  lands?: "pr" | "capsule";
+  where?: string;
   revises?: number; // the agent's revision of an open proposal of its, by number: that one's superseded by this
   state: "open" | "accepted" | "declined" | "superseded" | "withdrawn"; // superseded: a later one took its place; withdrawn: the agent took it back
   because?: string; // withdrawn: why

@@ -78,6 +78,8 @@ var labels = map[string]string{
 	"doc":                      "Looking at documents",
 	"doc add":                  "Adding a {1}",
 	"doc amend":                "Changing {1}",
+	"config":                   "Looking at ws's config",
+	"config edit":              "Changing {1}",
 	"documents":                "Looking through documents",
 	"documents search":         "Searching documents for {1}",
 	"find":                     "Searching for {1}",
