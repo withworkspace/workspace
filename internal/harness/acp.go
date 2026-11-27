@@ -2,6 +2,7 @@ package harness
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
@@ -57,6 +58,10 @@ type ACPRun struct {
 	Runs    bool            `json:"runs,omitempty"`
 	Folders func() []string `json:"-"`
 	Prompt  string          `json:"prompt"`
+	// Images are pictures given with Prompt (ConverseRun.Images), sent as
+	// ACP's image blocks where the agent says it takes them; Prompt names
+	// each as a file it can read, where it doesn't.
+	Images []Image `json:"images,omitempty"`
 	// Auth is the auth method to sign in by first ("" for none).
 	Auth string `json:"auth,omitempty"`
 	// Answers are what the agent's own requests (an extension's, by
@@ -242,7 +247,11 @@ func RunACP(ctx context.Context, r ACPRun, out, errOut io.Writer) error {
 		mu.Lock()
 		refused = nil
 		mu.Unlock()
-		turn, err := ag.Prompt(ctx, acp.Text(prompt))
+		blocks := []acp.ContentBlock{acp.Text(prompt)}
+		if carried == 0 {
+			blocks = append(blocks, imageBlocks(ag.Client().Info, r.Images)...)
+		}
+		turn, err := ag.Prompt(ctx, blocks...)
 		if ctx.Err() != nil {
 			ag.Interrupt() //nolint:errcheck // closing it next
 			return ctx.Err()
@@ -900,4 +909,22 @@ func firstNonEmptyString(s ...string) string {
 		}
 	}
 	return ""
+}
+
+// imageBlocks are the pictures as ACP's image blocks, where the agent
+// said it takes them (promptCapabilities.image): none where it didn't, or
+// for a picture that can't be read now (the prompt names each as a file).
+func imageBlocks(info acp.AgentInfo, imgs []Image) []acp.ContentBlock {
+	if !info.AgentCapabilities.PromptCapabilities.Image {
+		return nil
+	}
+	var out []acp.ContentBlock
+	for _, img := range imgs {
+		data, err := os.ReadFile(img.Path)
+		if err != nil || img.Type == "" {
+			continue
+		}
+		out = append(out, acp.ContentBlock{Type: "image", MimeType: img.Type, Data: base64.StdEncoding.EncodeToString(data), URI: "file://" + img.Path})
+	}
+	return out
 }
