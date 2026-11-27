@@ -185,14 +185,14 @@ func writeCursorPermissions(scratch string, cmds []string) (string, error) {
 
 // orchestratorCommands are the shell commands the orchestrator may run,
 // as Claude Code's are (claudeOrchestratorTools): ws's mission verbs,
-// lift, status, show and find, GitHub's PR views, read-only git (where it is,
+// lift, status, show and find, GitHub's PR views and CI runs' logs, read-only git (where it is,
 // and by the full path of each capsule and .ground), and reading.
 func orchestratorCommands(r OrchestratorRun) []string {
 	var out []string
 	for _, ws := range []string{"ws", "workspace"} {
 		out = append(out, ws+" mission", ws+" lift", ws+" status", ws+" show", ws+" review show", ws+" find")
 	}
-	out = append(out, "git diff", "git log", "git show", "git status", "gh pr view", "gh pr checks", "gh pr list",
+	out = append(out, "git diff", "git log", "git show", "git status", "gh pr view", "gh pr checks", "gh pr list", "gh run view",
 		"cd", "pwd", "ls", "cat", "head", "tail", "wc", "echo")
 	for _, p := range append(append([]string(nil), r.Capsules...), r.Grounds...) {
 		if p == "" || strings.ContainsAny(p, " \t\n\"'()*") {

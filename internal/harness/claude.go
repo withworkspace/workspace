@@ -189,7 +189,7 @@ var claudeOrchestratorTools = []string{
 	"Bash(ws review show *)", "Bash(workspace review show *)",
 	"Bash(ws find *)", "Bash(workspace find *)",
 	"Bash(git diff *)", "Bash(git log *)", "Bash(git show *)", "Bash(git status *)",
-	"Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh pr list *)",
+	"Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh pr list *)", "Bash(gh run view *)",
 	"Bash(cd *)", "Bash(pwd)", "Bash(ls *)", "Bash(cat *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)", "Bash(echo *)",
 }
 

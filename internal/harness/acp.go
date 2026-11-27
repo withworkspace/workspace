@@ -140,7 +140,7 @@ func WithModel(h Harness, l Launch, model string) Launch {
 var crewCommands = []string{
 	"ws", "workspace",
 	"git add", "git commit", "git push", "git fetch", "git pull",
-	"gh pr create", "gh pr view", "gh pr checks", "gh pr list", "gh pr edit", "gh pr comment", "gh issue view",
+	"gh pr create", "gh pr view", "gh pr checks", "gh pr list", "gh pr edit", "gh pr comment", "gh issue view", "gh run view",
 }
 
 // gitDirsOf are the git folders a capsule's commits write, outside it: a
