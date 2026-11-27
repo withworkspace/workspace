@@ -58,15 +58,16 @@ export function refOfId(id: string): string | undefined {
 }
 
 // ThingMenu is what such a menu holds, as the workspace stands while it's
-// open: what can be done to the thing, your automations' actions on it
-// (as the server says, once it's said), and opening it in a tab. extra
-// is more, before the rest: what a plugin's frame added for a right click
-// in it.
-export function ThingMenu({ to, ref: given, extra }: { to?: string; ref?: string; extra?: React.ReactNode }) {
+// open: what can be done to the thing (by where the row goes, to), your
+// automations' actions on it (as the server says, once it's said), and
+// opening it in a tab. thing is the thing by its ref, where there's no
+// row's link to go by (a right click in a plugin's frame); extra is more,
+// before the rest: what the frame's app added.
+export function ThingMenu({ to, thing, extra }: { to?: string; thing?: string; extra?: React.ReactNode }) {
   const workspace = useWorkspaceIfRead();
   const navigate = useNavigate();
   const acts = to ? actsAt(to, workspace) : [];
-  const on = given ?? (to ? refAt(to, workspace) : undefined);
+  const on = thing ?? (to ? refAt(to, workspace) : undefined);
   const automations = useActions(on);
   const perform = (it: Item) => {
     if (it.doing) {

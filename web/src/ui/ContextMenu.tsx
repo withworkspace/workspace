@@ -13,7 +13,9 @@ import { PopoverSurface } from "./Popover";
 // ContextItems is what a menu holds, drawn when it's opened.
 export type ContextItems = () => ReactNode;
 
-type Open = (e: MouseEvent<Element>, label: string, items: ContextItems) => void;
+// Open opens it at a point in the page, with what it holds; closed is
+// called once it's put away (another's opening puts it away too).
+type Open = (at: { clientX: number; clientY: number }, label: string, items: ContextItems, closed?: () => void) => void;
 
 const ContextMenuContext = createContext<Open | undefined>(undefined);
 
@@ -26,11 +28,23 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
   // Somewhere for the menu to open by: an empty box where the pointer was.
   const point = useRef<HTMLDivElement>(null);
 
-  const open = useCallback<Open>((e, label, items) => {
-    const { clientX: x, clientY: y } = e;
+  // What's to be told when the one that's open is put away.
+  const closed = useRef<() => void>(undefined);
+  const told = () => {
+    const was = closed.current;
+    closed.current = undefined;
+    was?.();
+  };
+  const open = useCallback<Open>((at, label, items, then) => {
+    told();
+    closed.current = then;
+    const { clientX: x, clientY: y } = at;
     setShown((s) => ({ label, items, open: true, x, y, n: s.n + 1 }));
   }, []);
-  const close = useCallback(() => setShown((s) => (s.open ? { ...s, open: false } : s)), []);
+  const close = useCallback(() => {
+    told();
+    setShown((s) => (s.open ? { ...s, open: false } : s));
+  }, []);
 
   // While it's open the rest of the page is out of reach (react-aria
   // makes it inert, as under any menu), so asking for a menu somewhere
@@ -84,6 +98,22 @@ export function useContextMenu(): (label: string, items: ContextItems | null | u
       if (document.getSelection()?.type === "Range") return;
       e.preventDefault();
       open(e, label, items);
+    },
+    [open],
+  );
+}
+
+// useContextMenuAt gives what opens the menu at a point in the page, not
+// from an event of this page's: a right click in a plugin's frame, which
+// the frame says, at where in the page it was. closed is called once it's
+// put away. It's false where there's no ContextMenuProvider.
+export function useContextMenuAt(): (x: number, y: number, label: string, items: ContextItems, closed?: () => void) => boolean {
+  const open = useContext(ContextMenuContext);
+  return useMemo(
+    () => (x, y, label, items, closed) => {
+      if (!open) return false;
+      open({ clientX: x, clientY: y }, label, items, closed);
+      return true;
     },
     [open],
   );

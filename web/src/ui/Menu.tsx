@@ -77,13 +77,15 @@ export function MenuList({
 // (textValue), and what it shows, which is a row: an icon, MenuText, a
 // count or a key at its end. A danger one is in red. keys is the key
 // that does the same without the menu: it's drawn at the row's end, and
-// hinted at when the item's picked with the pointer (ui/keyHint.ts).
+// hinted at when the item's picked with the pointer (ui/keyHint.ts). A
+// disabled one is shown, and can't be chosen.
 export function MenuItem({
   id,
   textValue,
   onAction,
   tone,
   keys,
+  disabled,
   className,
   children,
 }: {
@@ -92,11 +94,12 @@ export function MenuItem({
   onAction?: () => void;
   tone?: "danger";
   keys?: string;
+  disabled?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <AriaMenuItem id={id} textValue={textValue} onAction={onAction} onPress={keys ? (e) => pointed(e) && keyHint(keys) : undefined} className={cx(css.item, tone === "danger" && css.danger, className)}>
+    <AriaMenuItem id={id} textValue={textValue} isDisabled={disabled} onAction={onAction} onPress={keys ? (e) => pointed(e) && keyHint(keys) : undefined} className={cx(css.item, tone === "danger" && css.danger, className)}>
       {children}
       {keys && <Keys k={keys} />}
     </AriaMenuItem>

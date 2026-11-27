@@ -15,6 +15,8 @@ import { onThemeChange, theme } from "./theme";
 import { frameUis, kinds } from "./ui";
 import { PluginView } from "./PluginView";
 import { FrameUiLayer } from "./Uis/FrameUiLayer";
+import { FrameMenu } from "./FrameMenu";
+import { useContextMenuAt } from "../ui/ContextMenu";
 
 // A plugin's view: the plugin's app, in a frame, at /x/<name>/…. The frame
 // is a page ws serves (the shell, /plugin-frame/<name>/…: ws's tokens, an
@@ -82,8 +84,9 @@ export function PluginFrame({ name }: { name: string }) {
 
   // What the connection's given is read when it's asked for, so the
   // listening below is set up once, and never torn down for a new render.
-  const now = useRef({ ws, navigate, refs, workspace });
-  now.current = { ws, navigate, refs, workspace };
+  const openMenuAt = useContextMenuAt();
+  const now = useRef({ ws, navigate, refs, workspace, openMenuAt });
+  now.current = { ws, navigate, refs, workspace, openMenuAt };
 
   // ws listens before the frame is made, so the app's first ws:connect
   // can't come before there's anyone to hear it.
@@ -130,6 +133,23 @@ export function PluginFrame({ name }: { name: string }) {
         // How the app wants the chrome: expanded, the shell folds its
         // sidebar (App.tsx).
         chromeLayout: (mode) => useChromeStore.getState().setFrameLayout(name, mode),
+        // A right click in the app: ws's menu, where it was, over the
+        // frame's edge if it has to be. The app's item chosen, if one was,
+        // is said as it's put away.
+        menu({ id, x, y, ref, items }) {
+          const box = iframe.current?.getBoundingClientRect();
+          let chosen: string | undefined;
+          const opened =
+            !!box &&
+            now.current.openMenuAt(
+              box.left + x,
+              box.top + y,
+              ref ?? `${name}'s page`,
+              () => <FrameMenu items={items} thing={ref} choose={(item) => (chosen = item)} />,
+              () => frame.current?.menuClosed(id, chosen),
+            );
+          if (!opened) frame.current?.menuClosed(id);
+        },
         conversation,
       },
       setRefused,

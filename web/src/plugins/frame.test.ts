@@ -18,7 +18,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], uis: [] as Asked[], uiCloses: [] as number[], uiForgets: 0, heres: [] as (string | undefined)[], layouts: [] as string[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], uis: [] as Asked[], uiCloses: [] as number[], uiForgets: 0, heres: [] as (string | undefined)[], layouts: [] as string[], menus: [] as Parameters<Host["menu"]>[0][] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -50,6 +50,7 @@ function fakeWs(path = "/things/2?tab=links") {
     },
     here: (name) => void said.heres.push(name),
     chromeLayout: (mode) => void said.layouts.push(mode),
+    menu: (asked) => void said.menus.push(asked),
     conversation: createHost(),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
@@ -123,7 +124,7 @@ describe("the handshake", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const ws = fakeWs();
     // A ws that has gone on to 2 and dropped 1.
-    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, conversation() {}, close() {} }) };
+    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, menuClosed() {}, conversation() {}, close() {} }) };
     const failed = connect({ host: { postMessage: (m, _o, [port]) => void answer(m as V1.Connect, port as MessagePort, ws.host, later) } });
     await expect(failed).rejects.toBeInstanceOf(ProtocolError);
     await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira supports frame protocol 1; Workspace supports 2. Update the plugin." });
@@ -136,7 +137,7 @@ describe("the handshake", () => {
     const two: Speak = (port) => {
       spoke.push(2);
       port.postMessage({ type: "ws:welcome", version: 2 });
-      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, conversation() {}, close: () => port.close() };
+      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, menuClosed() {}, conversation() {}, close: () => port.close() };
     };
     const both: Record<number, Speak> = { 1: v1, 2: two };
 
@@ -317,6 +318,20 @@ describe("protocol 1's host", () => {
     expect(said.uis).toEqual([]);
     late.close();
     port1.close();
+    session.close();
+  });
+
+  it("opens ws's menu for a right click in the app, and says back the app's item chosen", async () => {
+    const { client, session, said } = await connected();
+    expect(client.ui.has("ref-card")).toBe(true);
+    const ran: string[] = [];
+    const shown = client.ui.menu({ x: 12, y: 34 }, { ref: "THING-2", entries: [{ label: "Rename", icon: "pencil", run: () => ran.push("rename") }] });
+    await tick();
+    expect(said.menus).toEqual([{ id: 1, x: 12, y: 34, ref: "THING-2", items: [{ id: "0", label: "Rename", icon: "pencil" }] }]);
+    session.menuClosed(1, "0");
+    expect(await shown).toBe(true);
+    expect(ran).toEqual(["rename"]);
+    client.close();
     session.close();
   });
 
