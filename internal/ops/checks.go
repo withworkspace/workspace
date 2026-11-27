@@ -479,6 +479,9 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 	if round.N >= w.Config().MaxRounds() {
 		return w.askAboutChecks(slug, n, round, fmt.Sprintf("%d %s unmet, the most allowed (%s)", round.N, plural(round.N, "round"), guaranteeMaxRounds(w.Config().MaxRounds()).Key))
 	}
+	if said, ok := w.stepUp(slug, n, round); ok {
+		return said
+	}
 	if w.Notify(slug, mission.OrchestratorEvent{Crew: round.Crew, Trigger: "checks"}) {
 		return fmt.Sprintf("step %d's checks aren't all met (%s): the orchestrator decides what follows, by the process", n, round.Summary())
 	}

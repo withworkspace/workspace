@@ -21,6 +21,10 @@ export interface ActRequest {
     task?: number;
     crew?: string;
     /**
+     * Step is the step of the plan level puts at another level (Text).
+     */
+    step?: number;
+    /**
      * Harness and Model are what launch starts crew on: one of the
      * mission's CrewPicks (neither: the default).
      */
@@ -2891,6 +2895,11 @@ export interface MissionDetail {
      * CrewPicks are what Launch crew may start crew on.
      */
     crewPicks: CrewPicks;
+    /**
+     * LevelOn is what crew run on at each level of a Work step, by level
+     * (rote, normal, hard), as [crew.levels] has it.
+     */
+    levelOn?: Record<string, string>;
 }
 
 // From mission/ending.go
@@ -5579,6 +5588,13 @@ export interface Stage {
      */
     in?: string;
     makes?: string;
+    /**
+     * Level is a Work step's level (rote, normal or hard), and LevelOn
+     * what its crew run on at it ([crew.levels]); neither for a step that
+     * names its model (on:), whose WhoSays says it.
+     */
+    level?: string;
+    levelOn?: string;
     /**
      * OpensPR: the step makes a pull request, which is opened through ws.
      */

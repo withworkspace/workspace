@@ -297,6 +297,9 @@ type MissionDetail struct {
 	// CrewPicks are what new crew may be launched on from its page: the
 	// default first, then what [crew] allowed lists.
 	CrewPicks []harness.Pick
+	// LevelOn is what crew run on at each level of a Work step
+	// ([crew.levels]), by level.
+	LevelOn map[string]harness.Pick
 }
 
 // CapsuleStatus is where a capsule stands with git.
@@ -385,6 +388,11 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	d.Cards = mission.CardsOf(snap, d.Headlines)
 	if states, _ := m.StageProgress(d.Brief); !(len(states) == 1 && states[0].Implicit) {
 		d.Stages = states
+		roles := Roles(w.Config())
+		d.LevelOn = map[string]harness.Pick{}
+		for _, l := range mission.Levels {
+			d.LevelOn[l] = roles.ForLevel(l)
+		}
 	}
 	// Where each capsule stands, as kept. The daemon reads it again when
 	// it sees a capsule has moved, before it tells the page (KeepMission);

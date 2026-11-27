@@ -1,5 +1,10 @@
-import type { MissionDetail, Stage } from "../api";
+import { useState } from "react";
+import { act, type MissionDetail, type Stage } from "../api";
+import type { Reload } from "../load";
+import { humanError } from "../ui/strings";
+import { toast } from "../ui/toast";
 import { CrewBadge } from "./CrewBadge";
+import { type Level, MissionPlanLevel } from "./MissionPlanLevel";
 import { MissionPlanNote } from "./MissionPlanNote";
 import { MissionPlanStep } from "./MissionPlanStep";
 import { PlanStepNow } from "./PlanStepNow";
@@ -21,7 +26,8 @@ export type PlanCardProps = {
 // name and kind, unless it needs you to look (the current step's crew and
 // whether it's yours, checks not met, time run out), or it's the one the
 // plan is on and worth opening.
-export function PlanStep({ s, d, card, brief }: { s: Stage; d?: MissionDetail; card: PlanCardProps; brief?: boolean }) {
+export function PlanStep({ s, d, card, brief, reload }: { s: Stage; d?: MissionDetail; card: PlanCardProps; brief?: boolean; reload?: Reload }) {
+  const [busy, setBusy] = useState(false);
   const kind = stepKind(s);
   const how = waitHow(s);
   const current = s.state === "current";
@@ -29,6 +35,20 @@ export function PlanStep({ s, d, card, brief }: { s: Stage; d?: MissionDetail; c
   const yours = current && (stepYours(s) || s.held);
   const late = !!s.outOfTime && s.state !== "accepted";
   const unmet = checksUnmet(s);
+  // A Work step's level, which you can change while nobody's begun it.
+  const level = s.level as Level | undefined;
+  const changeable = !!d && !!reload && !brief && s.state !== "accepted" && !s.crew?.length;
+  const choose = (to: Level) => {
+    if (!d || busy) return;
+    setBusy(true);
+    act(d.slug, "level", { step: s.n, text: to })
+      .then(async (r) => {
+        toast(r.message, { tone: "done" });
+        await reload?.();
+      })
+      .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
+      .finally(() => setBusy(false));
+  };
   return (
     <MissionPlanStep
       row
@@ -39,6 +59,7 @@ export function PlanStep({ s, d, card, brief }: { s: Stage; d?: MissionDetail; c
       skipped={s.skipped}
       opened={opened}
       pressable={brief}
+      level={level && s.state !== "accepted" && <MissionPlanLevel level={level} on={d?.levelOn} onChoose={changeable ? choose : undefined} busy={busy} />}
       kind={kind && { icon: kind[0], says: how && s.state !== "accepted" ? `${kind[1]} · ${how.word.toLowerCase()}: ${how.says}` : kind[1] }}
       under={opened && !brief && <PlanStepNow s={s} d={d} />}
       tabIndex={0}

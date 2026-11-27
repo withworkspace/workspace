@@ -37,6 +37,12 @@ func Roles(cfg *config.Config) harness.Roles {
 			r.CrewAllowed = append(r.CrewAllowed, harness.Pick{Harness: h, Model: m})
 		}
 	}
+	r.CrewLevels = map[string]string{}
+	for _, l := range cfg.Crew.Levels.Each() {
+		if v := strings.TrimSpace(l[1]); v != "" {
+			r.CrewLevels[l[0]] = v
+		}
+	}
 	return r
 }
 

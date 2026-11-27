@@ -642,13 +642,42 @@ type CrewConfig struct {
 	// throwaway workspace, where every repo is new to Claude and nobody's
 	// there to answer. Trusting a folder lets its agent run what's in it.
 	TrustFolders bool `toml:"trust_folders,omitempty"`
+	// Levels are what crew run on at each level a plan's Work step may
+	// say it is ([crew.levels]): rote, normal and hard, each as allowed
+	// writes one (harness:model, or a model alone on crew's harness).
+	// Unset, rote is crew's harness's small model (haiku on Claude Code),
+	// and normal and hard are crew's own. What's named here may be run
+	// on, as allowed's may.
+	Levels CrewLevels `toml:"levels,omitempty"`
 }
 
-// merge overrides c with whatever local sets: allowed is replaced whole.
+// CrewLevels is [crew.levels]: what crew run on at each level.
+type CrewLevels struct {
+	Rote   string `toml:"rote,omitempty"`
+	Normal string `toml:"normal,omitempty"`
+	Hard   string `toml:"hard,omitempty"`
+}
+
+// Each is the levels with what's set for them, least first.
+func (l CrewLevels) Each() [][2]string {
+	return [][2]string{{"rote", l.Rote}, {"normal", l.Normal}, {"hard", l.Hard}}
+}
+
+// merge overrides c with whatever local sets: allowed is replaced whole,
+// and levels level by level.
 func (c *CrewConfig) merge(local CrewConfig) {
 	c.AgentConfig.merge(local.AgentConfig)
 	if local.Allowed != nil {
 		c.Allowed = local.Allowed
+	}
+	if local.Levels.Rote != "" {
+		c.Levels.Rote = local.Levels.Rote
+	}
+	if local.Levels.Normal != "" {
+		c.Levels.Normal = local.Levels.Normal
+	}
+	if local.Levels.Hard != "" {
+		c.Levels.Hard = local.Levels.Hard
 	}
 }
 
@@ -1546,6 +1575,11 @@ func Load(startDir string) (*Config, string, error) {
 	for _, p := range cfg.Crew.Allowed {
 		if _, _, err := ParsePick(p); err != nil {
 			return nil, "", fmt.Errorf("invalid [crew] allowed: %w", err)
+		}
+	}
+	for _, l := range cfg.Crew.Levels.Each() {
+		if strings.ContainsAny(strings.TrimSpace(l[1]), " \t") {
+			return nil, "", fmt.Errorf("invalid [crew.levels] %s %q: name a model (haiku), or harness:model (claude:haiku)", l[0], l[1])
 		}
 	}
 	if d := cfg.Orchestrator.Dispatch; d != "" && d != "auto" && d != "ask" {

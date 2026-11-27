@@ -152,8 +152,9 @@ func TestRoles_Crew(t *testing.T) {
 	}
 }
 
-// Crew may be launched on the default or on what [crew] allowed lists,
-// each as it would run, and on nothing else.
+// Crew may be launched on the default, on what [crew] allowed lists, or
+// on what a level runs on (ForLevel: rote is Claude Code's small model
+// unless [crew.levels] says), each as it would run, and on nothing else.
 func TestRoles_CrewPicks(t *testing.T) {
 	t.Setenv(EnvDefault, "")
 	pick := func(s string) Pick { h, m, _ := strings.Cut(s, ":"); return Pick{Harness: h, Model: m} }
@@ -165,26 +166,26 @@ func TestRoles_CrewPicks(t *testing.T) {
 		return strings.Join(out, " ")
 	}
 	r := Roles{Crew: pick("claude:opus")}
-	if got := picks(r); got != "claude:opus" {
+	if got := picks(r); got != "claude:opus claude:haiku" {
 		t.Errorf("nothing allowed: %s", got)
 	}
-	if !r.AllowsCrew(pick("claude:opus")) || !r.AllowsCrew(pick("claude")) || r.AllowsCrew(pick("claude:sonnet")) || r.AllowsCrew(pick("cursor")) {
-		t.Error("with nothing allowed, only the default is")
+	if !r.AllowsCrew(pick("claude:opus")) || !r.AllowsCrew(pick("claude")) || !r.AllowsCrew(pick("claude:haiku")) || r.AllowsCrew(pick("claude:sonnet")) || r.AllowsCrew(pick("cursor")) {
+		t.Error("with nothing allowed, only the default and rote's are")
 	}
 
 	// The default first; a harness alone takes the default's model on the
 	// default's harness (so claude is claude:opus, said once), and its
 	// agent's own on another; duplicates go.
 	r.CrewAllowed = []Pick{pick("claude:sonnet"), pick("claude"), pick("cursor"), pick("cursor:gpt-5.5-high"), pick("claude:sonnet")}
-	if got := picks(r); got != "claude:opus claude:sonnet cursor cursor:gpt-5.5-high" {
+	if got := picks(r); got != "claude:opus claude:sonnet cursor cursor:gpt-5.5-high claude:haiku" {
 		t.Errorf("allowed: %s", got)
 	}
-	for _, p := range []string{"claude:opus", "claude", "claude:sonnet", "cursor", "cursor:gpt-5.5-high"} {
+	for _, p := range []string{"claude:opus", "claude", "claude:sonnet", "cursor", "cursor:gpt-5.5-high", "claude:haiku"} {
 		if !r.AllowsCrew(pick(p)) {
 			t.Errorf("%s isn't allowed", p)
 		}
 	}
-	for _, p := range []string{"claude:haiku", "cursor:auto", "pi", "pi:sonnet", ":opus"} {
+	for _, p := range []string{"claude:fable", "cursor:auto", "pi", "pi:sonnet", ":opus"} {
 		if r.AllowsCrew(pick(p)) {
 			t.Errorf("%s is allowed", p)
 		}

@@ -1,5 +1,6 @@
 import { useContext, useMemo, useRef, useState } from "react";
 import type { Stage } from "../api";
+import type { Reload } from "../load";
 import { FloatingCard } from "../ui/FloatingCard";
 import { MissionPlan } from "./MissionPlan";
 import { MissionPlanFold } from "./MissionPlanFold";
@@ -21,8 +22,9 @@ import { foldNote, passedUnmet, planWindow, stepTimes, stepYours } from "./planR
 // beside the list.
 //
 // brief: in a brief's outline, where a row is pressed to go to the step in
-// the plan, and the step it's on isn't said in place.
-export function PlanList({ stages, brief }: { stages: Stage[]; brief?: boolean }) {
+// the plan, and the step it's on isn't said in place. reload: a Work
+// step's level can be changed from its row, and the mission's read again.
+export function PlanList({ stages, brief, reload }: { stages: Stage[]; brief?: boolean; reload?: Reload }) {
   const d = useContext(MissionData);
   const [open, setOpen] = useState<{ earlier?: boolean; later?: boolean }>({});
   const { earlier, shown, later } = useMemo(() => planWindow(stages), [stages]);
@@ -46,7 +48,7 @@ export function PlanList({ stages, brief }: { stages: Stage[]; brief?: boolean }
   const carded = hover.shown === undefined ? undefined : stages.find((s) => s.n === hover.shown);
   const anchor = hover.shown === undefined ? undefined : els.current.get(hover.shown);
 
-  const rows = (run: Stage[]) => run.map((s) => <PlanStep key={s.n} s={s} d={d} card={card(s)} brief={brief} />);
+  const rows = (run: Stage[]) => run.map((s) => <PlanStep key={s.n} s={s} d={d} card={card(s)} brief={brief} reload={reload} />);
   const fold = (run: Stage[], side: "earlier" | "later") => {
     if (!run.length) return null;
     const toggle = () => {

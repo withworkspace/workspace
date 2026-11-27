@@ -860,6 +860,7 @@ export type ActVerb =
   | "edit-brief"
   | "edit-plan"
   | "replan"
+  | "level"
   | "title"
   | "resume"
   | "stop"
@@ -889,6 +890,7 @@ export interface ActOpts {
   text?: string;
   task?: number; // for answer: the task it answers (its headline's target); none, the oldest
   crew?: string;
+  step?: number; // for level: the plan's step put at another level (text)
   harness?: string; // for launch: what to start crew on, one of the mission's crewPicks (none: the default)
   model?: string;
   ending?: Ending;

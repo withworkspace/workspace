@@ -387,6 +387,9 @@ type MissionDetail struct {
 	GitHub bool `json:"github"`
 	// CrewPicks are what Launch crew may start crew on.
 	CrewPicks CrewPicks `json:"crewPicks"`
+	// LevelOn is what crew run on at each level of a Work step, by level
+	// (rote, normal, hard), as [crew.levels] has it.
+	LevelOn map[string]string `json:"levelOn,omitempty"`
 }
 
 // Bundle is a verification bundle, as the mission's Verify tab shows it:
@@ -605,6 +608,11 @@ type Stage struct {
 	// by it.
 	In    string `json:"in,omitempty"`
 	Makes string `json:"makes,omitempty"`
+	// Level is a Work step's level (rote, normal or hard), and LevelOn
+	// what its crew run on at it ([crew.levels]); neither for a step that
+	// names its model (on:), whose WhoSays says it.
+	Level   string `json:"level,omitempty"`
+	LevelOn string `json:"levelOn,omitempty"`
 	// OpensPR: the step makes a pull request, which is opened through ws.
 	OpensPR bool `json:"opensPR,omitempty"`
 	// A Work step's expansion: the step whose crew it carries on from,
@@ -1320,6 +1328,8 @@ type ActRequest struct {
 	// targets); 0, the oldest.
 	Task int    `json:"task,omitempty"`
 	Crew string `json:"crew,omitempty"`
+	// Step is the step of the plan level puts at another level (Text).
+	Step int `json:"step,omitempty"`
 	// Harness and Model are what launch starts crew on: one of the
 	// mission's CrewPicks (neither: the default).
 	Harness string `json:"harness,omitempty"`

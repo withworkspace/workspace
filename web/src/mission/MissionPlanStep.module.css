@@ -153,6 +153,13 @@
   color: var(--faint);
 }
 
+/* The row's end: a Work step's level, then its kind. */
+.end {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
 /* What kind of step it is: in the accent when it's yours. */
 .kind {
   display: grid;

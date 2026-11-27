@@ -189,7 +189,7 @@ func matchSteps(olds, news []Step) []int {
 // its quote, who's on it, and its parameters.
 func sameStep(a, b Step) bool {
 	return a.Type == b.Type && normStage(a.Text) == normStage(b.Text) && a.Quote == b.Quote && a.Who == b.Who &&
-		a.Capsule == b.Capsule && a.Model == b.Model && a.Whom == b.Whom && normStage(a.Makes) == normStage(b.Makes) &&
+		a.Capsule == b.Capsule && a.Model == b.Model && a.Level == b.Level && a.Whom == b.Whom && normStage(a.Makes) == normStage(b.Makes) &&
 		normStage(a.From) == normStage(b.From) && a.Draft == b.Draft && sameChecks(a.Checks, b.Checks) &&
 		a.CarryOn == b.CarryOn && a.Fresh == b.Fresh && normStage(a.LimitText) == normStage(b.LimitText) &&
 		normStage(a.OnlyIf) == normStage(b.OnlyIf) && normStage(a.InEach) == normStage(b.InEach)

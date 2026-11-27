@@ -5,6 +5,7 @@ import { MissionCrewBadge } from "./MissionCrewBadge";
 import { MissionPlan } from "./MissionPlan";
 import { MissionPlanCheckList } from "./MissionPlanCheckList";
 import { MissionPlanFold } from "./MissionPlanFold";
+import { MissionPlanLevel, type Level } from "./MissionPlanLevel";
 import { MissionPlanLine } from "./MissionPlanLine";
 import { MissionPlanNote } from "./MissionPlanNote";
 import { MissionPlanNow } from "./MissionPlanNow";
@@ -15,6 +16,7 @@ import { MissionData } from "./MissionData";
 import { Stepper } from "./Stepper";
 import { PlanList } from "./PlanList";
 import { Text } from "../ui/Text";
+import { useState } from "react";
 
 // A mission's plan: steps done, the one it's on and those to come, with
 // what's to be known of each (whose it is, its clock, its checks, where
@@ -22,7 +24,8 @@ import { Text } from "../ui/Text";
 // same plan as rows, as a mission's details have it (folds of the steps
 // not shown, each a pip; the step it's on opened in place; a step
 // skipped); what a row's card says; and the plans of missions as ws gave
-// them (fixtures/), as Summary draws them and as the details do.
+// them (fixtures/), as Summary draws them and as the details do; and Work
+// steps' levels at their rows' ends, those not begun a menu to change.
 
 const meta: Meta = { title: "Mission/MissionPlan" };
 export default meta;
@@ -149,6 +152,38 @@ export const Rows: StoryObj = {
           <MissionPlanPip state="todo" wait />
           <MissionPlanPip state="todo" />
         </MissionPlanFold>
+      </MissionPlan>
+    </div>
+  ),
+};
+
+const levelOn = { rote: "claude:haiku", normal: "claude", hard: "claude:opus" };
+
+function LevelRow({ n, title, start }: { n: number; title: string; start: Level }) {
+  const [level, setLevel] = useState<Level>(start);
+  return (
+    <MissionPlanStep
+      row
+      n={n}
+      title={title}
+      state="todo"
+      level={<MissionPlanLevel level={level} on={levelOn} onChoose={setLevel} />}
+      kind={{ icon: "tool", says: "Work" }}
+      tabIndex={0}
+    />
+  );
+}
+
+export const Levels: StoryObj = {
+  render: () => (
+    <div className="page" style={{ width: 300 }}>
+      <MissionPlan rows>
+        <MissionPlanStep row n={1} title="Find the cause" state="accepted" kind={{ icon: "tool", says: "Work" }} tabIndex={0} />
+        <MissionPlanStep row n={2} title="Bump the version" state="current" level={<MissionPlanLevel level="rote" on={levelOn} />} kind={{ icon: "tool", says: "Work" }} tabIndex={0} />
+        <LevelRow n={3} title="Fix the rounding" start="normal" />
+        <LevelRow n={4} title="Make the snapshots again" start="rote" />
+        <LevelRow n={5} title="Rework how totals are cached" start="hard" />
+        <MissionPlanStep row n={6} title="Read it" state="todo" yours kind={{ icon: "eye", says: "Review" }} tabIndex={0} />
       </MissionPlan>
     </div>
   ),
