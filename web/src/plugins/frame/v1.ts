@@ -47,6 +47,9 @@ export function v1(port: MessagePort, host: Host): Session {
       case "ws:chrome-layout":
         host.chromeLayout(m.mode);
         break;
+      case "ws:menu":
+        host.menu({ id: m.id, x: m.x, y: m.y, ...(m.ref ? { ref: m.ref } : {}), items: m.items ?? [] });
+        break;
       // The conversation about the page: said to ws's own host, as ws's
       // own pages say it.
       case "ws:conversation": {
@@ -82,6 +85,8 @@ export function v1(port: MessagePort, host: Host): Session {
     uis: [...host.ui.names],
     // ws holds conversations about the page (ws:conversation).
     conversations: true,
+    // A right click in the page opens ws's menu (ws:menu).
+    menus: true,
   } satisfies V1.Welcome);
 
   return {
@@ -96,6 +101,7 @@ export function v1(port: MessagePort, host: Host): Session {
     // nothing with it.
     outside: () => send({ type: "ws:outside" } satisfies V1.Outside),
     uiClosed: (id, result) => send((result === undefined ? { type: "ws:ui-closed", id } : { type: "ws:ui-closed", id, result }) satisfies V1.UiClosed),
+    menuClosed: (id, item) => send((item === undefined ? { type: "ws:menu-closed", id } : { type: "ws:menu-closed", id, item }) satisfies V1.MenuClosed),
     conversation: (s) => send({ type: "ws:conversation-state", open: s.open, ...(s.as ? { as: s.as } : {}), working: s.working } satisfies V1.ConversationState),
     close() {
       port.onmessage = null;

@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/mark.js
+// ../../../../../../ui-lib/frame-menu/dist/mark.js
 var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
 var isElement = (n) => n.nodeType === 1;
 var isText = (n) => n.nodeType === 3;
@@ -136,7 +136,7 @@ function mark(el, finder) {
   return stop;
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/shape.js
+// ../../../../../../ui-lib/frame-menu/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -150,7 +150,7 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/v1.js
+// ../../../../../../ui-lib/frame-menu/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
   CONVERSATION_FORMS: () => CONVERSATION_FORMS,
@@ -159,6 +159,7 @@ __export(v1_exports, {
   isConversationForm: () => isConversationForm,
   isFoundRef: () => isFoundRef,
   isHostMessage: () => isHostMessage,
+  isMenuItem: () => isMenuItem,
   isPageMessage: () => isPageMessage,
   isWelcome: () => isWelcome,
   pictureRefused: () => pictureRefused
@@ -193,7 +194,7 @@ function isPlugin(m) {
   return isRecord(m) && isString(m.name) && isString(m.at) && isString(m.base) && isString(m.api);
 }
 function isWelcome(m) {
-  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean") && (m.uis === void 0 || isStrings(m.uis)) && (m.conversations === void 0 || typeof m.conversations === "boolean");
+  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean") && (m.uis === void 0 || isStrings(m.uis)) && (m.conversations === void 0 || typeof m.conversations === "boolean") && (m.menus === void 0 || typeof m.menus === "boolean");
 }
 var isIndex = (v) => Number.isInteger(v) && v >= 0;
 var isSize = (v) => Number.isFinite(v) && v >= 0;
@@ -226,6 +227,8 @@ function isPageMessage(m) {
       return isIndex(m.id);
     case "ws:here":
       return m.name === void 0 || isString(m.name) && m.name !== "";
+    case "ws:menu":
+      return isIndex(m.id) && typeof m.x === "number" && typeof m.y === "number" && optional(m.ref, isString) && optional(m.items, isMenuItems);
     case "ws:chrome-layout":
       return m.mode === "expanded" || m.mode === "standard";
     case "ws:conversation":
@@ -262,21 +265,28 @@ function isHostMessage(m) {
       return isIndex(m.id) && optional(m.error, isString);
     case "ws:conversation-state":
       return typeof m.open === "boolean" && optional(m.as, isConversationForm) && typeof m.working === "boolean";
+    case "ws:menu-closed":
+      return isIndex(m.id) && optional(m.item, isString);
     default:
       return false;
   }
 }
+var isBool = (v) => typeof v === "boolean";
+var isMenuItems = (v) => Array.isArray(v) && v.every(isMenuItem);
+function isMenuItem(m) {
+  return isRecord(m) && isString(m.id) && m.id !== "" && isString(m.label) && m.label !== "" && optional(m.icon, isString) && optional(m.danger, isBool) && optional(m.disabled, isBool);
+}
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
+// ../../../../../../ui-lib/frame-menu/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/version.js
-var VERSION = "0.10.0";
+// ../../../../../../ui-lib/frame-menu/dist/version.js
+var VERSION = "0.0.0";
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/client.js
+// ../../../../../../ui-lib/frame-menu/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -489,9 +499,66 @@ function client(port, welcome, doc) {
     }
     return true;
   };
+  const hasMenus = welcome.menus === true;
+  const menus = /* @__PURE__ */ new Map();
+  let menuAskings = 0;
+  const providers = /* @__PURE__ */ new Set();
+  const menu = (at2, options2 = {}) => {
+    if (closed || !hasMenus)
+      return Promise.resolve(false);
+    const entries = options2.entries ?? [];
+    for (const e of entries) {
+      if (!e?.label || typeof e.run !== "function")
+        throw new TypeError('ui.menu(at, { entries }): an entry is its words and what choosing it does, { label: "Rename", run() {\u2026} }.');
+    }
+    let x;
+    let y;
+    if ("clientX" in at2) {
+      at2.preventDefault();
+      x = at2.clientX;
+      y = at2.clientY;
+    } else
+      ({ x, y } = at2);
+    const items = entries.map((e, i) => ({
+      id: String(i),
+      label: e.label,
+      ...e.icon ? { icon: e.icon } : {},
+      ...e.danger ? { danger: true } : {},
+      ...e.disabled ? { disabled: true } : {}
+    }));
+    const id = ++menuAskings;
+    return new Promise((resolve) => {
+      menus.set(id, (item) => {
+        if (item !== void 0)
+          entries[Number(item)]?.run();
+        resolve(true);
+      });
+      send({ type: "ws:menu", id, x, y, ...options2.ref ? { ref: options2.ref } : {}, ...items.length ? { items } : {} });
+    });
+  };
+  const onMenu = (provide) => {
+    providers.add(provide);
+    return () => {
+      providers.delete(provide);
+    };
+  };
+  const menuFor = (e) => {
+    if (!hasMenus || e.defaultPrevented || !doc)
+      return;
+    const target = e.target;
+    if (!target?.closest || isTypedIn(e.target))
+      return;
+    if (doc.getSelection?.()?.toString())
+      return;
+    const ref = target.closest("[data-ws-ref]")?.getAttribute("data-ws-ref") || void 0;
+    const entries = [...providers].flatMap((p) => p(target, ref) ?? []);
+    if (!ref && !entries.length)
+      return;
+    void menu(e, { ref, entries });
+  };
   if (doc)
     applyTheme(doc, theme);
-  const wired = doc ? wire(doc, welcome, send, open, refCard, viewClicked) : void 0;
+  const wired = doc ? wire(doc, welcome, send, open, refCard, viewClicked, menuFor) : void 0;
   port.onmessage = (e) => {
     const m = e.data;
     if (!v1_exports.isHostMessage(m))
@@ -546,6 +613,12 @@ function client(port, welcome, doc) {
         for (const fn of [...conversed])
           fn(status);
         break;
+      case "ws:menu-closed": {
+        const done = menus.get(m.id);
+        menus.delete(m.id);
+        done?.(m.item);
+        break;
+      }
     }
   };
   return {
@@ -617,7 +690,7 @@ function client(port, welcome, doc) {
         tellHere();
       };
     },
-    ui: { has: (name) => hasUi.has(name), open: openUi, refCard, promoteThing, saveThing, viewPicture },
+    ui: { has: (name) => hasUi.has(name), open: openUi, refCard, promoteThing, saveThing, viewPicture, menu, onMenu },
     setChromeLayout(mode) {
       if (mode !== "expanded" && mode !== "standard")
         throw new TypeError(`setChromeLayout("${String(mode)}"): the layout is "expanded" or "standard".`);
@@ -699,6 +772,10 @@ function client(port, welcome, doc) {
       for (const ui of [...uis.values()])
         ui.done(void 0);
       uis.clear();
+      for (const done of [...menus.values()])
+        done(void 0);
+      menus.clear();
+      providers.clear();
       port.onmessage = null;
       port.close();
     }
@@ -711,7 +788,7 @@ function applyTheme(doc, theme) {
   for (const [name, value] of Object.entries(theme.vars))
     root.style.setProperty(name, value);
 }
-function wire(doc, welcome, send, open, refCard, viewClicked) {
+function wire(doc, welcome, send, open, refCard, viewClicked, menuFor) {
   const { keys } = welcome;
   let leaderAt = 0;
   let over;
@@ -812,6 +889,7 @@ function wire(doc, welcome, send, open, refCard, viewClicked) {
   doc.addEventListener("focusout", onBlur);
   doc.addEventListener("scroll", onScroll, true);
   doc.addEventListener("pointerdown", left, true);
+  doc.addEventListener("contextmenu", menuFor);
   return {
     stop() {
       doc.removeEventListener("keydown", onKey);
@@ -822,6 +900,7 @@ function wire(doc, welcome, send, open, refCard, viewClicked) {
       doc.removeEventListener("focusout", onBlur);
       doc.removeEventListener("scroll", onScroll, true);
       doc.removeEventListener("pointerdown", left, true);
+      doc.removeEventListener("contextmenu", menuFor);
     },
     left
   };
@@ -877,7 +956,7 @@ async function main() {
   let things;
   let poked = 0;
   let failed = "";
-  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0 };
+  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0, polished: 0 };
   let talk = "not said";
   let holding = false;
   let closeMenu = () => {
@@ -1012,7 +1091,8 @@ async function main() {
         row("ws:theme received", counts.themes, "themes"),
         row("ws:navigate received", counts.navigated, "navigated"),
         row("ws:refs-changed received", counts.refs, "refs"),
-        row("ws:outside received", counts.outside, "outside")
+        row("ws:outside received", counts.outside, "outside"),
+        row("Polished, from ws's menu", counts.polished, "polished")
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
@@ -1106,6 +1186,19 @@ async function main() {
     ws.root.replaceChildren(h("main", {}, h("section", {}, ...body, words), status()));
     unmark = ws.markRefs(words);
   }
+  ws.ui.onMenu((target, ref) => {
+    const name = ref ? target.closest(".ws-ref")?.textContent?.trim() : void 0;
+    return name?.startsWith("THING-") ? [
+      {
+        label: `Polish ${name}`,
+        icon: "sparkle",
+        run: () => {
+          counts.polished++;
+          render();
+        }
+      }
+    ] : void 0;
+  });
   ws.onNavigate(() => {
     counts.navigated++;
     render();

@@ -69,5 +69,23 @@ export default defineFlow({
     { shot: "act-done", viewport: true, shows: "Accepted: done, and said so" },
     { goto: "/automations/moved-notes" },
     { shot: "grants", viewport: true, shows: "moved-notes's page: Through plugins, let do Fixture things without asking, and its run that did" },
+    { goto: "/x/frame-fixture/" },
+    {
+      label: "THING-2, right clicked in the plugin's app",
+      run: async (page) => {
+        const app = page.frameLocator("iframe");
+        await app.locator(".ws-ref", { hasText: "THING-2" }).first().click({ button: "right" });
+        await page.waitForTimeout(600);
+      },
+    },
+    { shot: "frame-menu", viewport: true, shows: "A right click on THING-2 in a plugin's app: the app's own Polish THING-2, then your automations' actions on it, in ws's menu over the frame" },
+    { click: 'role=menuitem[name="Polish THING-2"]' },
+    {
+      label: "the app's count",
+      run: async (page) => {
+        await page.waitForTimeout(500);
+      },
+    },
+    { shot: "polished", viewport: true, shows: "The app's own entry, chosen in ws's menu, run in the app: Polished, from ws's menu, goes up" },
   ],
 });
