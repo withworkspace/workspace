@@ -11,11 +11,12 @@ import { ProcessFile } from "./ProcessFile";
 import { Repos } from "./Repos";
 import type { Section } from "./sections";
 import { SettingsUnder } from "./SettingsUnder";
+import { Shortcuts } from "./Shortcuts";
 import { Yours } from "./Yours";
 
 // SectionView is the section you're in: its name, what it's about, its
-// blocks, and what's the section's own beside them (the plugins, the
-// repos, the process as it's written).
+// blocks, and what's the section's own beside them (the shortcuts, the
+// plugins, the repos, the process as it's written).
 export function SectionView({ section, sections, info, loading }: { section: Section; sections: Section[]; info?: SettingsInfo; loading: boolean }) {
   const branch = useWorkspace((w) => w.defaultBranch);
   const org = useWorkspace((w) => w.org);
@@ -37,6 +38,7 @@ export function SectionView({ section, sections, info, loading }: { section: Sec
         ))
       )}
       {loading && waits && <Skeleton rows={4} />}
+      {section.id === "keyboard" && <Shortcuts />}
       {section.id === "plugins" && <PluginsSection />}
       {section.id === "repos" && <Repos branch={branch} org={org} />}
       {section.id === "process" && <ProcessFile />}

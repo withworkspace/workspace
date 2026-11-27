@@ -1,3 +1,4 @@
+import type { KeyLike } from "../keymap/keymap";
 import { Button } from "./Button";
 import { Callout } from "./Callout";
 import { humanError } from "./strings";
@@ -8,7 +9,7 @@ import { humanError } from "./strings";
 //
 // keys is the key that tries again too, where the page has one (r, its
 // reload): the button says it, and hints at it (ui/keyHint.ts).
-export function ErrorCard({ error, retry, keys, title = "Could not load", className }: { error: string; retry?: () => void; keys?: string; title?: string; className?: string }) {
+export function ErrorCard({ error, retry, keys, title = "Could not load", className }: { error: string; retry?: () => void; keys?: KeyLike; title?: string; className?: string }) {
   return (
     <Callout tone="danger" title={title} className={className} actions={
         retry && (

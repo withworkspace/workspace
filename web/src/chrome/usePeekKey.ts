@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
-import { useKeys } from "../keys";
+import { keyOf } from "../keymap/keymap";
+import { useCommands } from "../keymap/useCommands";
+import { everywhereKeys } from "../shell/keys";
+import { keysSaid } from "../ui/Keys";
 import { toast } from "../ui/toast";
 import { besideFront, besideShown } from "./chromeState";
 import { peekAt } from "./panes";
@@ -41,8 +44,8 @@ export function usePeekKey() {
     };
   }, []);
 
-  useKeys({
-    z: () => {
+  useCommands(everywhereKeys, {
+    peek: () => {
       const { chrome, here, peek, close } = useChromeStore.getState();
       const to = peeked(pointer.current);
       const open = chrome.beside.peek;
@@ -51,7 +54,7 @@ export function usePeekKey() {
         // On nothing: the peek that's showing closes, as it would on its
         // own thing.
         if (front) close(open);
-        else toast("Point at a mission, document, pull request or conversation, then press z to peek.");
+        else toast(`Point at a mission, document, pull request or conversation, then press ${keysSaid(keyOf(everywhereKeys.peek) ?? "z").join(" ")} to peek.`);
         return;
       }
       // What the page itself is of has nothing more to show beside it.

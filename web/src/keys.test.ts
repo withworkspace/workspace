@@ -1,7 +1,9 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { claimCodeSearch, codeSearchKey, isCodeSearchKey, keysOf, useShortcut } from "./keys";
+import { claimCodeSearch, codeSearchKey, isCodeSearchKey, keysOf } from "./keys";
+import { type Command, scope } from "./keymap/commands";
+import { useCommand } from "./keymap/useCommands";
 
 const key = (k: Partial<KeyboardEvent>) => ({ metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, key: "", ...k });
 
@@ -52,28 +54,33 @@ describe("mod+shift+F", () => {
   });
 });
 
-describe("useShortcut", () => {
+const tried = scope("test-keys", "Tried", {
+  view: { title: "View", keys: "v" },
+  zoom: { title: "Zoom in", keys: ["+", "="] },
+});
+
+describe("useCommand", () => {
   // What it gives back, as a button given it would read it.
-  function Says({ keys, enabled, did }: { keys: string | string[]; enabled?: boolean; did?: () => void }) {
-    const fn = useShortcut(keys, did ?? (() => undefined), { enabled });
+  function Says({ c, enabled, did }: { c: Command; enabled?: boolean; did?: () => void }) {
+    const fn = useCommand(c, did ?? (() => undefined), { enabled });
     fn();
     return h("i", null, keysOf(fn) ?? "none");
   }
   const said = (props: Parameters<typeof Says>[0]) => renderToStaticMarkup(h(Says, props));
 
-  it("gives back what it was given, saying its key", () => {
+  it("gives back what it was given, saying its command's key", () => {
     let did = 0;
-    expect(said({ keys: "v", did: () => did++ })).toBe("<i>v</i>");
+    expect(said({ c: tried.view, did: () => did++ })).toBe("<i>v</i>");
     expect(did).toBe(1);
   });
 
   it("says the first of several keys", () => {
-    expect(said({ keys: ["+", "="] })).toBe("<i>+</i>");
+    expect(said({ c: tried.zoom })).toBe("<i>+</i>");
   });
 
   it("says no key while it isn't bound, and still does what it does", () => {
     let did = 0;
-    expect(said({ keys: "v", enabled: false, did: () => did++ })).toBe("<i>none</i>");
+    expect(said({ c: tried.view, enabled: false, did: () => did++ })).toBe("<i>none</i>");
     expect(did).toBe(1);
   });
 

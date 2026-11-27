@@ -1,3 +1,4 @@
+import { filesKeys } from "../keys";
 import type { FileTree, TreeFile } from "../../api";
 import { Button } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
@@ -18,8 +19,8 @@ export function FileOverview({ tree, changed, onOpen, onFind }: { tree?: FileTre
         icon="file"
         title="Pick a file"
         action={
-          <Button onClick={onFind} title="Find a file" keys="t">
-            <Icon name="search" /> Find a file <Keys k="t" />
+          <Button onClick={onFind} title="Find a file" keys={filesKeys.find}>
+            <Icon name="search" /> Find a file <Keys k={filesKeys.find} />
           </Button>
         }
       >

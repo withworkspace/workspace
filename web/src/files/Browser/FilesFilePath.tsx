@@ -1,3 +1,4 @@
+import { filesKeys } from "../keys";
 import { Button } from "../../ui/Button";
 import { Copyable } from "../../ui/Copyable";
 import { FileIcon } from "../../ui/FileIcon";
@@ -25,7 +26,7 @@ export function FilesFilePath({ path, onReveal }: { path: string; onReveal: (fol
           </strong>
         ),
       )}
-      <Copyable text={path} className={css.copy} icon="inline" title="Copy path" keys="y">
+      <Copyable text={path} className={css.copy} icon="inline" title="Copy path" keys={filesKeys.copyPath}>
         {""}
       </Copyable>
     </div>

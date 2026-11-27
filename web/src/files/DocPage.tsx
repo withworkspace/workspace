@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Crumbs } from "../ui/Crumbs";
 import { useLocation, useNavigate } from "react-router";
 import { type ArtifactContent, type Citation, type DocDraft, docAddress, docRef as fileRef, dropDraft, filesTo, GROUND, getCites, getDoc, getDraft, getSpaceActivity, getThreads, kindHint, placeOf, type SpaceFlight, spaceAt, spaceTo } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { docKeys } from "./keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type PageRef, wsAddress } from "../refs/refs";
 import { useTitle } from "../ui/useTitle";
@@ -41,20 +42,6 @@ import { PageHead } from "../ui/PageHead";
 import { pageScroller } from "../ui/scroller";
 import { useWorkspace } from "../workspace/store";
 import { Text } from "../ui/Text";
-
-export const docKeys: [string, string][] = [
-  ["e", "Edit"],
-  ["mod+D / mod+U", "Down / up half a page"],
-  ["g / G", "Top / bottom"],
-  ["t", "Show or hide contents"],
-  ["[ / ]", "Previous / next document"],
-  ["u", "Open folder; again to go up"],
-  ["/", "Go to ask bar"],
-  ["a", "Ask (about selection, if any)"],
-  ["o", "Open in Files"],
-  ["r", "Reload"],
-  ["esc", "Back, or close"],
-];
 
 // DocPage is a document outside any mission, read: a markdown file in one
 // of the workspace's repos, on its default branch or in a capsule, as it's
@@ -249,27 +236,27 @@ export function DocPage({ docRef }: { docRef: string }) {
   };
   const back = () => (location.key !== "default" ? navigate(-1) : navigate(home));
   const scroll = (by: number) => pageScroller()?.scrollBy({ top: by });
-  useKeys({
-    ...(canEdit ? { e: edit } : {}),
-    "mod+d": () => scroll(window.innerHeight / 2),
-    "mod+u": () => scroll(-window.innerHeight / 2),
-    g: () => pageScroller()?.scrollTo({ top: 0 }),
-    G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
-    o: () => navigate(files),
-    r: load,
-    t: () => (rail ? toggleRail() : folded && toggleMenu()),
-    u: up,
-    "[": () => step(-1),
-    "]": () => step(1),
-    "/": () => asker.current?.focus(),
-    a: () => read && askAbout(),
-    Escape: () => {
+  useCommands(docKeys, {
+    edit: canEdit && edit,
+    halfDown: () => scroll(window.innerHeight / 2),
+    halfUp: () => scroll(-window.innerHeight / 2),
+    top: () => pageScroller()?.scrollTo({ top: 0 }),
+    bottom: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
+    files: () => navigate(files),
+    reload: load,
+    contents: () => (rail ? toggleRail() : folded && toggleMenu()),
+    up,
+    prevDoc: () => step(-1),
+    nextDoc: () => step(1),
+    askBar: () => asker.current?.focus(),
+    ask: () => read && askAbout(),
+    back: () => {
       if (folder !== undefined) setFolder(undefined);
       else if (menu) setMenu(false);
       else if (tools.current?.hide()) return;
       else back();
     },
-    h: back,
+    backAlso: back,
   });
 
   return (
@@ -339,7 +326,7 @@ export function DocPage({ docRef }: { docRef: string }) {
           filesTo={files}
         />
       )}
-      {error && <ErrorCard title="Could not open document" error={error} retry={load} keys="r" />}
+      {error && <ErrorCard title="Could not open document" error={error} retry={load} keys={docKeys.reload} />}
       {!a && !error && <Skeleton rows={10} />}
       {a && !mission && draft && (
         <Callout

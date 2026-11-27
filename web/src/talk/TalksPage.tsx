@@ -1,3 +1,5 @@
+import { talksKeys } from "./keys";
+import { useSaid } from "../keymap/keymap";
 import { useState } from "react";
 import { Button } from "../ui/Button";
 import { Keys } from "../ui/Keys";
@@ -15,6 +17,7 @@ export function TalksPage() {
   const kinds = useWorkspace((w) => w.kinds);
   useTitle("Conversations");
   const [showResolved, setShowResolved] = useState(false);
+  const resolvedKey = useSaid(talksKeys.resolved);
   const resolved = conversations.filter((t) => t.status !== "open").length;
   return (
     <div className="page narrow">
@@ -23,8 +26,8 @@ export function TalksPage() {
         actions={
           resolved > 0 && (
             <>
-              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} keys="⇧A">
-                {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
+              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} keys={talksKeys.resolved}>
+                {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} {resolvedKey && <Keys k={resolvedKey} />}
               </Button>
             </>
           )

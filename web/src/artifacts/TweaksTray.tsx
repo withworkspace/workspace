@@ -1,3 +1,4 @@
+import type { KeyLike } from "../keymap/keymap";
 import type { ReactNode } from "react";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -9,7 +10,7 @@ import { TweaksHead } from "./TweaksHead";
 // TweaksTray is a frame's tweaks, beside it: the artifact's page. What's
 // under them (the way to compare it with how it opens) is its children.
 // keys is the key that hides it, where the page binds one.
-export function TweaksTray({ told, set, onClose, keys, children }: { told: Told; set: (some: State) => void; onClose: () => void; keys?: string; children?: ReactNode }) {
+export function TweaksTray({ told, set, onClose, keys, children }: { told: Told; set: (some: State) => void; onClose: () => void; keys?: KeyLike; children?: ReactNode }) {
   return (
     <ArtifactTweaksTray foot={children}>
       <TweaksHead told={told}>

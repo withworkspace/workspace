@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { getSpaces, pageAddress, type SpaceActivity, spaceTo } from "../api";
-import { useKeys, useShortcut } from "../keys";
+import { keyOf, useKeymap } from "../keymap/keymap";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { documentsKeys } from "./keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
 import { Banner } from "../ui/Banner";
@@ -111,27 +113,21 @@ export function DocumentsPage() {
   const open = () => targets[index] && navigate(targets[index].to);
   // Starting a page, each way with its key: the buttons that do it are
   // given these, and say the key.
-  const newPage = useShortcut("n", () => start());
-  const newAsKind = useShortcut("N", () => setAsKind(true), { enabled: kinds.length > 0 });
-  useKeys({
-    "/": () => search.current?.focus(),
-    ...(searching
-      ? {
-          j: () => moveHit(hit + 1),
-          k: () => moveHit(hit - 1),
-          Enter: () => found.hits?.[hit] && navigate(hitTo(found.hits[hit])),
-          o: () => found.hits?.[hit] && navigate(hitTo(found.hits[hit])),
-          Escape: () => setQ(""),
-        }
-      : {
-          j: () => move(index + 1),
-          ArrowDown: () => move(index + 1),
-          k: () => move(index - 1),
-          ArrowUp: () => move(index - 1),
-          Enter: open,
-          o: open,
-        }),
+  const newPage = useCommand(documentsKeys.newPage, () => start());
+  const newAsKind = useCommand(documentsKeys.newAsKind, () => setAsKind(true), { enabled: kinds.length > 0 });
+  const openHit = () => found.hits?.[hit] && navigate(hitTo(found.hits[hit]));
+  useCommands(documentsKeys, {
+    search: () => search.current?.focus(),
+    nextHit: searching && (() => moveHit(hit + 1)),
+    prevHit: searching && (() => moveHit(hit - 1)),
+    openHit: searching && openHit,
+    clearSearch: searching && (() => setQ("")),
+    next: !searching && (() => move(index + 1)),
+    prev: !searching && (() => move(index - 1)),
+    open: !searching && open,
   });
+  const map = useKeymap();
+  const kbd = (k: string | undefined) => k && <Keys k={k} />;
   const filling = local.reduce((n, p) => n + (p.page.filling ? 1 : 0), 0);
 
   return (
@@ -146,11 +142,11 @@ export function DocumentsPage() {
                 disabled={starting}
                 title="New page from a document kind"
               >
-                New as… <Keys k="N" />
+                New as… {kbd(keyOf(documentsKeys.newAsKind, map))}
               </Button>
             )}
             <Button variant="primary" onClick={newPage} disabled={starting} title="New page">
-              <Icon name="plus" /> New page <Keys k="n" />
+              <Icon name="plus" /> New page {kbd(keyOf(documentsKeys.newPage, map))}
             </Button>
           </>
         }

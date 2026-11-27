@@ -1,3 +1,4 @@
+import { filesKeys } from "../keys";
 import { Button } from "../../ui/Button";
 import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
@@ -18,13 +19,13 @@ export function FilesPanes({ now, choices, onPick }: { now: PaneChoice; choices:
       onAction={(k) => onPick(Number(k) as Panes)}
       pageKeys
       trigger={
-        <Button variant="ghost" square className={css.button} aria-label={`Panes: ${now.label}`} title={`Panes: ${now.label}`} keys="p">
+        <Button variant="ghost" square className={css.button} aria-label={`Panes: ${now.label}`} title={`Panes: ${now.label}`} keys={filesKeys.panes}>
           <FilesPanesGlyph n={now.n} />
         </Button>
       }
       foot={
         <Text as="div" dim className={css.keys}>
-          Switch with <Keys k="p" />
+          Switch with <Keys k={filesKeys.panes} />
         </Text>
       }
     >

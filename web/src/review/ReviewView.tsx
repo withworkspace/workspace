@@ -1,3 +1,4 @@
+import { Keys } from "../ui/Keys";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import {
@@ -18,7 +19,8 @@ import {
 } from "../api";
 import { commentsAt } from "../chrome/panes";
 import { useBeside, useChromeStore } from "../chrome/store";
-import { type KeyMap, useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { reviewKeys, reviewNavKeys } from "./keys";
 import { useLatest } from "../load";
 import { usePref } from "../prefs";
 import { Banner } from "../ui/Banner";
@@ -27,7 +29,6 @@ import { Callout } from "../ui/Callout";
 import type { DiffPick } from "../ui/diffLayout";
 import { Icon, type IconName } from "../ui/Icon";
 import { ToggleButton } from "../ui/ToggleButton";
-import { Keys } from "../ui/Keys";
 import { Loading } from "../ui/Loading";
 import { MenuItem, MenuText } from "../ui/Menu";
 import { humanError } from "../ui/strings";
@@ -62,28 +63,6 @@ import { type ViewEntry, ViewList } from "./ViewList";
 import { verdictWords } from "./words";
 import css from "./ReviewView.module.css";
 import { Text } from "../ui/Text";
-
-export const reviewKeys: [string, string][] = [
-  ["1 – 5", "Overview, Guide, Discussion, Passes, Changes"],
-  ["j / k", "Next / previous line"],
-  ["n / p", "Next / previous change"],
-  ["J / K", "Next / previous file"],
-  ["mod+D / mod+U", "Down / up half a page"],
-  ["g / G", "First / last"],
-  ["t", "Jump to a file"],
-  ["c", "Comment on line or selection"],
-  ["⇧↓ / ⇧↑", "Select lines (or V then move, or drag line numbers)"],
-  ["⏎", "Reply to or edit comment; take finding; expand hidden lines or file"],
-  ["x", "Resolve or reopen comment; else mark file viewed"],
-  ["D", "Delete draft comment; dismiss finding (then 1, 2 or 3 for why)"],
-  ["N / P", "Next / previous comment"],
-  ["s", "Submit review"],
-  ["i", "Since last review / all changes"],
-  ["e", "Show 20 more lines around this change"],
-  ["u", "Unified / side by side"],
-  ["r", "Reload"],
-  ["esc", "Clear selection, or back to mission"],
-];
 
 const fileID = (f: DiffFile) => f.newBlob ?? f.oldBlob ?? f.status;
 
@@ -760,40 +739,38 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     browse: source.browse ? (path, line) => `${source.browse!.split("?")[0]}?${new URLSearchParams({ path })}#L${line}` : undefined,
   });
   // The diff's keys work while it's showing; elsewhere the arrows scroll.
-  const diffKeys: KeyMap = {
-    j: () => move(at + 1),
-    ArrowDown: () => move(at + 1),
-    k: () => move(at - 1),
-    ArrowUp: () => move(at - 1),
-    "mod+d": () => move(at + 20),
-    "mod+u": () => move(at - 20),
-    g: () => move(0),
-    G: () => move(nav.length - 1),
-    n: () => findFrom(at, 1, (_, i) => startsChange(i)),
-    p: () => {
+  const diffKeys = {
+    nextLine: () => move(at + 1),
+    prevLine: () => move(at - 1),
+    halfDown: () => move(at + 20),
+    halfUp: () => move(at - 20),
+    first: () => move(0),
+    last: () => move(nav.length - 1),
+    nextChange: () => findFrom(at, 1, (_, i) => startsChange(i)),
+    prevChange: () => {
       // To the start of the change before the one the cursor is in.
       let i = at;
       while (i > 0 && (nav[i].type === "comment" || (isChange(nav[i]) && !startsChange(i)))) i--;
       findFrom(i, -1, (_, j) => startsChange(j));
     },
-    J: () => findFrom(at, 1, isHead),
-    K: () => {
+    nextFile: () => findFrom(at, 1, isHead),
+    prevFile: () => {
       const start = nav.findLastIndex((r, i) => i <= at && isHead(r));
       findFrom(start === at ? at : start + 1, -1, isHead);
     },
-    x: () => {
+    resolve: () => {
       if (!row) return;
       if (!toggleResolved(row)) toggleViewed(row.file);
     },
-    i: toggleSince,
-    Enter: () => row && activate(row),
-    c: comment,
-    ...(source.onAsk ? { a: () => (row?.type === "finding" ? act(row.found, "ask") : ask()) } : {}),
-    V: () => row?.type === "line" && select(selectFrom ? undefined : row.key),
-    "shift+ArrowDown": () => extend(1),
-    "shift+ArrowUp": () => extend(-1),
-    D: () => (row?.type === "finding" ? setDismissing(row.key) : row && removeNote(row)),
-    e: () => {
+    since: toggleSince,
+    activate: () => row && activate(row),
+    comment,
+    ask: source.onAsk ? () => (row?.type === "finding" ? act(row.found, "ask") : ask()) : undefined,
+    selectFrom: () => row?.type === "line" && select(selectFrom ? undefined : row.key),
+    selectDown: () => extend(1),
+    selectUp: () => extend(-1),
+    remove: () => (row?.type === "finding" ? setDismissing(row.key) : row && removeNote(row)),
+    more: () => {
       if (!row || row.type !== "line") return;
       // The gaps either side of the hunk the cursor is in.
       const fileNav = rows[row.file];
@@ -803,24 +780,33 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       if (before?.type === "gap") expand(row.file, before.gap, 20);
       if (after?.type === "gap") expand(row.file, after.gap, 20);
     },
-    u: toggleSplit,
-    ...codeNav.keys,
+    split: toggleSplit,
   };
-  useKeys({
+  const views = (n: number) => (viewKeys[n] ? () => show(viewKeys[n]) : undefined);
+  const escape = () => {
+    if (source.dismiss?.()) return;
+    if (selectFrom && view === "changes") select(undefined);
+    else navigate(source.back.to);
+  };
+  // The page's own (a pull request's) say the way back in their words,
+  // where they have it.
+  const own = source.keys;
+  useCommands(reviewKeys, {
     ...(view === "changes" ? diffKeys : {}),
-    ...Object.fromEntries(viewKeys.map((v, i) => [`${i + 1}`, () => show(v)])),
-    s: submit,
-    N: () => stepComment(1),
-    P: () => stepComment(-1),
-    t: () => setFinder(true),
-    r: load,
-    Escape: () => {
-      if (source.dismiss?.()) return;
-      if (selectFrom && view === "changes") select(undefined);
-      else navigate(source.back.to);
-    },
-    ...source.keys,
+    view1: views(0),
+    view2: views(1),
+    view3: views(2),
+    view4: views(3),
+    view5: views(4),
+    submit,
+    nextComment: () => stepComment(1),
+    prevComment: () => stepComment(-1),
+    findFile: () => setFinder(true),
+    reload: load,
+    back: own?.back ? undefined : escape,
   });
+  useCommands(reviewNavKeys, view === "changes" ? codeNav.keys : {});
+  useCommands(own?.commands ?? reviewKeys, own ? { ...own.handlers, ...(own.back ? { [own.back.name]: escape } : {}) } : {});
 
   const totals = files.reduce((t, f) => ({ a: t.a + f.additions, d: t.d + f.deletions }), { a: 0, d: 0 });
   const noteCounts = useMemo(() => Object.fromEntries(Object.entries(notes).map(([path, list]) => [path, list.length])), [notes]);
@@ -866,11 +852,11 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           )}
         </ReviewOpenMenu>
       )}
-      <Button variant="ghost" size="small" className={css.mobileOnly} onClick={() => setFinder(true)} title="Jump to a file" keys="t">
+      <Button variant="ghost" size="small" className={css.mobileOnly} onClick={() => setFinder(true)} title="Jump to a file" keys={reviewKeys.findFile}>
         <Icon name="file" size={13} /> Files
       </Button>
-      <Button variant="primary" size="small" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys="s">
-        {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
+      <Button variant="primary" size="small" className={css.submit} onClick={submit} unavailable={source.readOnly} title="Submit review" keys={reviewKeys.submit}>
+        {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k={reviewKeys.submit} />
       </Button>
     </>
   );
@@ -878,7 +864,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   return (
     <ReviewLayout
       width={filesWidth}
-      back={source.back}
+      back={{ ...source.back, keys: own?.back ?? reviewKeys.back }}
       side={
         <>
           {source.side}
@@ -940,7 +926,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
         </>
       }
     >
-      <ReviewBar back={source.back} stand={source.stand} name={source.name} about={about} actions={actions} />
+      <ReviewBar back={{ ...source.back, keys: own?.back ?? reviewKeys.back }} stand={source.stand} name={source.name} about={about} actions={actions} />
       {entries.length > 0 && <ReviewTabs views={[...entries, { key: "changes", ...viewNames.changes, n: viewKeys.length }]} here={view} onPick={(k) => show(k as ViewKey)} />}
       {changes && diff && (
         <ReviewChangesBar
@@ -975,14 +961,14 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           )}
           {openComments ? (
             <>
-              {openComments} to resolve: <Keys k="⏎" /> reply, <Keys k="x" /> resolve.
+              {openComments} to resolve: <Keys k={reviewKeys.activate} /> reply, <Keys k={reviewKeys.resolve} /> resolve.
             </>
           ) : diff?.rebased ? null : (
             "all resolved."
           )}
         </ReviewStatus>
       )}
-      {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload} keys="r">Reload <Keys k="r" /></Button>} />}
+      {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload} keys={reviewKeys.reload}>Reload <Keys k={reviewKeys.reload} /></Button>} />}
       {error && <Banner>{humanError(error)}</Banner>}
       {parts.map((p) => (
         <ReviewViewBody key={p.key} label={viewNames[p.key].label} hidden={view !== p.key} read>

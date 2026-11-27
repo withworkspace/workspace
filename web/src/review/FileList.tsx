@@ -1,3 +1,4 @@
+import { reviewKeys } from "./keys";
 import { useMemo } from "react";
 import type { DiffFile } from "../api";
 import { Button } from "../ui/Button";
@@ -76,7 +77,7 @@ export function FileList({
                   <Icon name="sparkle" size={12} /> Guide
                 </ToggleButton>
               )}
-              <Button variant="ghost" size="small" square onClick={onFind} title="Jump to a file" keys="t" aria-label="Jump to a file">
+              <Button variant="ghost" size="small" square onClick={onFind} title="Jump to a file" keys={reviewKeys.findFile} aria-label="Jump to a file">
                 <Icon name="search" size={13} />
               </Button>
             </>

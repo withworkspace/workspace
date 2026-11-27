@@ -1,3 +1,4 @@
+import type { KeyLike } from "../../keymap/keymap";
 import type { ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import css from "./MissionVerifyApprove.module.css";
@@ -13,7 +14,7 @@ type MissionVerifyApproveProps = {
   disabled?: boolean;
   title?: string;
   // The key that settles it, said after the title and hinted at.
-  keys?: string;
+  keys?: KeyLike;
   onSettle: () => void;
 };
 

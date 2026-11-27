@@ -1,3 +1,5 @@
+import { pageKeys } from "./keys";
+import { useCommands } from "../keymap/useCommands";
 import { Selection, TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -189,6 +191,8 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
   const [mapOn, setMapOn] = usePref("pageMap");
   const wide = useMedia("(min-width: 1100px)");
   const toggleMap = () => setMapOn((on) => !on);
+  // The editor's keys, for the Keys dialog to say (pages/keys.ts).
+  useCommands(pageKeys, {});
   useTitle(title);
 
   // --- Saving: a moment after you stop, one save at a time.
@@ -708,7 +712,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         >
           <Icon name="link" size={12} /> Link names
         </Button>
-        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Change text at cursor or selection" keys="mod+⏎">
+        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Change text at cursor or selection" keys={pageKeys.change}>
           <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
         </Button>
         {wide && (
@@ -932,7 +936,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
                 change();
               }}
               title="Rewrite selection; your original is kept"
-              keys="mod+⏎"
+              keys={pageKeys.change}
             >
               <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
             </Button>

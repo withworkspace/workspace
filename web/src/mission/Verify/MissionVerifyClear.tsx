@@ -1,3 +1,5 @@
+import { useSaid } from "../../keymap/keymap";
+import { verifyKeys } from "./keys";
 import type { ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import { cx } from "../../ui/cx";
@@ -25,6 +27,7 @@ type MissionVerifyClearProps = {
 // is approved: that you're clear, what still stands as it was, and the
 // bundle's approval at a size you can't miss.
 export function MissionVerifyClear({ id, children, after, busy, onApprove, onAgain, fills }: MissionVerifyClearProps) {
+  const settleKey = useSaid(verifyKeys.settle);
   return (
     <article className={cx(css.clear, fills && css.fills)} aria-label="All clear">
       <Empty
@@ -33,8 +36,8 @@ export function MissionVerifyClear({ id, children, after, busy, onApprove, onAga
         icon="check"
         title="You're all clear"
         action={
-          <Button variant="primary" className={css.big} disabled={busy} onClick={onApprove} title="Approve bundle" keys="mod+⏎">
-            Approve {id} <Keys k="mod+⏎" />
+          <Button variant="primary" className={css.big} disabled={busy} onClick={onApprove} title="Approve bundle" keys={verifyKeys.settle}>
+            Approve {id} {settleKey && <Keys k={settleKey} />}
           </Button>
         }
         foot={

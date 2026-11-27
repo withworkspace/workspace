@@ -2,14 +2,6 @@ import { readsAs } from "../../ask/ask";
 
 // What the Brief tab says in words, and what it works out of them.
 
-export const briefKeys: [string, string][] = [
-  ["j / k", "On Brief: next / previous change"],
-  ["a / d", "On Brief: accept / decline change; with text selected, a asks the planner"],
-  ["/", "On Brief: ask the planner"],
-  ["p", "On Brief: show or hide planner"],
-  ["mod+⏎", "On Brief: confirm, accept or save (in the editor too)"],
-];
-
 // quoted is a passage as a message quotes it, over what's said of it.
 export const quoted = (passage: string, body: string) =>
   `${passage

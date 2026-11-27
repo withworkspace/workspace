@@ -1,3 +1,4 @@
+import { briefKeys } from "./keys";
 import type { ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import { Chip } from "../../ui/Chip";
@@ -17,10 +18,10 @@ export function MissionBriefNav({ children, onBefore, onNext }: MissionBriefNavP
   return (
     <span className={css.nav}>
       <Chip tone="attention" className={css.chip}>{children}</Chip>
-      <Button variant="ghost" square type="button" onClick={onBefore} title="Previous change" keys="k" aria-label="Previous change">
+      <Button variant="ghost" square type="button" onClick={onBefore} title="Previous change" keys={briefKeys.prev} aria-label="Previous change">
         <Icon name="chevron-up" size={13} />
       </Button>
-      <Button variant="ghost" square type="button" onClick={onNext} title="Next change" keys="j" aria-label="Next change">
+      <Button variant="ghost" square type="button" onClick={onNext} title="Next change" keys={briefKeys.next} aria-label="Next change">
         <Icon name="chevron-down" size={13} />
       </Button>
     </span>

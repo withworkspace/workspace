@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import type { ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import { Chip } from "../../ui/Chip";
@@ -40,7 +41,7 @@ export function MissionSummaryCapsule({
         {badges}
         <span className={css.spacer} />
         {onReview && (
-          <Button size="small" onClick={onReview} title="Review changes" keys="v">
+          <Button size="small" onClick={onReview} title="Review changes" keys={missionKeys.review}>
             <Icon name="eye" /> Review
           </Button>
         )}

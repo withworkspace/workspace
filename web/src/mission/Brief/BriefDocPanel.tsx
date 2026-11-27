@@ -1,3 +1,4 @@
+import { briefKeys } from "./keys";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Draft, MarkdownEditor } from "../../editor/LazyEditor";
 import { TrackedDoc } from "../../editor/LazyTracked";
@@ -135,6 +136,7 @@ export function BriefDocPanel({
           focus={focus}
           onFocus={onFocus}
           onSettle={settle}
+          keys={{ accept: briefKeys.accept, decline: briefKeys.decline }}
           onUnplaced={(ids) => {
             setUnplaced((n) => n + ids.length);
             setSettled((x) => ({ ...x, ...Object.fromEntries(ids.map((cid) => [cid, "accept" as const])) }));

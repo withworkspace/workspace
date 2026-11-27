@@ -1,3 +1,4 @@
+import { annotateKeys } from "./keys";
 import type { KeyboardEvent, Ref } from "react";
 import { threadKinds, type ThreadKind } from "../api";
 import { Banner } from "../ui/Banner";
@@ -66,7 +67,7 @@ export function AnnotateComposer({
     <div className={css.composer} onClick={(e) => e.stopPropagation()}>
       <Segmented fill value={kind} onChange={onKind} aria-label="Comment kind">
         {threadKinds.map((k) => (
-          <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={kindWords[k]} keys="tab">
+          <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={kindWords[k]} keys={annotateKeys.kind}>
             <Icon name={kindIcon[k]} size={12} />
             {kindWords[k]}
           </Segment>

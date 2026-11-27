@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { type ArtifactDetail, frameURL, getArtifactDetail } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { artifactViewKeys } from "./keys";
 import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
@@ -104,18 +105,18 @@ export function ArtifactPage() {
     setStopped(false);
     setRun((x) => x + 1);
   };
-  useKeys({
-    "[": () => d && go(stepVersion(d.all, n, -1)),
-    "]": () => d && go(stepVersion(d.all, n, 1)),
-    w: () => setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
-    r: again,
-    x: () => setStopped((s) => !s),
-    s: () => setSource((s) => !s),
-    t: () => hasTweaks(told) && setTray((x) => !x),
-    c: () => comparing && navigate(compareHref(comparing)),
-    p: () => d && d.status !== "discarded" && !d.gone && setDialog("promote"),
-    O: () => n && window.open(frameURL(id, n, opensAs), "_blank", "noopener,noreferrer"),
-    Escape: () => navigate("/artifacts"),
+  useCommands(artifactViewKeys, {
+    prevVersion: () => d && go(stepVersion(d.all, n, -1)),
+    nextVersion: () => d && go(stepVersion(d.all, n, 1)),
+    width: () => setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
+    reload: again,
+    stop: () => setStopped((s) => !s),
+    source: () => setSource((s) => !s),
+    tweaks: () => hasTweaks(told) && setTray((x) => !x),
+    compare: () => comparing && navigate(compareHref(comparing)),
+    promote: () => d && d.status !== "discarded" && !d.gone && setDialog("promote"),
+    newTab: () => n && window.open(frameURL(id, n, opensAs), "_blank", "noopener,noreferrer"),
+    back: () => navigate("/artifacts"),
   });
 
   if (error && !d) {
@@ -141,7 +142,7 @@ export function ArtifactPage() {
   return (
     <ArtifactView>
       <ArtifactHead>
-        <ArtifactTitleLine back={{ to: "/artifacts", label: "Back to Artifacts" }} title={d.title}>
+        <ArtifactTitleLine back={{ to: "/artifacts", label: "Back to Artifacts", keys: artifactViewKeys.back }} title={d.title}>
           <Chip tone={st.tone}>
             <Icon name={st.icon} size={11} />
             {st.words}
@@ -182,7 +183,7 @@ export function ArtifactPage() {
           <VersionStrip d={d} n={n} go={go} />
           <Segmented value={width} onChange={setWidth} disabled={source} aria-label="Width">
             {widths.map((w) => (
-              <Segment key={w.key} value={w.key} title={w.title} keys="w">
+              <Segment key={w.key} value={w.key} title={w.title} keys={artifactViewKeys.width}>
                 {w.label}
               </Segment>
             ))}
@@ -195,7 +196,7 @@ export function ArtifactPage() {
             onReload={again}
             onStop={() => setStopped((s) => !s)}
             onSource={setSource}
-            tweaks={framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} keys="t" />}
+            tweaks={framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} keys={artifactViewKeys.tweaks} />}
             compare={
               comparing && {
                 to: compareHref(comparing),
@@ -221,7 +222,7 @@ export function ArtifactPage() {
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)} keys="x">Run</Button>}>
+            <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)} keys={artifactViewKeys.stop}>Run</Button>}>
               Frame and scripts unloaded.
             </ArtifactEmpty>
           ) : (
@@ -229,7 +230,7 @@ export function ArtifactPage() {
           )}
         </ArtifactStage>
         {framed && tray && hasTweaks(told) && (
-          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)} keys="t">
+          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)} keys={artifactViewKeys.tweaks}>
             {changed(told).length > 0 && (
               <Link className={textClass("link")} to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="Side by side: defaults and current tweaks">
                 <Icon name="split" size={12} /> Compare with defaults

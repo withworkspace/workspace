@@ -1,3 +1,4 @@
+import { everywhereKeys } from "../shell/keys";
 import { useContextMenu } from "../ui/ContextMenu";
 import { Icon } from "../ui/Icon";
 import { Mark } from "../ui/Mark";
@@ -33,7 +34,7 @@ export function FootBeside({ open, waiting = 0, onPress, over = false, onOver }:
       on={open}
       label="Beside"
       title={says}
-      keys={"\\"}
+      keys={everywhereKeys.beside}
       more={onOver ? "Right-click for more" : undefined}
       onPress={onPress}
       onContextMenu={menu(
@@ -45,7 +46,7 @@ export function FootBeside({ open, waiting = 0, onPress, over = false, onOver }:
                 <Icon name="float" />
                 <MenuText>{float}</MenuText>
               </MenuItem>
-              <MenuItem id="toggle" textValue={open ? "Close Beside" : "Open Beside"} onAction={onPress} keys={"\\"}>
+              <MenuItem id="toggle" textValue={open ? "Close Beside" : "Open Beside"} onAction={onPress} keys={everywhereKeys.beside}>
                 <Icon name="panel" />
                 <MenuText>{open ? "Close Beside" : "Open Beside"}</MenuText>
               </MenuItem>

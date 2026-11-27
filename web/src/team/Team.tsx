@@ -1,7 +1,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { getTeam, narrateTeam, seenTeam, summariseTeam, type TeamItem, type TeamTopic, useEvents, useVisible } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { teamKeys } from "./keys";
 import { prHref } from "../reviews/Reviews";
 import { Icon } from "../ui/Icon";
 import { useTitle } from "../ui/useTitle";
@@ -43,23 +44,6 @@ import { Text } from "../ui/Text";
 // line marks where you'd read to when you last looked, p arranges the same
 // changes by person, and a change that touches files a capsule of yours
 // has changed says so.
-
-export const teamKeys: [string, string][] = [
-  ["j / k", "Next / previous"],
-  ["g / G", "First / last"],
-  ["⏎", "Expand or collapse"],
-  ["o", "Open: review here, or on GitHub"],
-  ["w", "Summarise, or retry"],
-  ["⇧W", "Summarise all shown"],
-  ["n", "Worth knowing only, or everything"],
-  ["c", "Catch up"],
-  ["esc", "Show all changes"],
-  ["p", "By person, or by day"],
-  ["1 / 2 / 3", "Today / 7 days / all"],
-  ["a", "Show or hide bots"],
-  ["/", "Filter by text, repo or person"],
-  ["r", "Refresh"],
-];
 
 // useTeamEvents calls changed when there's been a new look, or a gist's
 // been written: it holds the Team topic, followed on its socket, while the page shows,
@@ -273,27 +257,25 @@ export function TeamPage() {
   };
   const writeRow = (it?: TeamItem) => it && (it.narrative === "unwritten" || it.narrative === "failed") && write({ strand: it.strand });
   const writeAll = () => write({ since: period });
-  useKeys({
-    j: () => select(index + 1),
-    ArrowDown: () => select(index + 1),
-    k: () => select(index - 1),
-    ArrowUp: () => select(index - 1),
-    g: () => select(0),
-    G: () => select(entries.length - 1),
-    Enter: () => toggle(current),
-    o: () => open(current),
-    w: () => writeRow(current),
-    W: writeAll,
-    n: know,
-    c: catchUp,
-    Escape: () => setTopic(undefined),
-    p: () => arrange(!byPeople),
-    a: bots,
-    r: refresh,
-    "1": () => pick(periods[0].since),
-    "2": () => pick(periods[1].since),
-    "3": () => pick(periods[2].since),
-    "/": () => filter.current?.focus(),
+  useCommands(teamKeys, {
+    next: () => select(index + 1),
+    prev: () => select(index - 1),
+    first: () => select(0),
+    last: () => select(entries.length - 1),
+    toggle: () => toggle(current),
+    open: () => open(current),
+    summarise: () => writeRow(current),
+    summariseAll: writeAll,
+    worthKnowing: know,
+    catchUp,
+    allChanges: () => setTopic(undefined),
+    byPerson: () => arrange(!byPeople),
+    bots,
+    refresh,
+    today: () => pick(periods[0].since),
+    week: () => pick(periods[1].since),
+    all: () => pick(periods[2].since),
+    filter: () => filter.current?.focus(),
   });
 
   // A row, under the id it has where it's shown.
@@ -328,27 +310,27 @@ export function TeamPage() {
         <>
           {view && <TeamAsOf at={view.at} looking={loading} />}
           <Segmented value={byPeople ? "people" : "days"} onChange={(v) => arrange(v === "people")} aria-label="Group by">
-            <Segment value="days" title="By day, newest first" keys="p">
+            <Segment value="days" title="By day, newest first" keys={teamKeys.byPerson}>
               Days
             </Segment>
-            <Segment value="people" title="By person: open, landed and reviewing" keys="p">
+            <Segment value="people" title="By person: open, landed and reviewing" keys={teamKeys.byPerson}>
               People
             </Segment>
           </Segmented>
           <Segmented value={period} onChange={pick} aria-label="Period">
             {periods.map((p, i) => (
-              <Segment key={p.since} value={p.since} title={p.title} keys={i < 3 ? String(i + 1) : undefined}>
+              <Segment key={p.since} value={p.since} title={p.title} keys={[teamKeys.today, teamKeys.week, teamKeys.all][i]}>
                 {p.label}
               </Segment>
             ))}
           </Segmented>
           {narrative?.on && (
-            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only changes worth knowing" keys="n">
+            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only changes worth knowing" keys={teamKeys.worthKnowing}>
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
             </ToggleButton>
           )}
           <TeamFilter ref={filter} value={q} onChange={setQ} />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Refresh" keys="r">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Refresh" keys={teamKeys.refresh}>
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>
@@ -376,7 +358,7 @@ export function TeamPage() {
     <div className="page">
       {head}
       {(error || view.error) && (
-        <Callout tone="attention" title="Could not load changes" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
+        <Callout tone="attention" title="Could not load changes" actions={<Button onClick={refresh} keys={teamKeys.refresh}>Try again</Button>}>
           {humanError(error ?? view.error ?? "")} Showing changes as of <Time iso={view.at} as="relative" />.
         </Callout>
       )}
@@ -413,7 +395,7 @@ export function TeamPage() {
             </TeamNarrativeReading>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
-            <Button variant="link" onClick={catchUp} title="Summarise the team's work in this period" keys="c">
+            <Button variant="link" onClick={catchUp} title="Summarise the team's work in this period" keys={teamKeys.catchUp}>
               Catch up
             </Button>
           )}
@@ -421,7 +403,7 @@ export function TeamPage() {
             <span>
               {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been
               summarised.{" "}
-              <Button variant="link" onClick={writeAll} title="Summarise all" keys="⇧W">Summarise</Button>
+              <Button variant="link" onClick={writeAll} title="Summarise all" keys={teamKeys.summariseAll}>Summarise</Button>
             </span>
           )}
         </TeamNarrative>
@@ -442,7 +424,7 @@ export function TeamPage() {
           <span>
             Only <strong>{topic.name}</strong>: {topic.strands.length} {topic.strands.length === 1 ? "change" : "changes"}.
           </span>
-          <Button variant="link" onClick={() => setTopic(undefined)} keys="esc">
+          <Button variant="link" onClick={() => setTopic(undefined)} keys={teamKeys.allChanges}>
             Show everything <Keys k="esc" />
           </Button>
         </TeamNarrative>
@@ -467,7 +449,7 @@ export function TeamPage() {
               ))}
             </Rows>
             {d.bots > 0 && !q && (
-              <Button variant="link" onClick={bots} aria-expanded={showBots} keys="a">
+              <Button variant="link" onClick={bots} aria-expanded={showBots} keys={teamKeys.bots}>
                 <Icon name={showBots ? "chevron-down" : "chevron-right"} size={12} /> {d.bots} automated
               </Button>
             )}

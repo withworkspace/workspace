@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { getArtifactDetail } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { compareKeys } from "./keys";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
@@ -129,19 +130,19 @@ export function ComparePage() {
     setStopped(false);
     setRun((x) => x + 1);
   };
-  useKeys({
-    "[": () => step(narrow ? shown : 1, -1),
-    "]": () => step(narrow ? shown : 1, 1),
-    "{": () => step(0, -1),
-    "}": () => step(0, 1),
-    S: swap,
-    d: () => setDiff((x) => !x),
-    t: () => narrow && setShown((x) => (x ? 0 : 1)),
-    w: () => !diff && setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
-    u: () => diff && !narrow && setSplit((x) => !x),
-    r: () => !diff && again(),
-    x: () => !diff && setStopped((s) => !s),
-    Escape: () => navigate(back),
+  useCommands(compareKeys, {
+    rightPrev: () => step(narrow ? shown : 1, -1),
+    rightNext: () => step(narrow ? shown : 1, 1),
+    leftPrev: () => step(0, -1),
+    leftNext: () => step(0, 1),
+    swap,
+    diff: () => setDiff((x) => !x),
+    other: () => narrow && setShown((x) => (x ? 0 : 1)),
+    width: () => !diff && setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
+    split: () => diff && !narrow && setSplit((x) => !x),
+    reload: () => !diff && again(),
+    stop: () => !diff && setStopped((s) => !s),
+    back: () => navigate(back),
   });
 
   if (!pair) {
@@ -179,7 +180,7 @@ export function ComparePage() {
   return (
     <ArtifactView>
       <ArtifactHead>
-        <ArtifactTitleLine back={{ to: back, label: backLabel }} title={same ? right.title : `${left.title} and ${right.title}`}>
+        <ArtifactTitleLine back={{ to: back, label: backLabel, keys: compareKeys.back }} title={same ? right.title : `${left.title} and ${right.title}`}>
           <Chip tone="quiet">
             <Icon name="split" size={11} />
             {same ? `v${pair[0].n} and v${pair[1].n}` : "Two artifacts"}
@@ -187,20 +188,20 @@ export function ComparePage() {
         </ArtifactTitleLine>
         <ArtifactTools>
           <Segmented value={diff ? "diff" : "frames"} onChange={(v) => setDiff(v === "diff")} aria-label="View">
-            <Segment value="frames" title="Live pages, side by side" keys="d">
+            <Segment value="frames" title="Live pages, side by side" keys={compareKeys.diff}>
               <Icon name="monitor" size={13} /> Frames
             </Segment>
-            <Segment value="diff" title="File diff, left against right" keys="d">
+            <Segment value="diff" title="File diff, left against right" keys={compareKeys.diff}>
               <Icon name="code" size={13} /> Source diff
             </Segment>
           </Segmented>
           {diff ? (
             !narrow && (
               <Segmented value={split ? "split" : "unified"} onChange={(v) => setSplit(v === "split")} aria-label="Diff layout">
-                <Segment value="unified" title="Unified" keys="u">
+                <Segment value="unified" title="Unified" keys={compareKeys.split}>
                   <Icon name="unified" size={13} /> Unified
                 </Segment>
-                <Segment value="split" title="Side by side" keys="u">
+                <Segment value="split" title="Side by side" keys={compareKeys.split}>
                   <Icon name="split" size={13} /> Split
                 </Segment>
               </Segmented>
@@ -208,7 +209,7 @@ export function ComparePage() {
           ) : (
             <Segmented value={width} onChange={setWidth} aria-label="Width">
               {widths.map((w) => (
-                <Segment key={w.key} value={w.key} title={`${w.title}, both`} keys="w">
+                <Segment key={w.key} value={w.key} title={`${w.title}, both`} keys={compareKeys.width}>
                   {w.label}
                 </Segment>
               ))}
@@ -217,22 +218,22 @@ export function ComparePage() {
           {narrow && (
             <Segmented value={shown ? "right" : "left"} onChange={(v) => setShown(v === "right" ? 1 : 0)} aria-label="Side">
               {([0, 1] as const).map((i) => (
-                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "Right" : "Left"} one`} keys="t">
+                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "Right" : "Left"} one`} keys={compareKeys.other}>
                   {sideRef(pair[i])}
                 </Segment>
               ))}
             </Segmented>
           )}
           <ArtifactToolsEnd>
-            <Button variant="ghost" size="small" onClick={swap} title="Swap sides" keys="S">
+            <Button variant="ghost" size="small" onClick={swap} title="Swap sides" keys={compareKeys.swap}>
               <Icon name="swap" size={13} /> Swap <Keys k="S" />
             </Button>
             {!diff && (
               <>
-                <Button variant="ghost" size="small" onClick={again} title="Run again" keys="r">
+                <Button variant="ghost" size="small" onClick={again} title="Run again" keys={compareKeys.reload}>
                   <Icon name="rotate" size={13} /> Reload <Keys k="r" />
                 </Button>
-                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run again" : "Unload: a script that loops stops"} keys="x">
+                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run again" : "Unload: a script that loops stops"} keys={compareKeys.stop}>
                   <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
                 </Button>
               </>

@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import { type ComponentProps, createContext, type ReactNode, useContext } from "react";
 import { Tab as AriaTab, TabList, Tabs as AriaTabs } from "react-aria-components";
 import { cx } from "./cx";
@@ -46,8 +47,9 @@ export function Tabs<T extends string>({
 // the key that shows it, said after the title and hinted as a Button's
 // is (ui/keyHint.ts). onPress is called on pressing it, as well as its
 // being chosen: for the one shown, which choosing doesn't change.
-export function Tab({ value, title, keys, onPress, className, children }: { value: string; title?: string; keys?: string; onPress?: () => void; className?: string; children: ReactNode }) {
+export function Tab({ value, title, keys: given, onPress, className, children }: { value: string; title?: string; keys?: KeyLike; onPress?: () => void; className?: string; children: ReactNode }) {
   const controls = useContext(Controls);
+  const keys = useSaid(given);
   const titled = titleWithKeys(title, keys);
   // react-aria's tab names a panel of its own, which isn't drawn: it says
   // the page's instead, and its title, which react-aria's drops. (It's a

@@ -1,12 +1,14 @@
+import { Keys } from "../ui/Keys";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { getBlob } from "../api";
-import { useKeys, useShortcut } from "../keys";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { reviewPanelKeys } from "./keys";
+import { useSaid } from "../keymap/keymap";
 import { Banner } from "../ui/Banner";
 import { buttonClass } from "../ui/Button";
 import { CodeLines } from "../ui/CodeLines";
 import { keyProps } from "../ui/keyHint";
-import { Keys } from "../ui/Keys";
 import { CodeNavPanel } from "./CodeNavPanel";
 import { highlightLines, languageOf } from "./highlight";
 import type { Side } from "./nav";
@@ -28,20 +30,20 @@ export function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api:
   const scroll = (by: number) => body.current?.scrollBy({ top: by * 20 });
   // Closing it and going back are a key and a button each: the key's
   // bound here, and the button's given what comes back.
-  const close = useShortcut("Escape", onClose, { modal: true });
-  const goBack = useShortcut("b", onBack, { modal: true });
-  useKeys(
+  const close = useCommand(reviewPanelKeys.close, onClose, { modal: true });
+  const goBack = useCommand(reviewPanelKeys.back, onBack, { modal: true });
+  useCommands(
+    reviewPanelKeys,
     {
-      j: () => scroll(1),
-      ArrowDown: () => scroll(1),
-      k: () => scroll(-1),
-      ArrowUp: () => scroll(-1),
-      "mod+d": () => scroll(20),
-      "mod+u": () => scroll(-20),
-      o: () => browse && navigate(browse),
+      down: () => scroll(1),
+      up: () => scroll(-1),
+      halfDown: () => scroll(20),
+      halfUp: () => scroll(-20),
+      open: () => browse && navigate(browse),
     },
     { modal: true },
   );
+  const openKey = useSaid(reviewPanelKeys.open);
   const html = useMemo(() => (lines ? highlightLines(lines, languageOf(at.path)) : []), [lines, at.path]);
   return (
     <CodeNavPanel
@@ -59,8 +61,8 @@ export function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api:
       how={at.how}
       tools={
         browse && (
-          <Link to={browse} className={buttonClass({ size: "small" })} {...keyProps("o", "Open current version in Files")}>
-            Open <Keys k="o" />
+          <Link to={browse} className={buttonClass({ size: "small" })} {...keyProps(openKey, "Open current version in Files")}>
+            Open <Keys k={reviewPanelKeys.open} />
           </Link>
         )
       }

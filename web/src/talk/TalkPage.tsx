@@ -4,7 +4,8 @@ import { StartedVia } from "./StartedVia";
 import { ApiError, proposalFrameURL, setTalkStatus, type TalkDetail, type TalkProposal, type TalkTurn } from "../api";
 import { talkAt } from "../chrome/panes";
 import { useTalk, useTalks } from "../conversation/talks";
-import { useShortcut, useKeys } from "../keys";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { talkKeys } from "./keys";
 import { useHere } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { usePref } from "../prefs";
@@ -246,12 +247,12 @@ export function TalkPage() {
         navigate(back);
       },
     );
-  useKeys({
-    r: () => box.current?.focus(),
-    Escape: () => navigate(back),
+  useCommands(talkKeys, {
+    reply: () => box.current?.focus(),
+    back: () => void navigate(back),
   });
   // Resolving it, or reopening it: x, and the button in the bar.
-  const resolve = useShortcut("x", toggle);
+  const resolve = useCommand(talkKeys.resolve, toggle);
   const sendKey = useSendKey();
   // To a proposal's card, from beside the conversation: clear of the bar.
   const goTo = (n: number) => {
@@ -282,7 +283,7 @@ export function TalkPage() {
     <TalkLayout side={side} ref={page}>
       <TalkBar
         ref={head}
-        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to conversations", keys: "esc" }}
+        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to conversations", keys: talkKeys.back }}
         status={st && <Status s={st} iconOnly size={16} />}
         title={d ? title : undefined}
         actions={

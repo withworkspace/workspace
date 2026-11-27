@@ -1,3 +1,5 @@
+import type { KeyLike } from "../keymap/keymap";
+import { everywhereKeys } from "../shell/keys";
 import type { ReactElement } from "react";
 import { Count } from "../ui/Count";
 import { Icon, type IconName } from "../ui/Icon";
@@ -15,7 +17,7 @@ export interface WindowMenuPlace {
   icon: IconName;
   count?: number;
   countTitle?: string;
-  keys?: string; // the keys that go there ("g m"), where it has them
+  keys?: KeyLike; // what goes there (g then m), where a key does
   current?: boolean;
 }
 
@@ -83,7 +85,7 @@ export function WindowMenu({
         <Icon name="sliders" />
         <MenuText>Settings</MenuText>
       </MenuItem>
-      <MenuItem id="keys" textValue="Keys" onAction={onKeys} keys="?">
+      <MenuItem id="keys" textValue="Keys" onAction={onKeys} keys={everywhereKeys.help}>
         <Icon name="keyboard" />
         <MenuText>Keys</MenuText>
       </MenuItem>

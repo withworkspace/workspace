@@ -1,3 +1,5 @@
+import { spaceKeys } from "./keys";
+import { keyOf } from "../keymap/keymap";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Icon } from "../ui/Icon";
@@ -24,7 +26,7 @@ export function SpaceHead({ label, color, folder, count, fresh, actions }: Space
       className={css.head}
       lead={
         <>
-          <Link to="/documents" className={css.back} {...keyProps("esc", "Back to Documents")}>
+          <Link to="/documents" className={css.back} {...keyProps(keyOf(spaceKeys.back), "Back to Documents")}>
             <Icon name="arrow-left" size={13} /> Documents
           </Link>
           <span className={css.slash} aria-hidden>

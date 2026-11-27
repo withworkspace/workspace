@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { type ArtifactFoundDetail, getArtifactFound } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { keyOf } from "../keymap/keymap";
+import { foundArtifactKeys } from "./keys";
 import { useLoaded } from "../load";
 import { Button, buttonClass } from "../ui/Button";
 import { Chip } from "../ui/Chip";
@@ -39,17 +41,17 @@ export function FoundArtifactPage() {
     reload();
     setRun((x) => x + 1);
   };
-  useKeys({
-    w: () => setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
-    r: again,
-    O: () => d && window.open(d.frame, "_blank", "noopener,noreferrer"),
-    Escape: () => navigate("/artifacts"),
+  useCommands(foundArtifactKeys, {
+    width: () => setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
+    reload: again,
+    newTab: () => d && window.open(d.frame, "_blank", "noopener,noreferrer"),
+    back: () => navigate("/artifacts"),
   });
 
   if (error && !d) {
     return (
       <div className="page narrow">
-        <ErrorCard error={error} retry={reload} keys="r" title={`Could not open ${name}`} />
+        <ErrorCard error={error} retry={reload} keys={foundArtifactKeys.reload} title={`Could not open ${name}`} />
         <p>
           <Link to="/artifacts">Back to Artifacts</Link>
         </p>
@@ -92,17 +94,17 @@ export function FoundArtifactPage() {
         <ArtifactTools>
           <Segmented value={width} onChange={setWidth} aria-label="Width">
             {widths.map((w) => (
-              <Segment key={w.key} value={w.key} title={w.title} keys="w">
+              <Segment key={w.key} value={w.key} title={w.title} keys={foundArtifactKeys.width}>
                 {w.label}
               </Segment>
             ))}
           </Segmented>
           <ArtifactToolsEnd>
-            <Button variant="ghost" size="small" onClick={again} disabled={!page} title="Run again from the repo" keys="r">
+            <Button variant="ghost" size="small" onClick={again} disabled={!page} title="Run again from the repo" keys={foundArtifactKeys.reload}>
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
             </Button>
             {page && (
-              <a className={buttonClass({ variant: "ghost" })} href={d.frame} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In new tab, still sandboxed")}>
+              <a className={buttonClass({ variant: "ghost" })} href={d.frame} target="_blank" rel="noopener noreferrer" {...keyProps(keyOf(foundArtifactKeys.newTab), "In new tab, still sandboxed")}>
                 <Icon name="external" size={13} /> Open in new tab
               </a>
             )}

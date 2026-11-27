@@ -1,7 +1,7 @@
 import { connect, ProtocolError } from "@withworkspace/ui-lib";
 import { isRefuse, TOKENS, V1 } from "@withworkspace/ui-lib/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { frameKeys } from "../keys";
+import { frameKeys } from "../keymap/frame";
 import { createHost } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { answer, type Host, type KeyPress, listen, refusal, type Session, type Speak, versions } from "./frame";
@@ -104,7 +104,7 @@ describe("the handshake", () => {
     const welcome = message as V1.Welcome;
     expect(welcome.ws).toBe("1.2.3");
     expect(Object.keys(welcome.theme.vars).sort()).toEqual(TOKENS.map(tokenVar).sort());
-    expect(welcome.keys).toEqual(frameKeys);
+    expect(welcome.keys).toEqual(frameKeys());
     expect(welcome.keys.chords).toContain("k");
   });
 

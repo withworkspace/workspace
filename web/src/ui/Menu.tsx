@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import type { ReactElement, ReactNode } from "react";
 import { Header, Menu as AriaMenu, MenuItem as AriaMenuItem, MenuSection as AriaMenuSection, MenuTrigger, Separator } from "react-aria-components";
 import { cx } from "./cx";
@@ -84,7 +85,7 @@ export function MenuItem({
   textValue,
   onAction,
   tone,
-  keys,
+  keys: given,
   disabled,
   className,
   children,
@@ -93,11 +94,12 @@ export function MenuItem({
   textValue: string;
   onAction?: () => void;
   tone?: "danger";
-  keys?: string;
+  keys?: KeyLike;
   disabled?: boolean;
   className?: string;
   children: ReactNode;
 }) {
+  const keys = useSaid(given);
   return (
     <AriaMenuItem id={id} textValue={textValue} isDisabled={disabled} onAction={onAction} onPress={keys ? (e) => pointed(e) && keyHint(keys) : undefined} className={cx(css.item, tone === "danger" && css.danger, className)}>
       {children}

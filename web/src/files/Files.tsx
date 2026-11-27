@@ -1,3 +1,5 @@
+import { switchKeys } from "./keys";
+import { useSaid } from "../keymap/keymap";
 import { useState } from "react";
 import { Crumbs } from "../ui/Crumbs";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -23,24 +25,6 @@ import { WorktreeSwitch } from "./Repos/WorktreeSwitch";
 // as it's checked out) or any of its capsules, read as a mission's
 // explorer reads a capsule's. The title says which, and switches (w).
 
-export const filesKeys: [string, string][] = [
-  ["w", "Switch capsule or ground"],
-  ["t / mod+P", "Find a file"],
-  ["mod+shift+F", "Search in files"],
-  ["j / k", "Next / previous in the tree"],
-  ["⏎ / o", "Open file, or toggle folder"],
-  ["⏎", "Open markdown as document"],
-  ["h / l", "Close / open folder"],
-  ["c", "Changed files, or all files (capsules)"],
-  ["[ / ]", "Previous / next changed file"],
-  ["m", "Markdown: rendered or source"],
-  ["v", "Review changes (mission capsules)"],
-  ["y", "Copy path"],
-  ["p", "Panes: repos, tree and file; tree and file; or file only"],
-  ["r", "Reload"],
-  ["esc", "Close file"],
-];
-
 export function FilesPage() {
   const { repo = "", capsule } = useParams();
   const [params, setParams] = useSearchParams();
@@ -48,6 +32,7 @@ export function FilesPage() {
   const narrow = useMedia("(max-width: 860px)");
   const { value: repos, error, reload: load } = useLoaded<Repo[]>(getRepos, [], { keep: true });
   const [switching, setSwitching] = useState(false);
+  const switchKey = useSaid(switchKeys.open);
   useTitle(repo ? undefined : "Repos");
 
   const r = repos?.find((x) => x.name === repo);
@@ -76,7 +61,7 @@ export function FilesPage() {
             ) : (
               <Empty icon="layers" title="Pick a repo">
                 Browse files on the default branch (ground) or any capsule. Switch with the title (
-                <Keys k="w" />).
+                <Keys k={switchKey ?? "w"} />).
               </Empty>
             )}
           </FilesPick>

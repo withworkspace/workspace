@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { type NoteDraft, type NoteKind, noteKinds, type ReviewNote } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { reviewKeys } from "./keys";
 import { Button } from "../ui/Button";
 import { hintOnClick } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
@@ -37,7 +38,8 @@ export function ReviewNoteEditor({
   const [text, setText] = useState(() => (note ? joinSuggestion(note.body, note.suggestion) : ""));
   const area = useRef<HTMLElement>(null);
   const sendKey = useSendKey();
-  useKeys({}, { modal: true });
+  // While a comment's written, the page's keys are quiet.
+  useCommands(reviewKeys, {}, { modal: true });
   useEffect(() => {
     area.current?.focus();
     area.current?.scrollIntoView({ block: "nearest" });

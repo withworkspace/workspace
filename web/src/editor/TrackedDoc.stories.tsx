@@ -30,6 +30,7 @@ export const Suggested: StoryObj = {
         ]}
         focus="c1"
         onSettle={none}
+        keys={{ accept: "a", decline: "d" }}
       />,
     ),
 };

@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useParams } from "react-router";
 import { getSettings, setSettings, type SettingChange, type SettingsInfo } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { settingsKeys } from "./keys";
 import { useLoaded } from "../load";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Skeleton } from "../ui/Skeleton";
@@ -35,9 +36,6 @@ import { SettingsSide } from "./SettingsSide";
 // of the components that say which part a thing of the settings' is
 // drawn as (SectionView, BlockView, RowOf and the rows, Control and the
 // controls).
-
-export const settingsKeys: [string, string][] = [["/", "Find a setting"]];
-
 export function SettingsPage({
   notify,
 }: {
@@ -51,7 +49,7 @@ export function SettingsPage({
   const sections = useMemo(() => sectionsOf(info), [info]);
   const section = sections.find((s) => s.id === at);
   useTitle(section ? `${section.title} · Settings` : "Settings");
-  useKeys({ "/": () => field.current?.focus() });
+  useCommands(settingsKeys, { find: () => field.current?.focus() });
   // What a harness lists is asked afresh each time you come here.
   useEffect(forgetModels, []);
 

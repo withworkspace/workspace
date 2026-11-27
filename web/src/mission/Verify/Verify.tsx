@@ -1,6 +1,8 @@
+import { useSaid } from "../../keymap/keymap";
+import { verifyKeys } from "./keys";
 import { useEffect, useRef, useState } from "react";
 import { act, type ActOpts, type ActVerb, type Bundle, type MissionDetail } from "../../api";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
 import type { Reload } from "../../load";
 import { Empty } from "../../ui/Empty";
 import { Inline } from "../../ui/Inline";
@@ -138,11 +140,12 @@ export function Verify({
     if (going.length) run("bundle-send-back", { notes: going }, false, on);
     else run("bundle-approve", {}, false, on);
   };
-  useKeys({
-    y: () => open && cur && look(cur),
-    n: () => open && cur?.check && note(cur.check.n, mine[cur.check.n] ?? ""),
-    "mod+Enter": () => open && !busy && settle(),
+  useCommands(verifyKeys, {
+    approve: () => void (open && cur && look(cur)),
+    reject: () => void (open && cur?.check && note(cur.check.n, mine[cur.check.n] ?? "")),
+    settle: () => void (open && !busy && settle()),
   });
+  const settleKey = useSaid(verifyKeys.settle);
 
   if (!bundle) {
     if (d.bundles.length) return <VerifyNothingLeft bundles={d.bundles} pick={pick} />;
@@ -206,14 +209,14 @@ export function Verify({
                     disabled={busy}
                     onSettle={settle}
                     title={settleTitle}
-                    keys="mod+⏎"
+                    keys={verifyKeys.settle}
                     says={
                       going.length
                         ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew} with your notes. Their next bundle replaces this one.`
                         : `${settles(bundle)}${left.length ? ` ${left.length} ${left.length === 1 ? "check is" : "checks are"} still left for you.` : ""}`
                     }
                   >
-                    {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} <Keys k="mod+⏎" />
+                    {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} {settleKey && <Keys k={settleKey} />}
                   </MissionVerifyApprove>
                 )}
                 {approved.length > 0 && (

@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import type { CapsuleDetail, MissionDetail } from "../../api";
 import { Icon } from "../../ui/Icon";
 import { CrewBadge } from "../CrewBadge";
@@ -26,7 +27,7 @@ export function WorkCapsuleRow({ d, x, selected, select, label, review, seen }: 
       end={
         <>
           {here && <CrewBadge id={here.id} live />}
-          <MissionWorkState {...x.state} keys="o" />
+          <MissionWorkState {...x.state} keys={missionKeys.openLink} />
         </>
       }
       selected={selected}

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { act, type Artifact, type CapsuleDetail } from "../api";
-import { type KeyMap, useKeys, useShortcut } from "../keys";
+import { useSaid } from "../keymap/keymap";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { missionKeys } from "./keys";
 import { Icon } from "../ui/Icon";
 import { keyProps } from "../ui/keyHint";
 import { Crumbs } from "../ui/Crumbs";
@@ -12,7 +14,6 @@ import { humanError } from "../ui/strings";
 import { ErrorCard } from "../ui/ErrorCard";
 import { RefContext } from "../refs/context";
 import { Brief } from "./Brief/Brief";
-import { briefKeys } from "./Brief/words";
 import { missionRefs } from "./refs";
 import { MissionData } from "./MissionData";
 import { isArtifact } from "./outputs";
@@ -55,23 +56,6 @@ type Tab = MissionTab;
 const tabNames = missionTabNames;
 // The tabs that are somewhere to work, not something to read.
 const wideTabs: Tab[] = ["work", "verify"];
-
-export const missionKeys: [string, string][] = [
-  ["1–7", "Summary, Brief, Work, Verify, Log, Talk, Decisions"],
-  ["j / k", "Next / previous item"],
-  ["⏎", "Open"],
-  ["v", "Review capsule / read replies"],
-  ["o", "Open link"],
-  ["f", "Browse files"],
-  ["e", "Edit brief and plan"],
-  ["s", "Toggle details"],
-  ["r", "Reload"],
-  ["y / n", "Verify: approve / reject check"],
-  ["mod+⏎", "Verify: approve bundle or send back"],
-  ["esc", "Close, or back to missions"],
-  ...briefKeys,
-];
-
 
 // remembered is each mission's selection, kept while you open what's
 // selected and come back.
@@ -183,28 +167,21 @@ export function MissionPage() {
   };
   // Brief has its own j, k and esc (its changes to read, its editors):
   // there, the list's aren't bound, and its esc comes here last.
-  const listKeys: KeyMap =
-    tab === "brief"
-      ? {}
-      : {
-          j: () => move(at + 1),
-          ArrowDown: () => move(at + 1),
-          k: () => move(at < 0 ? 0 : at - 1),
-          ArrowUp: () => move(at < 0 ? 0 : at - 1),
-          Escape: escape,
-        };
-  useKeys({
-    "1": () => setTab("summary"),
-    "2": () => setTab("brief"),
-    "3": () => setTab("work"),
-    "4": () => setTab("verify"),
-    "5": () => setTab("log"),
-    "6": () => setTab("talk"),
-    "7": () => setTab("decisions"),
-    ...listKeys,
-    Enter: () => item?.open(),
-    o: () => (item?.url ? window.open(item.url, "_blank", "noopener") : item?.open()),
-    v: () => {
+  const onBrief = tab === "brief";
+  useCommands(missionKeys, {
+    summary: () => setTab("summary"),
+    brief: () => setTab("brief"),
+    work: () => setTab("work"),
+    verify: () => setTab("verify"),
+    log: () => setTab("log"),
+    talk: () => setTab("talk"),
+    decisions: () => setTab("decisions"),
+    next: onBrief ? undefined : () => move(at + 1),
+    prev: onBrief ? undefined : () => move(at < 0 ? 0 : at - 1),
+    back: onBrief ? undefined : () => void escape(),
+    open: () => void item?.open(),
+    openLink: () => void (item?.url ? window.open(item.url, "_blank", "noopener") : item?.open()),
+    review: () => {
       // Replies waiting for you on a document, when that's where it stands.
       const h = d?.headlines[0];
       if (!item?.capsule && h?.action.verb === "review-doc" && h.action.target) return navigate(docLink(slug, h.action.target));
@@ -223,34 +200,35 @@ export function MissionPage() {
       const c = item?.capsule ?? waiting ?? (only?.length === 1 ? only[0] : undefined);
       if (c) review(c);
     },
-    e: () => setTab("brief"),
-    f: () => {
+    edit: () => setTab("brief"),
+    files: () => {
       const only = d?.capsules.filter((c) => c.exists);
       const c = item?.capsule ?? (only?.length === 1 ? only[0] : undefined);
       if (c) navigate(`/missions/${slug}/files/${c.repo}/${c.name}`);
       else if (only?.length) setTab("work");
     },
-    s: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
-    h: back,
+    details: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
+    home: () => void back(),
   });
   // r reads it again, as Try again does where reading it failed: the
   // button's handed this, and says the key.
-  const again = useShortcut("r", load);
+  const again = useCommand(missionKeys.reload, load);
+  const backKey = useSaid(missionKeys.back);
 
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
-  const wayBack = { to: "/", title: "Missions", keys: "esc", label: "Back to missions" };
+  const wayBack = { to: "/", title: "Missions", keys: missionKeys.back, label: "Back to missions" };
 
   if (error && !d) {
     return (
       <div className="page narrow">
-        <Crumbs steps={[{ to: "/", label: "Missions", keys: "esc" }]} />
+        <Crumbs steps={[{ to: "/", label: "Missions", keys: missionKeys.back }]} />
         <ErrorCard
           title={/not found|no mission/i.test(error) ? "Mission not found" : "Could not load mission"}
           error={/not found|no mission/i.test(error) ? `No mission called ${slug}. It may have been renamed or deleted.` : error}
           retry={again}
         />
-        <Link to="/" className={buttonClass()} {...keyProps("esc", "Back to missions")}>
+        <Link to="/" className={buttonClass()} {...keyProps(backKey, "Back to missions")}>
           <Icon name="arrow-left" /> All missions
         </Link>
       </div>

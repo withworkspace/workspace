@@ -1,3 +1,4 @@
+import { teamKeys } from "./keys";
 import type { TeamTopic, TeamView } from "../api";
 import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
@@ -50,7 +51,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
                 </span>
               )}
               {summary.at && summary.stale && <span className={css.stale}>changed since</span>}
-              <Button variant="link" className={css.again} onClick={onWrite} title="Rewrite from current changes" keys="c">
+              <Button variant="link" className={css.again} onClick={onWrite} title="Rewrite from current changes" keys={teamKeys.catchUp}>
                 Rewrite
               </Button>
             </>
@@ -65,7 +66,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
             return (
               <li key={t.name} className={cx(css.topic, pressed && css.on)}>
                 <div className={css.head}>
-                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Only this topic's changes"} keys={pressed ? "esc" : undefined}>
+                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Only this topic's changes"} keys={pressed ? teamKeys.allChanges : undefined}>
                     {t.name}
                   </Button>
                   <span className={css.meta}>

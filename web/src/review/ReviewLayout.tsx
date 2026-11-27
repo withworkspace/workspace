@@ -1,3 +1,4 @@
+import type { Command } from "../keymap/commands";
 import type { CSSProperties, PointerEvent, ReactNode, Ref, UIEventHandler } from "react";
 import { ReviewSideBack } from "./ReviewSideBack";
 import css from "./ReviewLayout.module.css";
@@ -20,7 +21,7 @@ export function ReviewLayout({
   over,
 }: {
   width?: number; // the list's, as dragged; its own otherwise
-  back?: { to: string; label: string }; // the way back, the side's first row
+  back?: { to: string; label: string; keys?: Command }; // the way back, the side's first row
   side: ReactNode;
   children: ReactNode; // the pane's
   pane?: Ref<HTMLDivElement>;

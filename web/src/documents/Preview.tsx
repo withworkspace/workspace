@@ -1,3 +1,5 @@
+import { spaceKeys } from "./keys";
+import { keyOf } from "../keymap/keymap";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { type ArtifactContent, docAddress, docTo, filesTo, getDoc, GROUND, placeOf, type SpaceActivity, type SpaceDoc, type SpaceKind } from "../api";
@@ -86,8 +88,8 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         }
         actions={
           <>
-            <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} {...keyProps("⏎", "Open in reader")}>
-              <Icon name="book" size={13} /> Read <Keys k="⏎" />
+            <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} {...keyProps(keyOf(spaceKeys.open), "Open in reader")}>
+              <Icon name="book" size={13} /> Read <Keys k={spaceKeys.open} />
             </Link>
             {canEdit && (
               <Link to={docAddress(ref, shown?.page ?? true)} className={buttonClass()} title="Edit as a page; save to the repo when ready">

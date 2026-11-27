@@ -1,10 +1,12 @@
+import { useSaid } from "../../keymap/keymap";
+import { briefKeys } from "./keys";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { act, type MissionDetail } from "../../api";
 import { passageChip, waiting } from "../../ask/ask";
 import { talkAt } from "../../chrome/panes";
 import { useTalk, useTalks } from "../../conversation/talks";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
 import { type Reload, useHere } from "../../load";
 import { usePref } from "../../prefs";
 import { afterSettling } from "../../talk/proposals";
@@ -326,17 +328,18 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
     setFocus(undefined);
   };
 
-  useKeys({
-    "/": toField,
-    a: () => {
+  const confirmKey = useSaid(briefKeys.confirm);
+  useCommands(briefKeys, {
+    ask: () => void toField(),
+    accept: () => {
       if (!askAbout()) settleInHand("accept");
     },
-    d: () => settleInHand("decline"),
-    j: () => move(1),
-    k: () => move(-1),
-    p: () => fold(!beside),
-    "mod+Enter": () => primary && !primary.disabled && primary.run(),
-    Escape: () => {
+    decline: () => settleInHand("decline"),
+    next: () => move(1),
+    prev: () => move(-1),
+    planner: () => void fold(!beside),
+    confirm: () => void (primary && !primary.disabled && primary.run()),
+    back: () => {
       // In an editor or the planner's field, esc leaves it; your edits
       // stay, and aren't lost by going back.
       const el = document.activeElement as HTMLElement | null;
@@ -492,10 +495,10 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
                 type="button"
                 disabled={busy || primary.disabled}
                 onClick={primary.run}
-                keys="mod+⏎"
+                keys={briefKeys.confirm}
                 title={briefing && p ? "Nothing is saved until you confirm, including your edits and declined changes." : undefined}
               >
-                {primary.label} <Keys k="mod+⏎" />
+                {primary.label} {confirmKey && <Keys k={confirmKey} />}
               </Button>
             )}
             {wide && !open && hasPlanner && <MissionBriefUnfold waits={plannerWaits} onUnfold={() => fold(true)} />}

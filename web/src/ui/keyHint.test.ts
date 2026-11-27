@@ -92,9 +92,17 @@ describe("keysSaid", () => {
 
   it("leaves a letter, and a key it has no sign for, as written", () => {
     expect(keysSaid("g m")).toEqual(["g", "m"]);
-    expect(keysSaid("D")).toEqual(["D"]);
     expect(keysSaid("esc")).toEqual(["esc"]);
     expect(keysSaid("Tab")).toEqual(["Tab"]);
     expect(keysSaid("mod+K")[0]).toMatch(/^(⌘|Ctrl\+)K$/);
+  });
+});
+
+describe("a big letter", () => {
+  it("says shift by itself, and is written big with a modifier", () => {
+    expect(keysSaid("D")).toEqual(["⇧D"]);
+    expect(keysSaid("⇧W")).toEqual(["⇧W"]);
+    expect(keysSaid("mod+shift+f").join("")).toMatch(/^(⌘⇧F|Ctrl\+Shift\+F)$/);
+    expect(keysSaid("mod+k").join("")).toMatch(/^(⌘K|Ctrl\+K)$/);
   });
 });

@@ -1,3 +1,4 @@
+import { teamKeys } from "./keys";
 import type { TeamEvent, TeamItem } from "../api";
 import { prHref } from "../reviews/Reviews";
 import { Button } from "../ui/Button";
@@ -104,12 +105,12 @@ export function TeamChange({ id, item: it, names, repoOf, selected, open, fresh,
         actions={
           <>
             {!several && (
-              <Button variant="ghost" size="small" onClick={onOpen} title="Open" keys="o">
+              <Button variant="ghost" size="small" onClick={onOpen} title="Open" keys={teamKeys.open}>
                 <Icon name={here ? "pr" : "external"} size={13} /> {here ? "Review here" : "Open on GitHub"} <Keys k="o" />
               </Button>
             )}
             {(it.narrative === "unwritten" || it.narrative === "failed") && (
-              <Button variant="ghost" size="small" onClick={onWrite} title="Summarise the change and what's worth knowing" keys="w">
+              <Button variant="ghost" size="small" onClick={onWrite} title="Summarise the change and what's worth knowing" keys={teamKeys.summarise}>
                 <Icon name="sparkle" size={13} /> {it.narrative === "failed" ? "Try again" : it.gist ? "Summarise again" : "Summarise"} <Keys k="w" />
               </Button>
             )}

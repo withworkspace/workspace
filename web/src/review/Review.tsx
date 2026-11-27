@@ -22,9 +22,7 @@ import { ReviewFacts } from "./ReviewFacts";
 import { ReviewRepo } from "./ReviewRepo";
 import { ReviewStand } from "./ReviewStand";
 
-// The review page's keys, and how a file's lines are coloured, are asked
-// for by this page's name.
-export { reviewKeys } from "./ReviewView";
+// How a file's lines are coloured is asked for by this page's name.
 export { highlight } from "./highlightDiff";
 
 // Review is a mission capsule's review.

@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import type { CSSProperties, ReactNode, Ref } from "react";
 import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react-aria-components";
 import { keysOf } from "../keys";
@@ -31,7 +32,7 @@ type ButtonProps = ButtonLook &
     unavailable?: string;
     title?: string;
     // The key that does what pressing it does: see below.
-    keys?: string;
+    keys?: KeyLike;
     "aria-busy"?: boolean;
     children?: ReactNode;
     ref?: Ref<HTMLButtonElement>;
@@ -51,9 +52,10 @@ type ButtonProps = ButtonLook &
 // the title: the tooltip says it after ("Review its changes (v)"), and
 // pressed with the pointer, the button hints that there was a key
 // (ui/keyHint.ts), where you've asked for hints. It knows the key from
-// what it's given to press, when that's what useShortcut made (keys.ts:
-// the key's bound and said in one place), or from keys="v", for a key
-// bound elsewhere (as Keys reads one: "esc", "mod+⏎").
+// what it's given to press, when that's what useCommand made (keymap:
+// the key's bound and said in one place), or from keys: a command (whose
+// key is whichever it is now), or a key written out, for one bound
+// elsewhere (as Keys reads one: "esc", "mod+⏎").
 //
 // A button that can't be used now is one of two things. disabled: it's
 // out of reach, to the pointer and the keys, and says nothing (while
@@ -65,7 +67,7 @@ type ButtonProps = ButtonLook &
 // well, it's disabled.
 export function Button({ variant, size, square, className, disabled, unavailable, title, keys, "aria-busy": busy, "aria-label": label, type, onClick, onPress, ...rest }: ButtonProps) {
   const why = disabled ? undefined : unavailable || undefined;
-  const key = keys ?? keysOf(onClick) ?? keysOf(onPress);
+  const key = useSaid(keys) ?? keysOf(onClick) ?? keysOf(onPress);
   const titled = titleWithKeys(title, key);
   const says = why ?? (disabled ? undefined : titled);
   const button = (

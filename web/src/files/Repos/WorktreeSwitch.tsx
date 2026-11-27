@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { GROUND, getWorktrees, type Repo, type Worktree } from "../../api";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
+import { switchKeys } from "../keys";
 import { useLoaded } from "../../load";
 import { useWorkspace } from "../../workspace/store";
 import { FilesSwitch } from "./FilesSwitch";
@@ -37,17 +38,17 @@ export function WorktreeSwitch({ repo, current, open, setOpen }: { repo: Repo; c
     document.addEventListener("mousedown", away);
     return () => document.removeEventListener("mousedown", away);
   }, [open, setOpen]);
-  useKeys(open ? {} : { w: () => setOpen(true) });
-  useKeys(
+  useCommands(switchKeys, { open: !open && (() => setOpen(true)) });
+  // While it's open, its keys are the only ones.
+  useCommands(
+    switchKeys,
     open
       ? {
-          Escape: () => setOpen(false),
-          ArrowDown: () => setSel((i) => Math.min(i + 1, list.length - 1)),
-          j: () => setSel((i) => Math.min(i + 1, list.length - 1)),
-          ArrowUp: () => setSel((i) => Math.max(i - 1, 0)),
-          k: () => setSel((i) => Math.max(i - 1, 0)),
-          Enter: () => list[sel] && go(list[sel]),
-          w: () => setOpen(false),
+          close: () => setOpen(false),
+          next: () => setSel((i) => Math.min(i + 1, list.length - 1)),
+          prev: () => setSel((i) => Math.max(i - 1, 0)),
+          go: () => list[sel] && go(list[sel]),
+          open: () => setOpen(false),
         }
       : {},
     { modal: open },

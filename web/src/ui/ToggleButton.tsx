@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import type { ReactNode, Ref } from "react";
 import { ToggleButton as AriaToggleButton, type ToggleButtonProps as AriaToggleButtonProps } from "react-aria-components";
 import { type ButtonLook, lookOf } from "./Button";
@@ -16,7 +17,7 @@ type ToggleButtonProps = ToggleLook &
     className?: string;
     disabled?: boolean;
     title?: string;
-    keys?: string; // the key that turns it on and off, as a Button's is said and hinted
+    keys?: KeyLike; // the key that turns it on and off, as a Button's is said and hinted
     "aria-busy"?: boolean;
     children?: ReactNode;
     ref?: Ref<HTMLButtonElement>;
@@ -31,7 +32,8 @@ type ToggleButtonProps = ToggleLook &
 // Pressed, a plain one or a ghost is in the accent, on its soft fill. A
 // primary or a danger one is as it is: the page gives it that variant
 // while it's on, or a class of its own.
-export function ToggleButton({ pressed, onChange, variant, size, square, className, disabled, title, keys, "aria-busy": busy, "aria-label": label, onPress, ...rest }: ToggleButtonProps) {
+export function ToggleButton({ pressed, onChange, variant, size, square, className, disabled, title, keys: given, "aria-busy": busy, "aria-label": label, onPress, ...rest }: ToggleButtonProps) {
+  const keys = useSaid(given);
   const titled = titleWithKeys(title, keys);
   const tinted = variant === undefined || variant === "ghost";
   const button = (

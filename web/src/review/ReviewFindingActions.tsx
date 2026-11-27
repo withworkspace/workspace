@@ -1,6 +1,7 @@
+import { Keys } from "../ui/Keys";
+import { reviewKeys } from "./keys";
 import type { DismissWhy } from "../api";
 import { Button } from "../ui/Button";
-import { Keys } from "../ui/Keys";
 import { ReviewDismissAs } from "./ReviewDismissAs";
 import css from "./ReviewFindingActions.module.css";
 
@@ -29,15 +30,15 @@ export function ReviewFindingActions({
   const keyed = cursor !== undefined;
   return (
     <span className={css.actions} onClick={(e) => e.stopPropagation()}>
-      <Button variant="primary" size="small" onClick={onTake} title="Add to your draft review as a comment. Posted when you submit" keys={keyed ? "⏎" : undefined}>
-        Take {cursor && <Keys k="⏎" />}
+      <Button variant="primary" size="small" onClick={onTake} title="Add to your draft review as a comment. Posted when you submit" keys={keyed ? reviewKeys.activate : undefined}>
+        Take {cursor && <Keys k={reviewKeys.activate} />}
       </Button>
-      <Button variant="ghost" size="small" onClick={() => onDismissing(true)} title="Not an issue: stop raising it" keys={keyed ? "D" : undefined}>
-        Dismiss {cursor && <Keys k="D" />}
+      <Button variant="ghost" size="small" onClick={() => onDismissing(true)} title="Not an issue: stop raising it" keys={keyed ? reviewKeys.remove : undefined}>
+        Dismiss {cursor && <Keys k={reviewKeys.remove} />}
       </Button>
       {canAsk && onAsk && (
-        <Button variant="ghost" size="small" onClick={onAsk} title="Ask an agent about this" keys={keyed ? "a" : undefined}>
-          Ask {cursor && <Keys k="a" />}
+        <Button variant="ghost" size="small" onClick={onAsk} title="Ask an agent about this" keys={keyed ? reviewKeys.ask : undefined}>
+          Ask {cursor && <Keys k={reviewKeys.ask} />}
         </Button>
       )}
     </span>

@@ -1,3 +1,4 @@
+import { annotateKeys } from "./keys";
 import { Button } from "../ui/Button";
 import { Change } from "../ui/Change";
 import { Icon } from "../ui/Icon";
@@ -37,7 +38,7 @@ export function AnnotateEdit({
       title="Suggested edit"
       by={`by ${by === "agent" ? "the agent" : by}`}
       actionsStart={
-        <Button variant="link" className={css.seeApplied} onClick={onPreview} title="Show as tracked change" keys="v">
+        <Button variant="link" className={css.seeApplied} onClick={onPreview} title="Show as tracked change" keys={annotateKeys.tracked}>
           <Icon name="eye" size={12} /> Show in place
         </Button>
       }
@@ -46,11 +47,11 @@ export function AnnotateEdit({
           <AnnotateSuggestionBusy>Applying…</AnnotateSuggestionBusy>
         ) : (
           <>
-            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline" keys="d">
-              Decline {active && <Keys k="d" />}
+            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline" keys={annotateKeys.decline}>
+              Decline {active && <Keys k={annotateKeys.decline} />}
             </Button>
-            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept and land on ${landing}` : "Accept"} keys="a">
-              {landing ? `Land on ${landing}` : "Accept"} {active && <Keys k="a" />}
+            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept and land on ${landing}` : "Accept"} keys={annotateKeys.accept}>
+              {landing ? `Land on ${landing}` : "Accept"} {active && <Keys k={annotateKeys.accept} />}
             </Button>
           </>
         )
@@ -59,7 +60,7 @@ export function AnnotateEdit({
       <Change bare wrap was={[from]} now={to === "" ? [] : [to]} gone="(delete)" />
       {landing && (
         <AnnotateSettled>
-          Accepting lands on {landing} immediately, without a pull request. Press <Keys k="a" /> again to
+          Accepting lands on {landing} immediately, without a pull request. Press <Keys k={annotateKeys.accept} /> again to
           confirm.
         </AnnotateSettled>
       )}

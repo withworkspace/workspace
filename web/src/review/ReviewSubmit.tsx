@@ -1,10 +1,11 @@
+import { Keys } from "../ui/Keys";
 import { useRef, useState } from "react";
 import { noteKinds, type Review, type Verdict } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { verdictKeys } from "./keys";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
-import { Keys } from "../ui/Keys";
 import { humanError } from "../ui/strings";
 import css from "./ReviewSubmit.module.css";
 import { ReviewVerdicts } from "./ReviewVerdicts";
@@ -36,7 +37,7 @@ export function ReviewSubmit({
     if (!verdict) return setError("Pick a verdict first.");
     onSubmit(verdict, summary).catch((e: Error) => setError(e.message));
   };
-  useKeys({ a: () => pick("approve"), c: () => pick("changes"), m: () => pick("comment") }, { modal: true });
+  useCommands(verdictKeys, { approve: () => pick("approve"), changes: () => pick("changes"), comment: () => pick("comment"), submit }, { modal: true });
   const counts = noteKinds.flatMap((k) => {
     const n = draft?.comments.filter((c) => c.kind === k).length ?? 0;
     return n ? [`${n} ${k}`] : [];
@@ -75,11 +76,11 @@ export function ReviewSubmit({
           </Button>
         )}
         <span className={css.spacer} />
-        <Button variant="ghost" onClick={onClose} keys="esc">
+        <Button variant="ghost" onClick={onClose} keys={verdictKeys.cancel}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit" keys="mod+⏎">
-          Submit <Keys k="mod+⏎" />
+        <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit" keys={verdictKeys.submit}>
+          Submit <Keys k={verdictKeys.submit} />
         </Button>
       </div>
     </Dialog>

@@ -1,3 +1,4 @@
+import { compareKeys } from "./keys";
 import { useMemo } from "react";
 import { type ArtifactDetail, frameURL } from "../api";
 import { Button } from "../ui/Button";
@@ -48,7 +49,7 @@ export function SideFrame({
   }
   if (stopped) {
     return (
-      <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={onRun} keys="x">Run</Button>}>
+      <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={onRun} keys={compareKeys.stop}>Run</Button>}>
         Frames and scripts unloaded.
       </ArtifactEmpty>
     );

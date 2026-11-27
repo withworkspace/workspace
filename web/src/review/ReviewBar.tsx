@@ -1,3 +1,5 @@
+import type { Command } from "../keymap/commands";
+import { useSaid } from "../keymap/keymap";
 import type { ReactNode } from "react";
 import { Icon } from "../ui/Icon";
 import { keyProps } from "../ui/keyHint";
@@ -7,7 +9,7 @@ import css from "./ReviewBar.module.css";
 type ReviewBarProps = {
   // The way back: drawn here only where the list down the side (which has
   // it, ReviewSideBack) isn't, on a narrow window.
-  back: { to: string; label: string };
+  back: { to: string; label: string; keys?: Command };
   // Where it stands, as an icon that says more when pointed at
   // (ReviewStand).
   stand?: ReactNode;
@@ -25,10 +27,11 @@ type ReviewBarProps = {
 // What's done in one view (the changes' scope and layout) is that view's
 // own bar, under this one (ReviewChangesBar).
 export function ReviewBar({ back, stand, name, about, actions }: ReviewBarProps) {
+  const backKey = useSaid(back.keys);
   return (
     <div className={css.bar} data-review-bar="">
       <header className={css.head}>
-        <TLink to={back.to} className={css.back} aria-label={`Back to ${back.label}`} {...keyProps("esc", `Back to ${back.label}`)}>
+        <TLink to={back.to} className={css.back} aria-label={`Back to ${back.label}`} {...keyProps(backKey, `Back to ${back.label}`)}>
           <Icon name="arrow-left" size={15} />
         </TLink>
         {stand}

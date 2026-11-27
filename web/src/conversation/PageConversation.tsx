@@ -4,7 +4,9 @@ import { AskField } from "../ask/AskField";
 import { waiting } from "../ask/ask";
 import { askAt, paneAt, talkAt } from "../chrome/panes";
 import { useBeside, useChromeStore, useGive } from "../chrome/store";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { everywhereKeys } from "../shell/keys";
+import { pageConversationKeys } from "./keys";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/strings";
 import { ConversationStage } from "./ConversationStage";
@@ -143,14 +145,8 @@ export function PageConversation({ host, about, children }: { host: Conversation
     if (s.focus) bar.current?.focus();
   }, [s.focus]);
 
-  useKeys(
-    offers
-      ? {
-          "/": () => (settings.ask && !away ? bar.current?.focus() : toIt()),
-          "mod+j": () => toIt(),
-        }
-      : {},
-  );
+  useCommands(pageConversationKeys, { ask: offers ? () => (settings.ask && !away ? bar.current?.focus() : toIt()) : undefined });
+  useCommands(everywhereKeys, { conversation: offers ? () => toIt() : undefined });
 
   return (
     <ConversationStage

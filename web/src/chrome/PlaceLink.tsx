@@ -1,3 +1,4 @@
+import { useSaid } from "../keymap/keymap";
 import { Link } from "react-router";
 import type { Place } from "../shell/places";
 import { Count } from "../ui/Count";
@@ -20,12 +21,13 @@ type PlaceLinkProps = {
 // there need you. In the rail it's its icon, the count a dot on it.
 export function PlaceLink({ place, on, news }: PlaceLinkProps) {
   const counted = !!place.count;
+  const said = useSaid(place.keys);
   return (
     <Link
       to={place.to}
       aria-current={on ? "page" : undefined}
       className={cx(css.place, on && css.on)}
-      {...(place.keys ? keyProps(place.keys, place.label) : {})}
+      {...(said ? keyProps(said, place.label) : {})}
     >
       <Icon name={place.icon} size={15} className={css.icon} />
       <span className={css.words}>{place.label}</span>

@@ -21,7 +21,8 @@ import {
   waitingOnYou,
   withCrew,
 } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { annotateKeys } from "./keys";
 import { type TrackedChange, TrackedDoc } from "../editor/LazyTracked";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Banner } from "../ui/Banner";
@@ -56,7 +57,6 @@ import { ThreadCard } from "./ThreadCard";
 import { ThreadComposer } from "./ThreadComposer";
 import { kindWords } from "./words";
 
-export { annotateKeys } from "./words";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -594,30 +594,28 @@ export function AnnotatedDoc({
     else if (cursor) setCursor(undefined);
     else onBack();
   };
-  useKeys({
-    j: () => moveCursor(1),
-    ArrowDown: () => moveCursor(1),
-    k: () => moveCursor(-1),
-    ArrowUp: () => moveCursor(-1),
-    "shift+ArrowDown": () => moveCursor(1, true),
-    "shift+ArrowUp": () => moveCursor(-1, true),
-    c: comment,
-    n: () => go(at < 0 ? firstInView() : at + 1),
-    p: () => go(at < 0 ? firstInView() - 1 : at - 1),
-    Enter: () => current && setReplying(current.thread.id),
-    x: () => toggleResolved(current?.thread),
-    a: () => settle(preview?.thread ?? current?.thread, "accept"),
-    d: () => settle(preview?.thread ?? current?.thread, "decline"),
-    i: () => since && setShowChanges((v) => !v),
-    A: approve,
-    v: () => {
+  useCommands(annotateKeys, {
+    next: () => moveCursor(1),
+    prev: () => moveCursor(-1),
+    extendNext: () => moveCursor(1, true),
+    extendPrev: () => moveCursor(-1, true),
+    comment,
+    nextThread: () => go(at < 0 ? firstInView() : at + 1),
+    prevThread: () => go(at < 0 ? firstInView() - 1 : at - 1),
+    reply: () => current && setReplying(current.thread.id),
+    resolve: () => toggleResolved(current?.thread),
+    accept: () => settle(preview?.thread ?? current?.thread, "accept"),
+    decline: () => settle(preview?.thread ?? current?.thread, "decline"),
+    since: () => since && setShowChanges((v) => !v),
+    approve,
+    tracked: () => {
       if (previewing) setPreviewing(undefined);
       else if (current && pendingSuggestion(current.thread)) setPreviewing(current.thread.id);
       else if (edits.length) setPreviewing(edits[0].id);
     },
     // Esc clears what's picked out first; with nothing, goes back.
-    Escape: escape,
-    h: onBack,
+    back: escape,
+    backAlso: onBack,
   });
 
   const open = threads.filter((t) => t.status === "open");
@@ -710,8 +708,8 @@ export function AnnotatedDoc({
           </Button>
         )}
         {since && diff.length > 0 && (
-          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Changes since your last comment" keys="i">
-            <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k="i" />
+          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Changes since your last comment" keys={annotateKeys.since}>
+            <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k={annotateKeys.since} />
           </Button>
         )}
         {own ? null : approvedNow ? (
@@ -721,8 +719,8 @@ export function AnnotatedDoc({
         ) : (
           <>
             {approved && <AnnotateBarNote>You approved an earlier version</AnnotateBarNote>}
-            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve this version" keys="⇧A">
-              <Icon name="check" size={13} /> {approved ? "Approve again" : "Approve"} <Keys k="⇧A" />
+            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve this version" keys={annotateKeys.approve}>
+              <Icon name="check" size={13} /> {approved ? "Approve again" : "Approve"} <Keys k={annotateKeys.approve} />
             </Button>
           </>
         )}
@@ -764,7 +762,7 @@ export function AnnotatedDoc({
           {waiting.length > 0 && (
             <>
               {" "}
-              {waiting.length} {waiting.length === 1 ? "thread is" : "threads are"} waiting on you: <Keys k="n" /> goes through them.
+              {waiting.length} {waiting.length === 1 ? "thread is" : "threads are"} waiting on you: <Keys k={annotateKeys.nextThread} /> goes through them.
             </>
           )}
         </Callout>
@@ -791,6 +789,7 @@ export function AnnotatedDoc({
                 settling={settling}
                 onFocus={setPreviewing}
                 onSettle={(id, action) => settle(threads.find((x) => x.id === id), action)}
+                keys={{ accept: annotateKeys.accept, decline: annotateKeys.decline }}
               />
             </AnnotateText>
           </AnnotateDocCol>

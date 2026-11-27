@@ -1,4 +1,6 @@
 import type { Plugin, Workspace } from "../api";
+import type { Command } from "../keymap/commands";
+import { everywhereKeys } from "./keys";
 import { type IconName, icons } from "../ui/Icon";
 import type { Waiting } from "./notify";
 
@@ -22,7 +24,7 @@ export interface Place {
   countTitle?: string;
   // keys is the keys that go there, as Keys reads them ("g m"): one of
   // ws's own has them, from goKeys.
-  keys?: string;
+  keys?: Command;
   match: (path: string) => boolean;
   // under is the group a plugin's view names: its title shows above it
   // in the sidebar.
@@ -102,16 +104,19 @@ export function headed(list: Place[]): (string | undefined)[] {
 // view a plugin adds, those naming a group (under) together beneath its
 // name, the groups by name. Where each goes is yours to arrange
 // (shell/places.ts).
-// goKeys is the letter after g that goes to each of ws's own places, by
-// where it goes: g then m is the missions (useGlobalKeys binds them, a
-// place's link says them). Documents has two, as it was Pages once.
-export const goKeys: Record<string, string> = { m: "/", c: "/conversations", d: "/documents", p: "/documents", a: "/artifacts", r: "/reviews", t: "/team", f: "/files", o: "/orchestrator" };
-
-// goKeysTo is the keys that go to an address, if it has them: "g m".
-export function goKeysTo(to: string): string | undefined {
-  const letter = Object.keys(goKeys).find((k) => goKeys[k] === to);
-  return letter && `g ${letter}`;
-}
+// goes is the command that goes to each of ws's own places, by where it
+// goes: g then m is the missions, unless you've set another key
+// (useGlobalKeys binds them, a place's link says them).
+export const goes: Record<string, Command> = {
+  "/": everywhereKeys.goMissions,
+  "/conversations": everywhereKeys.goConversations,
+  "/documents": everywhereKeys.goDocuments,
+  "/artifacts": everywhereKeys.goArtifacts,
+  "/reviews": everywhereKeys.goReviews,
+  "/team": everywhereKeys.goTeam,
+  "/files": everywhereKeys.goFiles,
+  "/orchestrator": everywhereKeys.goOrchestrator,
+};
 
 export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & { kind: string })[], plugins?: Plugin[]): Place[] {
   const places: Place[] = [
@@ -134,7 +139,7 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
     { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
     { id: "automations", to: "/automations", icon: "bolt", label: "Automations", match: (p) => p === "/automations" || p.startsWith("/automations/"), home: "menu" },
   ];
-  const own = places.map((p) => ({ ...p, keys: goKeysTo(p.to) }));
+  const own = places.map((p) => (Object.hasOwn(goes, p.to) ? { ...p, keys: goes[p.to] } : p));
 
   // The workspace's apps: its own recipes with a page, each its run framed.
   const apps: Place[] = (workspace?.apps ?? []).map((a) => ({

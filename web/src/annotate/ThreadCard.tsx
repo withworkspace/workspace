@@ -1,3 +1,4 @@
+import { annotateKeys } from "./keys";
 import { useState } from "react";
 import { draftWaiting, pendingSuggestion, type Thread, waitingOnYou, withCrew } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
@@ -69,7 +70,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
         end={
           <>
             <NoteId>{thread.id}</NoteId>
-            <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={resolved ? "Reopen" : "Resolve"} keys="x">
+            <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={resolved ? "Reopen" : "Resolve"} keys={annotateKeys.resolve}>
               {resolved ? "Reopen" : "Resolve"}
             </Button>
           </>
@@ -130,8 +131,8 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
           {deciding && !thread.draft && <DecisionCard onDecide={(d) => onDecide(d).then(() => setDeciding(false))} onCancel={() => setDeciding(false)} />}
           {!replying && active && (
             <NoteHint>
-              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), onReply())} keys="⏎">
-                <Icon name="reply" size={12} /> Reply <Keys k="⏎" />
+              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), onReply())} keys={annotateKeys.reply}>
+                <Icon name="reply" size={12} /> Reply <Keys k={annotateKeys.reply} />
               </Button>
               {sendable && (
                 <Button

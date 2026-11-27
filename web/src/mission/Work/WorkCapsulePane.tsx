@@ -1,3 +1,5 @@
+import { useSaid } from "../../keymap/keymap";
+import { missionKeys } from "../keys";
 import { Link } from "react-router";
 import type { CapsuleDetail, CrewDetail, MissionDetail } from "../../api";
 import type { Reload } from "../../load";
@@ -40,6 +42,8 @@ import { count } from "./words";
 // commits, and its changed files beside them.
 export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: { d: MissionDetail; x: WorkCapsule; label: (repo: string) => string; select: (key: string) => void; review: (c: CapsuleDetail) => void; reload: Reload; seen?: string }) {
   const { c } = x;
+  const filesKey = useSaid(missionKeys.files);
+  const reviewKey = useSaid(missionKeys.review);
   // Read again as the mission moves, while what's there isn't committed.
   const { value: sum, error } = useSummary(d.slug, c, { seen, fresh: d.events.length });
   const open = !d.ending && d.state !== "archived";
@@ -67,20 +71,20 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
                 {c.branch}
               </Chip>
             )}
-            <MissionWorkState {...x.state} keys="o" />
+            <MissionWorkState {...x.state} keys={missionKeys.openLink} />
           </>
         }
         actions={
           <>
             {open && canOpenPR(d, c) && <OpenPR d={d} c={c} reload={reload} />}
             {c.exists && (
-              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} {...keyProps("f", "Browse files")}>
-                <Icon name="file" size={12} /> Files <Keys k="f" />
+              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} {...keyProps(filesKey, "Browse files")}>
+                <Icon name="file" size={12} /> Files {filesKey && <Keys k={filesKey} />}
               </Link>
             )}
             {c.exists && (!sum || sum.commitCount > 0) && (
-              <Button size="small" onClick={() => review(c)} title="Review changes" keys="v">
-                <Icon name="eye" /> Review <Keys k="v" />
+              <Button size="small" onClick={() => review(c)} title="Review changes" keys={missionKeys.review}>
+                <Icon name="eye" /> Review {reviewKey && <Keys k={reviewKey} />}
               </Button>
             )}
             {open && !settled && <CapsuleEnds slug={d.slug} c={c} reload={reload} />}

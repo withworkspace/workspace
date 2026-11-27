@@ -1,3 +1,5 @@
+import { useSaid } from "../../keymap/keymap";
+import { verifyKeys } from "./keys";
 import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
@@ -27,6 +29,8 @@ type MissionVerifyYoursProps = {
 // check scrolls, so a long one needn't be read to its end before you can
 // say.
 export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onNote }: MissionVerifyYoursProps) {
+  const approveKey = useSaid(verifyKeys.approve);
+  const rejectKey = useSaid(verifyKeys.reject);
   return (
     <div className={css.yours}>
       {onNote && note !== undefined && (
@@ -42,9 +46,9 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
           disabled={busy}
           onChange={onLook}
           title={left ? "Mark as fine" : "Mark as looked at"}
-          keys="y"
+          keys={verifyKeys.approve}
         >
-          <Icon name="check" size={14} /> {left ? "Approve check" : "Looked at"} <Keys k="y" />
+          <Icon name="check" size={14} /> {left ? "Approve check" : "Looked at"} {approveKey && <Keys k={approveKey} />}
         </ToggleButton>
         {onNote && (
           <ToggleButton
@@ -53,9 +57,9 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
             pressed={note !== undefined}
             onChange={(on) => onNote(on ? "" : undefined)}
             title="Say what's not right"
-            keys="n"
+            keys={verifyKeys.reject}
           >
-            <Icon name="x" size={14} /> Not right <Keys k="n" />
+            <Icon name="x" size={14} /> Not right {rejectKey && <Keys k={rejectKey} />}
           </ToggleButton>
         )}
       </div>

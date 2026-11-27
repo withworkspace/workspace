@@ -1,12 +1,14 @@
+import { Keys } from "../ui/Keys";
 import { useEffect, useRef, useState } from "react";
 import { getReview, noteKinds, type Posting, type PR, type PRDetail, prAPI, previewPRReview, type Review as ReviewData, type ReviewPass, type ReviewState, submitPRReview, type Verdict } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { verdictKeys } from "../review/keys";
+import { prSubmitKeys } from "./keys";
 import { ReviewVerdicts } from "../review/ReviewVerdicts";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
 import { Spinner } from "../ui/Spinner";
 import { humanError } from "../ui/strings";
 import { standingWords } from "./passWords";
@@ -144,15 +146,22 @@ export function PRSubmitDialog({
     if (!failed) onPosted(posted.current, mine.current);
   };
 
-  useKeys(
+  useCommands(
+    verdictKeys,
     {
-      a: () => !layers[focus].pr.mine && pick(focus, "approve"),
-      c: () => !layers[focus].pr.mine && pick(focus, "changes"),
-      m: () => pick(focus, "comment"),
-      A: approveAll,
-      "[": () => setFocus((f) => Math.max(0, f - 1)),
-      "]": () => setFocus((f) => Math.min(layers.length - 1, f + 1)),
-      "mod+Enter": submit,
+      approve: () => !layers[focus].pr.mine && pick(focus, "approve"),
+      changes: () => !layers[focus].pr.mine && pick(focus, "changes"),
+      comment: () => pick(focus, "comment"),
+      submit,
+    },
+    { modal: true },
+  );
+  useCommands(
+    prSubmitKeys,
+    {
+      approveAll,
+      before: () => setFocus((f) => Math.max(0, f - 1)),
+      after: () => setFocus((f) => Math.min(layers.length - 1, f + 1)),
     },
     { modal: true },
   );
@@ -175,11 +184,11 @@ export function PRSubmitDialog({
       all={
         stack && (
           <>
-            <Button onClick={approveAll} disabled={busy} title="Approves every layer except drafts and your own. Nothing posts until you submit." keys="A">
-              <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
+            <Button onClick={approveAll} disabled={busy} title="Approves every layer except drafts and your own. Nothing posts until you submit." keys={prSubmitKeys.approveAll}>
+              <Icon name="check-circle" size={13} /> Approve every layer <Keys k={prSubmitKeys.approveAll} />
             </Button>
             <Text dim>
-              <Keys k="[" /> <Keys k="]" /> pick a layer; <Keys k="a" /> <Keys k="c" /> <Keys k="m" /> its verdict
+              <Keys k={prSubmitKeys.before} /> <Keys k={prSubmitKeys.after} /> pick a layer; <Keys k={verdictKeys.approve} /> <Keys k={verdictKeys.changes} /> <Keys k={verdictKeys.comment} /> its verdict
             </Text>
           </>
         )
@@ -194,11 +203,11 @@ export function PRSubmitDialog({
       }
       end={
         <>
-          <Button variant="ghost" onClick={onClose} keys="esc">
+          <Button variant="ghost" onClick={onClose} keys={verdictKeys.cancel}>
             {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub" keys="mod+⏎">
-            {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
+          <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub" keys={verdictKeys.submit}>
+            {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k={verdictKeys.submit} />
           </Button>
         </>
       }

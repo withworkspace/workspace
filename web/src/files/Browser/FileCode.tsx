@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { FileView } from "../../api";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
+import { reviewNavKeys } from "../../review/keys";
 import { useCodeNav } from "../../review/CodeNav";
 import { escapeHTML, highlightLines, languageOf } from "../../review/highlight";
 import { getNames, type NavNames } from "../../review/nav";
@@ -83,7 +84,7 @@ export function FileCode({
     line: from && file.lines[from - 1] !== undefined ? { path, line: from, text: file.lines[from - 1] } : undefined,
     sideWords: () => "current files",
   });
-  useKeys(rev ? codeNav.keys : {});
+  useCommands(reviewNavKeys, rev ? codeNav.keys : {});
   return (
     <FilesCode ref={body}>
       {codeNav.card}

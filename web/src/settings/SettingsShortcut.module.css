@@ -1,0 +1,104 @@
+/* A command in Settings › Keyboard (SettingsShortcut.tsx): what it does,
+   then its keys at the end of the line, what they clash with under. */
+
+.shortcut {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 4px var(--space-4);
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.title {
+  min-width: 0;
+}
+
+/* Where you've set the keys: a mark before what it does. */
+.shortcut[data-yours] .title::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 8px 1px 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  align-items: center;
+  gap: 6px;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.remove {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  opacity: 0;
+}
+
+.key:hover .remove,
+.remove:focus-visible {
+  opacity: 1;
+}
+
+.remove:hover {
+  color: var(--fg);
+  background: var(--line);
+}
+
+@media (hover: none) {
+  .remove {
+    opacity: 1;
+  }
+}
+
+.none {
+  color: var(--dim);
+}
+
+/* A key being set: what's been pressed, waiting for the next. */
+.setting {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 2px 10px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+}
+
+.then {
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.clashes {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--attention);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .shortcut {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .keys {
+    justify-content: start;
+  }
+}
