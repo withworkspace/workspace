@@ -652,3 +652,56 @@ func TestDiscussion(t *testing.T) {
 		t.Errorf("comment: %v, said %q", err, said)
 	}
 }
+
+// What's offered to merge: of yours, a PR on its own now when it's ready,
+// once it can when only waiting holds it; a stack of GitHub's whole, once
+// every layer's ready; never a layer, a draft, a chain or someone else's.
+func TestMergeOffers(t *testing.T) {
+	pr := func(n int, head, base, author string, edit func(*github.PR)) github.PR {
+		p := github.PR{Number: n, HeadRefName: head, BaseRefName: base, Author: author, ReviewDecision: "APPROVED", StatusRollup: "success", Mergeable: "MERGEABLE"}
+		if edit != nil {
+			edit(&p)
+		}
+		return p
+	}
+	prs := []github.PR{
+		pr(1, "a", "main", "me", nil),
+		pr(2, "b", "main", "me", func(p *github.PR) { p.StatusRollup = "pending"; p.AutoMergeRequest = &github.AutoMerge{} }),
+		pr(3, "c", "main", "me", func(p *github.PR) { p.IsDraft = true }),
+		pr(4, "d", "main", "me", func(p *github.PR) { p.StatusRollup = "failure" }),
+		pr(5, "e", "main", "alice", nil),
+		pr(6, "f", "main", "me", nil), pr(7, "g", "f", "me", nil), // GitHub's stack, ready
+		pr(8, "h", "main", "me", func(p *github.PR) { p.ReviewDecision = "REVIEW_REQUIRED" }), pr(9, "i", "h", "me", nil), // a stack not ready
+		pr(10, "j", "main", "me", nil), pr(11, "k", "j", "me", nil), // a chain
+	}
+	stacks := []github.Stack{
+		{Number: 1, Base: "main", Open: true, PRs: []github.StackPR{{Number: 6}, {Number: 7}}},
+		{Number: 2, Base: "main", Open: true, PRs: []github.StackPR{{Number: 8}, {Number: 9}}},
+	}
+	l := build("me", []repoPRs{{repo: "api", prs: prs, stacks: stacks}}, nil, Local{})
+	got := map[string]string{}
+	for _, s := range l.Sections {
+		for _, r := range s.Rows {
+			if r.Stack != nil {
+				got[r.Key] = fmt.Sprintf("stack merges=%v", r.Stack.Merges)
+				for _, p := range r.Stack.Layers {
+					if p.Merge != "" {
+						t.Errorf("%s offers %q as a layer", p.Ref(), p.Merge)
+					}
+				}
+			} else {
+				got[r.Key] = fmt.Sprintf("merge=%q auto=%v", r.PR.Merge, r.PR.AutoMerge)
+			}
+		}
+	}
+	want := map[string]string{
+		"api#1": `merge="now" auto=false`, "api#2": `merge="ready" auto=true`, "api#3": `merge="" auto=false`,
+		"api#4": `merge="" auto=false`, "api#5": `merge="" auto=false`,
+		"api/stack-1": "stack merges=true", "api/stack-2": "stack merges=false", "api/chain-10": "stack merges=false",
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %q, want %q", k, got[k], v)
+		}
+	}
+}

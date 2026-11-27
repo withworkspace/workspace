@@ -23,6 +23,7 @@ const openPRsQuery = `query($owner: String!, $repo: String!, $after: String) {
       nodes {
         number title url state isDraft reviewDecision mergeable mergeStateStatus
         headRefName headRefOid baseRefName isCrossRepository
+        autoMergeRequest { enabledAt mergeMethod }
         additions deletions changedFiles createdAt updatedAt
         author { __typename login }
         reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } } } }

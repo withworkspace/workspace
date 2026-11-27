@@ -17,7 +17,33 @@ export type ContextItems = () => ReactNode;
 // called once it's put away (another's opening puts it away too).
 type Open = (at: { clientX: number; clientY: number }, label: string, items: ContextItems, closed?: () => void) => void;
 
-const ContextMenuContext = createContext<Open | undefined>(undefined);
+// Pressed is what was selected as the press that asked for a menu began.
+// On a Mac the press itself selects the word under it, for the browser's
+// own menu (Safari and Chrome do), so what's selected by the time a menu
+// is asked for isn't what was chosen. chosen says words were selected
+// under the pointer, which is how they're copied; was is what was
+// selected, to put back. Undefined when the menu's asked for by a key.
+type Pressed = { chosen: boolean; was: Range | null };
+
+const ContextMenuContext = createContext<{ open: Open; pressed: () => Pressed | undefined } | undefined>(undefined);
+
+// under says a range is drawn at a point in the page.
+function under(range: Range, x: number, y: number): boolean {
+  for (const r of range.getClientRects()) if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return true;
+  return false;
+}
+
+// putBack puts the selection back as it was before the press, if the
+// browser has changed it since.
+function putBack(was: Range | null) {
+  const s = document.getSelection();
+  if (!s) return;
+  const now = s.rangeCount ? s.getRangeAt(0) : null;
+  const same = now && was ? now.compareBoundaryPoints(Range.START_TO_START, was) === 0 && now.compareBoundaryPoints(Range.END_TO_END, was) === 0 : now === was;
+  if (same) return;
+  s.removeAllRanges();
+  if (was) s.addRange(was);
+}
 
 type Shown = { label: string; items?: ContextItems; open: boolean; x: number; y: number; n: number };
 
@@ -46,6 +72,25 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
     setShown((s) => (s.open ? { ...s, open: false } : s));
   }, []);
 
+  // What was selected as the last press began; a key put down since
+  // forgets it, as a menu asked for by the keyboard has no press.
+  const press = useRef<Pressed>(undefined);
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      const s = document.getSelection();
+      const was = s?.rangeCount ? s.getRangeAt(0).cloneRange() : null;
+      press.current = { chosen: s?.type === "Range" && !!was && under(was, e.clientX, e.clientY), was };
+    };
+    const key = () => (press.current = undefined);
+    document.addEventListener("pointerdown", down, true);
+    document.addEventListener("keydown", key, true);
+    return () => {
+      document.removeEventListener("pointerdown", down, true);
+      document.removeEventListener("keydown", key, true);
+    };
+  }, []);
+  const given = useMemo(() => ({ open, pressed: () => press.current }), [open]);
+
   // While it's open the rest of the page is out of reach (react-aria
   // makes it inert, as under any menu), so asking for a menu somewhere
   // else would do nothing to this one, and open the browser's over it.
@@ -72,7 +117,7 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
   }, [shown.open, close]);
 
   return (
-    <ContextMenuContext.Provider value={open}>
+    <ContextMenuContext.Provider value={given}>
       {children}
       <div ref={point} className={css.point} style={{ left: shown.x, top: shown.y }} aria-hidden="true" />
       {/* A menu asked for while one's open is a new one, not that one moved. */}
@@ -88,18 +133,21 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
 // useContextMenu gives what opens the menu: called with what the menu is
 // of (a screen reader hears it) and what it holds, it's an element's
 // onContextMenu. With nothing to hold, the browser's own menu is left to
-// open; so it is while words are selected, which is how they're copied;
-// and so it is where there's no ContextMenuProvider.
+// open; so it is over words that were selected before the press, which
+// is how they're copied; and so it is where there's no
+// ContextMenuProvider. A word the press itself selected is let go again.
 export function useContextMenu(): (label: string, items: ContextItems | null | undefined | false) => (e: MouseEvent<Element>) => void {
-  const open = useContext(ContextMenuContext);
+  const menus = useContext(ContextMenuContext);
   return useMemo(
     () => (label, items) => (e) => {
-      if (!open || !items) return;
-      if (document.getSelection()?.type === "Range") return;
+      if (!menus || !items) return;
+      const pressed = menus.pressed();
+      if (pressed ? pressed.chosen : document.getSelection()?.type === "Range") return;
       e.preventDefault();
-      open(e, label, items);
+      if (pressed) putBack(pressed.was);
+      menus.open(e, label, items);
     },
-    [open],
+    [menus],
   );
 }
 
@@ -108,13 +156,13 @@ export function useContextMenu(): (label: string, items: ContextItems | null | u
 // the frame says, at where in the page it was. closed is called once it's
 // put away. It's false where there's no ContextMenuProvider.
 export function useContextMenuAt(): (x: number, y: number, label: string, items: ContextItems, closed?: () => void) => boolean {
-  const open = useContext(ContextMenuContext);
+  const menus = useContext(ContextMenuContext);
   return useMemo(
     () => (x, y, label, items, closed) => {
-      if (!open) return false;
-      open({ clientX: x, clientY: y }, label, items, closed);
+      if (!menus) return false;
+      menus.open({ clientX: x, clientY: y }, label, items, closed);
       return true;
     },
-    [open],
+    [menus],
   );
 }

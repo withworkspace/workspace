@@ -109,7 +109,7 @@ func notificationPlace(n notification.Notification) string {
 		if first != "" {
 			return "/missions/" + first
 		}
-	case events.PRMerged:
+	case events.PRMerged, notification.MergeFailed:
 		// A mission's pull request is the mission's to show.
 		if len(n.Refs) > 1 {
 			return "/missions/" + n.Refs[1]

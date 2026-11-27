@@ -3,9 +3,7 @@
 
 @layer ui {
   .box .field {
-    width: 100%;
     margin: 8px 0;
-    font: var(--text-md) / 1.5 var(--font);
   }
 
   .actions {

@@ -65,6 +65,9 @@ const (
 	DoReply      = "reply"         // write to crew Target, or answer what it's stopped on
 	DoPermission = "permission"    // answer crew Target's permission prompt
 	DoURL        = "url"           // open URL, outside ws
+	DoMerge      = "merge"         // merge PR Target (a stack whole, from its top)
+	DoMergeReady = "merge-ready"   // have PR Target merge by itself once it can
+	DoMergeOff   = "merge-off"     // stop PR Target merging by itself
 	DoCrew       = "crew"          // open crew Target's conversation
 	DoReview     = "review"        // open capsule Target's review
 	DoVerify     = "verify"        // open bundle Target on the Verify tab
@@ -417,8 +420,15 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 		c.Primary, c.More = b.waitActs(false, 0, false)
 	case VerbOpen:
 		c.Primary = &Act{Do: DoURL, Label: "Open " + a.Target, Icon: "pr", URL: a.URL}
+		switch a.AutoMerge {
+		case "can":
+			c.More = []Act{{Do: DoMergeReady, Label: "Merge when ready", Icon: "merge", Target: a.Target}}
+		case "on":
+			c.More = []Act{{Do: DoMergeOff, Label: "Don't merge by itself", Target: a.Target, Quiet: true}}
+		}
 	case VerbMerge:
-		c.Primary = &Act{Do: DoURL, Label: "Open " + a.Target + " to merge", Icon: "pr", URL: a.URL}
+		c.Primary = &Act{Do: DoMerge, Label: "Merge " + a.Target, Icon: "merge", Target: a.Target}
+		c.More = []Act{{Do: DoURL, Label: "Open on GitHub", Icon: "pr", URL: a.URL, Quiet: true}}
 	case VerbArchive:
 		c.Primary = &Act{Do: DoArchive, Label: label, Icon: "archive"}
 		if h.Kind == KindEnded {

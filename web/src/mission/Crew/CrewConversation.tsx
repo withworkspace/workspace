@@ -13,7 +13,7 @@ import { useTranscript } from "./useTranscript";
 // tell it what's next, or to resume it with, once it's ended. It opens on
 // the latest, then follows it, unless you've scrolled up to read, when a
 // pill says there's newer. CrewConversationView draws it.
-export function CrewConversation({ slug, id, crew, live, onTerminal, field }: { slug: string; id: string; crew?: Crew; live: boolean; onTerminal?: () => void; field?: Ref<HTMLTextAreaElement> }) {
+export function CrewConversation({ slug, id, crew, live, onTerminal, field }: { slug: string; id: string; crew?: Crew; live: boolean; onTerminal?: () => void; field?: Ref<HTMLElement> }) {
   const workspace = useWorkspace();
   const { t, error, reload } = useTranscript(slug, id);
   const [unseen, setUnseen] = useState(false);

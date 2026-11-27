@@ -1348,6 +1348,25 @@ type ActRequest struct {
 	Notes  []BundleNote `json:"notes,omitempty"`
 	Check  string       `json:"check,omitempty"`
 	Looked bool         `json:"looked,omitempty"`
+	// PR is the pull request merge, merge-ready and merge-off are about,
+	// as repo#N.
+	PR string `json:"pr,omitempty"`
+}
+
+// MergeRequest asks for a pull request to merge (POST
+// /api/prs/{repo}/{number}/merge): now (the default), once it can
+// ("ready"), or no longer by itself ("off"), at the commit the page shows
+// (Head; "" for the one ws last showed).
+type MergeRequest struct {
+	When string `json:"when,omitempty"`
+	Head string `json:"head,omitempty"`
+}
+
+// MergeResult is what came of it: said, and GitHub's status (merged,
+// pending, enqueued; on or off for merging by itself).
+type MergeResult struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }
 
 // ActResult says what an action did.

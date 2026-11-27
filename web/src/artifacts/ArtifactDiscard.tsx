@@ -2,9 +2,9 @@ import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Keys } from "../ui/Keys";
-import { TextArea } from "../ui/TextArea";
 import css from "./ArtifactDiscard.module.css";
 import { Text } from "../ui/Text";
+import { RichTextArea } from "../ui/RichTextArea";
 
 type ArtifactDiscardProps = {
   // The artifact's title, and its id.
@@ -39,19 +39,21 @@ export function ArtifactDiscard({ title, id, home, branch, why, onWhy, error, bu
         )}
         {id} still says what it was.
       </DialogText>
-      <TextArea
+      <RichTextArea
+        marks
+        lists
+        quote
+        code
+        refs
+        look="field"
         className={css.why}
         autoFocus
         rows={3}
         value={why}
         placeholder="Why? (optional)"
-        onChange={(e) => onWhy(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            onGo();
-          }
-        }}
+        onChange={onWhy}
+        send="mod+enter"
+        onSend={onGo}
         aria-label="Reason"
       />
       {error && <Banner>{error}</Banner>}

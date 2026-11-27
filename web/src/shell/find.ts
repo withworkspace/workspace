@@ -139,6 +139,7 @@ const doable: Partial<Record<string, ActVerb>> = {
   "launch-queued": "launch-queued",
   unpark: "unpark",
   brief: "brief",
+  merge: "merge",
 };
 
 // missionDo is what a mission's headline asks of you, if Find can do it
@@ -152,7 +153,7 @@ export function missionDo(m: Workspace["missions"][number]): Item | undefined {
     kind: "Do",
     title: capital(m.headline.action.label),
     hint: m.headline.text,
-    icon: "play",
+    icon: verb === "merge" ? "merge" : "play",
     score: 0,
     doing: { act: verb, slug: m.slug, crew: m.headline.action.target },
   };

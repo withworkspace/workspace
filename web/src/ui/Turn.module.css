@@ -58,12 +58,6 @@
     gap: 8px;
   }
 
-  /* As it was written: its line breaks are its own. */
-  .written {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-
   /* Your turns keep to the right, the other's to the left, so who said
      what is where it is: a soft bubble, its point toward your name. */
   .you .said {

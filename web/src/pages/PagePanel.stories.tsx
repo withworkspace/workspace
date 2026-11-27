@@ -30,6 +30,7 @@ import { PageTurns } from "./PageTurns";
 import { PageUnstarted } from "./PageUnstarted";
 import { PageVersion } from "./PageVersion";
 import { Text } from "../ui/Text";
+import { RichText } from "../ui/RichText";
 
 // What's opened over a page's words: a cell's panel (written, with its
 // agent's notes and the files it read; asked to change, a second time;
@@ -152,7 +153,9 @@ export const WrittenAgain: StoryObj = {
           </PageTurn>
           <PageTurn>
             <Turn by="you" dense landed>
-              <TurnSaid written>Shorter: two lines.</TurnSaid>
+              <TurnSaid>
+          <RichText text="Shorter: two lines." />
+        </TurnSaid>
             </Turn>
             <PageVersion yours>
               <Icon name="pencil" size={11} />

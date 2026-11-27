@@ -7,6 +7,7 @@ package pulls
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -108,6 +109,13 @@ type PR struct {
 	// OnTopOf is the PR its base is the head of, when that's not the layer
 	// below it in a stack: a branch off someone's PR.
 	OnTopOf int `json:"onTopOf,omitempty"`
+	// Merge is what ws offers to do to merge it, of yours on its own (a
+	// stack's layer merges with its stack): "now", it's ready; "ready",
+	// only waiting holds it (its checks, a review, its base's rules), so
+	// it can be left to merge by itself once it can; "" neither.
+	Merge string `json:"merge,omitempty"`
+	// AutoMerge: it's set to merge by itself once it can.
+	AutoMerge bool `json:"autoMerge,omitempty"`
 }
 
 // Ref is how a PR is named: api#89.
@@ -158,6 +166,9 @@ type Stack struct {
 	// OnTopOf is the PR its bottom layer is based on, when it's a branch
 	// off another PR.
 	OnTopOf int `json:"onTopOf,omitempty"`
+	// Merges: it's yours, one of GitHub's, and every layer's ready to
+	// merge, so it can be merged whole, from its top (never in part).
+	Merges bool `json:"merges,omitempty"`
 }
 
 // Row is a row of the list: a pull request, or a stack of them.
@@ -487,7 +498,7 @@ func repoRows(me string, rp repoPRs, askedOf map[string]bool, local Local) []Row
 			Head: gp.HeadRefOid, Draft: gp.IsDraft, Bot: gp.Bot, Fork: gp.IsCrossRepository, Mine: sameLogin(gp.Author, me),
 			Additions: gp.Additions, Deletions: gp.Deletions, Files: gp.ChangedFiles, Checks: gp.StatusRollup,
 			Decision: strings.ToLower(gp.ReviewDecision), Created: gp.CreatedAt, Updated: gp.UpdatedAt,
-			Merges: mergesOf(gp.Mergeable),
+			Merges: mergesOf(gp.Mergeable), AutoMerge: gp.AutoMergeRequest != nil,
 		}
 		p.State, p.Words, p.Asked, p.Reviewed = classify(gp, me, askedOf[p.Ref()])
 		key := rp.repo + "/" + gp.HeadRefName
@@ -593,7 +604,22 @@ func repoRows(me string, rp repoPRs, askedOf map[string]bool, local Local) []Row
 }
 
 func prRow(p *PR) Row {
+	p.Merge = mergeOffer(p)
 	return Row{Key: p.Ref(), PR: p, updated: p.Updated, byName: p.Asked == "you"}
+}
+
+// mergeOffer is what's offered to merge a PR of yours on its own (see
+// PR.Merge): what's in Waiting for review is waiting, but a draft.
+func mergeOffer(p *PR) string {
+	switch {
+	case !p.Mine:
+		return ""
+	case p.State == Ready:
+		return "now"
+	case p.State == WaitingReview && !p.Draft && p.Merges != "conflicts":
+		return "ready"
+	}
+	return ""
 }
 
 // orderLayers puts a stack's layers bottom first, by what each is based
@@ -661,6 +687,7 @@ func stackRow(repo string, number int, base string, layers []*PR, merged, onTopO
 	if s.State == "" {
 		s.State, s.Words = layers[0].State, layers[0].Words
 	}
+	s.Merges = s.Mine && number > 0 && !slices.ContainsFunc(s.Layers, func(p PR) bool { return p.State != Ready })
 	key := fmt.Sprintf("%s/stack-%d", repo, number)
 	if number == 0 {
 		key = fmt.Sprintf("%s/chain-%d", repo, layers[0].Number)

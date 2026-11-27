@@ -46,6 +46,9 @@ import { StackDescriptions } from "./StackDescriptions";
 import { PassesSection } from "./PassesSection";
 import { PassMarks } from "./PassMarks";
 import { PullRequestUnsent } from "./PullRequestUnsent";
+import { PullRequestMerge } from "./PullRequestMerge";
+import { merge, type MergeWhen } from "./merge";
+import { type MergeOffer, offerMerge } from "./mergeOffers";
 import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
 import { LayerList } from "./LayerList";
@@ -364,6 +367,26 @@ export function PRReviewPage() {
   // or your turn.
   const talks = useMemo(() => conversations.filter((t) => t.pr === ref), [conversations, ref]);
 
+  // Merging it, if it's yours: ready, now; only waiting, once it can; a
+  // stack whole, from its top, from any of its layers. Find's Here offers
+  // the same (mergeOffers.ts).
+  const offer = useMemo(() => d && mergeOfferOf(d), [d]);
+  useEffect(() => {
+    offerMerge(ref, offer);
+    return () => offerMerge(ref, undefined);
+  }, [ref, offer]);
+  const [merging, setMerging] = useState(false);
+  const mergeIt = (when: MergeWhen) => {
+    if (!offer || merging) return;
+    setMerging(true);
+    void merge(offer.repo, offer.number, when, offer.head)
+      .then((status) => {
+        if (status === "merged") navigate("/reviews");
+        else if (status) load();
+      })
+      .finally(() => setMerging(false));
+  };
+
   if (error) {
     return (
       <div className="page narrow">
@@ -477,6 +500,8 @@ export function PRReviewPage() {
         <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="Remove me from reviewers on GitHub">
           {declining ? "Removing…" : "Not mine"}
         </Button>
+      ) : offer ? (
+        <PullRequestMerge offer={offer.offer} stack={!!offer.stack} busy={merging} onMerge={() => mergeIt(offer.offer === "now" ? "now" : "ready")} onStop={() => mergeIt("off")} />
       ) : undefined,
     opens: (
       <>
@@ -681,3 +706,17 @@ const suggest = (h?: PRHeld) =>
 // withFinding is a question about what a pass found, with what it found
 // said after it: the card leads with the question.
 const withFinding = (q: string, f: AskedFinding) => `${q}\n\nIt's about what the ${f.pass} pass found (${f.kind}): "${f.text}"`;
+
+// mergeOfferOf is what merging a pull request's page offers: a stack's
+// whole, from its top, once every layer's ready; else its own, if it's
+// yours on its own and ready, or only waiting, or left to merge by itself.
+function mergeOfferOf(d: PRDetail): MergeOffer | undefined {
+  const st = d.stack;
+  if (st) {
+    const top = st.layers[st.layers.length - 1];
+    return st.merges && top ? { offer: "now", head: top.head, stack: st.number, layers: st.layers.length, repo: top.repo, number: top.number } : undefined;
+  }
+  const pr = d.pr;
+  const offer = pr.autoMerge ? "on" : pr.merge;
+  return offer ? { offer, head: pr.head, repo: pr.repo, number: pr.number } : undefined;
+}

@@ -205,7 +205,7 @@ func (c *CursorACP) Converse(r ConverseRun) (Launch, error) {
 	if runs {
 		works = runsFrom(dir, r.Dir)
 	}
-	run := ACPRun{Agent: agent, Dir: dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: works + r.Prompt,
+	run := ACPRun{Agent: agent, Dir: dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: works + r.Prompt, Images: r.Images,
 		Allow: converseCommands(r), Auth: cursorLogin, Answers: cursorHeadlessAnswers}
 	if runs {
 		run.Runs, run.Folders = true, r.Folders

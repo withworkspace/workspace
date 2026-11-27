@@ -16,6 +16,7 @@ import { AnnotateTyping } from "./AnnotateTyping";
 import { DecisionCard } from "./DecisionCard";
 import { linesWord } from "./words";
 import { Text, textClass } from "../ui/Text";
+import { RichText } from "../ui/RichText";
 
 interface CardProps {
   thread: Thread;
@@ -96,11 +97,15 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
               {thread.anchor.quote?.exact ? clip(thread.anchor.quote.exact, 240) : `The whole of ${linesWord(thread.anchor)}`}
             </AnnotateLostQuote>
           )}
-          {first && <NoteBody>{first.body}</NoteBody>}
+          {first && (
+            <NoteBody>
+              <RichText text={first.body} pinned={first.refs} />
+            </NoteBody>
+          )}
           {rest.length > 0 && (
             <NoteThread>
               {rest.map((t) => (
-                <NoteTurn key={t.n} who={t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by} quiet={t.by === "ws"} said={t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}>
+                <NoteTurn key={t.n} who={t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by} quiet={t.by === "ws"} said={t.by === "agent" ? <Markdown text={t.body} pinned={t.refs} /> : <RichText text={t.body} pinned={t.refs} />}>
                   {t.changed && <Text dim>edited</Text>}
                   {t.commit && <Text mono dim>{t.commit.slice(0, 7)}</Text>}
                 </NoteTurn>

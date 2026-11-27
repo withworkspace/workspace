@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
 import { Input } from "../ui/Input";
-import { TextArea } from "../ui/TextArea";
 import type { ProposalCardProps } from "./ProposalCard";
 import { ProposalOutcome } from "./ProposalOutcome";
 import { ProposalShown } from "./ProposalShown";
@@ -13,6 +12,7 @@ import { TalkProposalChoice } from "./TalkProposalChoice";
 import { TalkProposalEdit } from "./TalkProposalEdit";
 import { proposalIcons } from "./words";
 import { Text } from "../ui/Text";
+import { RichTextArea } from "../ui/RichTextArea";
 
 // WsProposal is a card of ws's own (ProposalCard says which there are):
 // what's proposed, edited first or not (what the fields hold until it's
@@ -87,13 +87,15 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
     automation: true,
   }[p.kind];
   const rows = (s: string) => Math.min(10, Math.max(3, s.split("\n").length + 1));
+  // What's said in a card's box: markdown, its names drawn as refs.
+  const said = { marks: true, lists: true, quote: true, code: true, refs: true, look: "field" } as const;
   const editor = () => {
     switch (p.kind) {
       case "decision":
         return (
           <TalkProposalEdit>
-            <TextArea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="Decision" />
-            <TextArea value={why} rows={2} onChange={(e) => setWhy(e.target.value)} placeholder="Why" aria-label="Why" />
+            <RichTextArea refs look="field" value={what} rows={2} onChange={setWhat} placeholder="The decision, in a sentence" aria-label="Decision" />
+            <RichTextArea {...said} value={why} rows={2} onChange={setWhy} placeholder="Why" aria-label="Why" />
           </TalkProposalEdit>
         );
       case "mission":
@@ -118,19 +120,19 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
       case "dispatch":
         return (
           <TalkProposalEdit>
-            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="What crew should do" aria-label="What crew should do" />
+            <RichTextArea {...said} value={text} rows={rows(text)} onChange={setText} placeholder="What crew should do" aria-label="What crew should do" />
           </TalkProposalEdit>
         );
       case "replan":
         return (
           <TalkProposalEdit>
-            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="What to change in the plan" aria-label="What to change in the plan" />
+            <RichTextArea {...said} value={text} rows={rows(text)} onChange={setText} placeholder="What to change in the plan" aria-label="What to change in the plan" />
           </TalkProposalEdit>
         );
       case "comment":
         return (
           <TalkProposalEdit>
-            <TextArea value={text} rows={rows(text)} onChange={(e) => setText(e.target.value)} placeholder="Comment" aria-label="Comment" />
+            <RichTextArea {...said} value={text} rows={rows(text)} onChange={setText} placeholder="Comment" aria-label="Comment" />
           </TalkProposalEdit>
         );
       case "document":
@@ -148,10 +150,11 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
         return (
           <TalkProposalEdit>
             {!p.to && <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />}
-            <TextArea
+            <RichTextArea
+              {...said}
               value={note}
               rows={Math.min(6, Math.max(2, note.split("\n").length + 1))}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={setNote}
               placeholder={p.to ? "What changed, and why" : "What this version tries"}
               aria-label="Note"
             />

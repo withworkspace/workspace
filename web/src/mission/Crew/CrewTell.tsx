@@ -12,7 +12,7 @@ import { useDraft } from "../../ui/useDraft";
 // resuming it with it if it's ended. While it works, Interrupt stops its
 // turn (Escape), not the crew. field: the box, for whoever gives it the
 // keys (the crew's page, on r).
-export function CrewTell({ slug, id, crew, live, working, field }: { slug: string; id: string; crew?: Crew; live: boolean; working: boolean; field?: Ref<HTMLTextAreaElement> }) {
+export function CrewTell({ slug, id, crew, live, working, field }: { slug: string; id: string; crew?: Crew; live: boolean; working: boolean; field?: Ref<HTMLElement> }) {
   const [text, setText] = useDraft(`crew:${slug}/${id}`);
   const [busy, setBusy] = useState(false);
   const canResume = !live && !!crew && crew.ended;

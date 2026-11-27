@@ -1147,6 +1147,10 @@ type RepoConfig struct {
 	// Verify is a shell command that must pass in a capsule before ws land
 	// pushes it (a direct repo's lint or tests). None: nothing's run.
 	Verify string `toml:"verify,omitempty"`
+	// Merge is how ws merges the repo's pull requests: "squash", "merge"
+	// or "rebase", where GitHub allows it there. Unset (or not allowed),
+	// squash where the repo allows it, else the one it does.
+	Merge string `toml:"merge,omitempty"`
 	// Documents says the repo is a space of documents, read in the web
 	// UI's Documents rather than Files (true), or a folder of it is
 	// ("docs/"), or it isn't (false: for the records repo, which is one
@@ -1214,6 +1218,12 @@ const (
 	LandingPR     = "pr"
 	LandingDirect = "direct"
 )
+
+// ValidMerge reports whether s is a way to merge a pull request ("" is
+// the repo's own).
+func ValidMerge(s string) bool {
+	return s == "" || s == "squash" || s == "merge" || s == "rebase"
+}
 
 // ValidLanding reports whether s is a landing ("" is the default, pr).
 func ValidLanding(s string) bool {
@@ -1335,6 +1345,9 @@ func Merge(base, local *Config) *Config {
 		}
 		if localRepo.Verify != "" {
 			baseRepo.Verify = localRepo.Verify
+		}
+		if localRepo.Merge != "" {
+			baseRepo.Merge = localRepo.Merge
 		}
 		if localRepo.Documents != nil {
 			baseRepo.Documents = localRepo.Documents
@@ -1520,6 +1533,9 @@ func Load(startDir string) (*Config, string, error) {
 	for repo, rc := range cfg.Repos {
 		if !ValidLanding(rc.Landing) {
 			return nil, "", fmt.Errorf("repo %q: invalid landing %q: must be %q or %q", repo, rc.Landing, LandingPR, LandingDirect)
+		}
+		if !ValidMerge(rc.Merge) {
+			return nil, "", fmt.Errorf("repo %q: invalid merge %q: must be squash, merge or rebase", repo, rc.Merge)
 		}
 		if rc.Group == "" {
 			continue

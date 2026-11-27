@@ -15,6 +15,7 @@ import (
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/images"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/plugin"
@@ -768,6 +769,14 @@ func RunHeadless(life context.Context, root, who string, f spend.For, env []stri
 			}
 			r.Guard = []string{exe, "conversation", "allowed"}
 		}
+	}
+	if !r.Alone {
+		// Pictures you pasted are files the agent reads: it's told which.
+		pics := images.In(images.Dir(root), r.Prompt)
+		for _, p := range pics {
+			r.Images = append(r.Images, harness.Image{Path: p.Path, Type: p.Type})
+		}
+		r.Prompt += images.Note(pics)
 	}
 	l, err := h.Converse(r)
 	if err != nil {

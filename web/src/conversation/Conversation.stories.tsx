@@ -3,6 +3,7 @@ import { AskField } from "../ask/AskField";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { ConversationGiven } from "./ConversationGiven";
 import { ConversationStage } from "./ConversationStage";
+import { RichText } from "../ui/RichText";
 
 // A page's conversation, from its parts: the page with the ask field over
 // its foot (clicks beside it reach the page), and what a page gave the
@@ -28,7 +29,9 @@ export const Given: StoryObj = {
   render: () => (
     <div style={{ display: "grid", width: 420, padding: 24, background: "var(--bg)" }}>
       <Turn by="you" dense landed>
-        <TurnSaid written>Why is this one stuck?</TurnSaid>
+        <TurnSaid>
+          <RichText text="Why is this one stuck?" />
+        </TurnSaid>
         <ConversationGiven
           from="Jira"
           parts={[

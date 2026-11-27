@@ -64,6 +64,9 @@ func PluginKind(plugin, id string) string { return plugin + ":" + id }
 const (
 	PluginUpdate = "plugin.update"
 	WSUpgraded   = "ws.upgraded"
+	// MergeFailed is a merge asked of GitHub from ws that didn't go
+	// through, once it's said so.
+	MergeFailed = "pr.merge_failed"
 )
 
 // Topic is what a page follows to hear the feed changed.

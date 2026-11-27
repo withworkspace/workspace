@@ -18,6 +18,7 @@ import (
 	"github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/review"
+	"github.com/withworkspace/workspace/internal/ui"
 )
 
 // The Reviews page's side of the CLI: the service the web UI serves it
@@ -283,7 +284,61 @@ func newPRCmd() *cobra.Command {
 web UI (ws web /reviews). ws show <repo>#<number> shows one here.`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 	}
-	cmd.AddCommand(newPRCommentCmd())
+	cmd.AddCommand(newPRCommentCmd(), newPRMergeCmd())
+	return cmd
+}
+
+func newPRMergeCmd() *cobra.Command {
+	var whenReady, off bool
+	var head string
+	cmd := &cobra.Command{
+		Use:   "merge <repo>#<number> [--when-ready | --off] [--head <commit>]",
+		Short: "Merge a pull request, or have it merge by itself once it can",
+		Long: `Merge a pull request of one of the workspace's repos, as you would on
+GitHub, by the method the repo allows ([repos.<name>] merge in ws.toml
+says which, where it allows more than one; squash, where it allows that).
+It's merged only as it is: refused when it isn't ready (its checks, a
+review, its base branch's rules), and ws never goes round those rules,
+as an admin could. A stack merges whole, asked of its top layer, once
+every layer's ready; never in part. Once it's merged, its branch is
+deleted on GitHub, where the repo doesn't do that itself.
+
+--when-ready has one held only by what's to be waited for (its checks
+running, a review, its rules) merge by itself once it can (GitHub's
+auto-merge; the repo has to allow it); --off stops it. --head is the
+commit you looked at: a branch pushed to since isn't merged.
+
+Yours alone: crew and the orchestrator are refused.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if whenReady && off {
+				return errors.New("--when-ready or --off, not both")
+			}
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			repo, number, err := ctx.ParsePRRef(args[0])
+			if err != nil {
+				return err
+			}
+			when := ops.MergeNow
+			if whenReady {
+				when = ops.MergeReady
+			} else if off {
+				when = ops.MergeOff
+			}
+			out, err := ctx.MergePR(repo, number, ops.MergeAsk{When: when, Head: head}, ops.ActorFromEnv())
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stderr, "  %s %s\n", ui.Green.Render("✓"), out)
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&whenReady, "when-ready", false, "have it merge by itself once its checks and reviews let it")
+	cmd.Flags().BoolVar(&off, "off", false, "stop it merging by itself")
+	cmd.Flags().StringVar(&head, "head", "", "the commit you looked at: refused if its branch has moved since")
 	return cmd
 }
 

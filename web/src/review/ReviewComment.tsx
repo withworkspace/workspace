@@ -14,6 +14,7 @@ import css from "./ReviewComment.module.css";
 import { ReviewSaid, saidAt } from "./ReviewSaid";
 import { Suggestion } from "./Suggestion";
 import { Text } from "../ui/Text";
+import { RichText } from "../ui/RichText";
 
 // ReviewComment is a comment in a review: a draft's (yours to edit, ⏎;
 // D deletes it), or a submitted one, with what crew and you have said
@@ -107,7 +108,7 @@ export function ReviewComment({
               title={note.by === "agent" ? "Proposed by an agent, added by you: yours to edit" : undefined}
               at={saidAt(note.at)}
             >
-              {note.body || undefined}
+              {note.body ? <RichText text={note.body} /> : undefined}
             </ReviewSaid>
             {note.suggestion != null && <Suggestion from={note.excerpt} to={note.suggestion} />}
             {note.thread.map((t, i) => (
@@ -127,7 +128,7 @@ export function ReviewComment({
                   </>
                 }
               >
-                {t.body}
+                {t.body ? <RichText text={t.body} /> : undefined}
               </ReviewSaid>
             ))}
           </div>

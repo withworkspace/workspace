@@ -4,6 +4,7 @@ import { Turn, TurnAvatar, TurnHead, TurnSaid } from "./Turn";
 import { markdownClass } from "../markdown/LazyMarkdown";
 import { cx } from "./cx";
 import { textClass } from "./Text";
+import { RichText } from "./RichText";
 
 // Turns: an exchange as a conversation's page draws it (who said each,
 // yours a bubble to the right under your name, the agent's its words to
@@ -28,7 +29,9 @@ export const Page: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 18, maxWidth: 620 }}>
       <Turn by="you" landed head={<TurnHead avatar={<TurnAvatar by="you" />} who="You" at={at} />}>
-        <TurnSaid written>{"Where do we round money,\nand is it the same everywhere?"}</TurnSaid>
+        <TurnSaid>
+          <RichText text={"Where do we round money,\nand is it the same everywhere?"} />
+        </TurnSaid>
       </Turn>
       <Turn by="agent" landed head={<TurnHead avatar={<TurnAvatar by="agent" />} who="Agent" at={at} />}>
         <TurnSaid>{answer}</TurnSaid>
@@ -52,7 +55,9 @@ export const Dense: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 14, maxWidth: 360 }}>
       <Turn by="you" dense landed>
-        <TurnSaid written>Where do we round money, and is it the same everywhere?</TurnSaid>
+        <TurnSaid>
+          <RichText text="Where do we round money, and is it the same everywhere?" />
+        </TurnSaid>
       </Turn>
       <Turn by="agent" dense landed>
         <TurnSaid>{answer}</TurnSaid>

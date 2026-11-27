@@ -103,7 +103,7 @@ func (s *Server) launchACP(spec Spec) (int, error) {
 	s.store.CrewHook(spec.Slug, spec.CrewID, mission.Hook{Conversation: ag.State().Session}) //nolint:errcheck // a notice
 	s.Log.Printf("launched %s (%s, over ACP) pid %d in %s: session %s", key, spec.Harness, ag.Client().Pid(), run.Dir, ag.State().Session)
 	if strings.TrimSpace(run.Prompt) != "" {
-		ag.Send(acp.Text(run.Prompt)) //nolint:errcheck // it's just started
+		ag.Send(append([]acp.ContentBlock{acp.Text(run.Prompt)}, harness.ImageBlocks(ag.Client().Info, run.Images)...)...) //nolint:errcheck // it's just started
 	}
 	go s.followACP(cr)
 	s.watchers.Go(func() {

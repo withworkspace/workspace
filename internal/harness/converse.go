@@ -122,7 +122,9 @@ func (c *Cursor) ConverseModel() string { return CursorConverseModel }
 // prints a line per event (system init with session_id, tool_call
 // started/completed, each assistant message, then the result), and
 // --resume <chatId> continues that chat headless, from any folder.
-// --mode ask is read-only (no edit or write tools). Without --force, a
+// --mode ask is read-only (no edit or write tools), but runs no ws
+// commands where Cursor's sandbox is on (see Orchestrate), so ws doesn't
+// use it: the default (agent) mode can edit. Without --force, a
 // shell command runs only if the permissions allow it, else it comes back
 // "rejected"; a .cursor/cli.json in the folder it runs in adds to them,
 // and Shell(git log) allows git log … but not git status. It reads files
@@ -154,7 +156,7 @@ func (c *Cursor) Converse(r ConverseRun) (Launch, error) {
 	if err != nil {
 		return Launch{}, err
 	}
-	args := []string{bin, "-p", cursorTrustFlag, "--mode", "ask", "--output-format", "stream-json"}
+	args := []string{bin, "-p", cursorTrustFlag, "--output-format", "stream-json"}
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}

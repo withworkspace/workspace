@@ -139,7 +139,7 @@ func (c *Codex) Converse(r ConverseRun) (Launch, error) {
 	if r.Session != "" && !c.sessionKept(r.Session) {
 		return Launch{}, fmt.Errorf("%w: Codex has no session %s", ErrSessionGone, r.Session)
 	}
-	run := ACPRun{Agent: agent, Dir: r.Dir, Load: r.Session, Mode: codexReadOnly, Prompt: r.Prompt + codexSandboxNote, Allow: converseCommands(r)}
+	run := ACPRun{Agent: agent, Dir: r.Dir, Load: r.Session, Mode: codexReadOnly, Prompt: r.Prompt + codexSandboxNote, Allow: converseCommands(r), Images: r.Images}
 	if r.Alone {
 		run.Allow, run.Prompt = nil, r.Prompt // nothing leaves the sandbox
 	} else if r.Sandbox && len(r.Write) > 0 {

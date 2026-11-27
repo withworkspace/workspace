@@ -1,9 +1,9 @@
 import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
-import { TextArea } from "../../ui/TextArea";
 import { ToggleButton } from "../../ui/ToggleButton";
 import css from "./MissionVerifyYours.module.css";
+import { RichTextArea } from "../../ui/RichTextArea";
 
 type MissionVerifyYoursProps = {
   // The crew it goes back to.
@@ -32,7 +32,7 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
       {onNote && note !== undefined && (
         <label className={css.note}>
           <span>What's not right? Goes back to {crew} with this check.</span>
-          <TextArea autoFocus rows={2} value={note} onChange={(e) => onNote(e.target.value)} placeholder="Say what you saw" />
+          <RichTextArea marks lists quote code refs look="field" autoFocus rows={2} value={note} onChange={onNote} placeholder="Say what you saw" aria-label="What's not right" />
         </label>
       )}
       <div className={css.buttons}>

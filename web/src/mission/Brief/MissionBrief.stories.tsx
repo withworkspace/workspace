@@ -42,6 +42,7 @@ import { MissionBriefUnfold } from "./MissionBriefUnfold";
 import { MissionBriefWhat } from "./MissionBriefWhat";
 import { Text } from "../../ui/Text";
 import { Prose } from "../../ui/Prose";
+import { RichText } from "../../ui/RichText";
 
 // A mission's Brief tab, from its parts: the whole tab with a draft to
 // read (the bar, the outline, the brief and the plan, the planner beside
@@ -232,7 +233,9 @@ function Planner({ centre }: { centre?: boolean }) {
         </TurnSaid>
       </Turn>
       <Turn by="you" dense landed>
-        <TurnSaid written>Issue date, yes. Leave the ones still owed alone. No deleting.</TurnSaid>
+        <TurnSaid>
+          <RichText text="Issue date, yes. Leave the ones still owed alone. No deleting." />
+        </TurnSaid>
       </Turn>
       <Turn by="agent" dense landed>
         <TurnSaid>
@@ -241,9 +244,9 @@ function Planner({ centre }: { centre?: boolean }) {
         <MissionBriefProposed icon="file" name="Draft 1" fate="Replaced by draft 2" struck />
       </Turn>
       <Turn by="you" dense landed>
-        <TurnSaid written>
+        <TurnSaid>
           <MissionBriefQuoted>Invoices older than seven years are archived, out of the studio's lists but not deleted.</MissionBriefQuoted>
-          Count it in tax years. Then write the plan.
+          <RichText text="Count it in tax years. Then write the plan." />
         </TurnSaid>
       </Turn>
       <Turn by="agent" dense landed>

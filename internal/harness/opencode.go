@@ -194,7 +194,11 @@ func (o *OpenCode) Converse(r ConverseRun) (Launch, error) {
 			folders = func() []string { return nil }
 		}
 	}
-	return o.headless(r.Dir, r.Session, r.Model, r.Prompt, converseCommands(r), r.Alone, folders)
+	l, err := o.headless(r.Dir, r.Session, r.Model, r.Prompt, converseCommands(r), r.Alone, folders)
+	if l.ACP != nil {
+		l.ACP.Images = r.Images
+	}
+	return l, err
 }
 
 // Trusted: a conversation's agent on OpenCode runs things, with no

@@ -358,8 +358,9 @@ func TestCursor_ModelAndOrchestratorDefault(t *testing.T) {
 	}
 }
 
-// Cursor's orchestrator is limited as its conversations are: ask mode, no
-// --force, and a cli.json of ws's allowing the orchestrator's commands.
+// Cursor's orchestrator is limited as its conversations are: agent mode
+// (ask mode runs no mission commands), no --force, and a cli.json of ws's
+// allowing the orchestrator's commands.
 func TestCursor_Orchestrate(t *testing.T) {
 	c := fakeCursor(map[string]string{"cursor-agent": "/bin/ca"}, "", nil)
 	scratch := t.TempDir()
@@ -369,7 +370,7 @@ func TestCursor_Orchestrate(t *testing.T) {
 	}
 	// The whole prompt, on stdin: a long command line gets cursor-agent
 	// killed where an endpoint-security agent reads command lines.
-	if got := strings.Join(l.Args, " "); got != "/bin/ca -p --trust --mode ask --output-format stream-json --model auto" || l.Stdin != "the whole prompt" || l.Stream != StreamCursor || filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") {
+	if got := strings.Join(l.Args, " "); got != "/bin/ca -p --trust --output-format stream-json --model auto" || l.Stdin != "the whole prompt" || l.Stream != StreamCursor || filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") {
 		t.Errorf("launch = %q, stdin %q, in %s", got, l.Stdin, l.Dir)
 	}
 	data, _ := os.ReadFile(filepath.Join(l.Dir, ".cursor", "cli.json"))
@@ -900,7 +901,7 @@ func TestConverseCommands(t *testing.T) {
 	}
 }
 
-// Cursor holds a conversation in ask mode (read-only) without --force, in
+// Cursor holds a conversation in agent mode without --force, in
 // a folder of ws's whose .cursor/cli.json allows exactly the commands.
 func TestCursor_Converse(t *testing.T) {
 	c := fakeCursor(map[string]string{"cursor-agent": "/bin/cursor-agent"}, "", nil)
@@ -910,7 +911,7 @@ func TestCursor_Converse(t *testing.T) {
 		t.Fatal(err)
 	}
 	args := strings.Join(l.Args, " ")
-	if args != "/bin/cursor-agent -p --trust --mode ask --output-format stream-json --model auto" || l.Stdin != "Answer t3." {
+	if args != "/bin/cursor-agent -p --trust --output-format stream-json --model auto" || l.Stdin != "Answer t3." {
 		t.Errorf("args: %s, stdin %q", args, l.Stdin)
 	}
 	if filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") || l.Stream != StreamCursor {
@@ -1052,5 +1053,29 @@ func TestClaudeModelArgs(t *testing.T) {
 	}
 	if _, err := c.Orchestrate(OrchestratorRun{Prompt: "p", Dir: "/w", Model: "haiku[loud]"}); err == nil {
 		t.Error("ran on an effort Claude Code doesn't take")
+	}
+}
+
+func TestClaudeCrewReadPictures(t *testing.T) {
+	c := &Claude{lookPath: func(string) (string, error) { return "/bin/claude", nil }, newID: func() (string, error) { return "s1", nil }}
+	start, err := c.Start(Brief{Dir: "/w/repos/a/cap", Prompt: "go"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := ReadsPictures(c, start, "/w/.ws/images")
+	if len(got.Args) < 3 || got.Args[0] != start.Args[0] || got.Args[1] != "--allowedTools" || got.Args[2] != "Read(//w/.ws/images/**)" || got.Args[len(got.Args)-1] != "go" {
+		t.Errorf("started as %q", got.Args)
+	}
+	resumed, err := c.Resume("/w/repos/a/cap", "s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = ReadsPictures(c, resumed, "/w/.ws/images")
+	if strings.Join(got.Args[1:], " ") != "--allowedTools Read(//w/.ws/images/**) --resume s1" {
+		t.Errorf("resumed as %q", got.Args)
+	}
+	// A harness that doesn't ask before reading is left as it is.
+	if l := ReadsPictures(&Pi{}, Launch{Args: []string{"pi"}}, "/w/.ws/images"); len(l.Args) != 1 {
+		t.Errorf("pi: %q", l.Args)
 	}
 }

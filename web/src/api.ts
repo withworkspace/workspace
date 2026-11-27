@@ -95,6 +95,8 @@ import type {
   AutomationOutputInfo,
   ActionRan,
   ActionsInfo,
+  MergeRequest,
+  MergeResult,
 } from "./wire.gen";
 export type {
   CommandLabel,
@@ -868,7 +870,10 @@ export type ActVerb =
   | "open-pr"
   | "bundle-approve"
   | "bundle-send-back"
-  | "bundle-looked";
+  | "bundle-looked"
+  | "merge"
+  | "merge-ready"
+  | "merge-off";
 
 // MissionTask is something a mission waits on you for: a question, or a
 // step of its route that's yours (to review, answer, land, or go on from).
@@ -898,6 +903,7 @@ export interface ActOpts {
   notes?: BundleNote[]; // for bundle-send-back: what's not right
   check?: string; // for bundle-looked: the check, by its key in the bundle's list
   looked?: boolean;
+  pr?: string; // for merge, merge-ready and merge-off: the mission's pull request (repo#N)
 }
 
 // act does it, and says what happened.
@@ -1742,6 +1748,11 @@ export interface PR {
   mission?: { slug: string; title: string };
   capsule?: string; // the capsule its branch is checked out in here
   onTopOf?: number;
+  // What ws offers to merge it, of yours on its own: now (ready), or once
+  // it can (ready: only waiting holds it). A stack's layer merges with
+  // its stack.
+  merge?: "now" | "ready";
+  autoMerge?: boolean; // it's set to merge by itself once it can
 }
 
 // Stack is a stack of pull requests: one row in the list and one review,
@@ -1762,6 +1773,7 @@ export interface Stack {
   words: string;
   open: number; // the layer to open: the lowest that needs you
   onTopOf?: number;
+  merges?: boolean; // yours, GitHub's, every layer ready: it merges whole, from its top
 }
 
 export interface ReviewRow {
@@ -2118,5 +2130,30 @@ export const dockPR = (api: string) => send<{ message: string }>("POST", `${api}
 // isn't yours to review, and stops needing you.
 export const declinePR = (api: string) => send<Record<string, never>>("POST", `${api}/decline`);
 
+// mergePR merges a pull request (a stack whole, asked of its top), now or
+// once it can ("ready"), or stops it merging by itself ("off"), at the
+// commit the page shows (head): ws never goes round its base's rules, and
+// says why when it won't.
+export const mergePR = (api: string, req: MergeRequest) => send<MergeResult>("POST", `${api}/merge`, req);
+
 // A capsule a conversation's agent lifted.
 export type TalkCapsule = ConversationCapsule;
+
+// Pictures pasted for an agent (internal/images): kept in the workspace's
+// .ws/images, and named in what's written by their path. Mirrors
+// internal/web/images.go.
+import type { Pasted } from "./wire.gen";
+export type { Pasted };
+export const pastePicture = async (picture: Blob) => send<Pasted>("POST", "/api/images", { data: await base64Of(picture) });
+
+// base64Of is a picture's bytes as base64, which is how a write sends them
+// (every write is JSON).
+async function base64Of(blob: Blob): Promise<string> {
+  const url = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+  return url.slice(url.indexOf(",") + 1);
+}

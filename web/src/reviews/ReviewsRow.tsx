@@ -8,13 +8,16 @@ import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import { PullRequestCheckMark } from "./PullRequestCheckMark";
 import css from "./ReviewsRow.module.css";
+import { cx } from "../ui/cx";
 import { Text } from "../ui/Text";
 
 // ReviewsRow is a pull request, or a stack of them, on the Reviews page:
 // where it stands with you, its title and chips, who and where it's from,
 // how much it changes, its checks and how long since it moved. It opens
 // here (to) or on GitHub (href, onOpen). A stack folds its layers (l),
-// which are under it.
+// which are under it. act is what's done to it from the row (merging it):
+// it's shown in place of its size, checks and age while the row's pointed
+// at or picked, so the columns stay where every other row has them.
 export function ReviewsRow({
   id,
   selected,
@@ -33,6 +36,7 @@ export function ReviewsRow({
   onOpen,
   onContextMenu,
   fold,
+  act,
   layers,
 }: {
   id: string;
@@ -52,6 +56,7 @@ export function ReviewsRow({
   onOpen: () => void; // a link here, as it's followed; one to GitHub, instead
   onContextMenu?: MouseEventHandler;
   fold?: { folded: boolean; onFold: () => void };
+  act?: ReactNode;
   layers?: ReactNode;
 }) {
   const body = (
@@ -64,20 +69,22 @@ export function ReviewsRow({
         </RowLine>
         <RowSub>{sub}</RowSub>
       </RowMain>
-      <RowMeta className={css.size} title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
-        <span className={css.plus}>+{additions}</span> <span className={css.minus}>−{deletions}</span>
-        {files !== undefined && (
-          <Text dim className={css.files}>
-            {files} {files === 1 ? "file" : "files"}
-          </Text>
-        )}
-      </RowMeta>
-      <PullRequestCheckMark checks={checks} />
-      {updated ? <Time iso={updated} as="age" className="age" /> : <span className="age" />}
+      <span className={css.end}>
+        <RowMeta className={css.size} title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
+          <span className={css.plus}>+{additions}</span> <span className={css.minus}>−{deletions}</span>
+          {files !== undefined && (
+            <Text dim className={css.files}>
+              {files} {files === 1 ? "file" : "files"}
+            </Text>
+          )}
+        </RowMeta>
+        <PullRequestCheckMark checks={checks} />
+        {updated ? <Time iso={updated} as="age" className="age" /> : <span className="age" />}
+      </span>
     </>
   );
   return (
-    <Row selected={selected} id={id} role="option" aria-selected={selected} className={css.row} onMouseMove={onHover}>
+    <Row selected={selected} id={id} role="option" aria-selected={selected} className={cx(css.row, !!act && css.withAct, selected && css.picked)} onMouseMove={onHover}>
       {to ? (
         <Link to={to} className={rowLinkClass(css.link)} onContextMenu={onContextMenu} onClick={onOpen}>
           {body}
@@ -97,6 +104,7 @@ export function ReviewsRow({
           {body}
         </a>
       )}
+      {act && <span className={css.act}>{act}</span>}
       {fold && (
         <Button variant="ghost" size="small" square className={css.fold} onClick={fold.onFold} title={`${fold.folded ? "Show" : "Hide"} layers`} keys="l" aria-expanded={!fold.folded} aria-label="Layers">
           <Icon name={fold.folded ? "chevron-right" : "chevron-down"} size={13} />

@@ -41,6 +41,15 @@ type Stub struct {
 	CreatePRFn func(org, repo string, n NewPR) (*PR, error)
 	// MarkReadyFn marks a draft ready; without it, there's no GitHub.
 	MarkReadyFn func(org, repo string, number int) error
+	// The merge's (merge.go): without MergePRFn, SetAutoMergeFn or
+	// DeleteBranchFn there's no GitHub to; without MergeSettingsFn, the
+	// repo allows squash alone; without MergeStatusFn, a merge is still
+	// pending.
+	MergeSettingsFn func(org, repo string) (MergeSettings, error)
+	MergePRFn       func(org, repo string, number int, ask MergeAsk) (Merging, error)
+	MergeStatusFn   func(org, repo string, number int, id string) (Merging, error)
+	SetAutoMergeFn  func(org, repo string, number int, on bool, ask MergeAsk) error
+	DeleteBranchFn  func(org, repo, branch string) error
 
 	// HeadsFn says where repos' branches are; without it, GitHub can't
 	// say, and each repo's fetched instead.
@@ -164,4 +173,39 @@ func (s *Stub) Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, 
 		return s.HeadsFn(repos, branch)
 	}
 	return nil, errors.New("the stub has no heads")
+}
+
+func (s *Stub) RepoMergeSettings(org, repo string) (MergeSettings, error) {
+	if s.MergeSettingsFn != nil {
+		return s.MergeSettingsFn(org, repo)
+	}
+	return MergeSettings{Methods: []string{MethodSquash}}, nil
+}
+
+func (s *Stub) MergePR(org, repo string, number int, ask MergeAsk) (Merging, error) {
+	if s.MergePRFn != nil {
+		return s.MergePRFn(org, repo, number, ask)
+	}
+	return Merging{}, errors.New("no GitHub here to merge a pull request on")
+}
+
+func (s *Stub) MergeStatus(org, repo string, number int, id string) (Merging, error) {
+	if s.MergeStatusFn != nil {
+		return s.MergeStatusFn(org, repo, number, id)
+	}
+	return Merging{ID: id, Status: MergePending}, nil
+}
+
+func (s *Stub) SetAutoMerge(org, repo string, number int, on bool, ask MergeAsk) error {
+	if s.SetAutoMergeFn != nil {
+		return s.SetAutoMergeFn(org, repo, number, on, ask)
+	}
+	return errors.New("no GitHub here to set a pull request merging by itself")
+}
+
+func (s *Stub) DeleteBranch(org, repo, branch string) error {
+	if s.DeleteBranchFn != nil {
+		return s.DeleteBranchFn(org, repo, branch)
+	}
+	return errors.New("no GitHub here to delete a branch on")
 }

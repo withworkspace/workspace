@@ -1,6 +1,7 @@
 import { type MarkSpec, type NodeSpec, Schema } from "prosemirror-model";
 import { codeBlockClass } from "../markdown/CodeBlock";
 import css from "./MarkdownEditor.module.css";
+import { pictureURL } from "../pictures";
 
 // The editor's schema: markdown as the reader draws it (GitHub-flavoured:
 // tables, task lists, strikethrough), a node for each kind of mdast node.
@@ -103,7 +104,8 @@ const nodes: Record<string, NodeSpec> = {
     inline: true,
     group: "inline",
     draggable: true,
-    toDOM: (n) => ["img", { src: n.attrs.src, alt: n.attrs.alt, title: n.attrs.title }],
+    // A picture pasted for an agent is named by its path, and drawn from ws.
+    toDOM: (n) => ["img", { src: pictureURL(n.attrs.src) ?? n.attrs.src, alt: n.attrs.alt, title: n.attrs.title }],
   },
   raw_inline: {
     attrs: { text: {} },

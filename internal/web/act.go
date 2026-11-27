@@ -40,6 +40,7 @@ type Acting interface {
 	ApproveBundle(slug, id string, by ops.Actor) (ops.BundleDone, error)
 	SendBackBundle(slug, id string, notes []mission.BundleNote, by ops.Actor) (ops.BundleDone, error)
 	MarkBundleLooked(slug, id, key string, looked bool, by ops.Actor) error
+	MergeMissionPR(slug, target, when string, by ops.Actor) (ops.Merged, error)
 }
 
 // ActOn does what a mission's headline asks of you, from a page, and says
@@ -139,6 +140,14 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 			notes[i] = mission.BundleNote{Check: n.Check, Text: n.Text}
 		}
 		return said(a.SendBackBundle(slug, req.Bundle, notes, you))
+	case "merge":
+		// One of its pull requests (PR: repo#N), at the commit its page
+		// shows; a stack whole, from its top.
+		return said(a.MergeMissionPR(slug, req.PR, ops.MergeNow, you))
+	case "merge-ready":
+		return said(a.MergeMissionPR(slug, req.PR, ops.MergeReady, you))
+	case "merge-off":
+		return said(a.MergeMissionPR(slug, req.PR, ops.MergeOff, you))
 	case "bundle-looked":
 		if err := a.MarkBundleLooked(slug, req.Bundle, req.Check, req.Looked, you); err != nil {
 			return "", err

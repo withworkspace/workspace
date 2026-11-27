@@ -31,6 +31,9 @@ type PR struct {
 	// than branch protection), so it's the word on whether it's
 	// mergeable without going round the rules.
 	MergeState string `json:"mergeStateStatus,omitempty"`
+	// AutoMergeRequest is there while it's set to merge by itself once
+	// it's ready.
+	AutoMergeRequest *AutoMerge `json:"autoMergeRequest,omitempty"`
 
 	// What the Reviews page needs besides: OpenPRs fills these in, with a
 	// query of its own (reviews.go).
@@ -93,7 +96,7 @@ func PRsForRepo(org, repo string) ([]PR, error) {
 		"pr", "list",
 		"--repo", fullRepo,
 		"--state", "open",
-		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid",
+		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid,autoMergeRequest",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("gh pr list for %s: %w", fullRepo, err)
@@ -178,7 +181,7 @@ func PRFromNumber(org, repo string, number int) (*PR, error) {
 		"pr", "view",
 		fmt.Sprintf("%d", number),
 		"--repo", fullRepo,
-		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid,mergedAt",
+		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid,mergedAt,autoMergeRequest",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not read pull request %d of %s: %w", number, fullRepo, err)

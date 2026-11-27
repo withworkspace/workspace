@@ -172,14 +172,19 @@ const CursorOrchestratorModel = "claude-haiku-5-5-medium"
 func (c *Cursor) OrchestratorModel() string { return CursorOrchestratorModel }
 
 // Orchestrate runs a headless orchestrator in Cursor's print mode,
-// limited as a conversation is (see Converse): ask mode, so it edits
-// nothing with its own tools, and without --force, so only the commands
-// it's allowed (orchestratorCommands) run, from a folder of ws's whose
+// limited as a conversation is (see Converse): in its default (agent)
+// mode without --force, so only the commands it's allowed
+// (orchestratorCommands) run, from a folder of ws's whose
 // .cursor/cli.json allows them.
 //
-// VERIFIED (cursor-agent 2026.11.05): without --force, its default (agent)
-// mode still writes files with its edit tool, anywhere; only shell
-// commands are refused. Hence ask mode.
+// VERIFIED (cursor-agent 2026.11.05): without --force, agent mode still
+// writes files with its edit tool, anywhere; only shell commands are
+// refused. It once ran in ask mode to stop that, but ask mode runs no
+// mission commands: SEEN (a work Mac, November 2026) the orchestrator
+// answered "I can't run mission commands, ask mode is on". READ: with
+// Cursor's sandbox on, ask mode runs commands in a read-only sandbox, and
+// the model is told it's "Q&A mode - no edits or command execution". So
+// it runs in agent mode, as cursor-acp's does, trusted not to edit.
 func (c *Cursor) Orchestrate(r OrchestratorRun) (Launch, error) {
 	bin, err := c.bin()
 	if err != nil {
@@ -192,7 +197,7 @@ func (c *Cursor) Orchestrate(r OrchestratorRun) (Launch, error) {
 	if err != nil {
 		return Launch{}, err
 	}
-	args := []string{bin, "-p", cursorTrustFlag, "--mode", "ask", "--output-format", "stream-json"}
+	args := []string{bin, "-p", cursorTrustFlag, "--output-format", "stream-json"}
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}

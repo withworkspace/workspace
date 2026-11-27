@@ -41,6 +41,7 @@ blockquote.on {
   overflow-wrap: anywhere;
 }
 
+.said,
 .composer textarea {
   width: 100%;
   margin: 8px 0;

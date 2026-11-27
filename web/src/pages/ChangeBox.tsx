@@ -24,7 +24,7 @@ export function ChangeBox({
   hint?: string;
   label?: string;
 }) {
-  const box = useRef<HTMLTextAreaElement>(null);
+  const box = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
   useEffect(() => {

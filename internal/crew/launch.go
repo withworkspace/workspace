@@ -72,10 +72,11 @@ func Start(r Request) (Started, error) {
 	}
 	var c mission.Crew
 	prompt := l.Prompt
+	var pics []harness.Image // in what they're resumed with
 	if r.Resume != "" {
 		c, err = r.Store.ResumeCrew(r.Slug, r.Resume, r.By)
 		if err == nil && c.ResumeWith != "" {
-			prompt = c.ResumeWith
+			prompt, pics = withPictures(r.Root, c.ResumeWith)
 			if err := r.Store.SetResumeWith(r.Slug, c.ID, ""); err != nil {
 				execlog.Note(r.Root, "crew "+r.Slug+"/"+c.ID, "couldn't clear what it was resumed with: %v", err)
 			}
@@ -114,7 +115,7 @@ func Start(r Request) (Started, error) {
 		// was left) as the session's first prompt.
 		run := *l.ACP
 		if prompt != "" {
-			run.Prompt = prompt
+			run.Prompt, run.Images = prompt, pics
 		}
 		spec.ACP, spec.Prompt, args = &run, "", run.Agent
 	}

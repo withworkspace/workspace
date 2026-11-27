@@ -72,7 +72,7 @@ export function TalkPage() {
   const [text, setText] = useDraft(`talk:${slug}/${id}`);
   const [sending, setSending] = useState(false);
   const [unseen, setUnseen] = useState(false);
-  const box = useRef<HTMLTextAreaElement>(null);
+  const box = useRef<HTMLElement>(null);
   // What's come of it, beside it: when there's room, unless it's put away.
   const wide = useMedia("(min-width: 1240px)");
   const [sideOn, setSideOn] = usePref("talkSide");

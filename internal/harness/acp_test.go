@@ -3,6 +3,7 @@ package harness
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -219,6 +220,8 @@ type fakeACPAgent struct {
 	// askQuestion has the turn ask a Cursor question first; its answer is
 	// kept in got["answer"].
 	askQuestion bool
+	// images says it takes pictures with a prompt (promptCapabilities).
+	images bool
 }
 
 func (f *fakeACPAgent) handle(ctx context.Context, method string, params json.RawMessage) (any, error) {
@@ -234,7 +237,8 @@ func (f *fakeACPAgent) handle(ctx context.Context, method string, params json.Ra
 	}
 	switch method {
 	case "initialize":
-		return map[string]any{"protocolVersion": 1, "agentCapabilities": map[string]any{"loadSession": true, "sessionCapabilities": map[string]any{"resume": map[string]any{}}}}, nil
+		return map[string]any{"protocolVersion": 1, "agentCapabilities": map[string]any{"loadSession": true, "sessionCapabilities": map[string]any{"resume": map[string]any{}},
+			"promptCapabilities": map[string]any{"image": f.images}}}, nil
 	case "session/new", "session/resume":
 		return map[string]any{"sessionId": "codex-1", "configOptions": []any{
 			opt("mode", "mode", "agent", "read-only", "workspace-write", "agent", "agent-full-access"),
@@ -348,6 +352,41 @@ func TestRunACP(t *testing.T) {
 	}
 	if len(rep.Calls) != 2 || rep.Calls[0].Refused || rep.Calls[0].Input != `ws mission note "checked; fine"` || !rep.Calls[1].Refused {
 		t.Errorf("calls = %+v", rep.Calls)
+	}
+}
+
+// A picture pasted is given with the prompt to an agent that takes one,
+// and only named (as a file) to one that doesn't.
+func TestRunACPImages(t *testing.T) {
+	pic := filepath.Join(t.TempDir(), "shot.png")
+	if err := os.WriteFile(pic, []byte("\x89PNG fake"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, takes := range []bool{false, true} {
+		f := &fakeACPAgent{got: map[string][]string{}, images: takes}
+		startFakeACPAgent(t, f)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		var out, errOut bytes.Buffer
+		err := RunACP(ctx, ACPRun{Agent: []string{"codex-acp"}, Dir: t.TempDir(), Allow: []string{"ws mission"}, Prompt: "look at " + pic,
+			Images: []Image{{Path: pic, Type: "image/png"}, {Path: pic + ".gone", Type: "image/png"}}}, &out, &errOut)
+		cancel()
+		if err != nil {
+			t.Fatalf("RunACP = %v (%s)", err, errOut.String())
+		}
+		f.mu.Lock()
+		sent := strings.Join(f.got["session/prompt"], "\n")
+		f.mu.Unlock()
+		blocks := strings.Count(sent, `"type":"image"`)
+		want := 0
+		if takes {
+			want = 1 // the one that's there
+			if !strings.Contains(sent, `"mimeType":"image/png"`) || !strings.Contains(sent, base64.StdEncoding.EncodeToString([]byte("\x89PNG fake"))) {
+				t.Errorf("image sent as: %s", sent)
+			}
+		}
+		if blocks != want {
+			t.Errorf("takes images %v: %d image blocks sent, want %d: %s", takes, blocks, want, sent)
+		}
 	}
 }
 

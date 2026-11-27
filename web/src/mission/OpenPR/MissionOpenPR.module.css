@@ -5,7 +5,7 @@
   color: var(--dim);
 }
 
-.dialog textarea {
+.dialog [data-rich] {
   width: 100%;
   margin: 8px 0;
   font: var(--text-md) / 1.5 var(--font);
@@ -34,7 +34,7 @@
   justify-content: center;
 }
 
-.form textarea {
+.form [data-rich] {
   width: 100%;
   resize: vertical;
 }

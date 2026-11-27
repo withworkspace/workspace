@@ -27,6 +27,7 @@ import { PageTurns } from "./PageTurns";
 import { PageUnstarted } from "./PageUnstarted";
 import { PageVersion } from "./PageVersion";
 import { textClass } from "../ui/Text";
+import { RichText } from "../ui/RichText";
 
 // CellPanel is a cell opened: what was asked for, each version and what
 // you asked to change between them, what the latest was written from, and
@@ -49,7 +50,7 @@ export function CellPanel({
   onRetry: () => Promise<void>;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
+  const box = useRef<HTMLElement>(null);
   const sendKey = useSendKey();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -153,7 +154,9 @@ export function CellPanel({
               return (
                 <PageTurn key={t.n}>
                   <Turn by="you" dense landed>
-                    <TurnSaid written>{t.body}</TurnSaid>
+                    <TurnSaid>
+                      <RichText text={t.body} />
+                    </TurnSaid>
                   </Turn>
                   {t.edited && (
                     <PageVersion yours>
