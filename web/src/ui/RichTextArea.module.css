@@ -34,6 +34,12 @@
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
 
+  /* Not to be written in now. */
+  .disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
   /* The words: as many lines tall as it starts at, at least. */
   .doc {
     display: block;

@@ -70,6 +70,7 @@ export function ReviewNoteEditor({
         lists
         quote
         code
+        refs
         look="field"
         className={css.field}
         field={area}

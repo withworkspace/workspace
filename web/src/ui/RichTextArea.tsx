@@ -1,6 +1,7 @@
 import { lazy, type Ref, Suspense, useRef } from "react";
 import type { RefHost } from "../editor/refs";
 import type { Features } from "../editor/compose";
+import { useRefHost } from "../refs/useRefHost";
 import { cx } from "./cx";
 import css from "./RichTextArea.module.css";
 import { type SendKey, sent, useSendKey } from "./sendKey";
@@ -14,8 +15,10 @@ export interface RichTextAreaProps extends Features {
   // by onChange: a box emptied once it's sent, a draft come back.
   value: string;
   onChange: (markdown: string) => void;
-  // Names drawn as what they are, with a card on hover (editor/refs.ts).
-  refs?: RefHost;
+  // Names drawn as what they are as they're written, with a card on
+  // hover: true for what the web UI knows (refs/useRefHost.tsx), or a
+  // host of the page's own (editor/refs.ts).
+  refs?: boolean | RefHost;
   // The key that sends (ui/sendKey.ts), yours unless a story says, and
   // sending. With no onSend, Enter is only ever a new line.
   send?: SendKey;
@@ -31,6 +34,8 @@ export interface RichTextAreaProps extends Features {
   tallest?: number;
   autoFocus?: boolean;
   busy?: boolean;
+  // Not to be written in now (it's being written for you).
+  disabled?: boolean;
   // Where the words are typed (the page gives it the keys), and whether
   // they have them.
   field?: Ref<HTMLElement>;
@@ -72,16 +77,25 @@ if (typeof window !== "undefined") {
 // and works, and the editor takes over its words and its keys.
 export function RichTextArea(props: RichTextAreaProps) {
   const handoff = useRef<Handoff>({ focused: false });
+  const hosting = useRefHost({ text: props.value, enabled: props.refs === true });
+  const refs = props.refs === true ? hosting.host : props.refs || undefined;
   return (
-    <Suspense fallback={<Plain {...props} handoff={handoff.current} />}>
-      <Inner {...props} handoff={handoff.current} />
-    </Suspense>
+    <>
+      <Suspense fallback={<Plain {...props} refs={undefined} handoff={handoff.current} />}>
+        <Inner {...props} refs={refs} handoff={handoff.current} />
+      </Suspense>
+      {props.refs === true && hosting.card}
+    </>
   );
 }
 
+// InnerProps is what the editor's given: the refs' host, if there's one
+// yet, and what the box knew while it loaded.
+export type InnerProps = Omit<RichTextAreaProps, "refs"> & { refs?: RefHost; handoff: Handoff };
+
 // Plain is the box while the editor loads: a textarea, its words as
 // they're typed (markdown, as the editor will read them).
-function Plain({ value, onChange, send: given, onSend, onEscape, onKeyDown, placeholder, rows = 1, tallest = 320, autoFocus, busy, field, onFocus, onBlur, look, className, handoff, ...rest }: RichTextAreaProps & { handoff: Handoff }) {
+function Plain({ value, onChange, send: given, onSend, onEscape, onKeyDown, placeholder, rows = 1, tallest = 320, autoFocus, busy, disabled, field, onFocus, onBlur, look, className, handoff, ...rest }: InnerProps) {
   const box = useRef<HTMLTextAreaElement>(null);
   useAutosize(box, value, tallest);
   const yours = useSendKey();
@@ -92,7 +106,7 @@ function Plain({ value, onChange, send: given, onSend, onEscape, onKeyDown, plac
     else if (field) field.current = el;
   };
   return (
-    <div className={cx(css.area, look === "field" && css.field, className)} data-rich="">
+    <div className={cx(css.area, look === "field" && css.field, disabled && css.disabled, className)} data-rich="">
       <textarea
         ref={both}
         className={cx(css.doc, css.plain)}
@@ -102,6 +116,7 @@ function Plain({ value, onChange, send: given, onSend, onEscape, onKeyDown, plac
         placeholder={placeholder}
         aria-label={rest["aria-label"]}
         aria-busy={busy || undefined}
+        disabled={disabled}
         autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => {

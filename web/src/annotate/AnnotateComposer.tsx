@@ -78,6 +78,7 @@ export function AnnotateComposer({
         lists
         quote
         code
+        refs
         look="field"
         className={css.said}
         field={textRef}

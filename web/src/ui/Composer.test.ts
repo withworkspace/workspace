@@ -1,14 +1,16 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { Composer } from "./Composer";
 
 // Composer draws one box around its words and what's pressed. These are
 // what each layout has in it, and what reaches the text box. (Drawn on
 // the server, the words are RichTextArea's plain box, as while the editor
-// loads: a textarea in the part's own element.)
+// loads: a textarea in the part's own element. In a router: a ref in it
+// is followed.)
 const html = (props: Partial<Parameters<typeof Composer>[0]> = {}, children?: string) =>
-  renderToStaticMarkup(h(Composer, { value: "", onChange: () => {}, onSend: () => {}, "aria-label": "Reply", ...props }, children));
+  renderToStaticMarkup(h(MemoryRouter, null, h(Composer, { value: "", onChange: () => {}, onSend: () => {}, "aria-label": "Reply", ...props }, children)));
 
 describe("Composer", () => {
   it("names its text box, and says what it's given of it", () => {

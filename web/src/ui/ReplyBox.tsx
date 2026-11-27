@@ -20,6 +20,7 @@ export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "R
         lists
         quote
         code
+        refs
         look="field"
         className={css.field}
         value={text}

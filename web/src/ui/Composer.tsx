@@ -25,8 +25,9 @@ type ComposerProps = {
   "aria-label": string;
   // What can be written: all of it unless it says (offered).
   offers?: Features;
-  // Names drawn as what they are (editor/refs.ts).
-  refs?: RefHost;
+  // Names drawn as what they are as they're written: what the web UI
+  // knows (the default), a host of the page's own, or none (false).
+  refs?: boolean | RefHost;
   // How many lines it starts at, and how tall it grows before it scrolls.
   rows?: number;
   tallest?: number;
@@ -69,7 +70,7 @@ export function Composer({
   send: given,
   placeholder,
   offers = offered,
-  refs,
+  refs = true,
   rows = 1,
   tallest,
   layout = "bar",
