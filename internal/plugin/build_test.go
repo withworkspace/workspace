@@ -102,7 +102,7 @@ func TestProblems(t *testing.T) {
 		Views:    []plugin.View{{Title: " "}},
 		UI:       &plugin.UI{Script: "/ui/../../api/app.js", Style: "//elsewhere.example/app.css"},
 		Commands: &plugin.Commands{Name: "Not OK", Subcommands: []plugin.Subcommand{{Name: "go"}}},
-		Agent:    &plugin.Agent{Guide: strings.Repeat("line\n", 60)},
+		Agent:    &plugin.Agent{Guide: strings.Repeat("line\n", 80)},
 		Config: []plugin.ConfigKey{
 			{Key: "a", Type: "colour"},
 			{Key: "a"},
@@ -116,7 +116,7 @@ func TestProblems(t *testing.T) {
 			t.Errorf("what's wrong lacks %q:\n%s", want, fatal)
 		}
 	}
-	for _, want := range []string{"has no description", "its guide is 60 lines", "config key a has no title"} {
+	for _, want := range []string{"has no description", "its guide's first paragraph is over 300 characters", "config key a has no title"} {
 		if !strings.Contains(notes, want) {
 			t.Errorf("what's worth knowing lacks %q:\n%s", want, notes)
 		}
