@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"path"
 	"path/filepath"
 	"slices"
@@ -118,8 +119,16 @@ func base(p string) string {
 // in order. A folder is walked only where a pattern could name what's in
 // it, and what's skipped only where it's named.
 func Files(dir string, ps []string) ([]string, error) {
+	files, _, err := filesAndEmpty(dir, ps)
+	return files, err
+}
+
+// filesAndEmpty is Files, and the empty folders the patterns name, slashed
+// from dir: what's kept of an output that has nothing in it yet (a log
+// folder) is the folder.
+func filesAndEmpty(dir string, ps []string) ([]string, []string, error) {
 	seen := map[string]bool{}
-	var out []string
+	var out, empty []string
 	for _, p := range ps {
 		root := filepath.Join(dir, filepath.FromSlash(base(p)))
 		err := filepath.WalkDir(root, func(at string, d fs.DirEntry, err error) error {
@@ -132,6 +141,12 @@ func Files(dir string, ps []string) ([]string, error) {
 			if d.IsDir() {
 				if at != root && slices.Contains(skipped, d.Name()) && !slices.Contains(strings.Split(p, "/"), d.Name()) {
 					return filepath.SkipDir // what's installed, and git's and ws's own, unless it's named
+				}
+				if entries, err := os.ReadDir(at); err == nil && len(entries) == 0 {
+					if rel, err := filepath.Rel(dir, at); err == nil && Matches(p, filepath.ToSlash(rel)) && !seen[filepath.ToSlash(rel)+"/"] {
+						seen[filepath.ToSlash(rel)+"/"] = true
+						empty = append(empty, filepath.ToSlash(rel))
+					}
 				}
 				return nil
 			}
@@ -147,9 +162,10 @@ func Files(dir string, ps []string) ([]string, error) {
 			return nil
 		})
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	slices.Sort(out)
-	return out, nil
+	slices.Sort(empty)
+	return out, empty, nil
 }

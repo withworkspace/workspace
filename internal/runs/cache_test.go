@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -365,5 +366,51 @@ func TestAPassIsNotPutBackOverUncommittedWork(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "gen/new.ts"), "new")
 	if err := reuse(); err == nil || !strings.Contains(err.Error(), "gen/new.ts") {
 		t.Errorf("over a new file: %v", err)
+	}
+}
+
+// A pass keeps its outputs' empty folders, and puts them back: a log
+// folder a tool expects is there even before it writes to it.
+func TestAPassKeepsEmptyFolders(t *testing.T) {
+	s, _ := setup(t)
+	dir := gitRepo(t, map[string]string{".gitignore": "dist/\nlogs/\n", "src/a.ts": "a"})
+	r := ended(t, s, cachedTask(t, s, dir, "mkdir -p dist/assets logs && echo built > dist/a.js", "k4", []string{"dist", "logs"}))
+	if r.Kept != "k4" {
+		t.Fatalf("kept %q, failed %q", r.Kept, r.KeepFailed)
+	}
+	e, _ := s.Lookup("k4")
+	os.RemoveAll(filepath.Join(dir, "dist"))
+	os.RemoveAll(filepath.Join(dir, "logs"))
+	if _, _, err := s.Reuse(Start{Name: "build", Type: Task, Repo: "demo", Worktree: "feat", Dir: dir, Command: "x", Recipe: "build",
+		Owner: Owner{Kind: ByNone}, Key: "k4", Outputs: []string{"dist", "logs"}}, e, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range []string{"dist/assets", "logs"} {
+		if fi, err := os.Stat(filepath.Join(dir, d)); err != nil || !fi.IsDir() {
+			t.Errorf("%s wasn't put back: %v", d, err)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "dist/a.js")); string(b) != "built\n" {
+		t.Errorf("dist/a.js = %q", b)
+	}
+	// What's put back is its own: changing it leaves the pass as it was.
+	writeFile(t, filepath.Join(dir, "dist/a.js"), "changed")
+	if b, _ := os.ReadFile(filepath.Join(e.Path, outputsDir, "dist/a.js")); string(b) != "built\n" {
+		t.Errorf("the kept pass's dist/a.js = %q: a clone or copy is its own", b)
+	}
+}
+
+// On macOS a pass's files are clones, not copies.
+func TestFilesAreClonedOnMacOS(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("clones are APFS's")
+	}
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "a"), "bytes")
+	if err := cloneFile(filepath.Join(dir, "a"), filepath.Join(dir, "b")); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "b")); string(b) != "bytes" {
+		t.Errorf("the clone has %q", b)
 	}
 }

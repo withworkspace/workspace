@@ -172,9 +172,14 @@ func (s Store) KeepPass(dir string, now time.Time) error {
 	}
 	defer os.RemoveAll(tmp)
 
-	files, err := Files(r.Dir, r.Outputs)
+	files, empty, err := filesAndEmpty(r.Dir, r.Outputs)
 	if err != nil {
 		return fmt.Errorf("reading its outputs: %w", err)
+	}
+	for _, d := range empty {
+		if err := os.MkdirAll(filepath.Join(tmp, outputsDir, filepath.FromSlash(d)), 0o755); err != nil {
+			return err
+		}
 	}
 	var size int64
 	for _, f := range files {
@@ -397,19 +402,19 @@ func restore(dir string, outs []string, from string) error {
 	return copyTree(from, dir)
 }
 
-// copyTree copies every file below from to the same place below to.
-// Nothing at from is nothing to copy.
+// copyTree copies every file below from to the same place below to, and
+// every folder, empty ones too. Nothing at from is nothing to copy.
 func copyTree(from, to string) error {
 	err := filepath.WalkDir(from, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
-			return nil
-		}
 		rel, err := filepath.Rel(from, p)
 		if err != nil {
 			return err
+		}
+		if d.IsDir() {
+			return os.MkdirAll(filepath.Join(to, rel), 0o755)
 		}
 		_, err = copyPath(p, filepath.Join(to, rel))
 		return err
@@ -421,7 +426,8 @@ func copyTree(from, to string) error {
 }
 
 // copyPath copies the file, or link, at from to to, its folder made, and
-// says how many bytes it was.
+// says how many bytes it was: a clone where the volume can (cloneFile),
+// else its bytes.
 func copyPath(from, to string) (int64, error) {
 	fi, err := os.Lstat(from)
 	if err != nil {
@@ -439,6 +445,9 @@ func copyPath(from, to string) (int64, error) {
 			return 0, err
 		}
 		return 0, os.Symlink(target, to)
+	}
+	if cloneFile(from, to) == nil {
+		return fi.Size(), nil
 	}
 	in, err := os.Open(from)
 	if err != nil {
