@@ -213,6 +213,26 @@ type Record struct {
 	// started (By workflow:<name>): its events carry it, so what it sets
 	// off can't loop.
 	Chain []string `json:"chain,omitempty"`
+	// Key is what its inputs came to, for a task that's cached (Key): once
+	// it has passed, it's kept in the cache under it, with the files
+	// Outputs name (its recipe's outputs and reports).
+	Key     string   `json:"key,omitempty"`
+	Outputs []string `json:"outputs,omitempty"`
+	// Reused is the pass it is, for a run that wasn't run, as its inputs
+	// were that pass's: it came from the cache.
+	Reused *Reused `json:"reused,omitempty"`
+	// After are the tasks it's run after, each run first (or reused) by
+	// its wrapper, before its command.
+	After []After `json:"after,omitempty"`
+}
+
+// After is a task a task is run after: its recipe, its key where it's
+// cached, and the files its outputs name, which the task's own key and
+// what it's said to have changed leave out (they're the after's).
+type After struct {
+	Recipe  string   `json:"recipe"`
+	Key     string   `json:"key,omitempty"`
+	Outputs []string `json:"outputs,omitempty"`
 }
 
 // Report is a file, or the files a pattern matches, that a task's command
@@ -306,6 +326,16 @@ type Run struct {
 	Why string
 	// Past is how many earlier runs of the task are kept behind it.
 	Past int
+	// Kept is the key a cached task's pass was kept under, once it was;
+	// KeepFailed why it couldn't be; and Undeclared the files it changed
+	// as it ran that its outputs don't name, which a reuse doesn't put
+	// back.
+	Kept       string
+	KeepFailed string
+	Undeclared []string
+	// AfterRan are the runs of its After it ran after, by their numbers,
+	// once its wrapper has run them.
+	AfterRan []string
 }
 
 // Passed is whether a task ended by itself with status 0.
@@ -665,6 +695,12 @@ func load(dir string, procs Procs) (Run, error) {
 			r.Ended = fi.ModTime() // its last words, the nearest to when it went
 		}
 	}
+	if r.Key != "" && r.State != Running {
+		r.Kept, r.KeepFailed, r.Undeclared = keptOf(dir)
+	}
+	if len(r.After) > 0 {
+		r.AfterRan = afterRanOf(dir)
+	}
 	if r.State != Running {
 		if b, err := os.ReadFile(filepath.Join(dir, stoppedFile)); err == nil {
 			r.Why = strings.TrimSpace(string(b))
@@ -839,11 +875,20 @@ func NameFor(command string) string {
 //
 // With task said, a task of the name that has ended isn't lost to the new
 // one: it's put behind it (archive), and n is the new one's number.
+//
+// Claims in one worktree are made one at a time (claimLock): one that
+// puts an ended run behind and takes its name can't be caught between,
+// by another taking the name or putting the new folder behind.
 func (s Store) claim(repo, worktree, want, recipe string, task bool) (name, dir string, n int, running *Run, err error) {
 	parent := s.place(repo, worktree)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return "", "", 0, nil, err
 	}
+	unlock, err := claimLock(parent)
+	if err != nil {
+		return "", "", 0, nil, err
+	}
+	defer unlock()
 	procs := s.snapshot()
 	for i := 1; i < 1000; i++ {
 		name = want
@@ -922,6 +967,23 @@ func (s Store) nextN(dir string, task bool) int {
 		}
 	}
 	return n + 1
+}
+
+// claimLock holds the worktree's claims, in parent, for this one until
+// it's let go: other processes and goroutines wait for it.
+func claimLock(parent string) (func(), error) {
+	f, err := os.OpenFile(filepath.Join(parent, ".claim"), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return func() {
+		_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN) // closing lets it go too
+		f.Close()
+	}, nil
 }
 
 // claimWait is how long a recipe's start waits for another ws, claiming

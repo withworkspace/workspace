@@ -30,13 +30,13 @@ func TestRunRecipe(t *testing.T) {
 	RunUpWait = 100 * time.Millisecond // sleep never listens
 	t.Cleanup(func() { RunUpWait = old })
 
-	if _, err := w.RunRecipe("cache", "frontend", "cache", "nope", AsYou); !strings.Contains(err.Error(), "no recipe nope") {
+	if _, err := w.RunRecipe("cache", "frontend", "cache", "nope", false, AsYou); !strings.Contains(err.Error(), "no recipe nope") {
 		t.Errorf("an unknown recipe: %v", err)
 	}
-	if _, err := w.RunRecipe("cache", "frontend", "other", "web", AsYou); !errors.Is(err, ErrNotFound) {
+	if _, err := w.RunRecipe("cache", "frontend", "other", "web", false, AsYou); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a capsule not the mission's: %v", err)
 	}
-	r, err := w.RunRecipe("cache", "frontend", "cache", "web", AsYou)
+	r, err := w.RunRecipe("cache", "frontend", "cache", "web", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,13 +84,13 @@ func TestRunIn(t *testing.T) {
 	RunUpWait = 100 * time.Millisecond // sleep never listens
 	t.Cleanup(func() { RunUpWait = old })
 
-	if _, err := w.RunIn("frontend", "nope", "web", AsYou); !errors.Is(err, ErrNotFound) {
+	if _, err := w.RunIn("frontend", "nope", "web", false, AsYou); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a capsule the repo hasn't: %v", err)
 	}
-	if _, err := w.RunIn("nope", ".ground", "web", AsYou); !errors.Is(err, ErrNotFound) {
+	if _, err := w.RunIn("nope", ".ground", "web", false, AsYou); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a repo the workspace hasn't: %v", err)
 	}
-	r, err := w.RunIn("frontend", ".ground", "web", AsYou)
+	r, err := w.RunIn("frontend", ".ground", "web", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestRunIn(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A task isn't the lookers': it runs to its end, the page open or not.
-	task, err := w.RunIn("frontend", ".ground", "lint", AsYou)
+	task, err := w.RunIn("frontend", ".ground", "lint", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestRunIn(t *testing.T) {
 	if _, done, err := w.runStore().WaitEnd(task, 10*time.Second, nil); err != nil || !done {
 		t.Fatalf("lint didn't end: %v", err)
 	}
-	again, err := w.RunIn("frontend", ".ground", "lint", AsYou)
+	again, err := w.RunIn("frontend", ".ground", "lint", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}

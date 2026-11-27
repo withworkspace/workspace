@@ -15,9 +15,9 @@ import { Text, textClass } from "../../ui/Text";
 // WorkRunLine is one of a capsule's runs: a service, with where it
 // answers while it's running, what it needs and when it ends; or a task
 // (WorkTaskLine).
-export function WorkRunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
+export function WorkRunLine({ r, busy, stop, fresh }: { r: RunDetail; busy: boolean; stop: () => void; fresh?: () => void }) {
   const live = r.state === "running";
-  if (r.type === "task") return <WorkTaskLine r={r} busy={busy} stop={stop} />;
+  if (r.type === "task") return <WorkTaskLine r={r} busy={busy} stop={stop} fresh={fresh} />;
   return (
     <MissionWorkRun
       mark={<RunMark live={live} up={live && r.up} ended={!live} />}

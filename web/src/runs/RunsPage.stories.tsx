@@ -11,6 +11,7 @@ import { RunCame } from "./RunCame";
 import { RunEnds } from "./RunEnds";
 import { RunLink } from "./RunLink";
 import { RunMark } from "./RunMark";
+import { RunsPageCache } from "./RunsPageCache";
 import { RunsPageFacts } from "./RunsPageFacts";
 import { RunsPageFrame } from "./RunsPageFrame";
 import { RunsPageLede } from "./RunsPageLede";
@@ -381,6 +382,38 @@ export const PastAndReports: StoryObj = {
           ]}
         />
       </RunsPageMore>
+    </RunsPageFrame>
+  ),
+};
+
+// A cached task's runs: one reused from an earlier pass, with Run fresh
+// beside it; one that passed and was kept; one that couldn't be kept; and
+// one that changed files its outputs don't name.
+export const Cached: StoryObj = {
+  name: "Cached",
+  render: () => (
+    <RunsPageFrame>
+      <RunsPageFacts>
+        <dt>Result</dt>
+        <RunCame as="dd" result="passed">
+          passed, reused
+        </RunCame>
+        <RunsPageCache reused={{ from: "build.ground.web#4", took: "3m 05s" }} onFresh={() => {}} />
+      </RunsPageFacts>
+      <RunsPageFacts>
+        <dt>Result</dt>
+        <RunCame as="dd" result="passed">
+          passed in 3m 05s
+        </RunCame>
+        <RunsPageCache kept undeclared={["stray.txt", "src/gen/api.ts"]} />
+      </RunsPageFacts>
+      <RunsPageFacts>
+        <dt>Result</dt>
+        <RunCame as="dd" result="passed">
+          passed in 12s
+        </RunCame>
+        <RunsPageCache keepFailed="couldn't keep it: keeping dist/big.bin: no space left on device" />
+      </RunsPageFacts>
     </RunsPageFrame>
   ),
 };

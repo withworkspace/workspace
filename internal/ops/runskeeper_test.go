@@ -63,7 +63,7 @@ func TestWatchRuns_SaysARunStartedAndEnded(t *testing.T) {
 	}
 	files := func() string { return w.runStore().StampIn("frontend", "cache") }
 
-	r, err := w.RunRecipe("cache", "frontend", "cache", "web", AsYou)
+	r, err := w.RunRecipe("cache", "frontend", "cache", "web", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}

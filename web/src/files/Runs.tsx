@@ -79,9 +79,9 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
   };
   const show = (pick?: { service: string } | { run: string }) => setParams(to(pick).search.slice(1), { replace: true });
 
-  const start = (recipe: string, b: Busy) => {
+  const start = (recipe: string, b: Busy, fresh?: boolean) => {
     setBusy(b);
-    runInWorktree(repo, name, recipe)
+    runInWorktree(repo, name, recipe, fresh)
       .then((r) => {
         if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} starting on ${r.port}`, { tone: "done" });
         show(r.type === "task" ? { run: runId(r) } : { service: r.recipe ?? r.name });
@@ -103,7 +103,7 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
   };
   // again is how a run that's ended is run again: its recipe, if it's
   // still one of this place's, and isn't running now.
-  const again = (r: RunDetail) => (r.state !== "running" && r.recipe && recipes.has(r.recipe) && !running.has(r.recipe) ? () => start(r.recipe!, { id: runId(r), what: "again" }) : undefined);
+  const again = (r: RunDetail) => (r.state !== "running" && r.recipe && recipes.has(r.recipe) && !running.has(r.recipe) ? (fresh?: boolean) => start(r.recipe!, { id: runId(r), what: "again" }, fresh) : undefined);
 
   const isPicked = (s: ServiceRow | RunDetail) => !narrow && (picked?.service === s || picked?.task === s);
   const services = (title: string, rows: ServiceRow[]) =>

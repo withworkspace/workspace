@@ -65,6 +65,17 @@ type Start struct {
 	Check   *CheckOf
 	// Chain is the automations that led to it (Record.Chain).
 	Chain []string
+	// Key and Outputs are a cached task's (Record's), and Keep the command
+	// its wrapper runs, with the run's folder after it, to keep a pass in
+	// the cache (KeepPass): with none, nothing is kept.
+	Key     string
+	Outputs []string
+	Keep    []string
+	// After are the tasks a task's wrapper runs first (Record.After), with
+	// AfterCmd, given the run's folder (ws run cache after): with no
+	// command, they aren't run.
+	After    []After
+	AfterCmd []string
 }
 
 // Start starts a run: claims its name, picks its port, starts its command
@@ -231,6 +242,16 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 		return Run{}, false, err
 	}
 	defer null.Close()
+	if task && o.Key != "" && len(o.Keep) > 0 {
+		if err := os.WriteFile(filepath.Join(dir, keepFile), []byte(keepScript(o.Keep)), 0o644); err != nil {
+			return Run{}, false, err
+		}
+	}
+	if task && len(o.After) > 0 && len(o.AfterCmd) > 0 {
+		if err := os.WriteFile(filepath.Join(dir, afterFile), []byte(keepScript(o.AfterCmd)), 0o644); err != nil {
+			return Run{}, false, err
+		}
+	}
 	// The command runs under a shell that writes its status when it ends,
 	// so a run that ended by itself says how. A task's reports are kept
 	// first, by the same shell: nothing of ws's is waiting for it to end.
@@ -267,6 +288,7 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	}
 	if task {
 		rec.Type, rec.N, rec.Reports = Task, n, o.Reports
+		rec.Key, rec.Outputs, rec.After = o.Key, o.Outputs, o.After
 	}
 	if !o.Hold.IsZero() {
 		rec.Hold = o.Hold.UTC().Truncate(time.Second)
@@ -292,9 +314,15 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 // run's folder, then a name and a path for each report it's to keep. A
 // report is kept only if it isn't older than the command's start (it's
 // this run's), under reports/<name>/. Its path is left unquoted, so a
-// pattern is every file it matches.
+// pattern is every file it matches. A task run after others has them run
+// first (its after script), and its command only once they've passed:
+// its start is then marked again, as what they wrote isn't its own. A
+// cached task that passed is then kept in the cache (its keep script),
+// before its status says it ended.
 const wrapper = `d="$2"; : > "$d/` + beganFile + `"
-/bin/sh -c "$1"; s=$?
+s=0
+if [ -f "$d/` + afterFile + `" ]; then /bin/sh "$d/` + afterFile + `" "$d"; s=$?; : > "$d/` + beganFile + `"; fi
+if [ "$s" = 0 ]; then /bin/sh -c "$1"; s=$?; fi
 shift 2
 while [ $# -ge 2 ]; do
 	for f in $2; do
@@ -304,6 +332,7 @@ while [ $# -ge 2 ]; do
 	done
 	shift 2
 done
+if [ "$s" = 0 ] && [ -f "$d/` + keepFile + `" ]; then /bin/sh "$d/` + keepFile + `" "$d" > "$d/` + keepLogFile + `" 2>&1; fi
 echo "$s" > "$d/` + exitFile + `.new" && mv -f "$d/` + exitFile + `.new" "$d/` + exitFile + `"`
 
 var reportName = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)

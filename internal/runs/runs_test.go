@@ -19,6 +19,18 @@ import (
 // The test binary stands in for a dev server: run with WS_RUNS_LISTEN, it
 // listens on $PORT until it's ended.
 func TestMain(m *testing.M) {
+	if os.Getenv(keepEnv) != "" && len(os.Args) == 2 {
+		// The wrapper keeping a pass, as ws run cache keep does.
+		s, err := StoreOf(os.Args[1])
+		if err == nil {
+			err = s.KeepPass(os.Args[1], time.Now())
+		}
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	if os.Getenv("WS_RUNS_LISTEN") != "" {
 		l, err := net.Listen("tcp", "127.0.0.1:"+os.Getenv("PORT"))
 		if err != nil {

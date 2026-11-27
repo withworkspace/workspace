@@ -115,6 +115,7 @@ export function came(r: RunDetail): string {
     case "running":
       return "running";
     case "passed":
+      if (r.reused) return "passed, reused";
       return t ? `passed in ${t}` : "passed";
     case "failed":
       return `failed (exit ${r.status ?? 1})${t ? ` in ${t}` : ""}`;

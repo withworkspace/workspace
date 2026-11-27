@@ -68,6 +68,9 @@ type RunAsk struct {
 	// Chain is the automations that led to it, for one an automation
 	// starts (runs.Record.Chain).
 	Chain []string
+	// Fresh runs a cached task even where a pass of it with the same
+	// inputs is kept, and keeps this one in its place.
+	Fresh bool
 
 	// hold is until when it isn't ended for nothing needing it: it's
 	// being started for a run that isn't recorded yet.
@@ -191,12 +194,35 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		return w.runAgain(a, old, above)
 	}
 
+	// What it's run after, then: a cached task asked for with a pass's
+	// inputs is that pass.
+	var notes []string
+	var cache taskCache
+	var afters []runs.After
+	if rc.IsTask() {
+		var err error
+		if afters, err = w.aftersOf(a, rc, nil); err != nil {
+			return RunUp{}, err
+		}
+	}
+	if rc.Cached() {
+		if cache = w.cacheFor(a, rc, afters); cache.why != "" {
+			notes = append(notes, cache.why)
+		}
+		if cache.key != "" && !a.Fresh {
+			up, ok, said := w.reuse(a, rc, cache, afters)
+			if ok {
+				return up, nil
+			}
+			notes = append(notes, said...)
+		}
+	}
+
 	// Each need's run is found or started, and kept until this one is
 	// recorded as needing it.
 	var needs []runs.Need
 	var ups []NeedUp
 	var held []runs.Run
-	var notes []string
 	hold := func() time.Time { return time.Now().Add(a.Wait + needWait) }
 	for _, name := range slices.Sorted(maps.Keys(rc.Needs)) {
 		n := rc.Needs[name]
@@ -278,8 +304,12 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	if typ == runs.Task {
 		st.Type = runs.Task
 		st.Commit, st.Dirty = standsAt(a.Dir)
-		for _, n := range slices.Sorted(maps.Keys(rc.Reports)) {
-			st.Reports = append(st.Reports, runs.Report{Name: n, Path: strings.TrimSpace(rc.Reports[n].Path), Format: strings.TrimSpace(rc.Reports[n].Format)})
+		st.Reports = reportsOf(rc)
+		if cache.key != "" {
+			st.Key, st.Outputs, st.Keep = cache.key, cache.outputs, keepWith()
+		}
+		if len(afters) > 0 {
+			st.After, st.AfterCmd = afters, afterWith()
 		}
 	}
 	r, started, err := store.Ensure(st, now)

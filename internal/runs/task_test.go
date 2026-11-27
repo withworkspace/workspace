@@ -153,3 +153,45 @@ func TestATaskStoppedIsKeptAsStopped(t *testing.T) {
 		t.Errorf("started %v, again %v, pids %d and %d: want one run", started, again, a.PID, b.PID)
 	}
 }
+
+// A recipe's task asked for by many at once, just after a run of it has
+// ended, is one run: each asker gets it, and none is pushed onto another
+// name (test-2) by catching the name between the ended run's being put
+// behind and the new one's claiming it.
+func TestATaskAskedForAtOnceIsOneRun(t *testing.T) {
+	s, dir := setup(t)
+	ask := Start{Name: "test", Type: Task, Repo: "demo", Worktree: "feat", Dir: dir, Command: "sleep 0.3", Recipe: "test",
+		Owner: Owner{Kind: ByNone}, TTL: time.Hour, By: "you"}
+	first, err := s.Start(Start{Name: "test", Type: Task, Repo: "demo", Worktree: "feat", Dir: dir, Command: "true", Recipe: "test", Owner: Owner{Kind: ByNone}, TTL: time.Hour}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ended(t, s, first)
+	for round := range 3 {
+		got := make(chan string, 8)
+		for range 8 {
+			go func() {
+				r, _, err := s.Ensure(ask, time.Now())
+				if err != nil {
+					got <- "error: " + err.Error()
+					return
+				}
+				got <- r.NRef()
+			}()
+		}
+		seen := map[string]int{}
+		var last string
+		for range 8 {
+			last = <-got
+			seen[last]++
+		}
+		if len(seen) != 1 {
+			t.Fatalf("round %d: asked for at once, it's %v", round, seen)
+		}
+		r, err := s.Find(strings.TrimSuffix(last, "#"+strings.SplitN(last, "#", 2)[1]), "", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ended(t, s, r)
+	}
+}

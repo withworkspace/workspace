@@ -716,6 +716,17 @@ type RunDetail struct {
 	Past    int         `json:"past,omitempty"`
 	Reports []RunReport `json:"reports,omitempty"`
 	Check   *RunCheck   `json:"check,omitempty"`
+	// Cached is whether it's a cached task (its recipe names its inputs);
+	// Reused the pass it is, where it wasn't run; KeepFailed why its pass
+	// couldn't be kept; Undeclared the files it changed that its outputs
+	// don't name, which a reuse won't put back.
+	Cached bool `json:"cached,omitempty"`
+	// After are the tasks it\'s run after: the runs of them it ran after
+	// (by their numbers), once it has, else their recipes.
+	After      []string   `json:"after,omitempty"`
+	Reused     *RunReused `json:"reused,omitempty"`
+	KeepFailed string     `json:"keepFailed,omitempty"`
+	Undeclared []string   `json:"undeclared,omitempty"`
 	// Link is where it's reached: by its name, when the workspace has
 	// names (ws router), else Local, at 127.0.0.1 and its port.
 	Link  string `json:"link"`
@@ -810,6 +821,13 @@ type RunNeed struct {
 	Dir      string `json:"dir,omitempty"`
 }
 
+// RunReused is the pass a reused task is: the run that passed, by its
+// number, and how long it took, in milliseconds.
+type RunReused struct {
+	From string `json:"from"`
+	Took int64  `json:"took"`
+}
+
 // RunDetailOf is a run of the workspace at root as a page shows it.
 func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Type: runs.Service, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: r.State,
@@ -843,6 +861,16 @@ func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 		}
 		if c := r.Check; c != nil {
 			d.Check = &RunCheck{Mission: c.Mission, Step: c.Step, N: c.N}
+		}
+		d.Cached, d.KeepFailed, d.Undeclared = r.Key != "", r.KeepFailed, r.Undeclared
+		d.After = r.AfterRan
+		if len(d.After) == 0 {
+			for _, a := range r.After {
+				d.After = append(d.After, a.Recipe)
+			}
+		}
+		if u := r.Reused; u != nil {
+			d.Reused = &RunReused{From: u.From, Took: u.Took.Milliseconds()}
 		}
 	}
 	switch r.State {

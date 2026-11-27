@@ -905,6 +905,23 @@ type TaskRecipe struct {
 	// (reports.coverage = { path = "cover.out", format = "gocover" }, or
 	// [run.task.test.reports.coverage]).
 	Reports map[string]RunReport `toml:"reports,omitempty"`
+	// Inputs make it cached: the files it reads, each a path from where it
+	// runs (a file, or a folder and all that's in it) or a pattern
+	// (src/**/*.ts). Once it has passed, asking for it again with the same
+	// files, command and Env is that pass, reused, its Outputs put back,
+	// rather than a run. With none, it's always run.
+	Inputs []string `toml:"inputs,omitempty"`
+	// Outputs are the files it writes that a reuse puts back, written as
+	// Inputs are (dist, coverage/**). Its reports are outputs too.
+	Outputs []string `toml:"outputs,omitempty"`
+	// Env is the variables it reads, by name: what each is set to is one
+	// of its inputs.
+	Env []string `toml:"env,omitempty"`
+	// After are the tasks of the same worktree it's run after (a build a
+	// coverage run reads): each is run first, or reused where it's cached,
+	// and it's run only once they've all passed. What they write is said
+	// by their keys in its own, where it's cached.
+	After []string `toml:"after,omitempty"`
 }
 
 // The sorts of run a recipe is, as RunRecipe.Type has them, and as the
@@ -941,10 +958,18 @@ type RunRecipe struct {
 	Page   *RunPage
 	Kind   string
 	Render string
-	// Reports and Timeout are a task's.
+	// Reports, Timeout, Inputs, Outputs and Env are a task's.
 	Reports map[string]RunReport
 	Timeout string
+	Inputs  []string
+	Outputs []string
+	Env     []string
+	After   []string
 }
+
+// Cached is whether the recipe is a task that's cached: one that names
+// its inputs.
+func (r RunRecipe) Cached() bool { return r.IsTask() && len(r.Inputs) > 0 }
 
 // IsTask is whether the recipe is a task.
 func (r RunRecipe) IsTask() bool { return r.Type == RunTask }
@@ -985,7 +1010,7 @@ func (r Runs) Recipes() map[string]RunRecipe {
 	}
 	out := make(map[string]RunRecipe, len(r.Service)+len(r.Task))
 	for name, t := range r.Task {
-		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Description: t.Description, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout}
+		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Description: t.Description, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout, Inputs: t.Inputs, Outputs: t.Outputs, Env: t.Env, After: t.After}
 	}
 	for name, s := range r.Service {
 		out[name] = RunRecipe{Type: RunService, Command: s.Command, DisplayName: s.DisplayName, Description: s.Description, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page, Kind: s.Kind, Render: s.Render}

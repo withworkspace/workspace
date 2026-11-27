@@ -300,7 +300,7 @@ func TestRunRecipeFromThePageSharesARun(t *testing.T) {
 	if _, err := w.StartRun(a); err != nil {
 		t.Fatal(err)
 	}
-	r, err := w.RunRecipe("cache", "frontend", "cache", "admin", AsYou)
+	r, err := w.RunRecipe("cache", "frontend", "cache", "admin", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}

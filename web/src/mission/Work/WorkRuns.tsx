@@ -29,9 +29,9 @@ export function WorkRuns({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   // A task's end reaches the page by its mission's topic (its stamp has
   // its capsules' runs): nothing asks after it.
   if (!runs.length && !recipes.length) return null;
-  const start = (recipe: string) => {
-    setBusy(recipe);
-    runRecipe(slug, c.repo, c.name, recipe)
+  const start = (recipe: string, fresh?: boolean, busyAs = recipe) => {
+    setBusy(busyAs);
+    runRecipe(slug, c.repo, c.name, recipe, fresh)
       .then((r) => {
         if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} starting on ${r.port}`, { tone: "done" });
         return reload();
@@ -52,7 +52,13 @@ export function WorkRuns({ slug, c, open, reload }: { slug: string; c: CapsuleDe
       {runs.length > 0 && (
         <MissionWorkRuns>
           {runs.map((r) => (
-            <WorkRunLine key={r.ref} r={r} busy={busy === r.ref} stop={() => stop(r)} />
+            <WorkRunLine
+              key={r.ref}
+              r={r}
+              busy={busy === r.ref}
+              stop={() => stop(r)}
+              fresh={r.reused && r.recipe ? () => start(r.recipe!, true, r.ref) : undefined}
+            />
           ))}
         </MissionWorkRuns>
       )}
