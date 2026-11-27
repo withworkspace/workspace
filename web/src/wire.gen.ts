@@ -5143,6 +5143,10 @@ export interface RunStart {
     repo: string;
     capsule: string;
     recipe: string;
+    /**
+     * Fresh runs a cached task even where a pass with its inputs is kept.
+     */
+    fresh?: boolean;
 }
 
 // From web/runs.go

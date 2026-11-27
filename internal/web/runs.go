@@ -27,6 +27,8 @@ type RunStart struct {
 	Repo    string `json:"repo"`
 	Capsule string `json:"capsule"`
 	Recipe  string `json:"recipe"`
+	// Fresh runs a cached task even where a pass with its inputs is kept.
+	Fresh bool `json:"fresh,omitempty"`
 }
 
 // SiloPoint is POST /api/silos/{repo}/point: the capsule to point a repo's
@@ -77,7 +79,7 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "missing capsule (repo and name) or recipe")
 		return
 	}
-	run, err := s.App.RunRecipe(r.PathValue("slug"), b.Repo, b.Capsule, b.Recipe, ops.AsYou)
+	run, err := s.App.RunRecipe(r.PathValue("slug"), b.Repo, b.Capsule, b.Recipe, b.Fresh, ops.AsYou)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return

@@ -106,7 +106,9 @@ func (w *Workspace) runCapsule(slug, repo, capsule string) (string, error) {
 //
 // A task isn't waited for, and isn't the lookers': it's the mission's,
 // and runs to its end whether or not anyone stays to watch.
-func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, by Actor) (runs.Run, error) {
+//
+// fresh runs a cached task even where a pass with its inputs is kept.
+func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, fresh bool, by Actor) (runs.Run, error) {
 	dir, err := w.runCapsule(slug, repo, capsule)
 	if err != nil {
 		return runs.Run{}, err
@@ -118,7 +120,7 @@ func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, by Actor) (run
 	return w.runUp(RunAsk{
 		Repo: repo, Worktree: capsule, Dir: dir, Recipe: recipe,
 		Owner: owner,
-		TTL:   runs.DefaultTTL, By: by.By(), Mission: slug, Wait: RunUpWait,
+		TTL:   runs.DefaultTTL, By: by.By(), Mission: slug, Wait: RunUpWait, Fresh: fresh,
 	})
 }
 

@@ -702,8 +702,9 @@ export const getRunLog = (ref: string) => getJSON<RunLog>(`/api/runs/log?ref=${e
 
 // runRecipe starts a capsule's recipe, for as long as someone has the
 // mission open (and 15 minutes after).
-export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
-  send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+// fresh runs a cached task even where a pass with its inputs is kept.
+export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string, fresh?: boolean) =>
+  send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe, ...(fresh && { fresh }) });
 
 // getWorktreeRuns is what's running in a repo's ground or capsule, and
 // its recipes, for the Files page: each ask says the page has it open, so

@@ -7,8 +7,8 @@
 #
 #   scripts/try.sh up cache
 #
-# It lifts two capsules of demo, cache-one and cache-two, whose
-# ws.repo.toml has:
+# It lifts two capsules of demo, cache-one and cache-two (the mission
+# cache-the-build's), whose ws.repo.toml has:
 #
 #   build   go build into dist/, cached: inputs are the Go files and
 #           go.mod, outputs dist
@@ -25,12 +25,24 @@ set -euo pipefail
 ws="$TRY_WS"
 dir="$TRY_DIR"
 
+slug="cache-the-build"
+"$ws" mission new "Cache the build" --brief "## Goal
+demo's build is cached, and reused where its inputs are the same.
+
+## Context
+- Seeded by the workspace repo's scripts/seeds/cache.sh, for looking at cached tasks on the Work tab. Nothing is to change.
+" >/dev/null
+
 for c in cache-one cache-two; do
 	if [ -d "$dir/repos/demo/$c" ]; then
 		echo "$dir already has the capsule demo/$c" >&2
 		exit 1
 	fi
-	"$ws" lift demo "$c" >/dev/null
+	if [ "$c" = cache-two ]; then
+		"$ws" WS_MISSION="$slug" lift demo "$c" >/dev/null
+	else
+		"$ws" lift demo "$c" >/dev/null
+	fi
 	capsule="$dir/repos/demo/$c"
 	cat >>"$capsule/ws.repo.toml" <<'TOML'
 
@@ -67,6 +79,8 @@ cat <<EOF
 cache: cached tasks, reused rather than run.
 
   /runs                            build in cache-one (run 2 reused, run 1 behind it, kept), build in cache-two (reused from cache-one's), gen (kept, notes.txt not in its outputs), size in cache-two (after build)
+  /missions/$slug                  Work tab: cache-two's runs, build and size reused, each with Run fresh
+  /files/demo/cache-two?view=runs  the Runs tab: size, reused, with Run fresh in place of Run again
   cd $two
   $ws run build                    reused: prints what the pass printed, and says which run it was
   $ws run --fresh build            run anyway, and kept in its place

@@ -12,8 +12,9 @@ import { MissionWorkRun } from "./MissionWorkRun";
 import { Text } from "../../ui/Text";
 
 // WorkTaskLine is a task in a capsule: what it came to, at which commit,
-// going to its run on the Runs page.
-export function WorkTaskLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
+// going to its run on the Runs page. One that was reused can be run
+// fresh, where fresh is given.
+export function WorkTaskLine({ r, busy, stop, fresh }: { r: RunDetail; busy: boolean; stop: () => void; fresh?: () => void }) {
   const live = r.state === "running";
   return (
     <MissionWorkRun
@@ -32,10 +33,17 @@ export function WorkTaskLine({ r, busy, stop }: { r: RunDetail; busy: boolean; s
         )
       }
       action={
-        live && (
+        live ? (
           <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="Stop now">
             {busy ? <Spinner size={11} /> : <Icon name="stop" size={11} />} Stop
           </Button>
+        ) : (
+          r.reused &&
+          fresh && (
+            <Button variant="ghost" size="small" disabled={busy} onClick={fresh} title={`Reused from ${r.reused.from}: run it, though a pass with the same inputs is kept`}>
+              {busy ? <Spinner size={11} /> : <Icon name="play" size={11} />} Run fresh
+            </Button>
+          )
         )
       }
     >

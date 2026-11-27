@@ -50,7 +50,7 @@ type App interface {
 // someone has open, for the runs started from them; on the Runs page,
 // every run, any one ended, and a run's output.
 type Running interface {
-	RunRecipe(slug, repo, capsule, recipe string, by ops.Actor) (runs.Run, error)
+	RunRecipe(slug, repo, capsule, recipe string, fresh bool, by ops.Actor) (runs.Run, error)
 	StopRun(slug, ref string) error
 	RunsIn(repo, name string) (ops.WorktreeRuns, error)
 	RunIn(repo, name, recipe string, fresh bool, by ops.Actor) (runs.Run, error)

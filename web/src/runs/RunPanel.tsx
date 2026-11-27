@@ -16,7 +16,7 @@ import { RunPanelHead } from "./RunPanelHead";
 import { RunPanelNeed, RunPanelNeeds } from "./RunPanelNeeds";
 import { RunPanelViews } from "./RunPanelViews";
 import { RunPreview } from "./RunPreview";
-import { bare, forWhom, listed, nameOfRef, runId, runStatus, startedBy } from "./runRows";
+import { bare, forWhom, listed, nameOfRef, runId, runStatus, startedBy, took } from "./runRows";
 import type { RunView } from "./runView";
 import { SaidTo } from "./SaidTo";
 import { Text, textClass } from "../ui/Text";
@@ -32,7 +32,9 @@ import { Text, textClass } from "../ui/Text";
 // the frame).
 //
 // What's done to it is the page's (onStop, onRunAgain, onClear: each
-// left out where it can't be done), busy saying which is under way.
+// left out where it can't be done), busy saying which is under way. A
+// reused task's Run again is Run fresh: asked again, it would only be
+// reused again, so onRunAgain is given whether to run it fresh.
 // back is the way to the list, where there's no room for both.
 //
 // It knows which view is shown, and maps the run onto the RunPanel…
@@ -54,7 +56,7 @@ export function RunPanel({
   talks: Talk[];
   busy?: "stop" | "again" | "clear";
   onStop?: () => void;
-  onRunAgain?: () => void;
+  onRunAgain?: (fresh?: boolean) => void;
   onClear?: () => void;
   back?: ReactNode;
 }) {
@@ -89,8 +91,13 @@ export function RunPanel({
           </a>
         )}
         {onRunAgain && (
-          <Button size="small" disabled={!!busy} onClick={onRunAgain} title={r.recipe ? `Run ${r.recipe} again` : "Run again"}>
-            {busy === "again" ? <Spinner size={11} /> : <Icon name="play" size={11} />} Run again
+          <Button
+            size="small"
+            disabled={!!busy}
+            onClick={() => onRunAgain(!!r.reused)}
+            title={r.reused ? "Run it, though a pass with the same inputs is kept" : r.recipe ? `Run ${r.recipe} again` : "Run again"}
+          >
+            {busy === "again" ? <Spinner size={11} /> : <Icon name="play" size={11} />} {r.reused ? "Run fresh" : "Run again"}
           </Button>
         )}
         {live && onStop && (
@@ -134,6 +141,12 @@ export function RunPanel({
           <RunPanelFact label="Ended">
             <Time iso={r.ended} as="relative" />
             {!task && <RunPanelAside>{r.state === "exited" ? `exit status ${r.status ?? 0}` : "outside Workspace"}</RunPanelAside>}
+          </RunPanelFact>
+        )}
+        {task && r.reused && (
+          <RunPanelFact label="Reused">
+            <Text mono>{r.reused.from}</Text>
+            <RunPanelAside>which took {took(r.reused.took) || "under 0.1s"}: its inputs are the same</RunPanelAside>
           </RunPanelFact>
         )}
         {task && r.commit && (

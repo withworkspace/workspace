@@ -30,13 +30,13 @@ func TestRunRecipe(t *testing.T) {
 	RunUpWait = 100 * time.Millisecond // sleep never listens
 	t.Cleanup(func() { RunUpWait = old })
 
-	if _, err := w.RunRecipe("cache", "frontend", "cache", "nope", AsYou); !strings.Contains(err.Error(), "no recipe nope") {
+	if _, err := w.RunRecipe("cache", "frontend", "cache", "nope", false, AsYou); !strings.Contains(err.Error(), "no recipe nope") {
 		t.Errorf("an unknown recipe: %v", err)
 	}
-	if _, err := w.RunRecipe("cache", "frontend", "other", "web", AsYou); !errors.Is(err, ErrNotFound) {
+	if _, err := w.RunRecipe("cache", "frontend", "other", "web", false, AsYou); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a capsule not the mission's: %v", err)
 	}
-	r, err := w.RunRecipe("cache", "frontend", "cache", "web", AsYou)
+	r, err := w.RunRecipe("cache", "frontend", "cache", "web", false, AsYou)
 	if err != nil {
 		t.Fatal(err)
 	}
