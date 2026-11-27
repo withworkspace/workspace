@@ -119,6 +119,9 @@ type Server struct {
 	// ResyncSilo gives a repo's silo its target's files in full (POST
 	// /api/silos/{repo}/resync): nil when nothing keeps them.
 	ResyncSilo func(repo string) error
+	// Show is what ws show says of a ref, as the commands make it: what an
+	// automation's dry run is given for show(). Nil: show() is None.
+	Show func(ref string) (map[string]any, error)
 	// Poll is how often open pages are checked for changes to tell them
 	// about (default 2s).
 	Poll time.Duration
@@ -286,6 +289,12 @@ func (s *Server) Start() error {
 	runsHub := newHub(topicRuns, s.Poll, s.runsFingerprint)
 	runsHub.stamp, runsHub.floor = s.runsStamp, 30*time.Second
 	s.topics[topicRuns] = runsHub
+	// The Automations page: told when a write to what's kept of them
+	// moves (the records watch, below); looked at every half a minute for
+	// a file changed by hand.
+	autoHub := newHub(topicAutomations, s.Poll, s.automationsFingerprint)
+	autoHub.stamp, autoHub.floor = s.App.AutomationsStamp, 30*time.Second
+	s.topics[topicAutomations] = autoHub
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
@@ -360,6 +369,8 @@ func (s *Server) Start() error {
 			s.talks.tell(key)
 		} else if topic == topicWorkspace {
 			ws.nudge()
+		} else if topic == topicAutomations {
+			autoHub.nudge()
 		}
 	})
 	// What's read behind a read that didn't wait (a space of documents,
@@ -550,6 +561,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/missions/{slug}/pr-write", s.writePR)
 	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
 	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)
+	mux.HandleFunc("GET /api/automations", s.automations)
+	mux.HandleFunc("GET /api/automations/{name}", s.automationDetail)
+	mux.HandleFunc("POST /api/automations/{name}/on", s.automationOn)
+	mux.HandleFunc("POST /api/automations/{name}/dry-run", s.automationDryRun)
+	mux.HandleFunc("POST /api/automations/{name}/run", s.automationRunNow)
+	mux.HandleFunc("GET /api/automations/{name}/output", s.automationOutput)
+	mux.HandleFunc("DELETE /api/automations/{name}", s.automationRemove)
 	mux.HandleFunc("GET /api/runs", s.allRuns)
 	mux.HandleFunc("POST /api/runs/stop", s.endRun)
 	mux.HandleFunc("GET /api/runs/log", s.runLog)
@@ -706,6 +724,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /frame/{id}/{version}", s.frame)
 	mux.HandleFunc("GET /frame/in/{repo}/tree/{tree}", s.foundFrame)
 	mux.HandleFunc("GET /frame/{id}/proposals/{n}", s.proposalFrame)
+	mux.HandleFunc("GET /frame/automations/{name}/output/{version}", s.automationOutputFrame)
 	mux.HandleFunc("GET /frame/missions/{slug}/{id}/proposals/{n}", s.proposalFrame)
 	mux.HandleFunc("GET "+framedRoot+"{rest...}", s.framedFile)
 	// Plugins: what they add, the page ws serves for one's app (the

@@ -31,6 +31,7 @@ const (
 // come, not the whole package. A package missing here shows in the output
 // as a field of type unknown, with a comment naming the type.
 var referenced = []string{
+	"github.com/withworkspace/workspace/internal/automation",
 	"github.com/withworkspace/plugin/protocol",
 	"github.com/withworkspace/workspace/internal/artifact",
 	"github.com/withworkspace/workspace/internal/conversation",

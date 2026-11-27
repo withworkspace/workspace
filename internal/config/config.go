@@ -716,6 +716,9 @@ type NotificationsConfig struct {
 	Pulls    string `toml:"pulls,omitempty"`    // a pull request this ws opened merged
 	Plugins  string `toml:"plugins,omitempty"`  // a plugin's update is out
 	WS       string `toml:"ws,omitempty"`       // ws was upgraded
+	// Automations is what your automations say, and that one couldn't
+	// run.
+	Automations string `toml:"automations,omitempty"`
 	// Plugin is where each plugin's kinds of notification are sent, by the
 	// plugin's name and the kind's id ([notifications.plugin.jira]
 	// assigned = "desktop"). A kind it doesn't say goes where the plugin
@@ -733,7 +736,7 @@ const (
 // Route is where source is sent: the feed, unless the file says desktop
 // or off.
 func (n NotificationsConfig) Route(source string) string {
-	said := map[string]string{"missions": n.Missions, "pulls": n.Pulls, "plugins": n.Plugins, "ws": n.WS}[source]
+	said := map[string]string{"missions": n.Missions, "pulls": n.Pulls, "plugins": n.Plugins, "ws": n.WS, "automations": n.Automations}[source]
 	if said == NotifyDesktop || said == NotifyOff {
 		return said
 	}

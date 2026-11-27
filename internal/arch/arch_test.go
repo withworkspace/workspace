@@ -31,7 +31,8 @@ var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls
 // names it; events, which keeps what ws did in the store; and outbox,
 // which keeps there what's still to be sent somewhere slow) and hold no
 // rule of anyone's. cost is what measures them, when the daemon's asked to.
-var leaves = []string{"cost", "git", "slug", "events", "execlog", "job", "outbox", "ref", "release", "store", "words"}
+// report reads what a task's report files say, as numbers.
+var leaves = []string{"cost", "git", "slug", "events", "execlog", "job", "outbox", "ref", "release", "report", "store", "words"}
 
 // allowed is what each package may import, of ws's own, beyond the leaves.
 // A package that isn't listed may import only the leaves.
@@ -43,7 +44,7 @@ var allowed = map[string][]string{
 	"notification": {"events"},
 	"workspace":    {"config", "git", "slug"},
 	"mission":      {"slug", "git"},
-	"conversation": {"mission", "doc"},
+	"conversation": {"mission", "doc", "automation"}, // a proposed automation, as its card shows it
 	"page":         {"doc", "conversation"},
 	"review":       {"mission", "git"},
 	"pulls":        {"github", "review", "git"},
@@ -62,7 +63,7 @@ var allowed = map[string][]string{
 	// it runs (jobs, its loops, the web UI, plugins). Only cli starts it.
 	"daemon": append([]string{
 		"crew", "harness", "acp", "termpane", "execlog", "config", "workspace",
-		"ops", "orchestrator", "web", "plugin", "nav", "runs", "router",
+		"ops", "orchestrator", "web", "plugin", "nav", "runs", "router", "automation",
 	}, domain...),
 	// Runs: what ws starts for someone and ends for them. It reads the
 	// user's processes as the process check does; whose records say an
@@ -76,9 +77,9 @@ var allowed = map[string][]string{
 	"plugin/fakeplugin": {"acp"},
 	"ops": append([]string{
 		"config", "workspace", "git", "slug", "execlog", "github", "ide",
-		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin", "runs", "router", "whatsnew",
+		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin", "runs", "router", "whatsnew", "automation",
 	}, domain...),
-	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin", "runs", "router", "whatsnew"}, domain...),
+	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin", "runs", "router", "whatsnew", "automation"}, domain...),
 	"cli":      anything,
 	"testutil": anything,
 }

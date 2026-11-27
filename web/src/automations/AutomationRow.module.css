@@ -1,0 +1,68 @@
+/* One automation on the Automations page (AutomationRow.tsx): its name and
+   words, when, its last run, and its switch at the right. */
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 8px;
+}
+
+.main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.name:hover {
+  text-decoration: underline;
+}
+
+.about {
+  overflow-wrap: anywhere;
+}
+
+.when {
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: var(--text-sm);
+}
+
+.tally {
+  margin-left: auto;
+}
+
+.wrong {
+  font-size: var(--text-sm);
+  color: var(--red);
+  overflow-wrap: anywhere;
+}
+
+/* One that's off: its words quieter, its switch as bright as ever. */
+.off .main {
+  opacity: 0.65;
+}
+
+.switch {
+  margin-top: 2px;
+}

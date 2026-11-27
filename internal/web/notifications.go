@@ -90,7 +90,7 @@ func NotificationsOf(f ops.NotificationFeed) Notifications {
 	for _, n := range f.Notifications {
 		out.Notifications = append(out.Notifications, Notification{
 			N: n.N, Ref: n.Ref(), At: n.At, Source: n.Source, Kind: n.Kind, Text: n.Text,
-			To: cmp.Or(n.Opens, notificationPlace(n.Notification)), Refs: n.Refs, By: n.By,
+			To: cmp.Or(n.Opens, notificationPlace(n.Notification)), Refs: shownRefs(n.Notification), By: n.By,
 			Attention: n.Attention, Read: n.Read != nil, Desktop: n.Desktop,
 		})
 	}
@@ -122,7 +122,23 @@ func notificationPlace(n notification.Notification) string {
 	case notification.WSUpgraded:
 		return "/settings/about"
 	}
+	// An automation's opens its output (open = "output"), or it.
+	if name, ok := strings.CutPrefix(n.Kind, "automation:"); ok {
+		if first == "output" {
+			return "/automations/" + name + "/output"
+		}
+		return "/automations/" + name
+	}
 	return ""
+}
+
+// shownRefs are what a notification's about, as it's shown: an
+// automation's "output" is where it opens, not what it's about.
+func shownRefs(n notification.Notification) []string {
+	if strings.HasPrefix(n.Kind, "automation:") && len(n.Refs) > 0 && n.Refs[0] == "output" {
+		return n.Refs[1:]
+	}
+	return n.Refs
 }
 
 // notificationsCount is the feed's count for the workspace's view.

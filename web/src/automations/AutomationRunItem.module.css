@@ -1,0 +1,77 @@
+/* One run on an automation's page (AutomationRunItem.tsx): its mark, the
+   event and when, how it went, what it did, why it failed, its log. */
+
+.run {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.run:last-child {
+  border-bottom: none;
+}
+
+.mark {
+  align-self: start;
+  margin-top: 3px;
+}
+
+.main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.says {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.at {
+  flex-shrink: 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.state {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.did {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  font-size: var(--text-sm);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: var(--red);
+  overflow-wrap: anywhere;
+}
+
+/* Why a run was held back (at_most, a loop): said, not an error. */
+.why {
+  font-size: var(--text-sm);
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.log {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--well);
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}

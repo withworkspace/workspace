@@ -88,6 +88,11 @@ import type {
   RepoGroup,
   TalkModel,
   ConversationModel,
+  AutomationDryRun,
+  AutomationPage,
+  AutomationProposed,
+  AutomationsInfo,
+  AutomationOutputInfo,
 } from "./wire.gen";
 export type {
   CommandLabel,
@@ -301,7 +306,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | "automations" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -1131,7 +1136,7 @@ export const getThreadVersion = (slug: string, ref: string, v: string) =>
 // of one).
 export interface TalkProposal {
   n: number;
-  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin";
+  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin" | "automation";
   by: string;
   at: string;
   what?: string;
@@ -1195,11 +1200,58 @@ export interface TalkProposal {
   label?: string;
   icon?: string;
   items?: PluginProposalItem[];
+  // an automation: what it is and would have done lately (its script is
+  // text), as internal/automation.Proposed says it.
+  automation?: ProposedAutomation;
   revises?: number; // the agent's revision of an open proposal of its, by number: that one's superseded by this
   state: "open" | "accepted" | "declined" | "superseded" | "withdrawn"; // superseded: a later one took its place; withdrawn: the agent took it back
   because?: string; // withdrawn: why
   result?: string; // a mission's slug, slug:d3, a document's ref (an edit's: where it was saved), or an artifact's version (a3.v1); "" for a decision kept with the conversation; a superseded one's, the later one's number
 }
+
+// What a conversation proposes (ProposedAutomation), and what the
+// Automations page shows: generated from internal/automation, ops and web.
+export type ProposedAutomation = AutomationProposed;
+export type {
+  AutomationDryLine,
+  AutomationDryRun,
+  AutomationOutline,
+  AutomationOutlineBranch,
+  AutomationOutput,
+  AutomationOutputInfo,
+  AutomationOutlineStep,
+  AutomationStepCount,
+  AutomationPage,
+  AutomationsInfo,
+  AutomationTally,
+  OpsAutomationDid as AutomationDid,
+  OpsAutomationItem as AutomationItem,
+  OpsAutomationRun as AutomationRun,
+} from "./wire.gen";
+
+// getAutomations is each of yours; getAutomation one, with its script and
+// latest runs. Mirrors internal/web/automations.go.
+export const getAutomations = () => getJSON<AutomationsInfo>("/api/automations");
+export const getAutomation = (name: string) => getJSON<AutomationPage>(`/api/automations/${encodeURIComponent(name)}`);
+// setAutomationOn turns one on (from the next event) or off.
+export const setAutomationOn = (name: string, on: boolean) =>
+  send<{ on: boolean }>("POST", `/api/automations/${encodeURIComponent(name)}/on`, { on });
+// removeAutomation takes one away: its file and its runs.
+export const removeAutomation = (name: string) =>
+  send<{ removed: string }>("DELETE", `/api/automations/${encodeURIComponent(name)}`);
+// getAutomationOutput is a version of what one shows (the latest without
+// one), and every version kept; an HTML one's body isn't sent, it's shown
+// from automationOutputFrameURL.
+export const getAutomationOutput = (name: string, version?: number) =>
+  getJSON<AutomationOutputInfo>(`/api/automations/${encodeURIComponent(name)}/output${version ? `?version=${version}` : ""}`);
+export const automationOutputFrameURL = (name: string, version: number) => `/frame/automations/${encodeURIComponent(name)}/output/${version}`;
+// runAutomationNow runs one that's on a schedule now, as if its time had
+// come.
+export const runAutomationNow = (name: string) => send<{ event: string }>("POST", `/api/automations/${encodeURIComponent(name)}/run`);
+// dryRunAutomation is what one would have done over the last 30 days,
+// done again now.
+export const dryRunAutomation = (name: string) =>
+  send<AutomationDryRun>("POST", `/api/automations/${encodeURIComponent(name)}/dry-run`);
 
 // PluginProposalItem is one thing a plugin's proposal does, as the plugin
 // drafted it: what it's called, the thing it changes (on), what it'll be

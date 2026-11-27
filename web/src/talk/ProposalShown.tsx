@@ -3,6 +3,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { Suggestion } from "../review/Suggestion";
 import { Excerpt } from "../ui/Excerpt";
 import { ArtifactProposalBody } from "./ArtifactProposal";
+import { AutomationProposed } from "./AutomationProposed";
 import { BriefDiff } from "./BriefDiff";
 import { TalkProposalMeta } from "./TalkProposalMeta";
 import { TalkProposalPlan } from "./TalkProposalPlan";
@@ -98,6 +99,8 @@ export function ProposalShown({ p, briefing, prHref, lines, frame, artifact }: {
       );
     case "artifact":
       return <ArtifactProposalBody p={p} src={frame} artifact={artifact} />;
+    case "automation":
+      return p.automation ? <AutomationProposed a={p.automation} script={p.text ?? ""} /> : null;
   }
   return null;
 }

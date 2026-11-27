@@ -33,7 +33,7 @@ type MatchField struct {
 }
 
 // matchKeys are the fields a Match asks of what an event says.
-var matchKeys = []string{"by", "repo", "capsule", "branch", "mission", "pr", "doc", "thing", "kind", "run", "conversation", "status", "title", "path", "origin"}
+var matchKeys = []string{"by", "repo", "capsule", "branch", "mission", "pr", "doc", "thing", "kind", "run", "conversation", "status", "title", "path", "origin", "automation"}
 
 // ParseMatch reads a Match: its kind, then field=value pairs. It says
 // what's wrong with one it can't read.
@@ -120,6 +120,8 @@ func fieldMatches(f MatchField, e Event) bool {
 		return slices.ContainsFunc(e.Paths, func(p string) bool { return like(f.Value, p) }) || like(f.Value, strings.TrimPrefix(e.Doc, e.Repo+":"))
 	case "origin":
 		return like(f.Value, e.Origin) || (f.Value == "did" && e.Origin == Did)
+	case "automation":
+		return like(f.Value, e.Automation)
 	}
 	// A thing's own field: changed to what's asked.
 	return slices.ContainsFunc(e.Changes, func(c FieldChange) bool { return strings.EqualFold(c.Field, f.Key) && like(f.Value, c.To) })
@@ -151,4 +153,57 @@ func like(pattern, s string) bool {
 	}
 	ok, _ := path.Match(strings.ToLower(pattern), strings.ToLower(s))
 	return ok
+}
+
+// FieldOf is e's value for a field as a Match names it (pr, thing, repo,
+// by…), or for a thing's own field, what it changed to: "" for none.
+func FieldOf(e Event, key string) string {
+	switch strings.ToLower(key) {
+	case "by":
+		return e.By
+	case "repo":
+		return e.Repo
+	case "capsule":
+		if e.Capsule == "" {
+			return ""
+		}
+		return e.Repo + "/" + e.Capsule
+	case "branch":
+		return e.Branch
+	case "mission":
+		return e.Mission
+	case "pr":
+		return e.PR
+	case "doc":
+		return e.Doc
+	case "thing":
+		return e.Thing
+	case "kind":
+		return firstOf(e.ThingKind, e.ProposalKind)
+	case "run":
+		return e.Run
+	case "conversation":
+		return e.Conversation
+	case "status":
+		return e.Status
+	case "title":
+		return e.Title
+	case "origin":
+		return e.Origin
+	case "automation":
+		return e.Automation
+	}
+	for _, c := range e.Changes {
+		if strings.EqualFold(c.Field, key) {
+			return c.To
+		}
+	}
+	return ""
+}
+
+func firstOf(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

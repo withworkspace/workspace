@@ -1,0 +1,31 @@
+/* A proposed automation, on its card (AutomationProposed.tsx): its words,
+   then its facts, dry run and script (automations/'s parts). */
+
+.automation {
+  display: grid;
+  gap: 10px;
+}
+
+.about {
+  margin: 0;
+}
+
+/* What its page would say now, from its dry run's last run. */
+.preview summary {
+  cursor: pointer;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.previewBody {
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.html {
+  margin: 6px 0 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

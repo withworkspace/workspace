@@ -85,6 +85,8 @@ export function settled(t: TalkTurn, proposals: TalkProposal[] = []): Settled | 
       return { accepted, what: `review comment on ${p.path}:${p.line}`, edits };
     case "plugin":
       return { accepted, what: made ? `${p.label ?? p.plugin}: ${made}` : `${p.label ?? p.plugin} ${quoted(p.title)}`.trim(), edits };
+    case "automation":
+      return { accepted, what: `automation ${p.automation?.name ?? quoted(p.title)}`, edits };
     case "artifact": {
       const v = addedVersion(made);
       const to = v ? `/artifacts/${v.id}/v${v.n}` : undefined;
@@ -254,6 +256,8 @@ export function revisedText(p: TalkProposal): string {
       return p.text ?? "";
     case "artifact":
       return p.note ?? "";
+    case "automation":
+      return p.text ?? "";
     case "plugin":
       return (p.items ?? [])
         .map((it, i) => [`${i + 1}. ${it.title}${it.on ? ` (${it.on})` : ""}`, ...(it.rows ?? []).map((r) => `   ${r.label}: ${r.value}`), it.markdown ? `   ${it.markdown.trim().split("\n").join("\n   ")}` : ""].filter(Boolean).join("\n"))

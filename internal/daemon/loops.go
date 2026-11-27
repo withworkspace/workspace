@@ -2,11 +2,15 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"maps"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/automation"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/execlog"
@@ -36,6 +40,7 @@ func (d *daemon) loops(w *web.Server, stop <-chan struct{}) {
 	go sweepAsksLoop(d.cfg.Root, logf, stop)                                // asks nobody kept
 	go d.watchLimitsLoop(logf, stop)                                        // steps out of time
 	go d.watchWaitsLoop(logf, stop)                                         // Wait steps ws watches
+	go d.automationsLoop(logf, stop)                                        // your automations, run on the events
 	go d.sweepArtifactsLoop(logf, stop)                                     // artifacts on this machine that expired
 	go d.sweepRunsLoop(logf, stop)                                          // runs whose owner has gone, or whose time is up
 	go routerLoop(d.cfg.Root, d.s.WebPort, logf, stop)                      // names under .localhost, with [router] enabled
@@ -604,4 +609,60 @@ func plural(n int, word string) string {
 		return word
 	}
 	return word + "s"
+}
+
+// showView is what ws show says of a ref, as the commands make it
+// (Config.Show), as a map: what an automation's show() is given. With no
+// Show, nothing's said of any ref (show() is None).
+func (d *daemon) showView() func(ref string) (map[string]any, error) {
+	return func(ref string) (map[string]any, error) {
+		if d.cfg.Show == nil {
+			return nil, errors.New("ws show isn't here")
+		}
+		params, _ := json.Marshal(protocol.ShowParams{Ref: ref})
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		got, err := d.cfg.Show(d.w, ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		b, err := json.Marshal(got)
+		if err != nil {
+			return nil, err
+		}
+		var out map[string]any
+		return out, json.Unmarshal(b, &out)
+	}
+}
+
+// automationsEvery is how often the automations are run regardless of a
+// write to the records, for one the watch missed.
+const automationsEvery = 30 * time.Second
+
+// automationsLoop runs your automations on the events as they're kept
+// (automation.Engine.RunDue), until stop closes: each write to the
+// records has it look, and it looks every automationsEvery besides.
+func (d *daemon) automationsLoop(logf func(string, ...any), stop <-chan struct{}) {
+	hooks := d.w.AutomationHooks()
+	hooks.Show = d.showView()
+	e := &automation.Engine{Root: d.w.Root(), Hooks: hooks}
+	var told <-chan struct{}
+	if db, err := d.w.Records(); err == nil {
+		ch, unwatch := db.Watch()
+		defer unwatch()
+		told = ch
+	}
+	t := time.NewTicker(automationsEvery)
+	defer t.Stop()
+	for {
+		for _, said := range e.RunDue() {
+			logf("automations: %s", said)
+		}
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+		case <-told:
+		}
+	}
 }

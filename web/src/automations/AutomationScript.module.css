@@ -1,0 +1,18 @@
+/* An automation's script (AutomationScript.tsx): folded, then in a well,
+   in the code font. */
+
+.script summary {
+  cursor: pointer;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.script pre {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--well);
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}

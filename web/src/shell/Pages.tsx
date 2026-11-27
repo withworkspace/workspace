@@ -23,6 +23,9 @@ import { Review } from "../review/Review";
 import { PRReviewPage } from "../reviews/PRReview";
 import { ReviewsPage } from "../reviews/Reviews";
 import { RunsPage } from "../runs/Runs";
+import { AutomationOutputPage } from "../automations/AutomationOutputPage";
+import { AutomationPage } from "../automations/AutomationPage";
+import { AutomationsPage } from "../automations/AutomationsPage";
 import { SettingsPage } from "../settings/Settings";
 import { SiloPoint } from "../silo/SiloPoint";
 import { TalkPage } from "../talk/TalkPage";
@@ -47,6 +50,9 @@ export const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof
       <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage />} />
       <Route path="/orchestrator" element={<OrchestratorPage />} />
       <Route path="/runs" element={<RunsPage />} />
+      <Route path="/automations" element={<AutomationsPage />} />
+      <Route path="/automations/:name" element={<AutomationPage />} />
+      <Route path="/automations/:name/output" element={<AutomationOutputPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/apps/:name" element={<AppPage />} />
       <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />

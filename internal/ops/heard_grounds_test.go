@@ -135,3 +135,48 @@ func TestHearGrounds_AsTheGroundMoves(t *testing.T) {
 		return len(got) == 1 && got[0].Text == "Decide one queue"
 	})
 }
+
+// One move with a thing added by one person and changed after by another
+// is heard as both: added by who added it, changed by who changed it.
+func TestHearGrounds_AddedThenChangedInOneMove(t *testing.T) {
+	w, _ := spaceFixture(t)
+	ground := filepath.Join(w.Root(), "repos", "records", workspace.GroundDir)
+	commitAs := func(name, email, msg string, files map[string]string) {
+		t.Helper()
+		for p, text := range files {
+			os.MkdirAll(filepath.Dir(filepath.Join(ground, p)), 0o755)
+			os.WriteFile(filepath.Join(ground, p), []byte(text), 0o644)
+		}
+		for _, args := range [][]string{{"add", "-A"}, {"-c", "commit.gpgsign=false", "commit", "-q", "-m", msg}} {
+			cmd := exec.Command("git", append([]string{"-C", ground}, args...)...)
+			cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME="+name, "GIT_AUTHOR_EMAIL="+email, "GIT_COMMITTER_NAME="+name, "GIT_COMMITTER_EMAIL="+email)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				t.Fatalf("git %v: %v\n%s", args, err, out)
+			}
+		}
+	}
+	ctx := context.Background()
+	w.HearGrounds(ctx)
+	manifest, _ := space.Manifest("sketch", "Release flow", "flow.excalidraw", "")
+	commitAs("Brendan Ash", "brendan@example.com", "Draw the flow", map[string]string{
+		"sketches/flow/thing.toml": string(manifest), "sketches/flow/flow.excalidraw": "{}", "adr/0003-flow.md": "# Flow\n",
+	})
+	commitAs("Ana Ortiz", "ana@example.com", "Rework the flow", map[string]string{
+		"sketches/flow/flow.excalidraw": `{"elements":[1]}`, "adr/0003-flow.md": "# Flow\n\nReworked.\n",
+	})
+	got, err := w.HearGrounds(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var said []string
+	for _, e := range got {
+		if e.Kind == events.CommitsLanded {
+			continue
+		}
+		said = append(said, e.Kind+" "+e.By+" "+e.Status)
+	}
+	want := "doc.changed person:brendan-ash added, doc.changed person:ana-ortiz changed, thing.added person:brendan-ash , thing.changed person:ana-ortiz "
+	if strings.Join(said, ", ") != strings.TrimSuffix(want, " ") && strings.Join(said, ", ") != want {
+		t.Errorf("heard:\n %s\nwant\n %s", strings.Join(said, ", "), want)
+	}
+}
