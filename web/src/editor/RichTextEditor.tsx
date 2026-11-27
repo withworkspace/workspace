@@ -13,14 +13,14 @@ import { type Markdown, parseMarkdown, saveMarkdown } from "./markdown";
 import editorCss from "./MarkdownEditor.module.css";
 import { refsPlugin } from "./refs";
 
-// RichText is RichTextArea (ui/RichTextArea.tsx) once its editor's here:
+// RichTextEditor is RichTextArea (ui/RichTextArea.tsx) once its editor's here:
 // ProseMirror on the document editor's schema, offering what its props
 // say, its words handed back as markdown as they change.
 //
 // What it offers is read once, when it's drawn: a box doesn't change what
 // it is. What's written, the key that sends and the callbacks are read as
 // they are.
-export default function RichText(props: RichTextAreaProps & { handoff: Handoff }) {
+export default function RichTextEditor(props: RichTextAreaProps & { handoff: Handoff }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>(undefined);
   const yours = useSendKey();

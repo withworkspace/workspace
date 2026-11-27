@@ -10,7 +10,7 @@ import { type SendKey, sent } from "../ui/sendKey";
 import { fence, indentCode, leaveCode, ruleSets, splitItem, toggleList, unItem } from "./commands";
 import { schema } from "./schema";
 
-// What a box that's written and sent (RichText.tsx) does with its words:
+// What a box that's written and sent (RichTextEditor.tsx) does with its words:
 // the markdown it offers (Features), its keys, and what's pasted into it.
 // Its document is the document editor's (schema.ts), so its markdown is
 // read and written as a document's is (markdown.ts); what it doesn't
@@ -93,7 +93,7 @@ export function enter(on: KeysOn, shift: boolean, mod: boolean): Command {
 
 // composeKeys is a box's keys: Enter (enter), undo, the marks and lists it
 // offers, and Tab in a list or a block of code. (Escape is the box's
-// own, RichText.tsx: it's handed the press.)
+// own, RichTextEditor.tsx: it's handed the press.)
 export function composeKeys(f: Features, on: KeysOn): Plugin[] {
   const key = (shift: boolean, mod: boolean) => enter(on, shift, mod);
   const bound: Record<string, Command> = {

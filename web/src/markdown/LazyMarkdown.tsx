@@ -1,19 +1,18 @@
 import { lazy, Suspense } from "react";
-import type { Pinned } from "../refs/refs";
 import { cx } from "../ui/cx";
-import type { Place } from "./links";
+import type { MarkdownProps } from "./Markdown";
 import css from "./Markdown.module.css";
 
 // The markdown renderer loads with the first page that shows markdown, not
 // with every page.
 const Inner = lazy(() => import("./Markdown").then((m) => ({ default: m.Markdown })));
 
-export function Markdown({ text, lines, at, pinned, headingLink }: { text: string; lines?: boolean; at?: Place; pinned?: Pinned[]; headingLink?: (anchor: string) => void }) {
+export function Markdown(props: MarkdownProps) {
   return (
     // markdown: the name other places' rules and code still know a
     // document by (Markdown.tsx says which).
-    <Suspense fallback={<div className={cx("markdown", css.markdown, css.loading)}>{text}</div>}>
-      <Inner text={text} lines={lines} at={at} pinned={pinned} headingLink={headingLink} />
+    <Suspense fallback={<div className={cx("markdown", css.markdown, css.loading)}>{props.text}</div>}>
+      <Inner {...props} />
     </Suspense>
   );
 }

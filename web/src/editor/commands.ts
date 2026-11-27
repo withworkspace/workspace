@@ -341,7 +341,7 @@ const linkRule = new InputRule(/(?:^|[\s(])((?:https?:\/\/|www\.)[^\s<]*[^\s<.,:
 });
 
 // ruleSets is the markdown you can type, by what it makes, for a box that
-// offers some of it (RichText.tsx). The document has them all (rules).
+// offers some of it (RichTextEditor.tsx). The document has them all (rules).
 export const ruleSets = {
   heading: [textblockTypeInputRule(/^(#{1,6})\s$/, N.heading, (m) => ({ level: m[1].length }))],
   quote: [wrappingInputRule(/^\s*>\s$/, N.blockquote)],

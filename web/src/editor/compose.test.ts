@@ -7,7 +7,7 @@ import { enter, fit, tidy } from "./compose";
 import { parseMarkdown, saveMarkdown } from "./markdown";
 import { schema } from "./schema";
 
-// A box that's written and sent (RichText.tsx): what Enter does, what's
+// A box that's written and sent (RichTextEditor.tsx): what Enter does, what's
 // pasted into it, and the markdown it hands back.
 
 // press is Enter (with shift or mod) on md, with the cursor at the end of

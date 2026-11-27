@@ -57,7 +57,7 @@ export interface Handoff {
 
 // The editor (ProseMirror and the markdown bridge) loads apart from the
 // page, as the document editor does, but soon: while the page is idle.
-const load = () => import("../editor/RichText");
+const load = () => import("../editor/RichTextEditor");
 const Inner = lazy(load);
 if (typeof window !== "undefined") {
   const idle = window.requestIdleCallback ?? ((fn: () => void) => window.setTimeout(fn, 200));

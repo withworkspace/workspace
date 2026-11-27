@@ -1,0 +1,35 @@
+/* What someone said, as it reads (RichText.tsx): markdown the size of
+   where it is. Outside the ui layer, as these rules have to beat the
+   reader's own (markdown/Markdown.module.css), which a document is drawn
+   with. */
+
+.text {
+  min-width: 0;
+  /* In a place that keeps a text's own lines (a bubble, a comment's body):
+     its markdown has lines of its own between blocks. */
+  white-space: normal;
+}
+
+.text :global(.markdown) {
+  max-width: none;
+  font-size: inherit;
+  line-height: 1.5;
+}
+
+.text :global(.markdown) :is(p, ul, ol, blockquote, table, pre) {
+  margin: 0 0 0.6em;
+}
+
+.text :global(.markdown) :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0.8em 0 0.3em;
+  font-size: 1.05em;
+  line-height: 1.4;
+}
+
+.text :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.text :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}

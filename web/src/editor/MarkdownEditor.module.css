@@ -479,7 +479,7 @@ div.changeBar {
 /* Refs in the editor (refs.ts): what words name, marked as
    somewhere to go, with more on hover. What's only read draws the same
    from refs/RefName.module.css and refs/RefLabel.module.css. A box
-   that's written in (.refs, RichText.tsx) draws them as the editor does. */
+   that's written in (.refs, RichTextEditor.tsx) draws them as the editor does. */
 
 :is(.pm, .refs) .namedRef {
   text-decoration: underline dotted var(--faint);

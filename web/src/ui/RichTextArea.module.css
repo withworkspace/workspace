@@ -1,4 +1,4 @@
-/* A box that's written in markdown (RichTextArea.tsx, editor/RichText.tsx).
+/* A box that's written in markdown (RichTextArea.tsx, editor/RichTextEditor.tsx).
    It has no look but its words': where it is, its padding and its type are
    the page's class, and the box around it (a Composer's, a ReplyBox's)
    draws the border and the ring. What's here is how what's written reads:

@@ -15,6 +15,31 @@ export function foldFrontMatter() {
   };
 }
 
+// lineBreaks: a line break in a paragraph is one, as GitHub draws a
+// comment, rather than a space, as it draws a document: what someone said
+// (RichText) keeps the lines they said it in.
+export function lineBreaks() {
+  return (tree: MdRoot) => {
+    const visit = (n: MdNodes) => {
+      if (!("children" in n)) return;
+      const kids: MdNodes[] = [];
+      for (const c of n.children as MdNodes[]) {
+        if (c.type !== "text" || !c.value.includes("\n")) {
+          visit(c);
+          kids.push(c);
+          continue;
+        }
+        c.value.split(/\r?\n/).forEach((line, i) => {
+          if (i > 0) kids.push({ type: "break" });
+          if (line) kids.push({ type: "text", value: line });
+        });
+      }
+      (n as { children: MdNodes[] }).children = kids;
+    };
+    visit(tree);
+  };
+}
+
 // displayMaths: maths between double dollars in a line ($$x$$) is set out
 // as maths on lines of its own is, as GitHub does.
 export function displayMaths() {
