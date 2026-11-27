@@ -82,16 +82,16 @@ func (m Merged) String() string {
 	case github.MergeMerged:
 		s = fmt.Sprintf("Merged %s, %s.", m.what(), how)
 	case github.MergePending:
-		s = fmt.Sprintf("GitHub is merging %s, %s.", m.what(), how)
+		s = fmt.Sprintf("Merging %s, %s.", m.what(), how)
 	case github.MergeEnqueued:
-		s = fmt.Sprintf("%s is in its base's merge queue: it merges when its turn comes.", capitalFirst(m.what()))
+		s = fmt.Sprintf("%s added to the merge queue.", capitalFirst(m.what()))
 	case "on":
-		s = fmt.Sprintf("%s merges by itself once it can, %s.", m.Ref(), how)
+		s = fmt.Sprintf("Auto-merge on for %s, %s.", m.Ref(), how)
 	case "off":
-		s = fmt.Sprintf("%s won't merge by itself now.", m.Ref())
+		s = fmt.Sprintf("Auto-merge off for %s.", m.Ref())
 	}
 	if m.Instead != "" {
-		s += fmt.Sprintf(" The repo doesn't allow %s merges, which ws.toml asks for.", m.Instead)
+		s += fmt.Sprintf(" Repo does not allow %s merges (set in ws.toml), so its default was used.", m.Instead)
 	}
 	if m.Kept != "" {
 		s += " " + m.Kept
@@ -121,13 +121,13 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 	}
 	gh := w.GitHub()
 	if gh == nil {
-		return Merged{}, refused("no-github", "ws can't reach GitHub here, so it can't merge a pull request")
+		return Merged{}, refused("no-github", "could not merge: no GitHub access")
 	}
 	if r, ok := w.WS().ResolveAlias(repo); ok {
 		repo = r
 	}
 	if !slices.Contains(w.WS().RepoNames, repo) {
-		return Merged{}, invalid("%s isn't one of the workspace's repos", repo)
+		return Merged{}, invalid("%s is not a repo in this workspace", repo)
 	}
 	rc := w.Config().Repos[repo]
 	when := ask.When
@@ -147,13 +147,13 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 	}
 	switch {
 	case pr.State == "MERGED" || pr.MergedAt != "":
-		return out, refused("merged", "%s has merged already", ref)
+		return out, refused("merged", "%s already merged", ref)
 	case pr.State != "OPEN":
 		return out, refused("closed", "%s is closed", ref)
 	}
 	if when == MergeOff {
 		if pr.AutoMergeRequest == nil {
-			return out, refused("not-set", "%s isn't set to merge by itself", ref)
+			return out, refused("not-set", "%s does not have auto-merge on", ref)
 		}
 		if err := gh.SetAutoMerge(remote.Owner, remote.Name, number, false, github.MergeAsk{}); err != nil {
 			return out, &Upstream{Err: err}
@@ -169,7 +169,7 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 		head = kept.Head
 	}
 	if head != "" && pr.HeadRefOid != "" && head != pr.HeadRefOid {
-		return out, refused("moved", "%s has had commits pushed since you looked at it: look again before merging it", ref)
+		return out, refused("moved", "%s has new commits: review again before merging", ref)
 	}
 	if head == "" {
 		head = pr.HeadRefOid
@@ -197,11 +197,11 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 	if when == MergeReady && held != "" {
 		switch {
 		case !wait:
-			return out, refused("not-waiting", "%s can't merge by itself: %s, which waiting won't change", ref, aboutIt(held, ref))
+			return out, refused("not-waiting", "%s cannot auto-merge: %s, which waiting will not fix", ref, aboutIt(held, ref))
 		case out.Stack > 0:
-			return out, refused("stack-auto", "a stack isn't set to merge by itself from ws: merge it once it's ready")
+			return out, refused("stack-auto", "auto-merge is not available for stacks: merge once ready")
 		case !settings.AutoMerge:
-			return out, refused("no-auto-merge", "%s doesn't let pull requests merge by themselves: auto-merge is off in its settings on GitHub", repo)
+			return out, refused("no-auto-merge", "%s has auto-merge off in its GitHub settings", repo)
 		}
 		if err := gh.SetAutoMerge(remote.Owner, remote.Name, number, true, github.MergeAsk{Head: head, Method: out.Method}); err != nil {
 			return out, &Upstream{Err: err}
@@ -213,12 +213,12 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 	// Merge when ready, of one that's ready, is merging it now.
 	if held != "" {
 		if wait {
-			return out, refused("not-ready", "%s can't merge yet: %s. Merge when ready has it merge by itself once it can", ref, aboutIt(strings.TrimSuffix(held, " · nothing for you to do"), ref))
+			return out, refused("not-ready", "%s cannot merge yet: %s. Use Merge when ready to merge once it can", ref, aboutIt(strings.TrimSuffix(held, " · nothing for you to do"), ref))
 		}
-		return out, refused("not-ready", "%s can't merge: %s", ref, aboutIt(held, ref))
+		return out, refused("not-ready", "%s cannot merge: %s", ref, aboutIt(held, ref))
 	}
 	if stackHeld != "" {
-		return out, refused("stack-not-ready", "stack %d can't merge yet: %s", out.Stack, stackHeld)
+		return out, refused("stack-not-ready", "stack %d cannot merge yet: %s", out.Stack, stackHeld)
 	}
 	out.branch = w.mergedBranches(pr, st, &out)
 	m, err := gh.MergePR(remote.Owner, remote.Name, number, github.MergeAsk{Head: head, Method: out.Method})
@@ -226,7 +226,7 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 		return out, &Upstream{Err: err}
 	}
 	if m.Status == github.MergeFailed {
-		return out, refused("merge-failed", "GitHub didn't merge %s: %s", ref, firstNonEmpty(m.Why, "it didn't say why"))
+		return out, refused("merge-failed", "GitHub did not merge %s: %s", ref, firstNonEmpty(m.Why, "no reason given"))
 	}
 	out.Status, out.id = m.Status, m.ID
 	w.mergeAsked(repo)
@@ -266,7 +266,7 @@ func (w *Workspace) MergeMissionPR(slug, target, when string, by Actor) (Merged,
 		}
 	}
 	if !found {
-		return Merged{}, refused("not-attached", "%s isn't one of the mission's pull requests", target)
+		return Merged{}, refused("not-attached", "%s is not one of the mission's pull requests", target)
 	}
 	out, err := w.MergePR(repo, number, MergeAsk{When: when, Head: head}, by)
 	if err != nil {
@@ -285,11 +285,11 @@ func stackMerges(out *Merged, st *pulls.Stack, number int) (held string, err err
 		return "", nil
 	}
 	if st.WorkedOut {
-		return "", refused("chain", "%s builds on another pull request's branch, which isn't a GitHub stack: ws doesn't merge part of one", out.Ref())
+		return "", refused("chain", "%s builds on another pull request, not a GitHub stack: Workspace cannot merge part of it", out.Ref())
 	}
 	top := st.Layers[len(st.Layers)-1]
 	if top.Number != number {
-		return "", refused("stack-layer", "%s is a layer of stack %d, which merges whole, from its top: %s#%d", out.Ref(), st.Number, st.Repo, top.Number)
+		return "", refused("stack-layer", "%s is in stack %d, which merges as a whole from its top: %s#%d", out.Ref(), st.Number, st.Repo, top.Number)
 	}
 	out.Stack = st.Number
 	for _, l := range st.Layers[:len(st.Layers)-1] {
@@ -342,7 +342,7 @@ func (w *Workspace) mergedBranches(pr *github.PR, st *pulls.Stack, out *Merged) 
 		for _, o := range svc.Peek().All() {
 			if o.Repo == out.Repo && !merging[o.Number] && slices.Contains(branches, o.Base) {
 				based = append(based, o.Base)
-				out.Kept = fmt.Sprintf("Its branch %s is kept: %s is based on it.", o.Base, o.Ref())
+				out.Kept = fmt.Sprintf("Branch %s kept: %s is based on it.", o.Base, o.Ref())
 			}
 		}
 	}
@@ -389,7 +389,7 @@ func (w *Workspace) followMerge(ctx context.Context, gh github.Client, m Merged)
 			m.Status = got.Status
 			w.mergeAsked(m.Repo)
 			w.notify(notification.Notification{Source: notification.SourcePulls, Kind: notification.MergeFailed, Attention: true,
-				Text: fmt.Sprintf("GitHub didn't merge %s: %s", m.what(), firstNonEmpty(got.Why, "it didn't say why")), Refs: []string{m.Ref()}})
+				Text: fmt.Sprintf("GitHub did not merge %s: %s", m.what(), firstNonEmpty(got.Why, "no reason given")), Refs: []string{m.Ref()}})
 		}
 		return m
 	}

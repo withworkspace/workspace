@@ -338,7 +338,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen},
 		{name: "PR's checks running, set to merge by itself", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "pending", AutoMerge: true}}
-		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "it merges by itself once it can"},
+		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "auto-merge on"},
 		{name: "PR's checks failing", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Review: "REVIEW_REQUIRED", Checks: "failure"}}
 		}, court: CourtYou, kind: KindChecksFailing, group: GroupNeedsYou, verb: VerbOpen},

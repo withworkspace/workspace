@@ -186,7 +186,7 @@ func (s *Stub) MergePR(org, repo string, number int, ask MergeAsk) (Merging, err
 	if s.MergePRFn != nil {
 		return s.MergePRFn(org, repo, number, ask)
 	}
-	return Merging{}, errors.New("no GitHub here to merge a pull request on")
+	return Merging{}, errors.New("could not merge: not connected to GitHub")
 }
 
 func (s *Stub) MergeStatus(org, repo string, number int, id string) (Merging, error) {
@@ -200,12 +200,12 @@ func (s *Stub) SetAutoMerge(org, repo string, number int, on bool, ask MergeAsk)
 	if s.SetAutoMergeFn != nil {
 		return s.SetAutoMergeFn(org, repo, number, on, ask)
 	}
-	return errors.New("no GitHub here to set a pull request merging by itself")
+	return errors.New("could not set auto-merge: not connected to GitHub")
 }
 
 func (s *Stub) DeleteBranch(org, repo, branch string) error {
 	if s.DeleteBranchFn != nil {
 		return s.DeleteBranchFn(org, repo, branch)
 	}
-	return errors.New("no GitHub here to delete a branch on")
+	return errors.New("could not delete branch: not connected to GitHub")
 }

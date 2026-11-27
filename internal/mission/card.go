@@ -424,7 +424,7 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 		case "can":
 			c.More = []Act{{Do: DoMergeReady, Label: "Merge when ready", Icon: "merge", Target: a.Target}}
 		case "on":
-			c.More = []Act{{Do: DoMergeOff, Label: "Don't merge by itself", Target: a.Target, Quiet: true}}
+			c.More = []Act{{Do: DoMergeOff, Label: "Cancel auto-merge", Target: a.Target, Quiet: true}}
 		}
 	case VerbMerge:
 		c.Primary = &Act{Do: DoMerge, Label: "Merge " + a.Target, Icon: "merge", Target: a.Target}

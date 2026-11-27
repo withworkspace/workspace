@@ -131,7 +131,7 @@ func TestMergePR_HeldWaitsOrIsRefused(t *testing.T) {
 
 	_, err := w.MergePR("frontend", 5, MergeAsk{}, AsYou)
 	refusedWith(t, err, "not-ready")
-	if err == nil || err.Error() != "frontend#5 can't merge yet: it is waiting for a required review. Merge when ready has it merge by itself once it can" {
+	if err == nil || err.Error() != "frontend#5 cannot merge yet: it is waiting for a required review. Use Merge when ready to merge once it can" {
 		t.Errorf("err = %v", err)
 	}
 	out, err := w.MergePR("frontend", 5, MergeAsk{When: MergeReady}, AsYou)
@@ -199,7 +199,7 @@ func TestMergePR_Method(t *testing.T) {
 	if !slices.Equal(gh.merged, []string{"#5 h5 merge", "#6 h6 rebase", "#7 h7 merge"}) {
 		t.Fatalf("merged %v", gh.merged)
 	}
-	if !strings.Contains(out.String(), "doesn't allow squash merges") {
+	if !strings.Contains(out.String(), "does not allow squash merges") {
 		t.Errorf("said %q", out)
 	}
 }

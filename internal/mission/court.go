@@ -1148,7 +1148,7 @@ func prHeadline(pr PRFacts) Headline {
 		h.Action.AutoMerge = "can"
 		if pr.AutoMerge {
 			h.Action.AutoMerge = "on"
-			h.Text = strings.TrimSuffix(h.Text, " · nothing for you to do") + " · it merges by itself once it can"
+			h.Text = strings.TrimSuffix(h.Text, " · nothing for you to do") + " · auto-merge on"
 		}
 	}
 	return h
