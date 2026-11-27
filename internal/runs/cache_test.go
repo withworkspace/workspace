@@ -330,3 +330,40 @@ func TestAKeyHasItsAftersKeysAndNotTheirOutputs(t *testing.T) {
 		t.Errorf("after an uncached task: %v", err)
 	}
 }
+
+// A pass isn't put back over work that isn't committed: what its outputs
+// name that git has uncommitted changes to.
+func TestAPassIsNotPutBackOverUncommittedWork(t *testing.T) {
+	s, _ := setup(t)
+	dir := gitRepo(t, map[string]string{".gitignore": "dist/\n", "gen/api.ts": "v1", "src/a.ts": "a"})
+	ended(t, s, cachedTask(t, s, dir, "mkdir -p dist gen && echo built > dist/a.js && echo v1 > gen/api.ts", "k3", []string{"dist", "gen"}))
+	e, ok := s.Lookup("k3")
+	if !ok {
+		t.Fatal("not kept")
+	}
+	reuse := func() error {
+		_, _, err := s.Reuse(Start{Name: "build", Type: Task, Repo: "demo", Worktree: "feat", Dir: dir, Command: "x", Recipe: "build",
+			Owner: Owner{Kind: ByNone}, Key: "k3", Outputs: []string{"dist", "gen"}}, e, time.Now())
+		return err
+	}
+	// The pass wrote gen/api.ts as "v1\n" over the committed "v1": that's
+	// the pass's own change, but it's uncommitted all the same.
+	git(t, dir, "checkout", "--", "gen")
+	writeFile(t, filepath.Join(dir, "dist/a.js"), "stale")
+	if err := reuse(); err != nil {
+		t.Fatalf("with only ignored outputs changed: %v", err)
+	}
+	git(t, dir, "checkout", "--", "gen")
+	writeFile(t, filepath.Join(dir, "gen/api.ts"), "my edit")
+	if err := reuse(); err == nil || !strings.Contains(err.Error(), "gen/api.ts, which have changes not committed") {
+		t.Errorf("over an edited tracked file: %v", err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "gen/api.ts")); string(b) != "my edit" {
+		t.Errorf("gen/api.ts = %q: the edit was lost", b)
+	}
+	git(t, dir, "checkout", "--", "gen")
+	writeFile(t, filepath.Join(dir, "gen/new.ts"), "new")
+	if err := reuse(); err == nil || !strings.Contains(err.Error(), "gen/new.ts") {
+		t.Errorf("over a new file: %v", err)
+	}
+}

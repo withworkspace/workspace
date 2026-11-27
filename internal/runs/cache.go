@@ -315,6 +315,13 @@ func (s Store) Reuse(o Start, e Entry, now time.Time) (r Run, started bool, err 
 			os.RemoveAll(dir)
 		}
 	}()
+	if mine := uncommitted(o.Dir, o.Outputs); len(mine) > 0 {
+		more := ""
+		if len(mine) > 3 {
+			mine, more = mine[:3], fmt.Sprintf(" and %d more", len(mine)-3)
+		}
+		return Run{}, false, fmt.Errorf("its outputs name %s%s, which have changes not committed: putting the pass back would lose them", strings.Join(mine, ", "), more)
+	}
 	if err := restore(o.Dir, o.Outputs, filepath.Join(e.Path, outputsDir)); err != nil {
 		return Run{}, false, fmt.Errorf("putting back %s's outputs: %w", e.From, err)
 	}
@@ -346,6 +353,33 @@ func (s Store) Reuse(o Start, e Entry, now time.Time) (r Run, started bool, err 
 	_ = os.Chtimes(filepath.Join(e.Path, entryFile), t, t) // used: the last to be dropped
 	r, err = load(dir, Procs{})
 	return r, true, err
+}
+
+// uncommitted is the files below dir (slashed from it) that outs name and
+// git has changes to that aren't committed: tracked files changed, and new
+// files that aren't ignored. A reuse removes what outs name, so these are
+// someone's work it would lose. What's ignored (dist) is what outputs are.
+func uncommitted(dir string, outs []string) []string {
+	if len(outs) == 0 {
+		return nil
+	}
+	said, err := gitIn(dir, "rev-parse", "--show-prefix")
+	if err != nil {
+		return nil
+	}
+	prefix := strings.TrimSpace(string(said))
+	status, err := gitIn(dir, append([]string{"status", "-z", "--porcelain=v1", "--untracked-files=all", "--no-renames", "--"}, pathspecs(outs)...)...)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, entry := range strings.Split(string(status), "\x00") {
+		if len(entry) < 4 || !strings.HasPrefix(entry[3:], prefix) {
+			continue
+		}
+		out = append(out, strings.TrimPrefix(entry[3:], prefix))
+	}
+	return out
 }
 
 // restore puts the outputs kept in from back in dir, once what outs name
