@@ -4032,10 +4032,10 @@ export interface ProtocolAction {
     hint?: string;
     /**
      * Keys are the keys the plugin suggests for its own action, as ws names
-     * a key press ("n", "mod+shift+i"; one then another with a space). ws
-     * binds them under the plugin key the person chose, if they chose one
-     * (with "," as theirs, "n" is ", n"), never by themselves: which keys do
-     * what is theirs to set, in Settings › Keyboard.
+     * a key press ("n", "mod+shift+i"; one then another with a space).
+     * They're a suggestion, never bound by ws: the person sees them in
+     * Settings › Keyboard, with what they'd clash with, and takes them or
+     * gives the action keys of their own. Two plugins may suggest the same.
      */
     keys?: string[];
     /**
@@ -4109,8 +4109,8 @@ export interface ProtocolField {
 // From protocol/protocol.gen.go
 /**
  * Here is what was open when an action was asked for: its ref (a mission's
- * slug, jira:RAM-12), its kind (as Action.On names kinds), what it's called,
- * and the words picked out in it, if any.
+ * slug, a Jira issue's RAM-12), its kind (as Action.On names kinds), what
+ * it's called, and the words picked out in it, if any.
  */
 export interface ProtocolHere {
     ref: string;
