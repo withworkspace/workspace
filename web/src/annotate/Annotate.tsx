@@ -789,6 +789,7 @@ export function AnnotatedDoc({
                 settling={settling}
                 onFocus={setPreviewing}
                 onSettle={(id, action) => settle(threads.find((x) => x.id === id), action)}
+                keys={{ accept: annotateKeys.accept, decline: annotateKeys.decline }}
               />
             </AnnotateText>
           </AnnotateDocCol>
