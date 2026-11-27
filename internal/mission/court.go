@@ -740,6 +740,16 @@ func Resolve(s Snapshot) []Headline {
 			Action: Action{Label: "nothing to do"}})
 	}
 
+	// The plan at a step of crew's: what its capsules' pull requests say,
+	// and what's in them to land, is the plan's to come to, not the next
+	// thing to do. A PR that conflicts while the step is to merge in main
+	// is what the step's there for: who's on the step, or that nobody is,
+	// is the headline.
+	crewStep := false
+	if st, ok := s.currentStep(); ok && st.Step.Who == WhoCrew {
+		crewStep = true
+	}
+
 	// PRs: crew at work in a capsule have its PR in hand. One that's
 	// merged, at its Open Pull Request step, which ws hasn't passed yet,
 	// is ws's.
@@ -749,7 +759,7 @@ func Resolve(s Snapshot) []Headline {
 				add(h)
 			}
 		}
-		if pr.Merged || busyIn[pr.Capsule] || s.State == Parked {
+		if pr.Merged || busyIn[pr.Capsule] || crewStep || s.State == Parked {
 			continue
 		}
 		add(prHeadline(pr))
@@ -759,7 +769,7 @@ func Resolve(s Snapshot) []Headline {
 	// once crew are out of them. One back for re-review says so already.
 	for _, d := range s.Direct {
 		again := slices.ContainsFunc(s.ReReview, func(rr ReReview) bool { return rr.Capsule == d.Capsule })
-		if d.Ahead == 0 || busyIn[d.Capsule] || again || s.State == Parked {
+		if d.Ahead == 0 || busyIn[d.Capsule] || crewStep || again || s.State == Parked {
 			continue
 		}
 		add(landHeadline(d))

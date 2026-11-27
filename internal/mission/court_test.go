@@ -644,7 +644,9 @@ func TestEndCrew_SaysHow(t *testing.T) {
 func TestResolve_OneAgentHeadlineAtATime(t *testing.T) {
 	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
 	ago := func(d time.Duration) *time.Time { t := now.Add(-d); return &t }
-	plan, err := ParsePlan(planWithPlanner, nil)
+	// At a step of yours, not crew's: at crew's, a PR's headline is the
+	// plan's to come to (TestResolve_PRsAtACrewStep).
+	plan, err := ParsePlan("## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Is it the cause?\n   - who: you\n2. Plan the fix.\n   - who: the planner\n", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -743,5 +745,40 @@ func TestCourtCardsForStories(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join("..", "..", "web", "src", "mission", "fixtures", "court.json"), append(data, '\n'), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// The plan at a step of crew's, nobody on it: a pull request in one of its
+// capsules (one that conflicts, while the step's to merge in main), or
+// commits to land, aren't the headline; that nobody's on the step is. Past
+// it, at a step that waits on the PR, the PR is.
+func TestResolve_PRsAtACrewStep(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	ago := func(d time.Duration) *time.Time { t := now.Add(-d); return &t }
+	plan, err := ParsePlan("## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Work: merge in main and make the changes.\n2. Wait: **CI.** Its checks pass.\n   - on: CI\n", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflicts := PRFacts{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", Conflict: true}
+	s := Snapshot{State: Active, Now: now, M: &Mission{Slug: "s", Plan: plan,
+		Crew: []Crew{{ID: "c1", Capsule: "api/fix", Ended: ago(time.Hour)}},
+	}}
+	s.PRs = []PRFacts{conflicts}
+	s.Direct = []DirectFacts{{Capsule: "records/fix", Ahead: 2}}
+	hs := Resolve(s)
+	if len(hs) != 1 || hs[0].Kind != KindStalled || !strings.Contains(hs[0].Text, "Nobody's on step 1") {
+		t.Fatalf("at crew's step, nobody on it: %d headlines, the first %s %q; want stalled alone, on step 1", len(hs), hs[0].Kind, hs[0].Text)
+	}
+
+	// Step 1 passed: at CI's step, the conflict is yours.
+	s.M.Stages = []StageRecord{{Text: "merge in main and make the changes.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
+	if hs := Resolve(s); hs[0].Kind != KindConflict {
+		t.Errorf("at CI's step: the first headline %s, want conflict", hs[0].Kind)
+	}
+
+	// No plan: the PR's headline as ever.
+	s.M.Plan, s.M.Stages = nil, nil
+	if hs := Resolve(s); hs[0].Kind != KindConflict {
+		t.Errorf("no plan: the first headline %s, want conflict", hs[0].Kind)
 	}
 }
