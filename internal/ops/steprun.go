@@ -255,8 +255,8 @@ func (w *Workspace) oneDispatch(slug string, launched *int, said string) {
 }
 
 // carryOnInstances starts a step that carries on from one that ran in
-// several repos: it runs in the same repos, each run's crew carrying on.
-// It says what it did.
+// several repos: it runs in the same repos, fresh crew in each run's
+// capsule given its crew's handoff. It says what it did.
 func (w *Workspace) carryOnInstances(m *mission.Mission, from, st mission.StageState) string {
 	repos := instanceRepos(from)
 	if err := w.Missions.StartStep(m.Slug, st.N, "ws", repos); err != nil {
@@ -277,16 +277,19 @@ func (w *Workspace) carryOnInstances(m *mission.Mission, from, st mission.StageS
 			continue
 		}
 		cur, _ := currentStep(w.Missions, m2)
-		if id == "" {
+		c, ok := m2.CrewByID(id)
+		if !ok {
 			s := w.startFresh(m2, cur, in.Capsule, "")
 			w.oneDispatch(m.Slug, &launched, s)
 			said = append(said, s)
 			continue
 		}
-		text := fmt.Sprintf("Step %d is done, and you carry on with step %d of the plan, in `%s`: %s\n\nCommit as you go, and report done with a handoff when it's finished (ws mission done).", from.N, st.N, in.Repo, st.Whole())
-		s, err := w.carryOn(m2, cur, id, text, AsWS)
+		// Fresh crew in the run's capsule, given its crew's handoff
+		// (carryOnAt says why).
+		why := fmt.Sprintf("Step %d is done, and you carry on from %s, who did it in `%s`", from.N, c.ID, in.Repo)
+		s, err := w.carryOnFresh(m2, cur, c, why, "Commit as you go, and report done with a handoff when it's finished (ws mission done).", AsWS)
 		if err != nil {
-			s = fmt.Sprintf("could not have %s carry on in %s: %v", id, in.Repo, err)
+			s = fmt.Sprintf("could not start step %d in %s to carry on from %s: %v", st.N, in.Repo, c.ID, err)
 		}
 		w.oneDispatch(m.Slug, &launched, s)
 		said = append(said, s)

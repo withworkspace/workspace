@@ -75,10 +75,10 @@ func TestChecks_AllMetPassesTheStep(t *testing.T) {
 	if len(*runs) != 0 {
 		t.Errorf("the orchestrator was woken: %v", *runs)
 	}
-	// Step 2 carries on from 1: c1 can't be reached or resumed here, so
-	// fresh crew are queued, told to read its handoff.
+	// Step 2 carries on from 1: fresh crew are queued, told to read c1's
+	// handoff.
 	m, _ := w.Missions.Load("cache")
-	if m.Dispatch == nil || m.Dispatch.Stage != 2 || !strings.Contains(m.Dispatch.Text, "c1 couldn't be resumed, so you carry on from them") {
+	if m.Dispatch == nil || m.Dispatch.Stage != 2 || !strings.Contains(m.Dispatch.Text, "Step 1 is done, and you carry on from c1, who did it: read their handoff first (ws show -f llm mission:handoffs/c1.md)") {
 		t.Errorf("step 2's crew: %+v", m.Dispatch)
 	}
 	// It's done once: the same done isn't checked again.
@@ -246,29 +246,30 @@ func (h *listeningHost) Say(key, text string) (string, error) {
 	return "typed", nil
 }
 
-// Crew still running carry on at the next step: told it, and joined to it,
-// their done at the step before no longer their latest word (so it isn't
-// taken for a done at this one).
-func TestChecks_CarryingOnWithCrewStillRunning(t *testing.T) {
+// A step carrying on from one whose crew are still running starts fresh
+// crew in their capsule, given their handoff, rather than telling them:
+// a session carried from step to step re-reads all of each step before.
+// The crew before keep their done at the step they did.
+func TestChecks_CarryingOnStartsFreshCrew(t *testing.T) {
 	w, _, dir := workFixture(t, "1. met: cache.go keeps each lookup")
 	host := &listeningHost{}
 	w.opts.Host = host
 	os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n"), 0o644)
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
-	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "told c1 to carry on at step 2") {
+	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "started c2 in frontend/one to carry on at step 2, with handoff") {
 		t.Errorf("CrewDone said %q", said)
 	}
-	if len(host.said) != 1 || !strings.HasPrefix(host.said[0], "cache/c1: Step 1 is done, and you carry on with step 2 of the plan: test it.") {
+	if len(host.said) != 0 {
 		t.Errorf("c1 was told %q", host.said)
 	}
 	m, _ := w.Missions.Load("cache")
 	c, _ := m.CrewByID("c1")
 	st := stepRecord(t, w, 2)
-	if c.Status != "" || st.Record == nil || len(st.Record.Crew) != 1 || st.Record.Crew[0] != "c1" {
+	if c.Status != mission.CrewDone || st.Record == nil || len(st.Record.Crew) != 1 || st.Record.Crew[0] != "c2" {
 		t.Errorf("c1 = %+v, step 2 = %+v", c, st.Record)
 	}
-	if _, _, ok := m.UncheckedDone(""); ok {
-		t.Error("c1's done at step 1 is taken for one at step 2")
+	if c2, _ := m.CrewByID("c2"); c2.Capsule != "frontend/one" {
+		t.Errorf("c2 = %+v", c2)
 	}
 }
 

@@ -167,7 +167,7 @@ var (
 			st.InEach = v
 			return ""
 		}}
-	paramCarryOn = StepParam{Key: "carrying on from", About: "a Work step before it whose crew carry on with this one, knowing what they found (1): resumed where they can be, else fresh crew with their handoff. Without it, its crew start fresh",
+	paramCarryOn = StepParam{Key: "carrying on from", About: "a Work step before it whose work this one carries on (1): fresh crew in the capsule that step's crew worked in, given their handoff. Without it, its crew start where the step says",
 		read: func(st *Step, v string) string {
 			m := carryOnStep.FindStringSubmatch(strings.TrimSpace(v))
 			if m == nil {
