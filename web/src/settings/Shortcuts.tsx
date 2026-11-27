@@ -18,6 +18,8 @@ import { SettingsShortcuts, type SettingsShortcutsGroup } from "./SettingsShortc
 // none does what it does while it's pressed, and what's pressed next is
 // the key. A second soon after (leaderWithin) makes it one then another
 // (g then m). esc gives up.
+const said = (k: string) => keysSaid(k).join(" ");
+
 export function Shortcuts() {
   const map = useKeymap();
   const [filter, setFilter] = useState("");
@@ -69,7 +71,7 @@ export function Shortcuts() {
           keys: keysOf(c, map),
           yours: !isOwn(c, map),
           setting: setting?.c === c ? setting.keys : undefined,
-          clashes: clashesOf(c, everywhere, map).map((x) => `${keysSaid(x.key).join(" ")} also does ${x.with.title} (${x.with.scope.title})`),
+          clashes: clashesOf(c, everywhere, map).map((x) => (x.starts ? `${said(x.key)} starts with ${said(x.starts)}, which is ${x.with.title} (${x.with.scope.title}): pressed twice quickly, it’s ${said(x.key)}` : `${said(x.key)} also does ${x.with.title} (${x.with.scope.title})`)),
           onAdd: () => add(c),
           onRemove: (k: string) => setKeys(c, keysOf(c).filter((x) => x !== k)),
           onReset: () => resetKeys(c),

@@ -220,6 +220,14 @@ describe("the keymap", () => {
   });
 });
 
+describe("a clash of one then another", () => {
+  it("is one you set that starts with another's key, either way round", () => {
+    setKeys(list.open, ["j j"]);
+    expect(clashesOf(list.open, scopeOf(go)).map((c) => [c.key, c.starts, c.with.id])).toEqual([["j j", "j", "test-list.next"]]);
+    expect(clashesOf(list.next, scopeOf(go)).map((c) => [c.key, c.starts, c.with.id])).toEqual([["j j", "j", "test-list.open"]]);
+  });
+});
+
 describe("the Keys dialog's lines", () => {
   it("are one a command, those that share a row together, the first key each", () => {
     expect(rowsOf(scopeOf(list).commands)).toEqual([
@@ -229,6 +237,17 @@ describe("the Keys dialog's lines", () => {
       ["```", "Typed"],
     ]);
   });
+  it("say digits one after another as a run", () => {
+    const tabs = scope("test-tabs", "Tabs", {
+      a: { title: "A", keys: "1", row: "A, B, C" },
+      b: { title: "B", keys: "2", row: "A, B, C" },
+      c: { title: "C", keys: "3", row: "A, B, C" },
+    });
+    expect(rowsOf(scopeOf(tabs).commands)).toEqual([["1–3", "A, B, C"]]);
+    setKeys(tabs.b, ["x"]);
+    expect(rowsOf(scopeOf(tabs).commands)).toEqual([["1 / x / 3", "A, B, C"]]);
+  });
+
   it("say your keys", () => {
     setKeys(list.prev, ["p"]);
     expect(rowsOf(scopeOf(list).commands)[0]).toEqual(["j / p", "Next / previous"]);

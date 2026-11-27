@@ -17,7 +17,7 @@ type SettingsShortcutsProps = {
   filter: string;
   onFilter: (to: string) => void;
   filterRef?: Ref<HTMLInputElement>;
-  // How many you've set (none: there's nothing to reset).
+  // How many you've set (none: there's nothing to reset, and no Reset all).
   yours: number;
   onResetAll: () => void;
 };
@@ -33,7 +33,7 @@ export function SettingsShortcuts({ groups, filter, onFilter, filterRef, yours, 
         <Input ref={filterRef} className={css.filter} value={filter} onChange={(e) => onFilter(e.target.value)} placeholder="Find a shortcut by what it does or its key" aria-label="Find a shortcut" />
         {yours > 0 && (
           <Button variant="ghost" size="small" onClick={onResetAll}>
-            Reset all {yours}
+            Reset all
           </Button>
         )}
       </div>

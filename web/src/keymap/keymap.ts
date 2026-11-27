@@ -56,12 +56,16 @@ const same = (a: readonly string[], b: readonly string[]) => a.length === b.leng
 
 // A clash is a key that does two commands where only one can be done: two
 // of one scope, or one of a scope and one of everywhere's (which is read
-// first, so the scope's is never done). Only keys you've set clash: two
+// first, so the scope's is never done), or one then another that starts
+// with another's key. Only keys you've set clash: two
 // with the same key of their own are meant to (j is the next hit while
 // searching, the next row otherwise, and only one is bound at a time).
 export interface Clash {
   key: string;
   with: Command;
+  // It's one then another that starts with the other's key (j then j,
+  // where j is Next): pressed twice quickly, the other's isn't done twice.
+  starts?: string;
 }
 
 // clashesOf is c's clashes: with its scope's commands, and with
@@ -75,7 +79,12 @@ export function clashesOf(c: Command, global: Scope | undefined, map: Map = mine
     if (o === c || o.fixed) continue;
     if (isOwn(c, map) && isOwn(o, map)) continue;
     const theirs = keysOf(o, map);
-    for (const k of mineKeys) if (theirs.includes(k)) out.push({ key: k, with: o });
+    for (const k of mineKeys) {
+      if (theirs.includes(k)) out.push({ key: k, with: o });
+      const first = k.split(" ")[0];
+      if (first !== k && theirs.includes(first)) out.push({ key: k, with: o, starts: first });
+      for (const t of theirs) if (t !== k && t.split(" ")[0] === k && t.includes(" ")) out.push({ key: t, with: o, starts: k });
+    }
   }
   return out;
 }

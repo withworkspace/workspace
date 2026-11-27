@@ -5,7 +5,7 @@ import { scope } from "../../keymap/commands";
 // document that can be commented on has its own j, k and esc, to move
 // through it: annotate's). Not while it's being edited, when the editor
 // has the keys.
-export const artifactKeys = scope("mission-artifact", "Document", {
+export const artifactKeys = scope("mission-artifact", "Mission document", {
   down: { title: "Scroll down", keys: ["j", "ArrowDown"], row: "Scroll down / up (in code)" },
   up: { title: "Scroll up", keys: ["k", "ArrowUp"], row: "Scroll down / up (in code)" },
   edit: { title: "Edit", keys: "e" },

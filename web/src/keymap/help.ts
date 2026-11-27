@@ -35,7 +35,7 @@ export function rowsOf(commands: readonly Command[], map?: Record<string, string
     rows.push(row);
     if (c.row) byRow.set(name, row);
   }
-  return rows.map((r) => [r.keys.join(" / "), r.what]);
+  return rows.map((r) => [run(r.keys) ?? r.keys.join(" / "), r.what]);
 }
 
 // helpGroups is what the dialog says now: everywhere is the scope said
@@ -50,4 +50,11 @@ export function helpGroups(everywhere: Scope, map?: Record<string, string[]>): H
   // Everywhere's are said whether bound or not: some are bound only where
   // they do something (the page's conversation), and they're everywhere's.
   return [...groups, { title: everywhere.title, keys: rowsOf(everywhere.commands, map) }];
+}
+
+// run is digits one after another as the run they are ("1–7"), where
+// there are three or more of them.
+function run(keys: string[]): string | undefined {
+  if (keys.length < 3 || !keys.every((k, i) => /^[0-9]$/.test(k) && (i === 0 || Number(k) === Number(keys[i - 1]) + 1))) return undefined;
+  return `${keys[0]}–${keys[keys.length - 1]}`;
 }

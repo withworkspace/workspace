@@ -25,9 +25,13 @@ describe("every scope", () => {
     expect(missing).toEqual([]);
   });
 
-  it("has an id of its own, and commands with a title each", () => {
+  it("has an id and a title of its own, and commands with a title each", () => {
     const ids = allScopes().map((s) => s.id);
     expect(ids.length).toBe(new Set(ids).size);
+    // Settings heads each scope with its title: two the same are two lists
+    // that read as one thing.
+    const titles = allScopes().map((s) => s.title);
+    expect(titles.filter((t, i) => titles.indexOf(t) !== i)).toEqual([]);
     for (const s of allScopes()) for (const c of s.commands) expect(c.title, c.id).not.toBe("");
   });
 

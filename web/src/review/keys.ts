@@ -4,11 +4,11 @@ import { scope } from "../keymap/commands";
 // (ReviewView.tsx binds them). Those of the diff are bound while the
 // changes show.
 export const reviewKeys = scope("review", "Review", {
-  view1: { title: "View 1", keys: "1", row: "Overview, Guide, Discussion, Passes, Changes" },
-  view2: { title: "View 2", keys: "2", row: "Overview, Guide, Discussion, Passes, Changes" },
-  view3: { title: "View 3", keys: "3", row: "Overview, Guide, Discussion, Passes, Changes" },
-  view4: { title: "View 4", keys: "4", row: "Overview, Guide, Discussion, Passes, Changes" },
-  view5: { title: "View 5", keys: "5", row: "Overview, Guide, Discussion, Passes, Changes" },
+  view1: { title: "View 1, as listed", keys: "1", row: "The views, in the order they're listed" },
+  view2: { title: "View 2, as listed", keys: "2", row: "The views, in the order they're listed" },
+  view3: { title: "View 3, as listed", keys: "3", row: "The views, in the order they're listed" },
+  view4: { title: "View 4, as listed", keys: "4", row: "The views, in the order they're listed" },
+  view5: { title: "View 5, as listed", keys: "5", row: "The views, in the order they're listed" },
   nextLine: { title: "Next line", keys: ["j", "ArrowDown"], row: "Next / previous line", moves: true },
   prevLine: { title: "Previous line", keys: ["k", "ArrowUp"], row: "Next / previous line", moves: true },
   nextChange: { title: "Next change", keys: "n", row: "Next / previous change", moves: true },
@@ -62,7 +62,7 @@ export const reviewPanelKeys = scope("review-panel", "Definition or uses", {
 // reviewPickKeys are those of what's picked from over the diff: a card of
 // what a name is, pinned (CodeNavCard.tsx), or which name on a line to
 // follow (CodeNavPicker.tsx). While it's open, the keys are its own.
-export const reviewPickKeys = scope("review-pick", "Pick", {
+export const reviewPickKeys = scope("review-pick", "Pick a definition", {
   next: { title: "Next", keys: ["j", "ArrowDown"], row: "Next / previous", moves: true },
   prev: { title: "Previous", keys: ["k", "ArrowUp"], row: "Next / previous", moves: true },
   go: { title: "Go to it", keys: "Enter" },
