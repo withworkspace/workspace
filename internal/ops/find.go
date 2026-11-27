@@ -307,7 +307,7 @@ func (f Found) Title() string {
 func thingKind(kind string) string {
 	switch kind {
 	case "":
-		return "something"
+		return "item"
 	case "thread-ask", "thread-change", "thread-note":
 		return "thread (" + strings.TrimPrefix(kind, "thread-") + ")"
 	case "pr":
@@ -325,7 +325,7 @@ func thingKind(kind string) string {
 	case plugin.ThingKind:
 		return "plugin thing" // its plugin's gone, or names it no more
 	}
-	return "a " + kind
+	return kind
 }
 
 // Reindexed is how many of each store's records said their words again.
