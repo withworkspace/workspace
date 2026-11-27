@@ -6,6 +6,7 @@ import { Turn, TurnSaid } from "../ui/Turn";
 import { settled } from "./proposals";
 import { SettledMarker } from "./SettledMarker";
 import { Who } from "./Who";
+import { RichText } from "../ui/RichText";
 
 // TurnView is a turn: yours as a bubble, the agent's (its steps folded
 // above it) or ws's as text; one ws wrote for a card you settled, as its
@@ -19,9 +20,7 @@ export function TurnView({ t, root, proposals, said, landed }: { t: TalkTurn; ro
   return (
     <Turn by={who} landed={landed} head={<Who by={t.by} at={t.at} />}>
       {t.calls && t.calls.length > 0 && <Calls calls={t.calls} root={root} />}
-      <TurnSaid ref={said} written={t.by === "you"}>
-        {t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}
-      </TurnSaid>
+      <TurnSaid ref={said}>{t.by === "you" ? <RichText text={t.body} pinned={t.refs} /> : <Markdown text={t.body} pinned={t.refs} />}</TurnSaid>
     </Turn>
   );
 }

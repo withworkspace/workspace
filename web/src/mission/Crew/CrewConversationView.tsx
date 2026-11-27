@@ -21,6 +21,7 @@ import { MissionCrewNotice } from "./MissionCrewNotice";
 import { MissionCrewTranscript } from "./MissionCrewTranscript";
 import { MissionCrewWorking } from "./MissionCrewWorking";
 import { noticeWords, workingOn } from "./words";
+import { RichText } from "../../ui/RichText";
 
 type CrewConversationViewProps = {
   slug: string;
@@ -100,9 +101,7 @@ export function CrewConversationView({ slug, id, crew, live, t, error, reload, r
                   by={g.kind === "user" ? "you" : "agent"}
                   head={<TurnHead avatar={g.kind === "user" ? <TurnAvatar by="you" /> : <CrewBadge id={id} />} who={g.kind === "user" ? "Sent" : undefined} at={g.time} />}
                 >
-                  <TurnSaid>
-                    <Markdown text={g.text} />
-                  </TurnSaid>
+                  <TurnSaid>{g.kind === "user" ? <RichText text={g.text} /> : <Markdown text={g.text} />}</TurnSaid>
                 </Turn>
               );
           }

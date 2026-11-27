@@ -70,10 +70,10 @@ export function TurnHead({ avatar, who, at }: { avatar: ReactNode; who?: ReactNo
   );
 }
 
-// TurnSaid is a turn's words. An agent's are markdown, given as its
-// children; yours are as you wrote them (written), in a bubble.
-export function TurnSaid({ written, className, ref, ...rest }: ComponentProps<"div"> & { written?: boolean; ref?: Ref<HTMLDivElement> }) {
-  return <div ref={ref} className={cx(css.said, written && css.written, className)} {...rest} />;
+// TurnSaid is a turn's words, given as its children: an agent's are
+// Markdown; yours are RichText (markdown as a comment is), in a bubble.
+export function TurnSaid({ className, ref, ...rest }: ComponentProps<"div"> & { ref?: Ref<HTMLDivElement> }) {
+  return <div ref={ref} className={cx(css.said, className)} {...rest} />;
 }
 
 // turnTimeClass is a turn's time's look, for a line that stands in for a
