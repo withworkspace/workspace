@@ -1054,3 +1054,27 @@ func TestClaudeModelArgs(t *testing.T) {
 		t.Error("ran on an effort Claude Code doesn't take")
 	}
 }
+
+func TestClaudeCrewReadPictures(t *testing.T) {
+	c := &Claude{lookPath: func(string) (string, error) { return "/bin/claude", nil }, newID: func() (string, error) { return "s1", nil }}
+	start, err := c.Start(Brief{Dir: "/w/repos/a/cap", Prompt: "go"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := ReadsPictures(c, start, "/w/.ws/images")
+	if len(got.Args) < 3 || got.Args[0] != start.Args[0] || got.Args[1] != "--allowedTools" || got.Args[2] != "Read(//w/.ws/images/**)" || got.Args[len(got.Args)-1] != "go" {
+		t.Errorf("started as %q", got.Args)
+	}
+	resumed, err := c.Resume("/w/repos/a/cap", "s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = ReadsPictures(c, resumed, "/w/.ws/images")
+	if strings.Join(got.Args[1:], " ") != "--allowedTools Read(//w/.ws/images/**) --resume s1" {
+		t.Errorf("resumed as %q", got.Args)
+	}
+	// A harness that doesn't ask before reading is left as it is.
+	if l := ReadsPictures(&Pi{}, Launch{Args: []string{"pi"}}, "/w/.ws/images"); len(l.Args) != 1 {
+		t.Errorf("pi: %q", l.Args)
+	}
+}

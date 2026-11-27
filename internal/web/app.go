@@ -41,6 +41,7 @@ type App interface {
 	Plugging
 	Notifying
 	Automating
+	Picturing
 }
 
 // Running is runs (internal/runs): on a mission's page, a capsule's

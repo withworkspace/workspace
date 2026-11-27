@@ -3679,6 +3679,26 @@ export interface PassFinding extends ConversationFinding {
     blocks?: boolean;
 }
 
+// From web/images.go
+/**
+ * Paste is a picture to keep, in JSON as every write is (the cross-site
+ * guard): its bytes, base64.
+ */
+export interface Paste {
+    data: string;
+}
+
+// From web/images.go
+/**
+ * Pasted is a picture kept: its path, which what you write names it by
+ * (the agent reads it there), and where the web UI draws it from.
+ */
+export interface Pasted {
+    name: string;
+    path: string;
+    url: string;
+}
+
 // From web/api.go
 /**
  * Pick is a harness, and the model to run on it ("" for the agent's own).
