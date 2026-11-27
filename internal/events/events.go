@@ -73,6 +73,10 @@ const (
 	// ScheduleDue is an automation's time come (every()): its own, which
 	// only it's for (Automation names it).
 	ScheduleDue = "schedule.due"
+	// ActionRun is one of an automation's actions run by you (from Find,
+	// a menu): its own, which only it's for (Automation names it, Title
+	// the action), on what About names first, if anything, with Input.
+	ActionRun = "action.run"
 )
 
 // Origins: whether this ws did it, or heard of it.
@@ -93,7 +97,7 @@ var Kinds = []string{
 	ThingAdded, ThingChanged,
 	RunStarted, RunUp, RunEnded,
 	DecisionMade,
-	ScheduleDue,
+	ScheduleDue, ActionRun,
 }
 
 // Known is whether kind is one there is.
@@ -202,6 +206,9 @@ type Event struct {
 	// Changes are what changed in a thing a plugin keeps, field by field,
 	// for thing.changed: a Jira issue's status, from In Progress to Done.
 	Changes []FieldChange `json:"changes,omitempty"`
+	// Input is what you gave an action as you ran it (action.run), by its
+	// fields.
+	Input map[string]any `json:"input,omitempty"`
 }
 
 // FieldChange is one field of a thing, as it was and as it is. A long
@@ -475,6 +482,10 @@ func (e Event) Says() string {
 		return e.Status
 	case e.Kind == ScheduleDue:
 		return e.Automation + "'s time: " + e.Title
+	case e.Kind == ActionRun && len(e.About) > 0:
+		return e.Title + ", on " + e.About[0]
+	case e.Kind == ActionRun:
+		return e.Title
 	case e.Text != "":
 		return e.Text
 	}

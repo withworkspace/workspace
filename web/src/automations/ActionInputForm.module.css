@@ -1,0 +1,26 @@
+/* What an action asks before it runs (ActionInputForm.tsx): a field a
+   row, its name over it. */
+
+@layer components {
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-block: 4px 8px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .label {
+    font-size: var(--text-sm);
+    color: var(--dim);
+  }
+
+  .tick {
+    align-self: flex-start;
+  }
+}

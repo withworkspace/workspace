@@ -93,6 +93,8 @@ import type {
   AutomationProposed,
   AutomationsInfo,
   AutomationOutputInfo,
+  ActionRan,
+  ActionsInfo,
 } from "./wire.gen";
 export type {
   CommandLabel,
@@ -1224,6 +1226,11 @@ export type {
   AutomationPage,
   AutomationsInfo,
   AutomationTally,
+  ActionRan,
+  ActionsInfo,
+  AutomationInputField,
+  OpsAutomationAction as AutomationAction,
+  OpsAutomationActionRun as AutomationActionRun,
   OpsAutomationDid as AutomationDid,
   OpsAutomationItem as AutomationItem,
   OpsAutomationRun as AutomationRun,
@@ -1248,6 +1255,12 @@ export const automationOutputFrameURL = (name: string, version: number) => `/fra
 // runAutomationNow runs one that's on a schedule now, as if its time had
 // come.
 export const runAutomationNow = (name: string) => send<{ event: string }>("POST", `/api/automations/${encodeURIComponent(name)}/run`);
+// getActions is your automations' actions on what on names (a ref), as
+// it stands, or on nothing in particular without one; runAction runs one,
+// by you, and says how it went by the time it's ended, parked, or a few
+// seconds have gone. Mirrors internal/web/automations.go.
+export const getActions = (on?: string) => getJSON<ActionsInfo>(`/api/actions${on ? `?on=${encodeURIComponent(on)}` : ""}`);
+export const runAction = (body: { automation: string; title: string; on?: string; input?: Record<string, unknown> }) => send<ActionRan>("POST", "/api/actions/run", body);
 // dryRunAutomation is what one would have done over the last 30 days,
 // done again now.
 export const dryRunAutomation = (name: string) =>

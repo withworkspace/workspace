@@ -69,6 +69,8 @@ type Automation struct {
 	Source []byte
 	// schedules are When's every()s, by place (nil for an event()).
 	schedules []*Schedule
+	// actions are When's action()s, by place (nil for the rest).
+	actions []*Action
 	// run is its run, nil for none (the event's notified as it is).
 	run starlark.Callable
 }
@@ -117,6 +119,16 @@ func (a *Automation) WhenSaid() string {
 		said := m.String()
 		if s := a.scheduleAt(i); s != nil {
 			said = "every " + s.Said
+		}
+		if i < len(a.actions) && a.actions[i] != nil {
+			x := a.actions[i]
+			said = "you run " + strconv.Quote(x.Title)
+			if x.On != "" {
+				said += " on a " + x.On
+				for _, k := range sortedWhere(x.Where) {
+					said += " " + k + "=" + strings.Join(x.Where[k], ",")
+				}
+			}
 		}
 		if i < len(a.Paces) {
 			if p := a.Paces[i].String(); p != "" {
@@ -167,7 +179,16 @@ func Check(name string, src []byte) (*Automation, error) {
 		if m.schedule != nil {
 			m.m.Fields = []events.MatchField{{Key: "automation", Value: name}}
 		}
+		if m.action != nil {
+			for _, x := range a.Actions() {
+				if x.Title == m.action.Title {
+					return nil, fmt.Errorf("it has two actions called %q: each is called something of its own", x.Title)
+				}
+			}
+			m.m.Fields = []events.MatchField{{Key: "automation", Value: name}, {Key: "action", Value: m.action.Title}}
+		}
 		a.When, a.Paces, a.schedules = append(a.When, m.m), append(a.Paces, m.pace), append(a.schedules, m.schedule)
+		a.actions = append(a.actions, m.action)
 	}
 	if may, ok := globals["may"]; ok {
 		if a.May, err = maysOf(may); err != nil {
@@ -269,11 +290,16 @@ type matchValue struct {
 	pace Pace
 	// schedule is an every()'s: its own schedule.due, by the clock.
 	schedule *Schedule
+	// action is an action()'s: its own action.run, by you.
+	action *Action
 }
 
 func (v matchValue) String() string {
 	if v.schedule != nil {
 		return "every(" + strconv.Quote(v.schedule.Said) + ")"
+	}
+	if v.action != nil {
+		return "action(" + strconv.Quote(v.action.Title) + ")"
 	}
 	return "event(" + v.m.String() + ")"
 }
@@ -374,7 +400,7 @@ func matchesOf(v starlark.Value) ([]matchValue, error) {
 		for iter.Next(&x) {
 			m, ok := x.(matchValue)
 			if !ok {
-				return nil, fmt.Errorf("when has a %s in it: each is an event()", x.Type())
+				return nil, fmt.Errorf("when has a %s in it: each is an event(), every() or action()", x.Type())
 			}
 			out = append(out, m)
 		}
@@ -431,7 +457,7 @@ var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs
 // every other builtin's name, so run can use them, refusing to be called
 // before there's an event to run on.
 func checkBuiltins() starlark.StringDict {
-	d := starlark.StringDict{"event": starlark.NewBuiltin("event", eventBuiltin), "every": starlark.NewBuiltin("every", everyBuiltin)}
+	d := starlark.StringDict{"event": starlark.NewBuiltin("event", eventBuiltin), "every": starlark.NewBuiltin("every", everyBuiltin), "action": starlark.NewBuiltin("action", actionBuiltin)}
 	for _, name := range builtinNames {
 		d[name] = starlark.NewBuiltin(name, func(_ *starlark.Thread, b *starlark.Builtin, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
 			return nil, fmt.Errorf("%s is for run, called with each event: not for the file's top level", b.Name())

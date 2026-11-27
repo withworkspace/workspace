@@ -52,6 +52,7 @@ var kindAbout = map[string][2]string{
 	events.RunEnded:             {"a run ended", "repo, run, status (passed, failed (exit 1), stopped, gone)"},
 	events.DecisionMade:         {"a decision made on a mission", "mission"},
 	events.ScheduleDue:          {"an automation's own time come (when = every(...)): not one to write in when", "automation, title (its schedule)"},
+	events.ActionRun:            {"one of an automation's actions run by the user (when = action(...)): not one to write in when", "automation, title (the action), about (what it was run on), input"},
 }
 
 // Guide is how an automation's written and proposed, for a conversation's
@@ -68,6 +69,7 @@ func Guide() string {
       notify("%s drew %s" % (e.by.short, e.title), open = e.thing)
 
 - when: which events it's for. event(kind, field = value, ...), each value a string, which may be a pattern (status = "failed*", path = "docs/*"). by is a person's name (brendan matches Brendan Ash) or "me". A list of event()s is any of them. ws matches it without running the script, so say as much of what it's for here as you can.
+- Or run by the user, as an action: when = action("Is it ready to build?", on = "jira:issue", status = ["To Do", "Ready"], input = {"note": "text", "size": ["S", "M", "L"]}). It's offered where the user acts on things: in Find (⌘K), and the menu of a row (right click). With on, it's on a thing of that kind (pr, mission, conversation, artifact, repo, or a plugin's kind, as jira:issue), only those whose fields are as asked (each a value, a pattern, or a list); without, it's run on nothing in particular, under Do. input is what's asked before it runs (each "text", "bool", "int", "number", or a list of the words it's one of). e.on is what it was run on ("" for nothing) and e.input what was given (e.input.note). when can be a list: [every("day 09:00"), action("Run it now")] runs it both ways. Say what it did with notify, output or propose: the user ran it, and is told what it said.
 - Or by the clock: when = every("day 03:00") (or "1h", "weekday 09:00", "mon,thu 17:30", a time of day here). e is then its schedule.due (e.title is the schedule). A time missed while the daemon was away runs once when it's back.
 - Pace, in event(): settle = "10m" runs once its events have been quiet ten minutes, with all of them as e.batch; at_most = "1/h" runs it at most once an hour (what's past it is held); per = "pr" keeps them apart by a field (each pull request, each thing).
 - may: what it may do. "notify" (a notification in the user's feed), "converse" (start a conversation of the workspace's, for an agent to look into something and answer the user), "ask" (ask an agent a question and go on with its answer), "propose" (put something for the user to accept), "run" and "output" (below). Nothing else reaches outside a script.

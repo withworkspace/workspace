@@ -542,6 +542,7 @@ func (r *run) builtins() starlark.StringDict {
 	return starlark.StringDict{
 		"event":    starlark.NewBuiltin("event", eventBuiltin),
 		"every":    starlark.NewBuiltin("every", everyBuiltin),
+		"action":   starlark.NewBuiltin("action", actionBuiltin),
 		"notify":   starlark.NewBuiltin("notify", r.placed(r.notify)),
 		"converse": starlark.NewBuiltin("converse", r.placed(r.converse)),
 		"log":      starlark.NewBuiltin("log", r.logLine),
@@ -844,6 +845,17 @@ func eventValueWith(e events.Event, more starlark.StringDict) starlark.Value {
 	d["about"] = listOf(append([]string(nil), e.About...))
 	d["refs"] = listOf(e.Refs())
 	d["at"] = starlark.String(e.At.Format(time.RFC3339))
+	// An action's: what it was run on ("" for nothing), and what it was
+	// given.
+	d["on"] = starlark.String("")
+	if e.Kind == events.ActionRun && len(e.About) > 0 {
+		d["on"] = starlark.String(e.About[0])
+	}
+	input := map[string]any{}
+	for k, v := range e.Input {
+		input[k] = v
+	}
+	d["input"] = valueOf(input)
 	if _, ok := d["paths"]; !ok {
 		d["paths"] = starlark.NewList(nil)
 	}
