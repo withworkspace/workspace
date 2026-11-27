@@ -6,7 +6,7 @@ import { scope, scopeOf } from "./commands";
 import { bind, forgetAll, holdKeys, pass, press } from "./dispatch";
 import { frameKeys } from "./frame";
 import { rowsOf } from "./help";
-import { clashesOf, isOwn, keyOf, keysOf, resetKeys, setKeys } from "./keymap";
+import { clashesOf, isOwn, keyOf, keysOf, resetKeys, setKeys, takeSuggested } from "./keymap";
 
 // A press, as the dispatcher's given one.
 function key(k: Partial<KeyboardEvent>): KeyboardEvent {
@@ -118,6 +118,14 @@ describe("the dispatcher", () => {
     expect(got).toEqual([]);
   });
 
+  it("asks one bound late after the rest, whenever it was bound: a page's own key is the page's", () => {
+    const { got, h } = did();
+    bind({ scope: scopeOf(list), handlers: () => ({ next: h("plugin") }), modal: false, first: false, late: true });
+    bind({ scope: scopeOf(list), handlers: () => ({ next: h("page") }), modal: false, first: false });
+    pressed({ key: "j" });
+    expect(got).toEqual(["page"]);
+  });
+
   it("does the one bound first: a part's before its page's", () => {
     const { got, h } = did();
     bind({ scope: scopeOf(list), handlers: () => ({ next: h("part") }), modal: false, first: false });
@@ -217,6 +225,30 @@ describe("the keymap", () => {
     expect(clashesOf(list.next, scopeOf(go)).map((c) => c.with.id)).toEqual(["test-list.open"]);
     setPref("keymap", { [go.send.id]: ["Enter"] });
     expect(clashesOf(list.open, scopeOf(go)).map((c) => c.with.id)).toEqual(["test-go.send"]);
+  });
+});
+
+describe("a plugin's suggested keys", () => {
+  const plugin = scope("plugin-test", "Test plugin", {
+    note: { title: "New note", keys: [], suggested: ["n"] },
+  });
+  const other = scope("plugin-other", "Other plugin", {
+    sketch: { title: "New sketch", keys: [], suggested: ["n"] },
+  });
+
+  it("aren't its keys until they're taken, then are yours", () => {
+    expect(keysOf(plugin.note)).toEqual([]);
+    takeSuggested(plugin.note);
+    expect(keysOf(plugin.note)).toEqual(["n"]);
+    expect(isOwn(plugin.note)).toBe(false);
+  });
+
+  it("clash, taken, with another plugin's taken, and with a page's, weighed against every scope", () => {
+    takeSuggested(plugin.note);
+    takeSuggested(other.sketch);
+    expect(clashesOf(plugin.note, scopeOf(go), undefined, [scopeOf(other)]).map((c) => c.with.id)).toEqual(["plugin-other.sketch"]);
+    setKeys(list.open, ["n"]);
+    expect(clashesOf(plugin.note, scopeOf(go), undefined, [scopeOf(other), scopeOf(list)]).map((c) => c.with.id)).toEqual(["plugin-other.sketch", "test-list.open"]);
   });
 });
 

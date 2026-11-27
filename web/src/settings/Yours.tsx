@@ -22,7 +22,6 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
   const sendKey = useSendKey();
   const [keyHints] = usePref("keyHints");
   const [keymap] = usePref("keymap");
-  const [pluginKey] = usePref("pluginKey");
   const shortcuts = Object.keys(keymap).length;
   const mines = minesOf(sections);
   return (
@@ -84,15 +83,6 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
               · Shortcuts
             </span>
             <span>{shortcuts === 0 ? "Their own keys" : shortcuts === 1 ? "1 set by you" : `${shortcuts} set by you`}</span>
-          </SettingsMineRow>
-          <SettingsMineRow>
-            <span>
-              <Link to="/settings/keyboard" className={textClass("link")}>
-                Keyboard
-              </Link>{" "}
-              · Plugin key
-            </span>
-            <span>{pluginKey ? <Keys k={pluginKey} /> : "None"}</span>
           </SettingsMineRow>
           <SettingsMineRow>
             <span>

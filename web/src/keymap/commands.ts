@@ -44,6 +44,10 @@ export interface CommandDef {
   // editor's ``` or a tree's arrows). The Keys dialog says it; it can't
   // be set to another key.
   fixed?: boolean;
+  // Keys it could have, which it hasn't until you say so (a plugin's
+  // suggestion, in Settings › Keyboard: Use): never bound by themselves,
+  // as two plugins may suggest the same.
+  suggested?: string[];
 }
 
 export interface Command {
@@ -58,6 +62,7 @@ export interface Command {
   readonly frame: boolean;
   readonly moves: boolean;
   readonly fixed: boolean;
+  readonly suggested: readonly string[];
 }
 
 export interface Scope {
@@ -94,6 +99,7 @@ export function scope<D extends Record<string, CommandDef>>(id: string, title: s
       frame: !!d.frame,
       moves: !!d.moves,
       fixed: !!d.fixed,
+      suggested: d.suggested ?? [],
     };
     commands.push(c);
     out[name] = c;

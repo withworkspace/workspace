@@ -85,14 +85,18 @@
   font-size: var(--text-sm);
 }
 
-.clashes {
+/* Keys a plugin suggests, not yet taken. */
+.suggested {
   grid-column: 1 / -1;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--attention);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
   font-size: var(--text-sm);
 }
+
+
 
 @media (max-width: 640px) {
   .shortcut {

@@ -59,10 +59,6 @@ export interface Prefs {
   // command: what's said here is what does it, in place of its own. One
   // not said has its own.
   keymap: Record<string, string[]>;
-  // The key plugins' suggested keys go after (",": a plugin's n is , then
-  // n), or none: until there's one, a plugin's actions have only the keys
-  // you give them (keymap).
-  pluginKey: string;
 }
 
 const defaults: Prefs = {
@@ -82,7 +78,6 @@ const defaults: Prefs = {
   sendKey: "mod+enter",
   keyHints: false,
   keymap: {},
-  pluginKey: "",
 };
 
 // Where each was kept before they were one entry, and how it was written
