@@ -2120,3 +2120,22 @@ export const declinePR = (api: string) => send<Record<string, never>>("POST", `$
 
 // A capsule a conversation's agent lifted.
 export type TalkCapsule = ConversationCapsule;
+
+// Pictures pasted for an agent (internal/images): kept in the workspace's
+// .ws/images, and named in what's written by their path. Mirrors
+// internal/web/images.go.
+import type { Pasted } from "./wire.gen";
+export type { Pasted };
+export const pastePicture = async (picture: Blob) => send<Pasted>("POST", "/api/images", { data: await base64Of(picture) });
+
+// base64Of is a picture's bytes as base64, which is how a write sends them
+// (every write is JSON).
+async function base64Of(blob: Blob): Promise<string> {
+  const url = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+  return url.slice(url.indexOf(",") + 1);
+}

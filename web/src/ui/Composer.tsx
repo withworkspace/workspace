@@ -7,8 +7,9 @@ import { type Features, RichTextArea } from "./RichTextArea";
 import { type SendKey, sendKeys, useSendKey } from "./sendKey";
 
 // What a composer offers to write, unless it says: marks, lists, a
-// quote, code (ui/RichTextArea.tsx).
-const offered: Features = { marks: true, lists: true, quote: true, code: true };
+// quote, code (ui/RichTextArea.tsx), and pictures pasted in, as what's
+// written in one goes to an agent.
+const offered: Features = { marks: true, lists: true, quote: true, code: true, pictures: true };
 
 type ComposerProps = {
   // What's written, as markdown, which is the page's to keep (a draft, say).

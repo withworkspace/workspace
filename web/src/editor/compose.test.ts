@@ -127,6 +127,15 @@ describe("what's pasted", () => {
     expect(pasted("```\nls -la\n```", {})).toBe("ls -la\n");
   });
 
+  it("keeps a picture pasted for an agent only where pictures are offered", () => {
+    const shot = "/Users/me/my work/.ws/images/0123456789abcdef0123456789abcdef.png";
+    const line = (src: string) => new Slice(schema.nodes.paragraph.create(null, [schema.text("see "), schema.nodes.image.create({ src, alt: "image" })]).content, 0, 0);
+    expect(fit(line(shot), { pictures: true }).content.lastChild!.type).toBe(schema.nodes.image);
+    expect(fit(line(shot), {}).content.lastChild!.text).toBe("see image");
+    // Any other picture (one from a web page) is its words still.
+    expect(fit(line("https://example.com/a.png"), { pictures: true }).content.lastChild!.text).toBe("see image");
+  });
+
   it("pastes words into a line as they are", () => {
     const words = new Slice(schema.nodes.paragraph.create(null, schema.text("hi", [schema.marks.strong.create()])).content, 0, 0);
     expect(fit(words, {}).content.firstChild!.marks).toEqual([]);
@@ -139,6 +148,14 @@ describe("the markdown handed back", () => {
     // # typed where headings aren't offered stays words.
     const doc = schema.nodes.doc.create(null, schema.nodes.paragraph.create(null, schema.text("# not a heading")));
     expect(saveMarkdown(doc).text).toBe("\\# not a heading\n");
+  });
+
+  it("names a picture by its path, though the path has a space in it", () => {
+    const src = "/Users/me/my work/.ws/images/0123456789abcdef0123456789abcdef.png";
+    const doc = schema.nodes.doc.create(null, schema.nodes.paragraph.create(null, [schema.text("this "), schema.nodes.image.create({ src, alt: "image" })]));
+    const text = saveMarkdown(doc).text;
+    expect(text).toBe(`this ![image](<${src}>)\n`);
+    expect(parseMarkdown(text).doc.firstChild!.lastChild!.attrs.src).toBe(src);
   });
 
   it("keeps a line break inside a paragraph", () => {
