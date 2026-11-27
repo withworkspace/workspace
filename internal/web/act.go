@@ -23,6 +23,7 @@ type Acting interface {
 	Reopen(slug string, from mission.State, by ops.Actor) (ops.StateSet, error)
 	SetBrief(slug, text string, by ops.Actor) (ops.BriefSet, error)
 	SetPlan(slug, text string, by ops.Actor) (ops.PlanSet, error)
+	SetStepLevel(slug string, n int, level string, by ops.Actor) (ops.LevelSet, error)
 	AskPlanner(slug, why string, by ops.Actor) (ops.AskedPlanner, error)
 	SetTitle(slug, title string, by ops.Actor) error
 	Launch(slug string, d ops.Dispatch, by ops.Actor) (ops.Launched, error)
@@ -73,6 +74,9 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 		return said(a.SetBrief(slug, req.Text, you))
 	case "edit-plan":
 		return said(a.SetPlan(slug, req.Text, you))
+	case "level":
+		// A step ahead at another level, kept as your decision.
+		return said(a.SetStepLevel(slug, req.Step, text, you))
 	case "replan":
 		// Asking the planner for a change: it revises the plan in its
 		// conversation, applying it or proposing it to you there.

@@ -25,6 +25,8 @@ type MissionPlanStepProps = Omit<ComponentProps<"li">, "title" | "children"> & {
   row?: boolean;
   // Of a row: what kind of step it is, as an icon that says so.
   kind?: { icon: IconName; says: string };
+  // Of a row: a Work step's level (MissionPlanLevel), beside its kind.
+  level?: ReactNode;
   // It's yours to pass: its kind is in the accent.
   yours?: boolean;
   // It was skipped: a dash for its mark, its name struck through.
@@ -41,7 +43,7 @@ const states = { accepted: css.accepted, current: css.current, todo: css.todo };
 // (a tick when it's done, a dot when it's the one the mission's on), its
 // number and name, and what's to be known of it. On Summary it's a step
 // with all of that under it; in a mission's details it's a row.
-export function MissionPlanStep({ n, title, state, hint, children, why, under, row, kind, yours, skipped, opened, pressable, className, ...rest }: MissionPlanStepProps) {
+export function MissionPlanStep({ n, title, state, hint, children, why, under, row, kind, level, yours, skipped, opened, pressable, className, ...rest }: MissionPlanStepProps) {
   return (
     <li
       className={cx(css.step, states[state], row && css.row, yours && css.yours, skipped && css.skipped, opened && css.opened, pressable && css.pressable, className)}
@@ -61,9 +63,14 @@ export function MissionPlanStep({ n, title, state, hint, children, why, under, r
         {why && <span className={css.why}>{why}</span>}
         {under && <div className={css.under}>{under}</div>}
       </span>
-      {kind && !opened && (
-        <span className={css.kind} title={kind.says}>
-          <Icon name={kind.icon} size={12} />
+      {(kind || level) && !opened && (
+        <span className={css.end}>
+          {level}
+          {kind && (
+            <span className={css.kind} title={kind.says}>
+              <Icon name={kind.icon} size={12} />
+            </span>
+          )}
         </span>
       )}
     </li>

@@ -1,0 +1,89 @@
+/* A Work step's level at a row's end (MissionPlanLevel.tsx): three bars,
+   as many filled as it's high, and its name where it isn't normal. */
+
+.level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  color: var(--faint);
+  font-size: var(--text-xs);
+  line-height: 1;
+}
+
+.pick {
+  height: 16px;
+  min-height: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.pick:hover,
+.pick[aria-expanded="true"] {
+  background: var(--hover);
+  color: var(--dim);
+}
+
+.pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pick[aria-busy="true"] {
+  opacity: 0.5;
+}
+
+.hard {
+  color: var(--dim);
+}
+
+.bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 9px;
+}
+
+.bar {
+  width: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.bar:nth-child(1) {
+  height: 4px;
+}
+
+.bar:nth-child(2) {
+  height: 6.5px;
+}
+
+.bar:nth-child(3) {
+  height: 9px;
+}
+
+.bar.on {
+  opacity: 1;
+}
+
+.word {
+  letter-spacing: 0.01em;
+}
+
+.name {
+  text-transform: capitalize;
+}
+
+.model {
+  color: var(--dim);
+}

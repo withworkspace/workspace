@@ -54,14 +54,19 @@ func crewOnList(w *Workspace) string {
 
 // guaranteeCrewAllowed is what crew may run on: always held.
 func guaranteeCrewAllowed(w *Workspace) Guarantee {
-	return Guarantee{"crew.allowed", fmt.Sprintf("crew run only on what [crew] allowed lists: %s. A plan's on: names one of them, or none, for the default", crewOnList(w))}
+	return Guarantee{"crew.allowed", fmt.Sprintf("crew run only on what [crew] allowed and [crew.levels] name: %s. A plan's on: names one of them, or none, for the default (or the step's level's)", crewOnList(w))}
 }
 
 // stepPick is what a step's crew run on: its on:, where crew may run on
-// it, else crew's own (and why, for a plan from before ws checked).
+// it, else its level's ([crew.levels]), else crew's own (and why, for a
+// plan from before ws checked).
 func (w *Workspace) stepPick(st mission.StageState, on string) (harness.Pick, string) {
 	if on == "" && st.Step != nil {
 		on = st.Step.Model
+	}
+	if on == "" && st.Step != nil && st.Step.Type == mission.StepWork && st.Step.Level != "" {
+		p := Roles(w.Config()).ForLevel(st.Step.Level)
+		return p, fmt.Sprintf(" (%s: on %s)", st.Step.Level, p)
 	}
 	if on == "" {
 		return harness.Pick{}, ""

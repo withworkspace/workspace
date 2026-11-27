@@ -63,7 +63,7 @@ type StepParam struct {
 var Catalogue = []StepType{
 	{Name: StepWork, Who: WhoCrew, Words: WordsNeeded,
 		About:  "crew (agents) do a piece of work in a repo: investigate, write a failing test, fix it, write a document. One step is one crew's session, so make each end in something to look at. They report done, with a handoff; then ws runs its checks, and has an agent who didn't do the work judge those in words. All met, it's done; unmet, it goes back to the crew or to the user, as the process says. In a repo the mission has no capsule in, ws lifts one for it.",
-		Params: []StepParam{paramIn, paramInEach, paramCarryOn, paramFresh, paramOn, paramLimit, paramMakes, paramCheck, paramOnlyIf}},
+		Params: []StepParam{paramIn, paramInEach, paramCarryOn, paramFresh, paramLevel, paramOn, paramLimit, paramMakes, paramCheck, paramOnlyIf}},
 	{Name: StepVerify, Who: WhoCrew, Words: WordsNeeded,
 		About:  "a verifier (an agent who didn't do the work) shows that the work before it is as its checks say, by using it: it runs it, looks, and hands over a verification bundle, each check with what it came to and what shows it (screenshots, a recording, what a command printed). Say what's to be shown, and where the process says how it's shown (a script, a skill, what to capture), say that too: the verifier isn't given the process. It changes nothing. All met, or left for the user, it's done; unmet, the work goes back to the crew who made it, and is verified again once they report done. Put a Review after it where the user approves what it shows.",
 		Params: []StepParam{paramIn, paramOn, paramLimit, paramCheck, paramYours, paramOnlyIf}},

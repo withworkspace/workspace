@@ -74,7 +74,7 @@ func TestCrewOn_AGuarantee(t *testing.T) {
 	for _, g := range w.Guarantees() {
 		said = append(said, g.Key+": "+g.What)
 	}
-	if !strings.Contains(strings.Join(said, "\n"), "crew.allowed: crew run only on what [crew] allowed lists: fake-crew (default), claude:sonnet") {
+	if !strings.Contains(strings.Join(said, "\n"), "crew.allowed: crew run only on what [crew] allowed and [crew.levels] name: fake-crew (default), claude:sonnet") {
 		t.Errorf("guarantees: %v", said)
 	}
 }

@@ -48,6 +48,10 @@ type Step struct {
 	// (repo/name). Model is what its crew run on, if it says. Whom is
 	// who's on it, in words, for CI or outside, in a plan before types.
 	Capsule, Model, Whom string
+	// Level is how hard a Work step is (rote, normal or hard; "" for
+	// normal), which picks its crew's model where it names none
+	// (levels.go).
+	Level string
 	// Makes is what it produces, if the step says. From is where a Decide
 	// step's options are; Draft, that an Open Pull Request step opens a
 	// draft.
@@ -139,6 +143,9 @@ func (s Step) WhoSays() string {
 		if s.Model != "" {
 			parts = append(parts, "on "+s.Model)
 		}
+		if s.Level != "" {
+			parts = append(parts, s.Level)
+		}
 		return strings.Join(parts, ", ")
 	case WhoCI, WhoOutside:
 		if s.Whom != "" {
@@ -167,6 +174,7 @@ var PlanFormat = "The plan is markdown in three parts, each a `##` heading:\n\n"
 	"## Steps\n" +
 	"1. Work: **Reproduce.** Reproduce it as a failing test, and find the cause. \"Bugs are reproduced first\"\n" +
 	"   - in: `api`\n" +
+	"   - level: hard\n" +
 	"   - limit: 1h\n" +
 	"   - makes: the failing test, and the cause\n" +
 	"   - check: `go test ./invoice -run TestTotalRounding` fails\n" +
@@ -185,6 +193,7 @@ var PlanFormat = "The plan is markdown in three parts, each a `##` heading:\n\n"
 	"- `## Stops early` lists where the mission may end before Z, and what that end is (an answer, work handed on as a mission of its own). `None.` if it can't.\n" +
 	"- `## Steps` is the route: a numbered list, 1, 2, 3… in order, each step done after the one before. Each step starts with its kind (below), then a colon, its name in bold, then what it's for, in words (`3. Work: **Fix.** Fix it.`). The name is how the step is listed in the web UI beside the mission: one to four words, a heading, not a sentence (`**Rework CSS.**`, `**Settings picker.**`, `**Browser check.**`), with the detail in the words after it. A kind whose words are optional can stand alone (`4. Open Pull Request`), and is listed by its kind. Under it, indented, go its parameters, each `- key: value`, and only those its kind takes.\n" +
 	"- A Work step's checks are how ws knows it's done, so give it one for each thing that has to be true: a command where one shows it, words where it takes judgement. Unmet, it goes back to its crew (or the user), so a check is what you'd send it back for.\n" +
+	"- Give each Work step its level, for the model its crew run on: `- level: rote` where the work is mechanical and a command check shows it's done (a small model does it, and ws starts it again on a larger one if its checks come round unmet); `- level: hard` where it needs the most thought (finding a cause, a design call, a change across repos, code without tests); none for the rest, which is normal. Look-alike rote work that hides a judgement call (which snapshots should change) is normal.\n" +
 	"- A check that's a command is run by ws as it's written, from the root of the step's capsule, with nothing set up for it first. So write it as it runs from there (`cd api && go test ./...` where it has to be run from a folder inside), and name in it only files, folders and recipes you've looked at and seen are there: not ones you'd expect from the names around them. Ask of each what it does today, before the step's work. A `passes` check that can't pass for a reason the step won't change (a setting the root hasn't got, a tool that isn't there), or a `fails` check that would fail whatever the step did (a file it names that doesn't exist), shows nothing and stops the step at its end. Where you can't tell whether a command runs, say which in your reply, for the user to try before they confirm the plan.\n" +
 	"- A Wait step says who it's on (`- on: you` for what the user does themselves, else who or what), and nothing passes it by itself unless it has an `- until:` or a `- check:`. An until is an event ws hears of (`- until: pr.merged pr=api#212`, `- until: thing.changed thing=RAM-881 status=Done`), and ws passes the step as it happens: give one wherever ws hears of what it waits for. A check is a command that shows it's happened, which ws runs every few minutes. With neither it waits until someone says it's happened.\n" +
 	"- No branches or loops: the plan is a list. A step that doesn't always apply says when, in words, with `- only if:`, and the orchestrator starts it or skips it; a step that runs in several repos says which, in words, with `- in each:` (repo where step 1 made changes), and the orchestrator names them when it starts.\n" +
@@ -205,6 +214,7 @@ func ParsePlan(written string, quotes PlanQuotes) (*Plan, error) {
 	p.read(written)
 	p.carryingOn()
 	p.inOrInEach()
+	p.levelsHeld()
 	if len(p.problems) > 0 {
 		return nil, &MalformedPlan{Problems: p.problems}
 	}

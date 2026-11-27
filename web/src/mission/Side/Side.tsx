@@ -97,7 +97,7 @@ export function Side({
       </MissionSideFacts>
       {d.stages.length > 0 && (
         <MissionSideSection title={d.plan ? "Plan" : "Stages"} count={`${accepted} of ${d.stages.length} done`}>
-          <PlanList stages={d.stages} />
+          <PlanList stages={d.stages} reload={reload} />
         </MissionSideSection>
       )}
       {d.artifacts.length > 0 && (

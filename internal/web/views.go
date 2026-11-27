@@ -523,6 +523,10 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 		if s := st.Step; s != nil {
 			sg.Type, sg.Who, sg.WhoSays, sg.Makes, sg.OpensPR = StepType(s.Type), StepWho(s.Who), s.WhoSays(), s.Makes, s.MakesPR()
 			sg.In = s.Capsule
+			if s.Type == mission.StepWork && s.Model == "" {
+				sg.Level = s.LevelOf()
+				sg.LevelOn = v.LevelOn[sg.Level].String()
+			}
 		}
 		if st.Record != nil {
 			sg.Crew, sg.Why = st.Record.Crew, st.Record.Why
@@ -637,6 +641,12 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 		}
 	}
 	d.CrewPicks = crewPicks(v.CrewPicks)
+	if len(v.LevelOn) > 0 {
+		d.LevelOn = map[string]string{}
+		for l, p := range v.LevelOn {
+			d.LevelOn[l] = p.String()
+		}
+	}
 	return d, nil
 }
 

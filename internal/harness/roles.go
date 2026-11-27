@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 )
 
 // DefaultHarness is what crew run when nothing configures another.
@@ -54,6 +55,10 @@ type Roles struct {
 	// mission's page ([crew] allowed); a pick with no model takes the
 	// one ForCrew gives its harness, if any.
 	CrewAllowed []Pick
+	// CrewLevels are what crew run on at each level of a plan's Work
+	// step ([crew.levels]): by level, as configured, harness:model or a
+	// model alone. A level not set falls back (ForLevel).
+	CrewLevels map[string]string
 }
 
 // CrewPicks are what crew may be launched on from a mission's page: the
@@ -67,7 +72,51 @@ func (r Roles) CrewPicks() []Pick {
 			out = append(out, p)
 		}
 	}
+	for _, l := range levelNames {
+		if p := r.ForLevel(l); !slices.Contains(out, p) {
+			out = append(out, p)
+		}
+	}
 	return out
+}
+
+// levelNames are the levels a Work step may be at, least first (as
+// mission.Levels has them).
+var levelNames = []string{"rote", "normal", "hard"}
+
+// ForLevel is what crew run on for a Work step at level: [crew.levels]'s
+// pick for it, else, for rote, crew's harness on its small model (haiku
+// on Claude Code; what it orchestrates on, for another), and for normal
+// and hard, crew's own (ForCrew). A harness with no small model of its
+// own runs rote on crew's own too.
+func (r Roles) ForLevel(level string) Pick {
+	if raw := r.CrewLevels[level]; raw != "" {
+		if name, model, ok := strings.Cut(raw, ":"); ok {
+			if _, err := Get(name); err == nil {
+				return r.crewPick(Pick{Harness: name, Model: model})
+			}
+		}
+		return Pick{Harness: r.ForCrew().Harness, Model: raw}
+	}
+	crew := r.ForCrew()
+	if level != "rote" {
+		return crew
+	}
+	h, err := Get(crew.Harness)
+	if err != nil {
+		return crew
+	}
+	small := ""
+	if s, ok := h.(SmallModeler); ok {
+		small = s.SmallModel()
+	}
+	if o, ok := h.(Orchestrator); ok && small == "" {
+		small = o.OrchestratorModel()
+	}
+	if small == "" {
+		return crew
+	}
+	return Pick{Harness: crew.Harness, Model: small}
 }
 
 // AllowsCrew says whether crew may be launched on p from a mission's page:
