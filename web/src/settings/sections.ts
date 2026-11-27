@@ -66,7 +66,7 @@ export const words = {
   },
   notify: {
     label: "Desktop notifications",
-    about: "Notify when something needs you, or for what you choose below, while this tab is in the background. In front, notices show in the page. The tab icon lights up either way.",
+    about: "Notify when something needs you (crew asking, a step that's yours), or for what you choose below, while you're away from this page: another tab, or another app in front. On the page, notices show in it. The browser asks once whether to allow them. The tab icon lights up either way.",
   },
   daemon: {
     label: "Workspace",

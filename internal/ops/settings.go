@@ -490,7 +490,7 @@ func settingDefs(root string) []struct {
 		group    roleDef
 		settings []settingDef
 	}{roleDef{id: "notifications", title: "Notifications", about: "What happened that you'd want to know, kept as a feed: where each source of it is sent. Yours alone, as the feed is. What needs you is told apart from these, and always listed."}, []settingDef{
-		notifySetting("missions", "Missions", "A mission ended by itself, or one was started for you by crew or the orchestrator.",
+		notifySetting("missions", "Missions", "A mission ended by itself, or one was started for you by crew or the orchestrator. What a mission needs of you (crew asking, a step that's yours) is told by Desktop notifications, whatever this says.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.Missions }),
 		notifySetting("pulls", "Pull requests", "A pull request Workspace opened was merged.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.Pulls }),
