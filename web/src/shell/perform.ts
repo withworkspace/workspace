@@ -1,4 +1,4 @@
-import { act, dockPR, restoreArtifact, setTalkStatus } from "../api";
+import { act, dockPR, mergePR, restoreArtifact, setTalkStatus } from "../api";
 import { archiveMission } from "../mission/archive";
 import { confirm } from "../ui/Confirm";
 import { toast } from "../ui/toast";
@@ -38,7 +38,9 @@ const doWs = (d: Exclude<WsDoing, { pin: string } | { unpin: string }>): Promise
     ? setTalkStatus("", d.talk, d.status).then((t) => (t.status === "resolved" ? "Resolved." : "Reopened."))
     : "restore" in d
       ? restoreArtifact(d.restore).then(() => "Restored.")
-      : dockPR(d.dock).then((r) => r.message);
+      : "merge" in d
+        ? mergePR(d.merge, { when: d.when, head: d.head }).then((r) => r.message)
+        : dockPR(d.dock).then((r) => r.message);
 
 // doToThing does it, and says in a toast what was done, or what went
 // wrong. A pin says nothing: it's there in the sidebar. An unpin says
@@ -50,5 +52,12 @@ export function doToThing(d: ThingDoing) {
     if ("pin" in ws) pinNamed(ws.pin).catch(wrong);
     else if ("unpin" in ws) unpinNamed(ws.unpin).catch(wrong);
     else doWs(ws).then((said) => toast(said, { tone: "done" }), wrong);
-  } else (d.act === "archive" ? archiveMission(d.slug) : d.act === "stop" ? stopCrew(d.slug, d.crew ?? "") : act(d.slug, d.act, { crew: d.crew })).then((r) => r && toast(r.message, { tone: "done" }), wrong);
+  } else
+    (d.act === "archive"
+      ? archiveMission(d.slug)
+      : d.act === "stop"
+        ? stopCrew(d.slug, d.crew ?? "")
+        : // A merge's target is the pull request, which the headline names.
+          act(d.slug, d.act, d.act.startsWith("merge") ? { pr: d.crew } : { crew: d.crew })
+    ).then((r) => r && toast(r.message, { tone: "done" }), wrong);
 }

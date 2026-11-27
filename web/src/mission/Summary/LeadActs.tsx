@@ -31,7 +31,7 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
   const [busy, setBusy] = useState(false);
   const [words, setWords] = useState("");
   const [opened, setOpened] = useState<MissionAct | undefined>();
-  const send = (verb: ActVerb, body: { text?: string; crew?: string; task?: number; harness?: string; model?: string } = {}) => {
+  const send = (verb: ActVerb, body: { text?: string; crew?: string; task?: number; harness?: string; model?: string; pr?: string } = {}) => {
     setBusy(true);
     // Archiving asks first when it would burn work that hasn't merged.
     (verb === "archive" ? archiveMission(d.slug) : act(d.slug, verb, body))
@@ -78,6 +78,11 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
         return send("resume", { crew: a.target });
       case "not-yet":
         return send("dismiss");
+      case "merge":
+      case "merge-ready":
+      case "merge-off":
+        // One of its pull requests, at the commit the page shows.
+        return send(a.do, { pr: a.target });
       default:
         return send(a.do as ActVerb);
     }

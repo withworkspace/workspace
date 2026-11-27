@@ -58,6 +58,11 @@ export interface ActRequest {
     notes?: BundleNote[];
     check?: string;
     looked?: boolean;
+    /**
+     * PR is the pull request merge, merge-ready and merge-off are about,
+     * as repo#N.
+     */
+    pr?: string;
 }
 
 // From web/api.go
@@ -2622,6 +2627,28 @@ export interface Look {
 
 // From web/api.go
 /**
+ * MergeRequest asks for a pull request to merge (POST
+ * /api/prs/{repo}/{number}/merge): now (the default), once it can
+ * ("ready"), or no longer by itself ("off"), at the commit the page shows
+ * (Head; "" for the one ws last showed).
+ */
+export interface MergeRequest {
+    when?: string;
+    head?: string;
+}
+
+// From web/api.go
+/**
+ * MergeResult is what came of it: said, and GitHub's status (merged,
+ * pending, enqueued; on or off for merging by itself).
+ */
+export interface MergeResult {
+    message: string;
+    status: string;
+}
+
+// From web/api.go
+/**
  * Mission is one mission, as the missions list knows it.
  */
 export interface Mission {
@@ -4238,6 +4265,17 @@ export interface PullsPR {
      * below it in a stack: a branch off someone's PR.
      */
     onTopOf?: number;
+    /**
+     * Merge is what ws offers to do to merge it, of yours on its own (a
+     * stack's layer merges with its stack): "now", it's ready; "ready",
+     * only waiting holds it (its checks, a review, its base's rules), so
+     * it can be left to merge by itself once it can; "" neither.
+     */
+    merge?: string;
+    /**
+     * AutoMerge: it's set to merge by itself once it can.
+     */
+    autoMerge?: boolean;
 }
 
 // From pulls/store.go
@@ -4341,6 +4379,11 @@ export interface PullsStack {
      * off another PR.
      */
     onTopOf?: number;
+    /**
+     * Merges: it's yours, one of GitHub's, and every layer's ready to
+     * merge, so it can be merged whole, from its top (never in part).
+     */
+    merges?: boolean;
 }
 
 // From pulls/unsent.go

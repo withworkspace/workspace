@@ -53,6 +53,11 @@ type FixtureRepo struct {
 	// Said is what's been said on PRs themselves (reviews and comments), by
 	// number, oldest first.
 	Said map[string][]Said `json:"said,omitempty"`
+	// Merge is how its pull requests merge; without it, by any method,
+	// with auto-merge allowed and branches kept once merged.
+	Merge *MergeSettings `json:"merge,omitempty"`
+	// Deleted are branches deleted, oldest first.
+	Deleted []string `json:"deleted,omitempty"`
 }
 
 // FixtureReview is a review that was posted.

@@ -3,6 +3,7 @@ import type { IconName } from "../ui/Icon";
 import { onGitHub, remoteOf } from "../refs/refs";
 import { crewStatus } from "../ui/statusOf";
 import { type Item, missionDo } from "./find";
+import { useMergeOffers } from "../reviews/mergeOffers";
 
 // What can be done to one of ws's own things, from Find: on the thing's
 // own page (Here), or from its row anywhere (⌘K on it). Never in the list
@@ -46,7 +47,13 @@ export function subjectOf(id: string | undefined): Subject | undefined {
 // a mission's act: a conversation resolved or reopened, an artifact
 // restored, a pull request docked, any of them pinned or unpinned (by
 // the name ws writes it with).
-export type WsDoing = { talk: string; status: "open" | "resolved" } | { restore: string } | { dock: string } | { pin: string } | { unpin: string };
+export type WsDoing =
+  | { talk: string; status: "open" | "resolved" }
+  | { restore: string }
+  | { dock: string }
+  | { merge: string; when: "now" | "ready" | "off"; head?: string }
+  | { pin: string }
+  | { unpin: string };
 
 const row = (id: string, title: string, icon: IconName, more: Partial<Item>): Item => ({ id: `act:${id}`, group: "do", kind: "Do", title, icon, score: 0, ...more });
 
@@ -115,7 +122,17 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       return out;
     }
     case "pr": {
-      const out: Item[] = [row(`dock:${s.repo}#${s.number}`, "Dock here", "branch", { hint: "check out in a capsule", doing: { ws: { dock: prAPI(s.repo, s.number) } } })];
+      const out: Item[] = [];
+      // Merging it, as the page that showed it last read it: Find knows
+      // it only by its name. A stack's is asked of its top.
+      const m = useMergeOffers.getState()[`${s.repo}#${s.number}`];
+      if (m) {
+        const api = prAPI(m.repo, m.number);
+        if (m.offer === "now") out.push(row(`merge:${s.repo}#${s.number}`, m.stack ? "Merge stack" : "Merge", "merge", { hint: m.layers ? `all ${m.layers} layers, on GitHub` : "on GitHub, as it is", doing: { ws: { merge: api, when: "now", head: m.head } } }));
+        if (m.offer === "ready") out.push(row(`merge-ready:${s.repo}#${s.number}`, "Merge when ready", "merge", { hint: "once checks and reviews let it", doing: { ws: { merge: api, when: "ready", head: m.head } } }));
+        if (m.offer === "on") out.push(row(`merge-off:${s.repo}#${s.number}`, "Don't merge by itself", "merge", { hint: "it's set to merge once it can", doing: { ws: { merge: api, when: "off" } } }));
+      }
+      out.push(row(`dock:${s.repo}#${s.number}`, "Dock here", "branch", { hint: "check out in a capsule", doing: { ws: { dock: prAPI(s.repo, s.number) } } }));
       if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));
       out.push(...pinActs(`${s.repo}#${s.number}`, w, false));
       return out;

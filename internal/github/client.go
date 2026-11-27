@@ -39,6 +39,16 @@ type Client interface {
 	// MarkReady marks a draft pull request ready for review, as a step's
 	// pull request is once its checks pass (create.go).
 	MarkReady(org, repo string, number int) error
+
+	// Merging a pull request from ws (merge.go): how the repo lets one
+	// merge, asking it to (a stack whole, from its top), how that went,
+	// having one merge by itself once it's ready, and deleting a merged
+	// one's branch.
+	RepoMergeSettings(org, repo string) (MergeSettings, error)
+	MergePR(org, repo string, number int, ask MergeAsk) (Merging, error)
+	MergeStatus(org, repo string, number int, id string) (Merging, error)
+	SetAutoMerge(org, repo string, number int, on bool, ask MergeAsk) error
+	DeleteBranch(org, repo, branch string) error
 }
 
 // LiveClient calls the real gh CLI.

@@ -96,6 +96,7 @@ var labels = map[string]string{
 	"propose":                  "Proposing {1}",
 	"pr":                       "Looking at pull requests",
 	"pr comment":               "Proposing a review comment",
+	"pr merge":                 "Merging {1}",
 	"status":                   "Seeing workspace state",
 	"doctor":                   "Checking workspace health",
 	"sync":                     "Syncing the workspace",

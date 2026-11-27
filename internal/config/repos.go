@@ -10,7 +10,7 @@ import (
 
 // repoKeyOrder is the order a repo's keys are written in: as MANUAL.md
 // lists them, what it's called first.
-var repoKeyOrder = []string{"github", "display_name", "aliases", "color", "group", "after_create", "landing", "verify", "documents"}
+var repoKeyOrder = []string{"github", "display_name", "aliases", "color", "group", "after_create", "landing", "verify", "merge", "documents"}
 
 // repoLines are a repo's keys as lines of TOML, in repoKeyOrder: what it
 // says, and none of what it leaves unset.

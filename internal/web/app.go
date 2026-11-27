@@ -207,6 +207,7 @@ type Posting interface {
 	ResendPR(repo string, number int, id int64) error
 	DiscardPR(repo string, number int, id int64) error
 	DeclinePR(repo string, number int) error
+	MergePR(repo string, number int, ask ops.MergeAsk, by ops.Actor) (ops.Merged, error)
 	MarkTeamSeen() error
 	Narrate(snap *team.Snapshot, strands []string, since time.Time) int
 	Summarise(snap *team.Snapshot, since time.Time, key string) bool

@@ -401,6 +401,7 @@ func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []r
 		if c.PRS == mission.PROpen {
 			f.Conflict, f.MergeUnknown = merges(c.PR, c.SeenPR)
 			f.Blocked = c.PR.MergeState == "BLOCKED"
+			f.AutoMerge = c.PR.AutoMergeRequest != nil
 		}
 		s.PRs = append(s.PRs, f)
 	}
