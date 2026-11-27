@@ -6,9 +6,9 @@ import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Keys } from "../ui/Keys";
 import { humanError } from "../ui/strings";
-import { TextArea } from "../ui/TextArea";
 import css from "./ReviewSubmit.module.css";
 import { ReviewVerdicts } from "./ReviewVerdicts";
+import { RichTextArea } from "../ui/RichTextArea";
 
 // ReviewSubmit ends a capsule's review with a verdict: a, c or m picks
 // it, then the summary, then ⌘⏎. It says what's in the draft, and can
@@ -27,7 +27,7 @@ export function ReviewSubmit({
   const [verdict, setVerdict] = useState<Verdict>();
   const [summary, setSummary] = useState("");
   const [error, setError] = useState<string>();
-  const area = useRef<HTMLTextAreaElement>(null);
+  const area = useRef<HTMLElement>(null);
   const pick = (v: Verdict) => {
     setVerdict(v);
     setTimeout(() => area.current?.focus());
@@ -50,22 +50,22 @@ export function ReviewSubmit({
         Once submitted, crew read it.
       </p>
       <ReviewVerdicts label="Verdict" value={verdict} keyed onPick={pick} />
-      <TextArea
-        ref={area}
+      <RichTextArea
+        marks
+        lists
+        quote
+        code
+        refs
+        look="field"
+        field={area}
         value={summary}
         rows={4}
         placeholder="Summary (optional)"
         aria-label="Summary"
-        onChange={(e) => setSummary(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            submit();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            onClose();
-          }
-        }}
+        onChange={setSummary}
+        send="mod+enter"
+        onSend={submit}
+        onEscape={onClose}
       />
       {error && <Banner>{humanError(error)}</Banner>}
       <div className={css.actions}>

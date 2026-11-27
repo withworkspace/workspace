@@ -3,8 +3,8 @@ import { Button } from "../../ui/Button";
 import { Dialog, DialogActions } from "../../ui/Dialog";
 import { Input } from "../../ui/Input";
 import { humanError } from "../../ui/strings";
-import { TextArea } from "../../ui/TextArea";
 import css from "./MissionEndingDialog.module.css";
+import { RichTextArea } from "../../ui/RichTextArea";
 
 type MissionEndingDialogProps = {
   // Dropping the capsule, or handing it on.
@@ -35,13 +35,19 @@ export function MissionEndingDialog({ ending, name, text, onText, to, onTo, erro
           ? "Work won't be part of the mission, and won't hold it open. The capsule is kept, outside any mission."
           : "Describe a new mission for it, or name an existing one. The capsule moves there and no longer holds this mission open."}
       </p>
-      <TextArea
+      <RichTextArea
+        marks
+        lists
+        quote
+        code
+        refs
+        look="field"
         value={text}
         rows={3}
         autoFocus
         placeholder={drop ? "Reason for dropping" : "What the new mission is for"}
         aria-label={drop ? "Reason" : "New mission"}
-        onChange={(e) => onText(e.target.value)}
+        onChange={onText}
       />
       {!drop && (
         <label className={css.to}>

@@ -49,7 +49,7 @@
   padding: 0 0 4px;
 }
 
-.suggestion.decision textarea {
+.suggestion.decision [data-rich] {
   width: 100%;
   margin: 4px 0;
   font-size: var(--text-sm);
