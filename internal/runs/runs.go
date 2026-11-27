@@ -213,6 +213,14 @@ type Record struct {
 	// started (By workflow:<name>): its events carry it, so what it sets
 	// off can't loop.
 	Chain []string `json:"chain,omitempty"`
+	// Key is what its inputs came to, for a task that's cached (Key): once
+	// it has passed, it's kept in the cache under it, with the files
+	// Outputs name (its recipe's outputs and reports).
+	Key     string   `json:"key,omitempty"`
+	Outputs []string `json:"outputs,omitempty"`
+	// Reused is the pass it is, for a run that wasn't run, as its inputs
+	// were that pass's: it came from the cache.
+	Reused *Reused `json:"reused,omitempty"`
 }
 
 // Report is a file, or the files a pattern matches, that a task's command
@@ -306,6 +314,13 @@ type Run struct {
 	Why string
 	// Past is how many earlier runs of the task are kept behind it.
 	Past int
+	// Kept is the key a cached task's pass was kept under, once it was;
+	// KeepFailed why it couldn't be; and Undeclared the files it changed
+	// as it ran that its outputs don't name, which a reuse doesn't put
+	// back.
+	Kept       string
+	KeepFailed string
+	Undeclared []string
 }
 
 // Passed is whether a task ended by itself with status 0.
@@ -664,6 +679,9 @@ func load(dir string, procs Procs) (Run, error) {
 		if fi, err := os.Stat(filepath.Join(dir, logFile)); err == nil {
 			r.Ended = fi.ModTime() // its last words, the nearest to when it went
 		}
+	}
+	if r.Key != "" && r.State != Running {
+		r.Kept, r.KeepFailed, r.Undeclared = keptOf(dir)
 	}
 	if r.State != Running {
 		if b, err := os.ReadFile(filepath.Join(dir, stoppedFile)); err == nil {

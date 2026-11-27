@@ -241,6 +241,9 @@ func (w *Workspace) runCheckTask(capsule, dir string, c mission.Check, env []str
 	}
 	took := now.Took().Round(time.Second)
 	how := fmt.Sprintf("passed in %s", took)
+	if now.Reused != nil {
+		how = "passed, " + ReusedSaid(now)
+	}
 	if !now.Passed() {
 		how = fmt.Sprintf("failed (exit %d) in %s", now.Status, took)
 	}

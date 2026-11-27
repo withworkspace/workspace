@@ -1,0 +1,18 @@
+/* What the cache made of a task's run (RunsPageCache.tsx): the pass it
+   reused, and the files it changed that its outputs don't name. */
+
+.reused {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

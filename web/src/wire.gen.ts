@@ -4947,6 +4947,16 @@ export interface RunDetail {
     reports?: RunReport[];
     check?: RunCheck;
     /**
+     * Cached is whether it's a cached task (its recipe names its inputs);
+     * Reused the pass it is, where it wasn't run; KeepFailed why its pass
+     * couldn't be kept; Undeclared the files it changed that its outputs
+     * don't name, which a reuse won't put back.
+     */
+    cached?: boolean;
+    reused?: RunReused;
+    keepFailed?: string;
+    undeclared?: string[];
+    /**
      * Link is where it's reached: by its name, when the workspace has
      * names (ws router), else Local, at 127.0.0.1 and its port.
      */
@@ -5017,6 +5027,10 @@ export interface RunDetail {
  */
 export interface RunInWorktree {
     recipe: string;
+    /**
+     * Fresh runs a cached task even where a pass with its inputs is kept.
+     */
+    fresh?: boolean;
 }
 
 // From web/runs.go
@@ -5105,6 +5119,16 @@ export interface RunReport {
 
 // From web/api.go
 export type RunResult = "failed" | "passed" | "running" | "stopped";
+
+// From web/api.go
+/**
+ * RunReused is the pass a reused task is: the run that passed, by its
+ * number, and how long it took, in milliseconds.
+ */
+export interface RunReused {
+    from: string;
+    took: number;
+}
 
 // From web/runs.go
 /**

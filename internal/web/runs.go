@@ -211,6 +211,8 @@ func RecipeInfoOf(rc ops.Recipe) RecipeInfo {
 // to run there.
 type RunInWorktree struct {
 	Recipe string `json:"recipe"`
+	// Fresh runs a cached task even where a pass with its inputs is kept.
+	Fresh bool `json:"fresh,omitempty"`
 }
 
 func (s *Server) worktreeRuns(w http.ResponseWriter, r *http.Request) {
@@ -248,7 +250,7 @@ func (s *Server) runInWorktree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo, name := r.PathValue("repo"), r.PathValue("name")
-	run, err := s.App.RunIn(repo, name, b.Recipe, ops.AsYou)
+	run, err := s.App.RunIn(repo, name, b.Recipe, b.Fresh, ops.AsYou)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return

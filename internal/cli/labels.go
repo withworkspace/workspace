@@ -119,6 +119,8 @@ var labels = map[string]string{
 	"silo stop":                "Removing {1}'s silo",
 	"silo watch":               "Watching silos",
 	"run":                      "Starting a run",
+	"run cache":                "Listing what the cache keeps",
+	"run cache clear":          "Clearing the cache",
 	"run keep":                 "Keeping {1} running",
 	"run logs":                 "Reading {1}'s output",
 	"run ls":                   "Listing runs",

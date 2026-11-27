@@ -35,7 +35,7 @@ func newRunCmd() *cobra.Command {
 	var ttl float64
 	var wait time.Duration
 	var withs []string
-	var task bool
+	var task, fresh bool
 	var timeout time.Duration
 	cmd := &cobra.Command{
 		Use:   "run [flags] [<recipe> | -- <command>]",
@@ -110,6 +110,26 @@ A task that hasn't ended after its timeout is stopped, and kept as
 stopped: an hour, unless its recipe says (timeout = "10m") or --timeout
 does. What's meant to be kept up is a service.
 
+A task that names its inputs is cached: asked for again with the same
+inputs as a run of it that passed, that pass is reused rather than run,
+here or in any capsule of the workspace, and its outputs are put back:
+
+  [run.task.build]
+  command = "pnpm build"
+  inputs = ["src/**", "package.json", "pnpm-lock.yaml"]
+  outputs = ["dist"]
+  env = ["NODE_ENV"]
+
+inputs and outputs are paths from where it runs (a file, or a folder and
+all that's in it) or patterns (src/**/*.ts). Its inputs are the files they
+name, changed, new and ignored ones too (node_modules only where it's
+named), its command, and the variables env names. Its outputs, and its
+reports, are what a reuse puts back, once what they name there now is
+removed. A task that changes files its outputs don't name is told so, as
+a reuse won't put those back. Only a pass is kept, and only a task that
+needs no running services is cached. --fresh runs it anyway, and keeps
+this run in place of the pass; ws run cache lists what's kept.
+
 Its owner (--for):
   pid       the process that started it: your terminal's shell, or the
             agent whose command it is (the nearest above ws that's been
@@ -167,7 +187,10 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 				if task {
 					return fmt.Errorf("--task is for a command: %s is a recipe, which is a %s by where it's written (%s)", args[0], recipe.Type, recipe.Table(args[0]))
 				}
-				ask = ops.RunAsk{Recipe: args[0]}
+				ask = ops.RunAsk{Recipe: args[0], Fresh: fresh}
+				if fresh && !recipe.Cached() {
+					return fmt.Errorf("--fresh runs a cached task when a pass is kept: %s names no inputs, so it's always run", args[0])
+				}
 				if recipe.Where == "silo" {
 					silo := w.WS().SiloWorktree(here.repo)
 					if _, err := os.Stat(silo); err != nil {
@@ -307,8 +330,9 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it, and each run it needs, to be up (0: don't); for a task, how long to wait for it to end (unsaid: until it does)")
 	cmd.Flags().DurationVar(&timeout, "timeout", runs.TaskTimeout, "for a task: how long it may take before it's stopped (10m, 1h30m), over its recipe's timeout")
 	cmd.Flags().BoolVar(&task, "task", false, "the command ends by itself (tests, lint, a build): no port, and what it came to is kept")
+	cmd.Flags().BoolVar(&fresh, "fresh", false, "run a cached task even where a pass with the same inputs is kept, and keep this one in its place")
 	cmd.Flags().StringArrayVar(&withs, "with", nil, "what meets one of the recipe's needs, in place of the nearest: <need>=<capsule>, ground, silo, or an address (https://…)")
-	cmd.AddCommand(newRunLsCmd(), newRunShowCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd(), newRunPointCmd())
+	cmd.AddCommand(newRunLsCmd(), newRunShowCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd(), newRunPointCmd(), newRunCacheCmd())
 	return cmd
 }
 
@@ -348,13 +372,19 @@ func followTask(store runs.Store, run runs.Run, limit time.Duration) error {
 		fmt.Fprintf(os.Stderr, "\n%s is still running after %s: ws run logs -f %s follows it, and ws run show %s says what it came to.\n", run.NRef(), limit, run.Ref(), run.Ref())
 		return nil
 	}
-	if e.run.Result() == "stopped" && e.run.Why != "" {
+	switch {
+	case e.run.Reused != nil:
+		fmt.Fprintf(os.Stderr, "\n%s passed: %s. --fresh runs it.\n", e.run.NRef(), ops.ReusedSaid(e.run))
+	case e.run.Result() == "stopped" && e.run.Why != "":
 		fmt.Fprintf(os.Stderr, "\n%s stopped%s: %s.\n", e.run.NRef(), tookSaid(e.run), e.run.Why)
-	} else {
+	default:
 		fmt.Fprintf(os.Stderr, "\n%s %s%s.\n", e.run.NRef(), e.run.Result(), tookSaid(e.run))
 	}
 	if files := reportsKept(e.run); len(files) > 0 {
 		fmt.Fprintf(os.Stderr, "Kept with it: %s.\n", strings.Join(files, ", "))
+	}
+	for _, line := range cacheSaid(e.run) {
+		fmt.Fprintln(os.Stderr, line)
 	}
 	for _, rp := range e.run.Reports {
 		if len(e.run.ReportFiles(rp.Name)) == 0 {
@@ -371,8 +401,11 @@ func followTask(store runs.Store, run runs.Run, limit time.Duration) error {
 }
 
 // tookSaid is how long an ended run took, to follow what it came to: " in
-// 42s".
+// 42s". A reused run wasn't run, so took nothing to say.
 func tookSaid(r runs.Run) string {
+	if r.Reused != nil {
+		return ", reused"
+	}
 	t := r.Took()
 	switch {
 	case t <= 0:
@@ -791,16 +824,23 @@ type runJSON struct {
 	Dirty   bool         `json:"dirty,omitempty"`
 	Why     string       `json:"why,omitempty"`
 	Reports []reportJSON `json:"reports,omitempty"`
-	Repo    string       `json:"repo"`
-	Where   string       `json:"where"`
-	Dir     string       `json:"dir"`
-	Command string       `json:"command"`
-	Port    int          `json:"port"`
-	Link    string       `json:"link"`
-	Local   string       `json:"local"`
-	State   string       `json:"state"`
-	Status  *int         `json:"status,omitempty"`
-	Owner   runs.Owner   `json:"owner"`
+	// Reused is the pass it is, for a cached task that wasn't run; Kept
+	// the key a pass of one was kept under, KeepFailed why it couldn't
+	// be, and Undeclared the files it changed outside its outputs.
+	Reused     *runs.Reused `json:"reused,omitempty"`
+	Kept       string       `json:"kept,omitempty"`
+	KeepFailed string       `json:"keep_failed,omitempty"`
+	Undeclared []string     `json:"undeclared,omitempty"`
+	Repo       string       `json:"repo"`
+	Where      string       `json:"where"`
+	Dir        string       `json:"dir"`
+	Command    string       `json:"command"`
+	Port       int          `json:"port"`
+	Link       string       `json:"link"`
+	Local      string       `json:"local"`
+	State      string       `json:"state"`
+	Status     *int         `json:"status,omitempty"`
+	Owner      runs.Owner   `json:"owner"`
 	// Also are who else it's for; Needs what it was started needing; and
 	// NeededBy the running runs that need it, which keep it.
 	Also     []runs.Owner `json:"also,omitempty"`
@@ -830,6 +870,7 @@ func runJSONOf(root string, r runs.Run, now time.Time) runJSON {
 	if r.IsTask() {
 		j.Type, j.Ref, j.N, j.Link, j.Local = string(runs.Task), r.NRef(), r.N, "", ""
 		j.Result, j.Took, j.Commit, j.Dirty, j.Why = r.Result(), r.Took().Round(time.Millisecond).Seconds(), r.Commit, r.Dirty, r.Why
+		j.Reused, j.Kept, j.KeepFailed, j.Undeclared = r.Reused, r.Kept, r.KeepFailed, r.Undeclared
 		for _, rp := range r.Reports {
 			files := r.ReportFiles(rp.Name)
 			if files == nil {
@@ -925,7 +966,13 @@ task, while it's kept.`,
 				}
 				fmt.Fprintf(out, "commit   %s\n", at)
 			}
+			if r.Reused != nil {
+				fmt.Fprintf(out, "reused   %s\n", strings.TrimPrefix(ops.ReusedSaid(r), "reused "))
+			}
 			fmt.Fprintf(out, "command  %s\nlog      %s\n", r.Command, r.LogPath())
+			if r.Key != "" {
+				fmt.Fprintf(out, "outputs  %s\n", strings.Join(r.Outputs, " "))
+			}
 			for _, rp := range r.Reports {
 				files := r.ReportFiles(rp.Name)
 				what := strings.Join(files, " ")
@@ -940,6 +987,9 @@ task, while it's kept.`,
 					format = "  " + rp.Format
 				}
 				fmt.Fprintf(out, "report   %s%s  %s\n", rp.Name, format, what)
+			}
+			if lines := cacheSaid(r); len(lines) > 0 {
+				fmt.Fprintf(out, "\n%s\n", strings.Join(lines, "\n"))
 			}
 			if len(past) > 0 {
 				fmt.Fprintln(out, "\nBefore it:")

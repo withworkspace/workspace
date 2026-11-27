@@ -711,8 +711,10 @@ export const runRecipe = (slug: string, repo: string, capsule: string, recipe: s
 export const getWorktreeRuns = (repo: string, name: string) => getJSON<WorktreeRunsInfo>(`${worktreeAPI(repo, name)}/runs`);
 
 // runInWorktree starts a ground's or capsule's recipe, for as long as
-// someone has it open on the Files page (and 15 minutes after).
-export const runInWorktree = (repo: string, name: string, recipe: string) => send<RunDetail>("POST", `${worktreeAPI(repo, name)}/runs`, { recipe });
+// someone has it open on the Files page (and 15 minutes after). fresh runs
+// a cached task even where a pass with its inputs is kept.
+export const runInWorktree = (repo: string, name: string, recipe: string, fresh?: boolean) =>
+  send<RunDetail>("POST", `${worktreeAPI(repo, name)}/runs`, { recipe, ...(fresh && { fresh }) });
 
 // writePR has the PR writer write a capsule's pull request, for you to
 // read and change before you open it. It answers once it's written: a

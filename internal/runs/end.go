@@ -354,6 +354,14 @@ func endsWith(r Run, o Owner) string {
 	return ""
 }
 
+// Short is how long a run took, as it's said: 0.4s, 4.2s, 42s, 3m10s.
+func Short(d time.Duration) string {
+	if d < 10*time.Second {
+		return d.Round(100 * time.Millisecond).String()
+	}
+	return Span(d)
+}
+
 // Span is d as it would be written for a timeout: 45s, 10m, 1h30m.
 func Span(d time.Duration) string {
 	d = d.Round(time.Second)

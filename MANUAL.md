@@ -1507,6 +1507,17 @@ ws run show test#3             # an earlier run of it
 - **Timeout.** A task ends by itself, so one that hasn't after its timeout is stopped, at the daemon's next look (every 15 seconds): an hour, unless its recipe says another (`timeout = "10m"`, or `"1h30m"`), or `ws run --timeout 10m` does for this run. It's what catches something written as a task that was meant to be kept up, which is a service. The time runs from when the task started, and asking for it again while it runs gives it no more. `--ttl 0` is no limit.
 - **Stopped.** A task still has an owner while it runs. One that's stopped before it ends (its owner went, its timeout passed, `ws run stop`) is kept as *stopped*, with why, and no result.
 - **What it needs** is seen to as a service's is: a task that needs the api has it started first, and it's ended once the task has. A task can't be what a run needs.
+- **Cached.** A task whose recipe names its `inputs` is cached. Once it has passed, asking for it again with the same inputs reuses that pass instead of running it, in this worktree or any capsule of the workspace. Its outputs are put back, and the run is kept as passed, saying which run it was reused from:
+
+  ```toml
+  [run.task.build]
+  command = "pnpm build"
+  inputs = ["src/**", "package.json", "pnpm-lock.yaml"]
+  outputs = ["dist"]
+  env = ["NODE_ENV"]
+  ```
+
+  `inputs` and `outputs` are paths from where it runs (a file, or a folder and everything in it) or patterns (`src/**/*.ts`; `*` stays within a folder, `**` crosses folders). The key is the recipe's command as this worktree's `ws.repo.toml` has it, the patterns, the files they name (changed, new and ignored files included; `node_modules`, `.git` and `.ws` only where a pattern names them), the outputs, and the values of the variables `env` names. Inputs are read through git, so a task outside a git repo isn't cached, and nor is one that needs a running service. Only a pass is kept, by the run's own wrapper as its command ends. A reuse removes what `outputs` names in the worktree, then puts the pass's outputs and reports back. A cached task that changed files its outputs don't name is told so, since a reuse won't bring those back. `ws run --fresh <task>` runs it anyway and keeps the new pass in place of the old one. `ws run cache` lists what's kept, `ws run cache clear` drops it all, and past 5 GB the passes least recently used are dropped. A step's check of `ws run <task>` is cached the same way, and its evidence says which run it reused.
 - **The workspace's own.** A recipe in `ws.toml` can be a task as a repo's can: run at the workspace's root, said by its name alone (`docs-check`, and `docs-check#3` for one run of it), and the commit it's kept with is the root's. A task can't be an app: it ends by itself, with nothing to frame, so `page` isn't a task's to have.
 
 **Needs.** A recipe says what it needs running first, and how it's told where that is:
