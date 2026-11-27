@@ -39,6 +39,11 @@ func TestCrew_Golden(t *testing.T) {
 	golden(t, "crew-briefing", Crew(CrewBrief{Slug: "fe-issue-45", Role: "briefing", Request: "fe issue 45", Org: "acme", Conversation: "t3"}))
 	golden(t, "crew-answer", Crew(CrewBrief{Slug: "cache", Title: "Cache lookups", Role: "answer",
 		Question: "Redis or in memory?", Options: []string{"Redis", "In memory"}}))
+	// Crew in a repo with recipes are told them, by name and command.
+	golden(t, "crew-recipes", Crew(CrewBrief{Slug: "cache", Title: "Cache lookups", Recipes: []Recipe{
+		{Name: "test", Type: "task", Command: "go test ./..."},
+		{Name: "web", Type: "service", Command: "pnpm dev --port {port}", Description: "The storefront, on its dev server."},
+	}}))
 }
 
 func TestBriefingPrompt(t *testing.T) {

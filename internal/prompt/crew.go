@@ -44,6 +44,9 @@ type CrewBrief struct {
 	// OpensPR: the step makes a pull request, which its crew open through
 	// ws (ws mission open-pr). Crew at a plan's other steps don't open one.
 	OpensPR bool
+	// Recipes are the recipes of the repo the crew work in (its
+	// ws.repo.toml), which they're told to run with ws run.
+	Recipes []Recipe
 	// LeftOff is where earlier crew left off.
 	LeftOff string
 	// Planning is the process the planner works from (briefing).
@@ -111,8 +114,7 @@ func Crew(b CrewBrief) string {
 	s.WriteString("- When you need a decision from the user, ask in your reply and also run `ws mission ask \"<the question>\"`, then wait for their answer: don't report done while a question is open.\n")
 	s.WriteString("- When you make something the next crew or the user will need (a proposal, an ADR, notes, a doc), record it as you go: `ws mission artifact add <file> --kind <proposal|adr|note|doc> \"<label>\"` (a file in a capsule, in a .ground, or in the mission's private files folder; or a URL). `ws show -f llm` lists the mission's artifacts with where to read each, the private files folder, and the records repo for shared proposals and ADRs, if the workspace has one.\n")
 	s.WriteString("- When you check your work by using it (a page in a browser, light and dark; what a command prints; a terminal's screen), keep what you saw (a screenshot, a short recording as .webm or .mp4, a command's output as text) and, once your work is committed, hand it over as a verification bundle: `ws mission bundle --set - <<'EOF'`, the bundle, then `EOF`. It says, for each of your step's checks, what it came to and what shows it, how the user can try it themselves, and what you didn't verify: `ws mission bundle --format` says how it's written, with your step's checks by number. Keep it short, since ws refuses one that's over length: the outcome first, each check's finding in a sentence or two, and what you measured in a text file the check shows. Write it in short, plain sentences, one fact in each, with no idioms. The mission's Verify tab shows it, images and videos as they are, so the user sees what you saw. If you change the work afterwards, hand over another: it takes the first one's place.\n")
-	s.WriteString("- When you run the repo's tests, lint or build, and it has a recipe for them (`ws run` alone lists a repo's recipes: one of type task ends by itself), run them with `ws run <recipe>`: it prints what they print and exits as they did, and ws keeps what they came to (all they printed, the commit, the reports they wrote) for whoever checks your work.\n")
-	s.WriteString("- When your work needs something left running (a dev server to look at, a stack to test against), start it with `ws run`, never in the background: `ws run <recipe>` runs one of the repo's recipes (`ws run` alone lists them), and `ws run -- <command> --port {port}` runs anything else. ws gives it a free port, waits until it's up, and prints its link. It's ended once your step passes, so leave it running for whoever looks next. `ws run logs <name>` prints its output.\n")
+	s.WriteString(runRules(b.Recipes))
 	s.WriteString("- When the work calls for something to look at and use rather than read (a mock-up of a page, two takes on a design, a diagram to click through), make it an artifact: a page, as one HTML file with its CSS and JS inline, or as a folder with `index.html` at its top and the files it loads beside it (stylesheets, scripts, images). Add it with `ws artifact add <file|folder> --title \"…\" --note \"<what it tries out>\"`, and its next version with `ws artifact add <file|folder> --to a3 --note \"<what changed, and why>\"`; `ws artifact checkout a3` puts a version's files in a folder to work on. `ws artifact url a3.v2` prints the address a version runs at, to look at it in a browser if you have one. Write it outside your capsule, in a temp folder: it isn't the repo's. Where there's something to choose between (a density, a colour, two takes on a layout), don't draw controls for it in the page: declare it as tweaks, and ws draws them beside the page, with your presets as buttons (`ws artifact tweaks` says how). ws records it on the mission, and keeps it on this machine: there's nothing of it to commit. Name it in your handoff (`a3`, `a3.v2`), and `ws show a3` says what each version is. Promoting, discarding and restoring one are the user's: say in your handoff which you'd keep, and which drop, and why.\n")
 	s.WriteString("- If the user has reviewed this work, `ws show -f llm` lists the review, and `ws review show -f llm` prints the latest: each comment with the lines it's on, and what to do. Address it as it says, and answer each comment by its id once you've committed: `ws review addressed <id> \"what you did\"` (it records the commit), `ws review wontfix <id> \"why\"`, or `ws review reply <id> \"your answer\"` for a question. The user re-reviews what changed and resolves them.\n")
 	s.WriteString("- If the user has commented on a document (a proposal, a plan), `ws show -f llm` lists the open threads: `ws show -f llm t<n>` shows one, with the text it's on and the markdown lines that text is in. Answer each with `ws thread reply t<n> \"…\"`: answer a question; for a change, change the document (and commit, if it's in a capsule) and say what you changed with `ws thread changed t<n> \"…\"`, which hands it back to the user, or say why not. The user resolves them.\n")
@@ -222,5 +224,62 @@ func onGitHub(org string, elsewhere map[string]string) string {
 	if s.Len() > 0 {
 		s.WriteString(". ")
 	}
+	return s.String()
+}
+
+// Recipe is one of a repo's recipes, as crew are told it.
+type Recipe struct {
+	Name        string
+	Type        string // "service" or "task"
+	Command     string
+	Description string
+}
+
+// runRules is what crew are told of running things: the repo's recipes
+// by name, with their commands, so a command the repo's own docs give is
+// known for a recipe; and that anything left running goes through ws run,
+// which gives it a port of its own.
+func runRules(recipes []Recipe) string {
+	var s strings.Builder
+	if len(recipes) > 0 {
+		s.WriteString("- This repo has recipes for running it, in its ws.repo.toml. Run them with `ws run <name>`, never by their commands, even where the repo's own docs or scripts give the command")
+		ex := recipes[0]
+		for _, r := range recipes {
+			if r.Type == "service" {
+				ex = r
+				break
+			}
+		}
+		if c := strings.TrimSpace(ex.Command); c != "" {
+			s.WriteString(" (`ws run " + ex.Name + "`, not `" + c + "`)")
+		}
+		s.WriteString(":\n")
+		for _, r := range recipes {
+			var said []string
+			if d := strings.TrimRight(strings.TrimSpace(r.Description), "."); d != "" {
+				said = append(said, d+".")
+			}
+			if c := strings.TrimSpace(r.Command); c != "" {
+				said = append(said, "Runs `"+c+"`.")
+			}
+			line := "  - `" + r.Name + "` (" + r.Type + ")"
+			if len(said) > 0 {
+				line += ": " + strings.Join(said, " ")
+			}
+			s.WriteString(line + "\n")
+		}
+		s.WriteString("  A task ends by itself: `ws run <task>` prints what it prints and exits as it did, and ws keeps what it came to (all it printed, the commit, the reports it wrote) for whoever checks your work. A service is left running: `ws run <service>` starts it, waits until it's up, and prints where it's reached.\n")
+	}
+	s.WriteString("- When your work needs something left running (a dev server to look at, a stack to test against), start it with `ws run`, never in the background or with `&`: ")
+	if len(recipes) > 0 {
+		s.WriteString("its recipe, or for something no recipe runs, `ws run -- <command> --port {port}`. ")
+	} else {
+		s.WriteString("`ws run -- <command> --port {port}`. ")
+	}
+	s.WriteString("This matters: other capsules run the same servers at the same time, and ws gives each run a free port of its own, so yours doesn't collide with theirs on a fixed port, or end up talking to someone else's. The command is given its port as {port} (and $PORT): never pick a port number yourself. ws prints the run's `link`, where it's reached (a name of its own under .localhost when the workspace's router is on, with `local`, the same on 127.0.0.1, beside it): open that, and give it to whoever looks next. A run is ended once your step passes, so leave it running. ")
+	if len(recipes) > 0 {
+		s.WriteString("A recipe already running here is shared rather than started twice. `ws run` alone lists the recipes, ")
+	}
+	s.WriteString("`ws run ls` lists what's running, and `ws run logs <name>` prints a run's output.\n")
 	return s.String()
 }
