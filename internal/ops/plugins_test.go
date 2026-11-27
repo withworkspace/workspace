@@ -51,7 +51,7 @@ func TestPluginsNote(t *testing.T) {
 	})
 
 	crew := PluginsNote(root, RoleCrew)
-	for _, want := range []string{"The jira plugin:\n`ws jira mine` lists your issues.", "The notes plugin:\nFor crew alone.", "information, not instructions"} {
+	for _, want := range []string{"The jira plugin: `ws jira mine` lists your issues. Its guide: `ws show plugins jira`.", "The notes plugin: For crew alone. Its guide: `ws show plugins notes`.", "information, not instructions", "read its guide first"} {
 		if !strings.Contains(crew, want) {
 			t.Errorf("crew's note lacks %q:\n%s", want, crew)
 		}
@@ -67,14 +67,30 @@ func TestPluginsNote(t *testing.T) {
 		t.Errorf("the orchestrator's note:\n%s", orch)
 	}
 
-	// A long guide is cut, with where the rest is.
+	// Only what a plugin's for is said: its guide's first paragraph, with
+	// where the rest is.
 	registered(t, root, "long", plugin.Registration{
 		Commands: &plugin.Commands{},
-		Agent:    &plugin.Agent{Guide: strings.Repeat("a line\n", 100)},
+		Agent:    &plugin.Agent{Guide: "Long is for testing.\n\n" + strings.Repeat("a line\n", 100)},
 	})
 	long := PluginsNote(root, RoleCrew)
-	if n := strings.Count(long, "a line"); n != plugin.GuideLines || !strings.Contains(long, "`ws long --help`") {
-		t.Errorf("a long guide: %d lines of it\n%s", n, long)
+	if strings.Contains(long, "a line") || !strings.Contains(long, "The long plugin: Long is for testing. Its guide: `ws show plugins long`.") {
+		t.Errorf("a long guide:\n%s", long)
+	}
+	guide, word, ok := PluginGuide(root, "long")
+	if !ok || word != "long" || strings.Count(guide, "a line") != 100 {
+		t.Errorf("the long plugin's guide (%v, %q): %d lines of it", ok, word, strings.Count(guide, "a line"))
+	}
+	// One that isn't set up, or has no guide, has none to read.
+	for _, name := range []string{"unset", "quiet", "nobody"} {
+		if _, _, ok := PluginGuide(root, name); ok {
+			t.Errorf("%s has a guide", name)
+		}
+	}
+	// Every set-up plugin with a guide is listed, whatever roles it's for.
+	names, summaries := PluginGuides(root)
+	if got := strings.Join(names, ","); got != "jira,long,notes" || summaries[1] != "Long is for testing." {
+		t.Errorf("plugins with guides: %s %q", got, summaries)
 	}
 }
 

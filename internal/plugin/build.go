@@ -16,11 +16,6 @@ import (
 // plugin check). Starting one, and building it on every save, are a
 // plugin's own work: plugin-dev's.
 
-// GuideLines is how much of a plugin's guide an agent is given: it's told
-// in every prompt, so it's a pointer to the plugin's commands, not its
-// manual.
-const GuideLines = 40
-
 // Build builds the plugin in dir as its plugin.toml says (build), with
 // what the build prints written to out. A plugin with no build has
 // nothing to do.
@@ -140,11 +135,11 @@ func Problems(name string, r Registration) []Problem {
 	if r.Agent != nil {
 		guide = strings.TrimSpace(r.Agent.Guide)
 	}
-	switch lines := strings.Count(guide, "\n") + 1; {
+	switch {
 	case guide == "" && word != "":
 		note("it has commands and no guide (agents.md): agents won't know ws %s is there", word)
-	case guide != "" && lines > GuideLines:
-		note("its guide is %d lines, and agents are given the first %d: keep it to what the commands are", lines, GuideLines)
+	case guide != "" && GuideSummaryCut(guide):
+		note("its guide's first paragraph is over %d characters, and every agent is told it as what the plugin's for (the rest they read with ws show plugins %s): it's cut to %q", SummaryMax, name, GuideSummary(guide))
 	}
 	// What it can do from Find.
 	if problem := protocol.ActionsProblem(r.Actions); problem != "" {
@@ -228,4 +223,51 @@ func Problems(name string, r Registration) []Problem {
 	}
 	checkKeys(r.Config, "", 0)
 	return out
+}
+
+// SummaryMax is about how long what a plugin's for is: its guide's first
+// paragraph, which every agent ws starts is told (the rest of the guide
+// they read with ws show plugins <name>).
+const SummaryMax = 300
+
+// GuideSummary is what a plugin's guide says it's for: its first
+// paragraph, as whole sentences up to about SummaryMax (the first
+// sentence whatever its length), ending in a full stop.
+func GuideSummary(guide string) string {
+	para, _, _ := strings.Cut(strings.TrimSpace(guide), "\n\n")
+	para = strings.Join(strings.Fields(para), " ")
+	if len(para) > SummaryMax {
+		cut, scan := -1, para+" "
+		for i := 0; i+1 < len(scan); i++ {
+			if strings.ContainsRune(".!?", rune(scan[i])) && scan[i+1] == ' ' {
+				if cut >= 0 && i+1 > SummaryMax {
+					break
+				}
+				cut = i + 1
+			}
+		}
+		if cut < 0 {
+			cut = strings.LastIndex(para[:SummaryMax], " ")
+			if cut <= 0 {
+				cut = SummaryMax
+			}
+			return strings.TrimRight(para[:cut], " ,;:") + "…"
+		}
+		para = para[:cut]
+	}
+	para = strings.TrimRight(para, " :;,")
+	if para == "" {
+		return ""
+	}
+	if !strings.HasSuffix(para, "…") && !strings.ContainsRune(".!?", rune(para[len(para)-1])) {
+		para += "."
+	}
+	return para
+}
+
+// GuideSummaryCut is whether GuideSummary leaves out some of guide's
+// first paragraph.
+func GuideSummaryCut(guide string) bool {
+	para, _, _ := strings.Cut(strings.TrimSpace(guide), "\n\n")
+	return len(GuideSummary(guide)) < len(strings.Join(strings.Fields(para), " "))
 }

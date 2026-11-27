@@ -60,6 +60,8 @@ Outside a mission:
                     each is for, and the file that says how it's done
   kinds             the kinds of document it has: where each goes, what
                     it's named, its commit messages, and its guide
+  plugins [name]    its plugins that have a guide for agents, and what
+                    each is for; with a name, that plugin's guide, whole
   passes            each pass over pages: what it found, and how much of
                     it was right and acted on
   process           the workspace's process (how work goes here, in prose)
@@ -97,7 +99,12 @@ Refs:
 ` + showRefs + `
 
 Views are kept short and say what they left out; --full shows it all.`,
-		Args:              cobra.MaximumNArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 2 && args[0] == "plugins" { // ws show plugins <name>
+				return nil
+			}
+			return cobra.MaximumNArgs(1)(cmd, args)
+		},
 		PersistentPreRun:  func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -109,6 +116,22 @@ Views are kept short and say what they left out; --full shows it all.`,
 				return err
 			}
 			ref := fromAddress(ctx, strings.TrimSpace(firstArg(args)), &slug)
+			if ref == "plugins" {
+				name := ""
+				if len(args) == 2 {
+					name = strings.TrimSpace(args[1])
+				}
+				v, err := pluginsView(ctx.WS(), name)
+				if err != nil {
+					return err
+				}
+				if format == "llm" {
+					_, err = os.Stdout.WriteString(v.render(false, full))
+				} else {
+					_, err = io.WriteString(ui.Stdout, v.render(true, full))
+				}
+				return err
+			}
 			if ref == "skills" || ref == "kinds" || ref == "passes" || ref == "process" { // the workspace's own way of working
 				v := skillsView(ctx.WS())
 				switch ref {
