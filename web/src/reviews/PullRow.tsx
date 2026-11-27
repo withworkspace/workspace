@@ -93,7 +93,7 @@ export function PullRow({
           )}
           {pr?.draft && <Chip tone="quiet">Draft</Chip>}
           {pr?.autoMerge && (
-            <Chip tone="quiet" title="It merges by itself once its checks and reviews let it">
+            <Chip tone="quiet" title="Merges once checks and reviews pass">
               <Icon name="merge" size={11} /> merges when ready
             </Chip>
           )}

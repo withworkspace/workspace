@@ -28,11 +28,11 @@ export function PullRequestMerge({ offer, stack, busy, primary, className, onMer
   if (offer === "on") {
     return (
       <span className={cx(css.merge, className)}>
-        <span className={css.set} title="It merges by itself once its checks and reviews let it">
+        <span className={css.set} title="Auto-merge is on: merges once checks and reviews pass">
           <Icon name="merge" size={13} /> Merges when ready
         </span>
         {onStop && (
-          <Button variant="ghost" size="small" disabled={busy} onClick={onStop} title="Stop it merging by itself">
+          <Button variant="ghost" size="small" disabled={busy} onClick={onStop} title="Cancel auto-merge">
             Cancel
           </Button>
         )}
@@ -47,7 +47,7 @@ export function PullRequestMerge({ offer, stack, busy, primary, className, onMer
         size="small"
         disabled={busy}
         onClick={onMerge}
-        title={ready ? "Have it merge by itself once its checks and reviews let it" : stack ? "Merge the whole stack on GitHub, as it is now" : "Merge it on GitHub, as it is now"}
+        title={ready ? "Merge once checks and reviews pass" : stack ? "Merge whole stack on GitHub" : "Merge on GitHub"}
       >
         {busy ? <Spinner size={12} /> : <Icon name="merge" size={13} />} {ready ? "Merge when ready" : what ? `Merge ${what}` : "Merge"}
       </Button>
