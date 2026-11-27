@@ -36,10 +36,18 @@ export interface RichTextAreaProps extends Features {
   field?: Ref<HTMLElement>;
   onFocus?: () => void;
   onBlur?: () => void;
+  // A key pressed, the page's first: true if it's done something with it
+  // (Tab going round a comment's kinds), and nothing else does.
+  onKeyDown?: (e: KeyPress) => boolean;
   // The page's class: where it is, its padding, its type. The box has no
-  // look of its own: no border, no background, no ring.
+  // look of its own (no border, no background, no ring), unless it's
+  // drawn as a field: a TextArea's border, and its ring while it has the
+  // keys.
+  look?: "bare" | "field";
   className?: string;
 }
+
+export type KeyPress = { key: string; shiftKey: boolean; metaKey: boolean; ctrlKey: boolean; altKey: boolean };
 
 // Handoff is what the box knew while it loaded, for the one that's
 // loaded: whether its words had the keys, and where the cursor was.
@@ -73,7 +81,7 @@ export function RichTextArea(props: RichTextAreaProps) {
 
 // Plain is the box while the editor loads: a textarea, its words as
 // they're typed (markdown, as the editor will read them).
-function Plain({ value, onChange, send: given, onSend, onEscape, placeholder, rows = 1, tallest = 320, autoFocus, busy, field, onFocus, onBlur, className, handoff, ...rest }: RichTextAreaProps & { handoff: Handoff }) {
+function Plain({ value, onChange, send: given, onSend, onEscape, onKeyDown, placeholder, rows = 1, tallest = 320, autoFocus, busy, field, onFocus, onBlur, look, className, handoff, ...rest }: RichTextAreaProps & { handoff: Handoff }) {
   const box = useRef<HTMLTextAreaElement>(null);
   useAutosize(box, value, tallest);
   const yours = useSendKey();
@@ -84,7 +92,7 @@ function Plain({ value, onChange, send: given, onSend, onEscape, placeholder, ro
     else if (field) field.current = el;
   };
   return (
-    <div className={cx(css.area, className)} data-rich="">
+    <div className={cx(css.area, look === "field" && css.field, className)} data-rich="">
       <textarea
         ref={both}
         className={cx(css.doc, css.plain)}
@@ -107,6 +115,10 @@ function Plain({ value, onChange, send: given, onSend, onEscape, placeholder, ro
         }}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return;
+          if (onKeyDown?.(e)) {
+            e.preventDefault();
+            return;
+          }
           const how = onSend && sent(e, send);
           if (how) {
             e.preventDefault();

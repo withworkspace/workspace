@@ -17,6 +17,23 @@
     cursor: text;
   }
 
+  /* Drawn as a field: a TextArea's look (TextArea.module.css), its ring
+     while the words have the keys. */
+  .field {
+    background: var(--raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    transition:
+      border-color var(--fast) var(--ease),
+      box-shadow var(--fast) var(--ease);
+  }
+
+  .field:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
   /* The words: as many lines tall as it starts at, at least. */
   .doc {
     display: block;

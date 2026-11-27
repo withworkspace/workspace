@@ -70,10 +70,16 @@ export default function RichText(props: RichTextAreaProps & { handoff: Handoff }
         if (empty || !/^(https?:\/\/|mailto:)\S+$/.test(text) || $from.parent.type.spec.code) return false;
         return setLink(from, to, text)(view.state, view.dispatch);
       },
-      // Escape is the page's unless the box hears it: then it's handed the
-      // press, to keep from the page if it will.
+      // The page's keys first, if it has any. Escape is the page's unless
+      // the box hears it: then it's handed the press, to keep from the page
+      // if it will.
       handleKeyDown: (_view, e) => {
-        if (e.key !== "Escape" || e.isComposing || !p.current.onEscape) return false;
+        if (e.isComposing) return false;
+        if (p.current.onKeyDown?.(e)) {
+          e.preventDefault();
+          return true;
+        }
+        if (e.key !== "Escape" || !p.current.onEscape) return false;
         e.preventDefault();
         p.current.onEscape(e);
         return true;
@@ -127,7 +133,7 @@ export default function RichText(props: RichTextAreaProps & { handoff: Handoff }
 
   return (
     <div
-      className={cx(css.area, props.className)}
+      className={cx(css.area, props.look === "field" && css.field, props.className)}
       style={{ "--rows": props.rows ?? 1, "--tallest": `${props.tallest ?? 320}px` } as React.CSSProperties}
       data-rich=""
       ref={host}
