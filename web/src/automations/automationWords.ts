@@ -45,8 +45,17 @@ export function tallyWords(t: AutomationTally): string[] {
 // mayWords is what it may do, said: "notify you", "start a conversation".
 export function mayWords(may: string[]): string {
   if (may.length === 0) return "notify you of the event";
-  return may.map((m) => (m === "notify" ? "notify you" : m === "converse" ? "start a conversation" : m)).join(", ");
+  return may.map((m) => mayWord[m] ?? m).join(", ");
 }
+
+const mayWord: Record<string, string> = {
+  notify: "notify you",
+  converse: "start a conversation",
+  ask: "ask an agent (from a daily budget)",
+  propose: "propose things for you to accept",
+  run: "run tasks",
+  output: "write its page",
+};
 
 // standing is the one thing to say first of an automation, if any: why
 // its file can't be read, or what it last failed with.

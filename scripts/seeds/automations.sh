@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Four automations, on: a sketch Brendan draws, a decision changing in records, a sketch's saves once it's settled, a sketch picked up (a wait); and Brendan and Ana landing what they're for.
+# Six automations, on: a sketch Brendan draws, a decision changing in records, a sketch's saves once it's settled, a sketch picked up (a wait), coverage over time, and a sketch judged ready to build (an ask, then a proposal); and Brendan and Ana landing what they're for.
 #
 # For looking at automations (ws automation) and what they tell you:
 #
@@ -10,11 +10,13 @@
 # settled.star (a sketch's saves, once it's been quiet a minute) and
 # picked-up.star (Brendan's new sketch, waiting for Ana to change it), and
 # coverage-trend.star (demo's coverage task each day, kept and charted on
-# its page; run once now), then
+# its page; run once now), and ready-to-build.star (an agent asked whether
+# Brendan's new sketch is ready to build, and a mission proposed for it
+# if it is, for you to accept: its answer is the stand-in's run-1.md), then
 # lands Brendan's sketch and decision on records, and Ana's two saves. The daemon hears the
 # landing, and runs both: two notifications, from Automations, in the
 # feed (the bell; ws notifications). ws automation list and ws automation
-# runs say what each did. It asks no agent anything.
+# runs say what each did. No model's asked anything: the stand-in answers.
 set -euo pipefail
 
 ws="$TRY_WS"
@@ -28,7 +30,7 @@ fi
 
 # A stand-in for Claude Code, as the marketing seed's (no model's asked
 # anything): conversation w1's agent proposes an automation from
-# agent/w1-1.md.
+# agent/w1-1.md, and ready-to-build's ask is answered from agent/run-1.md.
 mkdir -p "$dir/.try/bin" "$dir/.try/agent"
 cp "$here/../marketing/stand-in/claude" "$dir/.try/bin/claude"
 chmod +x "$dir/.try/bin/claude"
@@ -40,6 +42,7 @@ cp "$here"/agent/*.md "$dir/.try/agent/"
 "$ws" automation add "$here/doc-changes.star" >/dev/null
 "$ws" automation add "$here/settled.star" >/dev/null
 "$ws" automation add "$here/picked-up.star" >/dev/null
+"$ws" automation add "$here/ready-to-build.star" >/dev/null
 
 # demo's coverage, as a task with a report (on its ground, as a team's
 # ws.repo.toml would have it), and coverage-trend, which runs it each day
@@ -83,11 +86,12 @@ done
 "$ws" talk "Tell me when Ana's done changing a sketch" --print >/dev/null 2>&1 || true
 
 cat <<OUT
-automations: drawing, doc-changes, settled, picked-up and coverage-trend, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
+automations: drawing, doc-changes, settled, picked-up, coverage-trend and ready-to-build, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
 
   ws automation list      each, and how its last run went
   ws automation runs      what each did
   ws notifications        what they told you (the bell, in the web UI)
   /conversations/w1       an automation proposed in words, with its dry run, to turn on
+  /automations/ready-to-build   an agent asked, then a mission proposed for you to accept (its conversation is linked from its run)
   /automations/coverage-trend/output   demo's coverage, charted (ws automation run coverage-trend for another point)
 OUT

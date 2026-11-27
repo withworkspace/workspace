@@ -174,6 +174,9 @@ func talkNeed(c *conversation.Conversation, in string) (Need, bool) {
 		Title: firstNonEmpty(c.Title, firstNonEmpty(talkOpening(c), "Conversation")),
 		Text:  "The agent replied: your turn.",
 	}
+	if name, ok := strings.CutPrefix(c.Via, "automation:"); ok && len(c.Turns) == 1 {
+		n.Text = "The automation " + name + " proposes something: yours to accept or decline."
+	}
 	if len(c.Turns) > 0 {
 		n.Since = c.Turns[len(c.Turns)-1].At
 	}

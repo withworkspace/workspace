@@ -98,6 +98,20 @@ export const Page: StoryObj = {
 };
 
 const runs: AutomationRun[] = [
+  { n: 12, event: "e52", says: "Checks failed on api#215 Cache keys", at: ago(1), state: "waiting", key: "api#215", did: [{ what: "ask", waiting: true, text: "for an agent's answer" }] },
+  {
+    n: 11,
+    event: "e49",
+    says: "Checks failed on api#214 Queue retries",
+    at: ago(3),
+    state: "waiting",
+    key: "api#214",
+    did: [
+      { what: "ask", text: "flaky: false · why: TestRetry asserts on wall-clock time" },
+      { what: "propose", text: "a mission: Fix TestRetry's clock", conversation: "w15" },
+      { what: "wait", waiting: true, text: "for your answer to w15#1, till Nov 30 08:40" },
+    ],
+  },
   { n: 9, event: "e41", says: "Checks failed on api#212 Retry flaky uploads", at: ago(4), state: "waiting", key: "api#212", did: [{ what: "wait", waiting: true, text: "for pr.checks_passed pr=api#212, till Nov 27 09:12" }] },
   { n: 8, event: "e38", says: "Checks failed on api#209 Bump Go", at: ago(90), state: "ran", key: "api#209", did: [{ what: "converse", conversation: "w12" }], log: ["looked at 3 failing jobs"] },
   { n: 7, event: "e33", says: "Checks failed on api#209 Bump Go", at: ago(95), state: "held", key: "api#209", error: "held back: it's run 1 of at most 1 in 1h for api#209" },

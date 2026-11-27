@@ -12,6 +12,8 @@ describe("an automation's outline", () => {
     expect(countWords("notify", counts.get("9:14"), true)).toEqual(["would notify 2×", "1 unsure"]);
     expect(countWords("wait", counts.get("12:20"))).toEqual(["3 met", "1 timed out", "1 waiting"]);
     expect(countWords("read", undefined)).toEqual([]);
+    expect(countWords("ask", { at: "4:9", builtin: "ask", done: 2, waiting: 1 })).toEqual(["2 answered", "1 waiting"]);
+    expect(countWords("propose", { at: "5:5", builtin: "propose", done: 1 }, true)).toEqual(["would propose 1×"]);
   });
 
   it("puts a failure on the step where it was, or on the step on its line", () => {

@@ -421,6 +421,27 @@ func like(pattern, s string) bool {
 type waitItem struct {
 	Match string `json:"match,omitempty"`
 	Task  int64  `json:"task,omitempty"`
+	// Ask is an ask (ask's own wait), Proposal a proposal (propose's
+	// handle: w12#1).
+	Ask      int64  `json:"ask,omitempty"`
+	Proposal string `json:"proposal,omitempty"`
+}
+
+// lookups are how a wait finds what it waits on, but events: a task asked
+// for, an ask, a proposal. A nil one finds none.
+type lookups struct {
+	task     func(int64) (Task, bool)
+	ask      func(int64) (AskInfo, bool)
+	proposal func(string) (state, result string, ok bool)
+}
+
+// lookups are e's, as kept.
+func (e *Engine) lookups() lookups {
+	return lookups{
+		task:     func(id int64) (Task, bool) { return taskByID(e.Root, id) },
+		ask:      func(id int64) (AskInfo, bool) { return askByID(e.Root, id) },
+		proposal: e.Hooks.Proposal,
+	}
 }
 
 // waitMany is wait_all(items, timeout = …) and wait_any(…): the run
@@ -436,7 +457,7 @@ func (r *run) waitMany(any bool) func(*starlark.Thread, *starlark.Builtin, starl
 		}
 		iterable, ok := list.(starlark.Iterable)
 		if !ok {
-			return nil, fmt.Errorf("%s takes a list of tasks (run_task's) and event()s", b.Name())
+			return nil, fmt.Errorf("%s takes a list of tasks (run_task's), proposals (propose's) and event()s", b.Name())
 		}
 		var items []waitItem
 		iter := iterable.Iterate()
@@ -445,11 +466,13 @@ func (r *run) waitMany(any bool) func(*starlark.Thread, *starlark.Builtin, starl
 			switch v := x.(type) {
 			case taskHandle:
 				items = append(items, waitItem{Task: v.id})
+			case proposalHandle:
+				items = append(items, waitItem{Proposal: v.ref})
 			case matchValue:
 				items = append(items, waitItem{Match: v.m.String()})
 			default:
 				iter.Done()
-				return nil, fmt.Errorf("%s: a %s isn't something to wait on: a task (run_task's) or an event()", b.Name(), x.Type())
+				return nil, fmt.Errorf("%s: a %s isn't something to wait on: a task (run_task's), a proposal (propose's) or an event()", b.Name(), x.Type())
 			}
 		}
 		iter.Done()
@@ -530,6 +553,9 @@ func itemValue(raw json.RawMessage) (starlark.Value, error) {
 	if _, ok := probe["task"]; ok {
 		return valueOf(probe), nil
 	}
+	if _, ok := probe["proposal"]; ok {
+		return valueOf(probe), nil
+	}
 	var ev events.Event
 	if err := json.Unmarshal(raw, &ev); err != nil {
 		return nil, err
@@ -539,9 +565,9 @@ func itemValue(raw json.RawMessage) (starlark.Value, error) {
 
 // waitCame is what w has come to so far, as kept (a JSON value): done
 // when it's met (every item, or one for any) or its time's up by now;
-// "" when it waits still. ours are events not to be met by; task looks a
-// task up (nil: none are).
-func waitCame(w waitFor, list []events.Event, now time.Time, ours func(events.Event) bool, task func(int64) (Task, bool)) (string, bool) {
+// "" when it waits still. ours are events not to be met by; look finds
+// what else it waits on.
+func waitCame(w waitFor, list []events.Event, now time.Time, ours func(events.Event) bool, look lookups) (string, bool) {
 	if len(w.Items) == 0 {
 		m, err := events.ParseMatch(w.Match)
 		if err != nil {
@@ -561,12 +587,35 @@ func waitCame(w waitFor, list []events.Event, now time.Time, ours func(events.Ev
 	came := make([]json.RawMessage, len(w.Items))
 	all := true
 	for i, it := range w.Items {
-		if it.Task != 0 {
-			if t, ok := task(it.Task); ok && t.State == TaskEnded {
+		switch {
+		case it.Task != 0:
+			if look.task == nil {
+				break
+			}
+			if t, ok := look.task(it.Task); ok && t.State == TaskEnded {
 				b, _ := json.Marshal(t.result())
 				came[i] = b
 			}
-		} else if m, err := events.ParseMatch(it.Match); err == nil {
+		case it.Ask != 0:
+			if look.ask == nil {
+				break
+			}
+			if a, ok := look.ask(it.Ask); ok && a.State == TaskEnded {
+				came[i] = json.RawMessage(a.outcomeOf())
+			}
+		case it.Proposal != "":
+			if look.proposal == nil {
+				break
+			}
+			if state, result, ok := look.proposal(it.Proposal); ok && state != ProposalOpen {
+				b, _ := json.Marshal(proposalCame(it.Proposal, state, result))
+				came[i] = b
+			}
+		default:
+			m, err := events.ParseMatch(it.Match)
+			if err != nil {
+				break
+			}
 			for _, ev := range list {
 				if ev.N > w.After && m.Matches(ev) && !ours(ev) && !ev.At.After(w.Due) {
 					b, _ := json.Marshal(ev)

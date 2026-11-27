@@ -48,6 +48,20 @@ type Hooks struct {
 	// Things are a plugin's things of a kind (jira:issue), as things()
 	// gives them.
 	Things func(kind string) ([]ThingInfo, error)
+	// Ask has an agent answer prompt, one turn with no tools, for a, and
+	// says what it said: ErrAskAgain where ws stopped first. It's run
+	// beside the automations' passes, not in one.
+	Ask func(a *Automation, prompt string) (string, error)
+	// Spent is how many tokens name's asks have spent since.
+	Spent func(name string, since time.Time) (int64, error)
+	// Propose puts what an automation proposes in a conversation of its
+	// own, for you to accept: in conversation, one of its earlier this run
+	// ("" for a new one, chain the automations that led to it). It says
+	// the proposal's ref (w12#1).
+	Propose func(a *Automation, p Proposing, conversation string, chain []string) (string, error)
+	// Proposal is how a proposal stands, by its ref: open, accepted,
+	// declined, withdrawn or superseded, and what accepting it made.
+	Proposal func(ref string) (state, result string, ok bool)
 }
 
 // Engine runs a workspace's automations on its events.
@@ -60,9 +74,16 @@ type Engine struct {
 	Now func() time.Time
 	// MaxTasks is how many tasks automations run at once (MaxTasks unset).
 	MaxTasks int
+	// AskBudget is how many tokens a day each automation's asks may spend
+	// (DefaultAskBudget unset, none below 0).
+	AskBudget int64
 
 	mu    sync.Mutex // one pass at a time
 	cache map[string]cached
+
+	amu      sync.Mutex // the asks being answered
+	asking   map[int64]bool
+	inFlight sync.WaitGroup
 }
 
 type cached struct {
@@ -155,7 +176,7 @@ func (e *Engine) RunDue() []string {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	said := e.tasksPass()
+	said := append(e.tasksPass(), e.asksPass()...)
 	for _, name := range names {
 		st := states[name]
 		if !st.On {
@@ -173,7 +194,11 @@ func (e *Engine) RunDue() []string {
 		})
 		ours := func(ev events.Event) bool { return ev.By == events.ByWorkflow(name) || own[ev.Conversation] }
 		e.tick(a, &st)
-		said = append(said, e.resume(a, &st, ours)...)
+		// A wait is met by what's said in its own conversations (an answer,
+		// a proposal accepted): it asked for that. Only what it did itself
+		// isn't.
+		mine := func(ev events.Event) bool { return ev.By == events.ByWorkflow(name) }
+		said = append(said, e.resume(a, &st, mine)...)
 		list, err := events.List(e.Root, events.Filter{After: st.After})
 		if err == nil && len(list) > 0 {
 			if len(list) > passMost {
@@ -216,7 +241,7 @@ func (e *Engine) RunDue() []string {
 		}
 	}
 	// What a pass asked for is started now, as there's room.
-	return append(said, e.tasksPass()...)
+	return append(append(said, e.tasksPass()...), e.asksPass()...)
 }
 
 // resume picks up a's runs parked at a wait(): one whose event's come
@@ -230,7 +255,7 @@ func (e *Engine) resume(a *Automation, st *State, ours func(events.Event) bool) 
 	var said []string
 	for _, w := range waits {
 		list, _ := events.List(e.Root, events.Filter{After: w.w.After})
-		result, done := waitCame(w.w, list, e.now(), ours, func(id int64) (Task, bool) { return taskByID(e.Root, id) })
+		result, done := waitCame(w.w, list, e.now(), ours, e.lookups())
 		if !done {
 			continue // still waiting
 		}
@@ -423,6 +448,9 @@ type run struct {
 	log   []string
 	// at is where the builtin being called was called from (line:col).
 	at string
+	// conv is the conversation what it proposes this run goes in, once
+	// it's proposed something ("" before).
+	conv string
 }
 
 // do runs r: its run(e), or, without one, the event notified as it is.
@@ -530,6 +558,8 @@ func (r *run) builtins() starlark.StringDict {
 		"output":   starlark.NewBuiltin("output", r.placed(r.outputBuiltin)),
 		"chart":    starlark.NewBuiltin("chart", chartBuiltin),
 		"things":   starlark.NewBuiltin("things", r.placed(r.thingsBuiltin)),
+		"ask":      starlark.NewBuiltin("ask", r.placed(r.ask)),
+		"propose":  starlark.NewBuiltin("propose", r.placed(r.propose)),
 	}
 }
 
@@ -684,16 +714,30 @@ func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "event", &which, "timeout?", &timeout); err != nil {
 		return nil, err
 	}
-	m, ok := which.(matchValue)
-	if !ok {
-		return nil, fmt.Errorf("wait takes an event(), as wait(event(\"run.ended\", run = \"deploy\"), timeout = \"2h\")")
-	}
 	d, err := lengthOf(timeout)
 	if err != nil {
 		return nil, fmt.Errorf("wait: timeout: %v", err)
 	}
 	if d > maxWait {
 		return nil, fmt.Errorf("wait: timeout: at most %s", shortDuration(maxWait))
+	}
+	var item *waitItem
+	switch h := which.(type) {
+	case proposalHandle:
+		item = &waitItem{Proposal: h.ref}
+	case taskHandle:
+		item = &waitItem{Task: h.id}
+	}
+	if item != nil {
+		after, due := r.ev.N, r.e.now().Add(d)
+		if r.dry != nil {
+			due = r.ev.At.Add(d)
+		}
+		return r.parkOn(waitFor{Items: []waitItem{*item}, Any: true, After: after, Due: due})
+	}
+	m, ok := which.(matchValue)
+	if !ok {
+		return nil, fmt.Errorf("wait takes an event(), as wait(event(\"run.ended\", run = \"deploy\"), timeout = \"2h\"), a task (run_task's) or a proposal (propose's)")
 	}
 	// It waits for what comes after the event it's run on: what happened
 	// while the daemon was catching up counts, as a dry run has it. Its time

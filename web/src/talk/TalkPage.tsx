@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { StartedVia } from "./StartedVia";
 import { ApiError, proposalFrameURL, setTalkStatus, type TalkDetail, type TalkProposal, type TalkTurn } from "../api";
 import { talkAt } from "../chrome/panes";
 import { useTalk, useTalks } from "../conversation/talks";
@@ -41,7 +42,7 @@ import { TalkTurns } from "./TalkTurns";
 import { TurnView } from "./TurnView";
 import { Who } from "./Who";
 import { docAt, talkName, talkStatus } from "./words";
-import { Text, textClass } from "../ui/Text";
+import { textClass } from "../ui/Text";
 import { TalkModelSwitch } from "./TalkModelSwitch";
 
 // The page scrolls in the app's main pane. Where a conversation rests as
@@ -322,7 +323,7 @@ export function TalkPage() {
         {error && <ErrorCard error={error} retry={load} />}
         {d?.summary && !side && <TalkSummary text={d.summary} />}
         {!d && !error && <Skeleton rows={6} />}
-        {d?.via && <Text as="p" dim>Started from the {d.via} plugin, which wrote the first message.</Text>}
+        {d?.via && <StartedVia via={d.via} />}
         {d?.ephemeral && (
           <Callout
             tone="quiet"
@@ -389,3 +390,4 @@ export function TalkPage() {
     </TalkLayout>
   );
 }
+

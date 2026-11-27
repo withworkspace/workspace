@@ -269,6 +269,18 @@ func (o *outliner) builtin(name string, c *syntax.CallExpr) (OutlineStep, bool) 
 		if t := kw["timeout"]; t != nil {
 			step.Detail = "up to " + o.words(t)
 		}
+	case name == "ask":
+		step.Kind, step.Text = "ask", o.words(first())
+		if ans := kw["answer"]; ans != nil {
+			step.Detail = "answers " + o.source(ans)
+		}
+	case name == "propose":
+		step.Kind, step.Text = "propose", o.words(first())
+		if len(args) > 1 {
+			step.Detail = o.source(args[1])
+		} else if in := kw["input"]; in != nil {
+			step.Detail = o.source(in)
+		}
 	case name == "run_task":
 		step.Kind = "run"
 		step.Text = o.words(first())

@@ -122,6 +122,8 @@ func writeWSToml(t *testing.T, root string, opts WorkspaceOpts) {
 	// The PR writer is FakeConverser: a test never has a real agent
 	// write a pull request.
 	b.WriteString("[pr_writer]\nharness = \"fake-converse\"\n\n")
+	// So are automations' asks.
+	b.WriteString("[automations]\nharness = \"fake-converse\"\n\n")
 
 	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte(b.String()), 0644); err != nil {
 		t.Fatal(err)

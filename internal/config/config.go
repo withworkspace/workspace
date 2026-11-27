@@ -34,10 +34,13 @@ type Config struct {
 	// pull request ws opens, from the step it's for and PR.md: unset,
 	// conversations' agent, on the model it orchestrates on.
 	PRWriter PRWriterConfig `toml:"pr_writer"`
-	Missions MissionsConfig `toml:"missions"`
-	Agents   AgentsConfig   `toml:"agents"`
-	Pages    PagesConfig    `toml:"pages"`
-	Reviews  ReviewsConfig  `toml:"reviews"`
+	// Automations is how your automations' asks are answered: the agent,
+	// and how many tokens a day each may spend ([automations]).
+	Automations AutomationsConfig `toml:"automations"`
+	Missions    MissionsConfig    `toml:"missions"`
+	Agents      AgentsConfig      `toml:"agents"`
+	Pages       PagesConfig       `toml:"pages"`
+	Reviews     ReviewsConfig     `toml:"reviews"`
 	// Documents are the kinds of document the workspace has, by name:
 	// [documents.bp]. The team's: ws.toml only.
 	Documents map[string]DocumentKind `toml:"documents"`
@@ -89,6 +92,7 @@ type LocalConfig struct {
 	Conversation AgentConfig            `toml:"conversation,omitempty"`
 	Judge        AgentConfig            `toml:"judge,omitempty"`
 	PRWriter     PRWriterConfig         `toml:"pr_writer,omitempty"`
+	Automations  AutomationsConfig      `toml:"automations,omitempty"`
 	Missions     MissionsConfig         `toml:"missions,omitempty"`
 	Artifacts    LocalArtifactsConfig   `toml:"artifacts,omitempty"`
 	Agents       AgentsConfig           `toml:"agents,omitempty"`
@@ -529,6 +533,28 @@ type PRWriterConfig struct {
 	Harness string `toml:"harness,omitempty"`
 	Model   string `toml:"model,omitempty"`
 	Enabled *bool  `toml:"enabled,omitempty"`
+}
+
+// AutomationsConfig is [automations]: who answers an automation's ask
+// (an agent with no tools, one turn), on what model, and how many tokens
+// a day each automation's asks may spend (ask_budget: 0 is ws's default,
+// below 0 no limit).
+type AutomationsConfig struct {
+	Harness   string `toml:"harness,omitempty"`
+	Model     string `toml:"model,omitempty"`
+	AskBudget int64  `toml:"ask_budget,omitempty"`
+}
+
+func (c *AutomationsConfig) merge(local AutomationsConfig) {
+	if local.Harness != "" {
+		c.Harness = local.Harness
+	}
+	if local.Model != "" {
+		c.Model = local.Model
+	}
+	if local.AskBudget != 0 {
+		c.AskBudget = local.AskBudget
+	}
 }
 
 // PRWriterEnabled is whether an agent writes the pull requests ws opens
@@ -1251,6 +1277,7 @@ func Merge(base, local *Config) *Config {
 		Conversation: base.Conversation,
 		Judge:        base.Judge,
 		PRWriter:     base.PRWriter,
+		Automations:  base.Automations,
 		Missions:     base.Missions,
 		Agents:       base.Agents,
 		Pages:        base.Pages,
@@ -1437,6 +1464,7 @@ func Load(startDir string) (*Config, string, error) {
 		cfg.Conversation.merge(local.Conversation)
 		cfg.Judge.merge(local.Judge)
 		cfg.PRWriter.merge(local.PRWriter)
+		cfg.Automations.merge(local.Automations)
 		if local.Orchestrator.Harness != "" {
 			cfg.Orchestrator.Harness = local.Orchestrator.Harness
 		}

@@ -40,6 +40,25 @@ const ciRed: AutomationOutline = {
   ],
 };
 
+// One that asks an agent, and proposes a mission when it's not a flake.
+const triage: AutomationOutline = {
+  when: [{ match: "pr.checks_failed" }],
+  steps: [
+    { kind: "ask", at: "5:12", line: 5, text: "Is this failure a flake?", detail: 'answers {"flaky": "bool", "why": "text"}' },
+    {
+      kind: "if",
+      at: "6:5",
+      line: 6,
+      text: "a and not a.flaky",
+      branches: [{ label: "if a and not a.flaky", steps: [{ kind: "propose", at: "7:16", line: 7, text: "mission", detail: '{"title": "Fix " + e.pr}' }] }],
+    },
+  ],
+};
+
+export const AsksAndProposes: StoryObj<typeof AutomationFlow> = {
+  args: { outline: triage, steps: [{ at: "5:12", builtin: "ask", done: 5, waiting: 1 }, { at: "7:16", builtin: "propose", done: 2 }] },
+};
+
 const steps = [
   { at: "9:14", builtin: "show", done: 9 },
   { at: "15:17", builtin: "converse", done: 6 },
