@@ -354,8 +354,12 @@ func endsWith(r Run, o Owner) string {
 	return ""
 }
 
-// Short is how long a run took, as it's said: 0.4s, 4.2s, 42s, 3m10s.
+// Short is how long a run took, as it's said: under 0.1s, 0.4s, 4.2s,
+// 42s, 3m10s.
 func Short(d time.Duration) string {
+	if d < 100*time.Millisecond {
+		return "under 0.1s"
+	}
 	if d < 10*time.Second {
 		return d.Round(100 * time.Millisecond).String()
 	}

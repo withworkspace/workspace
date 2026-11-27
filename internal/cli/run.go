@@ -130,6 +130,19 @@ a reuse won't put those back. Only a pass is kept, and only a task that
 needs no running services is cached. --fresh runs it anyway, and keeps
 this run in place of the pass; ws run cache lists what's kept.
 
+A task can be run after others of the same worktree:
+
+  [run.task.coverage]
+  command = "pnpm test --coverage dist"
+  inputs = ["test/**"]
+  after = ["build"]
+
+ws run coverage runs build first (or reuses it), and coverage once it has
+passed: a build that fails is coverage's fail, and its command isn't run.
+Where both are cached, build's key is part of coverage's, and the files
+build's outputs name aren't read as coverage's inputs: build's key says
+them. A reused coverage has build asked for too, so dist is put back.
+
 Its owner (--for):
   pid       the process that started it: your terminal's shell, or the
             agent whose command it is (the nearest above ws that's been
@@ -375,6 +388,9 @@ func followTask(store runs.Store, run runs.Run, limit time.Duration) error {
 	switch {
 	case e.run.Reused != nil:
 		fmt.Fprintf(os.Stderr, "\n%s passed: %s. --fresh runs it.\n", e.run.NRef(), ops.ReusedSaid(e.run))
+		if len(e.run.AfterRan) > 0 {
+			fmt.Fprintf(os.Stderr, "What it's run after was asked for too, to put its outputs back: %s.\n", strings.Join(e.run.AfterRan, ", "))
+		}
 	case e.run.Result() == "stopped" && e.run.Why != "":
 		fmt.Fprintf(os.Stderr, "\n%s stopped%s: %s.\n", e.run.NRef(), tookSaid(e.run), e.run.Why)
 	default:
@@ -831,16 +847,18 @@ type runJSON struct {
 	Kept       string       `json:"kept,omitempty"`
 	KeepFailed string       `json:"keep_failed,omitempty"`
 	Undeclared []string     `json:"undeclared,omitempty"`
-	Repo       string       `json:"repo"`
-	Where      string       `json:"where"`
-	Dir        string       `json:"dir"`
-	Command    string       `json:"command"`
-	Port       int          `json:"port"`
-	Link       string       `json:"link"`
-	Local      string       `json:"local"`
-	State      string       `json:"state"`
-	Status     *int         `json:"status,omitempty"`
-	Owner      runs.Owner   `json:"owner"`
+	// After are the runs of the tasks it was run after, by their numbers.
+	After   []string   `json:"after,omitempty"`
+	Repo    string     `json:"repo"`
+	Where   string     `json:"where"`
+	Dir     string     `json:"dir"`
+	Command string     `json:"command"`
+	Port    int        `json:"port"`
+	Link    string     `json:"link"`
+	Local   string     `json:"local"`
+	State   string     `json:"state"`
+	Status  *int       `json:"status,omitempty"`
+	Owner   runs.Owner `json:"owner"`
 	// Also are who else it's for; Needs what it was started needing; and
 	// NeededBy the running runs that need it, which keep it.
 	Also     []runs.Owner `json:"also,omitempty"`
@@ -870,7 +888,7 @@ func runJSONOf(root string, r runs.Run, now time.Time) runJSON {
 	if r.IsTask() {
 		j.Type, j.Ref, j.N, j.Link, j.Local = string(runs.Task), r.NRef(), r.N, "", ""
 		j.Result, j.Took, j.Commit, j.Dirty, j.Why = r.Result(), r.Took().Round(time.Millisecond).Seconds(), r.Commit, r.Dirty, r.Why
-		j.Reused, j.Kept, j.KeepFailed, j.Undeclared = r.Reused, r.Kept, r.KeepFailed, r.Undeclared
+		j.Reused, j.Kept, j.KeepFailed, j.Undeclared, j.After = r.Reused, r.Kept, r.KeepFailed, r.Undeclared, r.AfterRan
 		for _, rp := range r.Reports {
 			files := r.ReportFiles(rp.Name)
 			if files == nil {
@@ -972,6 +990,15 @@ task, while it's kept.`,
 			fmt.Fprintf(out, "command  %s\nlog      %s\n", r.Command, r.LogPath())
 			if r.Key != "" {
 				fmt.Fprintf(out, "outputs  %s\n", strings.Join(r.Outputs, " "))
+			}
+			if len(r.AfterRan) > 0 {
+				fmt.Fprintf(out, "after    %s\n", strings.Join(r.AfterRan, " "))
+			} else if len(r.After) > 0 {
+				var names []string
+				for _, a := range r.After {
+					names = append(names, a.Recipe)
+				}
+				fmt.Fprintf(out, "after    %s\n", strings.Join(names, " "))
 			}
 			for _, rp := range r.Reports {
 				files := r.ReportFiles(rp.Name)

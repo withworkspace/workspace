@@ -14,6 +14,8 @@
 #           go.mod, outputs dist
 #   gen     cached too, but writes notes.txt, which its outputs don't
 #           name: it's told so
+#   size    run after build: says how big dist/demo is, cached with
+#           build's key in its own
 #
 # It runs build twice in cache-one (run, then reused) and once in
 # cache-two (reused from cache-one's), and gen once. It asks no agent
@@ -37,12 +39,18 @@ command = "mkdir -p dist && go build -o dist/demo . && echo built dist/demo"
 inputs = ["**/*.go", "go.mod"]
 outputs = ["dist"]
 
+[run.task.size]
+command = "wc -c < dist/demo > size.txt && echo size: $(cat size.txt) bytes"
+inputs = ["dist"]
+outputs = ["size.txt"]
+after = ["build"]
+
 [run.task.gen]
 command = "mkdir -p gen && echo 'package gen' > gen/gen.go && date > notes.txt && echo generated"
 inputs = ["go.mod"]
 outputs = ["gen"]
 TOML
-	printf 'dist/\ngen/\nnotes.txt\n' >>"$capsule/.gitignore"
+	printf 'dist/\ngen/\nnotes.txt\nsize.txt\n' >>"$capsule/.gitignore"
 	git -C "$capsule" add -A
 	git -c user.name="ws test" -c user.email="ws-test@example.com" -c commit.gpgsign=false -C "$capsule" commit -q -m "Cached build"
 done
@@ -53,15 +61,18 @@ two="$dir/repos/demo/cache-two"
 (cd "$one" && "$ws" run build >/dev/null 2>&1) || true
 (cd "$two" && "$ws" run build >/dev/null 2>&1) || true
 (cd "$one" && "$ws" run gen >/dev/null 2>&1) || true
+(cd "$two" && "$ws" run size >/dev/null 2>&1) || true
 
 cat <<EOF
 cache: cached tasks, reused rather than run.
 
-  /runs                            build in cache-one (run 2 reused, run 1 behind it, kept), build in cache-two (reused from cache-one's), gen (kept, notes.txt not in its outputs)
+  /runs                            build in cache-one (run 2 reused, run 1 behind it, kept), build in cache-two (reused from cache-one's), gen (kept, notes.txt not in its outputs), size in cache-two (after build)
   cd $two
   $ws run build                    reused: prints what the pass printed, and says which run it was
   $ws run --fresh build            run anyway, and kept in its place
   $ws run show build               reused from, its outputs
+  $ws run size                     reused, with build asked for too
+  $ws run show size                the build it ran after
   $ws run cache                    what's kept
   $ws run cache clear              drop it all
 EOF

@@ -94,6 +94,14 @@ export function RunsTaskMore({ r, by, show }: { r: RunDetail; by?: string; show:
             </>
           )}
         </dd>
+        {(one.after?.length ?? 0) > 0 && (
+          <>
+            <dt>After</dt>
+            <Text as="dd" mono>
+              {one.after!.join(", ")}
+            </Text>
+          </>
+        )}
         {one.cached && (
           <RunsPageCache
             reused={one.reused && { from: one.reused.from, took: took(one.reused.took) || "under a second" }}

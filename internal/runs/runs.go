@@ -221,6 +221,18 @@ type Record struct {
 	// Reused is the pass it is, for a run that wasn't run, as its inputs
 	// were that pass's: it came from the cache.
 	Reused *Reused `json:"reused,omitempty"`
+	// After are the tasks it's run after, each run first (or reused) by
+	// its wrapper, before its command.
+	After []After `json:"after,omitempty"`
+}
+
+// After is a task a task is run after: its recipe, its key where it's
+// cached, and the files its outputs name, which the task's own key and
+// what it's said to have changed leave out (they're the after's).
+type After struct {
+	Recipe  string   `json:"recipe"`
+	Key     string   `json:"key,omitempty"`
+	Outputs []string `json:"outputs,omitempty"`
 }
 
 // Report is a file, or the files a pattern matches, that a task's command
@@ -321,6 +333,9 @@ type Run struct {
 	Kept       string
 	KeepFailed string
 	Undeclared []string
+	// AfterRan are the runs of its After it ran after, by their numbers,
+	// once its wrapper has run them.
+	AfterRan []string
 }
 
 // Passed is whether a task ended by itself with status 0.
@@ -682,6 +697,9 @@ func load(dir string, procs Procs) (Run, error) {
 	}
 	if r.Key != "" && r.State != Running {
 		r.Kept, r.KeepFailed, r.Undeclared = keptOf(dir)
+	}
+	if len(r.After) > 0 {
+		r.AfterRan = afterRanOf(dir)
 	}
 	if r.State != Running {
 		if b, err := os.ReadFile(filepath.Join(dir, stoppedFile)); err == nil {

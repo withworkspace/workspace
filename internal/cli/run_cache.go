@@ -107,5 +107,24 @@ ws run cache clear drops them all, so every cached task is run again.`,
 			return nil
 		},
 	})
+	cmd.AddCommand(&cobra.Command{
+		Use:    "after <run folder>",
+		Short:  "Run what a task is run after: what its wrapper runs before its command",
+		Hidden: true,
+		Args:   cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// What it prints is the task's own output: it's written to its log.
+			cmd.SilenceUsage, cmd.SilenceErrors = true, true
+			w, err := loadOps()
+			if err != nil {
+				fmt.Fprintf(os.Stdout, "ws: %v\n", err)
+				return &ExitCodeError{Code: 1}
+			}
+			if code := w.RunAfters(args[0], os.Stdout); code != 0 {
+				return &ExitCodeError{Code: code}
+			}
+			return nil
+		},
+	})
 	return cmd
 }

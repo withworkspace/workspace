@@ -4953,6 +4953,11 @@ export interface RunDetail {
      * don't name, which a reuse won't put back.
      */
     cached?: boolean;
+    /**
+     * After are the tasks it\'s run after: the runs of them it ran after
+     * (by their numbers), once it has, else their recipes.
+     */
+    after?: string[];
     reused?: RunReused;
     keepFailed?: string;
     undeclared?: string[];

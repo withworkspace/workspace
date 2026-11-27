@@ -909,6 +909,11 @@ type TaskRecipe struct {
 	// Env is the variables it reads, by name: what each is set to is one
 	// of its inputs.
 	Env []string `toml:"env,omitempty"`
+	// After are the tasks of the same worktree it's run after (a build a
+	// coverage run reads): each is run first, or reused where it's cached,
+	// and it's run only once they've all passed. What they write is said
+	// by their keys in its own, where it's cached.
+	After []string `toml:"after,omitempty"`
 }
 
 // The sorts of run a recipe is, as RunRecipe.Type has them, and as the
@@ -950,6 +955,7 @@ type RunRecipe struct {
 	Inputs  []string
 	Outputs []string
 	Env     []string
+	After   []string
 }
 
 // Cached is whether the recipe is a task that's cached: one that names
@@ -995,7 +1001,7 @@ func (r Runs) Recipes() map[string]RunRecipe {
 	}
 	out := make(map[string]RunRecipe, len(r.Service)+len(r.Task))
 	for name, t := range r.Task {
-		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout, Inputs: t.Inputs, Outputs: t.Outputs, Env: t.Env}
+		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout, Inputs: t.Inputs, Outputs: t.Outputs, Env: t.Env, After: t.After}
 	}
 	for name, s := range r.Service {
 		out[name] = RunRecipe{Type: RunService, Command: s.Command, DisplayName: s.DisplayName, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page, Kind: s.Kind, Render: s.Render}

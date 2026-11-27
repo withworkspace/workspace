@@ -37,6 +37,10 @@ type KeyOf struct {
 	// reads, by name, with what each is set to ("" for unset).
 	Outputs []string
 	Env     map[string]string
+	// After are the tasks it's run after, each with its key: what they
+	// write is said by their keys, so the files their outputs name aren't
+	// read as its inputs.
+	After []After
 }
 
 // keyVersion is said in every key: a change to what's in one makes every
@@ -63,6 +67,16 @@ func Key(o KeyOf) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	for _, a := range o.After {
+		if a.Key == "" {
+			return "", fmt.Errorf("it's run after %s, which isn't cached", a.Recipe)
+		}
+		for name := range files {
+			if MatchesAny(a.Outputs, name) {
+				delete(files, name)
+			}
+		}
+	}
 	h := sha256.New()
 	// The recipe as it's written where it's asked for (a capsule's
 	// ws.repo.toml may say it otherwise), then what its inputs come to.
@@ -72,6 +86,9 @@ func Key(o KeyOf) (string, error) {
 	}
 	for _, p := range outs {
 		fmt.Fprintf(h, "output %q\n", p)
+	}
+	for _, a := range o.After {
+		fmt.Fprintf(h, "after %q %s\n", a.Recipe, a.Key)
 	}
 	for _, name := range slices.Sorted(mapKeys(o.Env)) {
 		fmt.Fprintf(h, "env %q=%q\n", name, o.Env[name])

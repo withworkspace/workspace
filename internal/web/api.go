@@ -720,7 +720,10 @@ type RunDetail struct {
 	// Reused the pass it is, where it wasn't run; KeepFailed why its pass
 	// couldn't be kept; Undeclared the files it changed that its outputs
 	// don't name, which a reuse won't put back.
-	Cached     bool       `json:"cached,omitempty"`
+	Cached bool `json:"cached,omitempty"`
+	// After are the tasks it\'s run after: the runs of them it ran after
+	// (by their numbers), once it has, else their recipes.
+	After      []string   `json:"after,omitempty"`
 	Reused     *RunReused `json:"reused,omitempty"`
 	KeepFailed string     `json:"keepFailed,omitempty"`
 	Undeclared []string   `json:"undeclared,omitempty"`
@@ -860,6 +863,12 @@ func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 			d.Check = &RunCheck{Mission: c.Mission, Step: c.Step, N: c.N}
 		}
 		d.Cached, d.KeepFailed, d.Undeclared = r.Key != "", r.KeepFailed, r.Undeclared
+		d.After = r.AfterRan
+		if len(d.After) == 0 {
+			for _, a := range r.After {
+				d.After = append(d.After, a.Recipe)
+			}
+		}
 		if u := r.Reused; u != nil {
 			d.Reused = &RunReused{From: u.From, Took: u.Took.Milliseconds()}
 		}

@@ -194,15 +194,23 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		return w.runAgain(a, old, above)
 	}
 
-	// A cached task asked for with a pass's inputs is that pass.
+	// What it's run after, then: a cached task asked for with a pass's
+	// inputs is that pass.
 	var notes []string
 	var cache taskCache
+	var afters []runs.After
+	if rc.IsTask() {
+		var err error
+		if afters, err = w.aftersOf(a, rc, nil); err != nil {
+			return RunUp{}, err
+		}
+	}
 	if rc.Cached() {
-		if cache = w.cacheFor(a, rc); cache.why != "" {
+		if cache = w.cacheFor(a, rc, afters); cache.why != "" {
 			notes = append(notes, cache.why)
 		}
 		if cache.key != "" && !a.Fresh {
-			up, ok, said := w.reuse(a, rc, cache)
+			up, ok, said := w.reuse(a, rc, cache, afters)
 			if ok {
 				return up, nil
 			}
@@ -299,6 +307,9 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		st.Reports = reportsOf(rc)
 		if cache.key != "" {
 			st.Key, st.Outputs, st.Keep = cache.key, cache.outputs, keepWith()
+		}
+		if len(afters) > 0 {
+			st.After, st.AfterCmd = afters, afterWith()
 		}
 	}
 	r, started, err := store.Ensure(st, now)

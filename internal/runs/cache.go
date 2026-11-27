@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,11 +30,13 @@ import (
 var CacheMax int64 = 5 << 30
 
 const (
-	entryFile   = "entry.json"
-	outputsDir  = "outputs"
-	keepFile    = "keep"     // the script the wrapper runs to keep a pass
-	keepLogFile = "keep.log" // what keeping it said, where it couldn't
-	keptFile    = "kept"     // the key it was kept under, once it was
+	entryFile    = "entry.json"
+	outputsDir   = "outputs"
+	keepFile     = "keep"     // the script the wrapper runs to keep a pass
+	keepLogFile  = "keep.log" // what keeping it said, where it couldn't
+	keptFile     = "kept"     // the key it was kept under, once it was
+	afterFile    = "after"    // the script the wrapper runs to run its After first
+	afterRanFile = "afterran" // the runs of its After it ran after, one to a line
 	// undeclaredFile is the files a cached task changed as it ran that its
 	// outputs don't name, one to a line: a reuse doesn't put them back.
 	undeclaredFile = "undeclared"
@@ -202,7 +205,11 @@ func (s Store) KeepPass(dir string, now time.Time) error {
 	if err := putInPlace(tmp, filepath.Join(s.CacheDir(), r.Key)); err != nil {
 		return err
 	}
-	if undeclared := changedOutside(r.Dir, began, r.Outputs); len(undeclared) > 0 {
+	theirs := slices.Clone(r.Outputs)
+	for _, a := range r.After {
+		theirs = append(theirs, a.Outputs...)
+	}
+	if undeclared := changedOutside(r.Dir, began, theirs); len(undeclared) > 0 {
 		_ = os.WriteFile(filepath.Join(dir, undeclaredFile), []byte(strings.Join(undeclared, "\n")+"\n"), 0o644) // a note: the pass is kept all the same
 	}
 	if err := os.WriteFile(filepath.Join(dir, keptFile), []byte(r.Key+"\n"), 0o644); err != nil {
@@ -325,7 +332,7 @@ func (s Store) Reuse(o Start, e Entry, now time.Time) (r Run, started bool, err 
 		Version: Version, Type: Task, Name: name, N: n, Repo: o.Repo, Worktree: o.Worktree, Dir: o.Dir,
 		Command: o.Command, Recipe: o.Recipe, Stop: o.Stop, Began: now, Owner: o.Owner,
 		Created: at, By: o.By, Commit: o.Commit, Dirty: o.Dirty, Reports: o.Reports,
-		Check: o.Check, Chain: o.Chain, Key: e.Key, Outputs: o.Outputs,
+		Check: o.Check, Chain: o.Chain, Key: e.Key, Outputs: o.Outputs, After: o.After,
 		Reused: &Reused{From: e.From, Ran: e.Ran, Took: e.Took},
 	}
 	if err := save(rec, dir); err != nil {
@@ -413,6 +420,29 @@ func copyPath(from, to string) (int64, error) {
 		err = cerr
 	}
 	return n, err
+}
+
+// At is the run kept in dir.
+func At(dir string) (Run, error) { return load(dir, Store{}.snapshot()) }
+
+// AfterRan notes the runs of its After the task in dir ran after, by their
+// numbers.
+func AfterRan(dir string, refs []string) error {
+	return os.WriteFile(filepath.Join(dir, afterRanFile), []byte(strings.Join(refs, "\n")+"\n"), 0o644)
+}
+
+func afterRanOf(dir string) []string {
+	b, err := os.ReadFile(filepath.Join(dir, afterRanFile))
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, l := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+		if l != "" {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 // keptOf is what keeping the run in dir came to: the key it's kept under,

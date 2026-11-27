@@ -284,3 +284,49 @@ func TestTwoPassesOfOneKeyAtOnceAreBothKept(t *testing.T) {
 		t.Errorf("in place of one there: %v", err)
 	}
 }
+
+// A task's wrapper runs its after script first, and its command only if
+// that passed.
+func TestATaskRunsAfterWhatItNamesAndOnlyIfThatPassed(t *testing.T) {
+	s, dir := setup(t)
+	run := func(after string) Run {
+		t.Helper()
+		r, err := s.Start(Start{
+			Name: "cover", Type: Task, Repo: "demo", Worktree: "feat", Dir: dir, Command: "echo covered",
+			Owner: Owner{Kind: ByNone}, TTL: time.Hour, After: []After{{Recipe: "build"}},
+			AfterCmd: []string{"/bin/sh", "-c", after, "after"},
+		}, time.Now())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ended(t, s, r)
+	}
+	if r := run("echo building"); !r.Passed() || r.Tail(5) != "building\ncovered" {
+		t.Errorf("after passed: %s, %q", r.Result(), r.Tail(5))
+	}
+	if r := run("echo broke; exit 4"); r.Status != 4 || r.Tail(5) != "broke" {
+		t.Errorf("after failed: %s, %q: its status, and no command", r.Result(), r.Tail(5))
+	}
+}
+
+func TestAKeyHasItsAftersKeysAndNotTheirOutputs(t *testing.T) {
+	dir := gitRepo(t, map[string]string{".gitignore": "dist/\n", "test/t.txt": "t"})
+	writeFile(t, filepath.Join(dir, "dist/out.js"), "built")
+	of := KeyOf{Command: "cover", Dir: dir, Inputs: []string{"test", "dist"}, After: []After{{Recipe: "build", Key: "b1", Outputs: []string{"dist"}}}}
+	k1, err := Key(of)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dir, "dist/out.js"), "stale")
+	if k, _ := Key(of); k != k1 {
+		t.Error("dist changed the key: it's build's, said by its key")
+	}
+	of.After[0].Key = "b2"
+	if k, _ := Key(of); k == k1 {
+		t.Error("build's key changed, and the key didn't")
+	}
+	of.After[0].Key = ""
+	if _, err := Key(of); err == nil || !strings.Contains(err.Error(), "run after build, which isn't cached") {
+		t.Errorf("after an uncached task: %v", err)
+	}
+}
