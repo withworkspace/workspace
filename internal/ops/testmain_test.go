@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/testgit"
 )
@@ -42,6 +43,11 @@ func TestMain(m *testing.M) {
 	if os.Getenv(keepEnv) != "" {
 		fmt.Println("this test binary was run as ws, by", os.Args[1:])
 		os.Exit(2)
+	}
+	// Run by crew (a step's check, say), the tests aren't crew: what a
+	// test does isn't said to be by whoever ran go test.
+	for _, k := range []string{mission.EnvMission, mission.EnvCrew, mission.EnvRole, mission.EnvRun} {
+		os.Unsetenv(k)
 	}
 	cleanup := testgit.NoSigning()
 	code := m.Run()
