@@ -157,7 +157,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
       roles.rows.push(...rows(g.settings.filter(agent), g.title));
       const rest = g.settings.filter((s) => !agent(s));
       if (rest.length === 0) continue;
-      if (g.id === "crew") agents.blocks.push({ id: g.id, title: g.title, rows: rows(rest, g.title) });
+      if (g.id === "crew" || g.id === "conversation") agents.blocks.push({ id: g.id, title: g.title, rows: rows(rest, g.title) });
       else if (g.id === "team") team.blocks.push({ id: g.id, rows: rows(rest) });
       else missions.blocks.push({ id: g.id, title: g.title, about: g.about, rows: rows(rest, g.title) });
       continue;

@@ -92,6 +92,7 @@ func TestWebSettings(t *testing.T) {
 		{"orchestrator", "enabled", false, "yours"},
 		{"orchestrator", "dispatch", "ask", "team"},
 		{"orchestrator", "max_dispatches", 3, "default"},
+		{"conversation", "turn_minutes", 60, "default"},
 		{"team", "narrative", true, "default"},
 		{"team", "window", "14d", "default"},
 		{"briefing", "in", "web", "default"},
@@ -139,6 +140,7 @@ func TestWebSetSettings(t *testing.T) {
 	root := settingsWorkspace(t, settingsLocal)
 	info, err := testutil.WebSetSettings(root)([]web.SettingChange{
 		{Section: "conversation", Key: "model", Value: "gpt-6-astra[high]"},
+		{Section: "conversation", Key: "turn_minutes", Value: float64(90)},
 		{Section: "orchestrator", Key: "enabled", Clear: true},
 		{Section: "orchestrator", Key: "max_dispatches", Value: float64(5)},
 		{Section: "crew", Key: "harness", Value: "cursor"},
@@ -148,6 +150,9 @@ func TestWebSetSettings(t *testing.T) {
 	}
 	if s := setting(t, info, "conversation", "model"); s.Value != "gpt-6-astra[high]" || s.Source != "yours" {
 		t.Errorf("model = %+v", s)
+	}
+	if s := setting(t, info, "conversation", "turn_minutes"); s.Value != 90 || s.Source != "yours" || s.Default != 60 {
+		t.Errorf("turn_minutes = %+v", s)
 	}
 	if s := setting(t, info, "orchestrator", "enabled"); s.Value != true || s.Source != "default" {
 		t.Errorf("enabled = %+v", s)
@@ -160,6 +165,7 @@ func TestWebSetSettings(t *testing.T) {
 [conversation]
   harness = "codex"   # trying Codex
   model = "gpt-6-astra[high]"
+  turn_minutes = 90
 
 [orchestrator]
   max_dispatches = 5
@@ -211,6 +217,9 @@ func TestWebSetSettingsRefused(t *testing.T) {
 		{"a harness that can't hold a conversation", web.SettingChange{Section: "conversation", Key: "harness", Value: "shell"}},
 		{"no such harness", web.SettingChange{Section: "conversation", Key: "harness", Value: "gpt"}},
 		{"none in a row", web.SettingChange{Section: "orchestrator", Key: "max_dispatches", Value: float64(0)}},
+		{"a turn limit too short", web.SettingChange{Section: "conversation", Key: "turn_minutes", Value: float64(1)}},
+		{"a turn limit past the most", web.SettingChange{Section: "conversation", Key: "turn_minutes", Value: float64(1000)}},
+		{"a turn limit that isn't whole", web.SettingChange{Section: "conversation", Key: "turn_minutes", Value: float64(30.5)}},
 		{"a window that isn't one", web.SettingChange{Section: "team", Key: "window", Value: "fortnight"}},
 		{"a model over lines", web.SettingChange{Section: "crew", Key: "model", Value: "opus\nrm -rf ~"}},
 		{"a choice that isn't", web.SettingChange{Section: "orchestrator", Key: "dispatch", Value: "sometimes"}},
