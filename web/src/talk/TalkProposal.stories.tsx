@@ -11,6 +11,8 @@ import { TalkPluginItems } from "./TalkPluginItems";
 import { TalkProposal } from "./TalkProposal";
 import { TalkProposalChanges, talkProposalChangedClass } from "./TalkProposalChanges";
 import { TalkProposalChoice } from "./TalkProposalChoice";
+import { TalkProposalCode } from "./TalkProposalCode";
+import { TalkProposalConfig } from "./TalkProposalConfig";
 import { TalkProposalEdit } from "./TalkProposalEdit";
 import { TalkProposalFrame } from "./TalkProposalFrame";
 import { TalkProposalFrames } from "./TalkProposalFrames";
@@ -33,7 +35,8 @@ import { Text } from "../ui/Text";
 // superseded, withdrawn. A plugin's: items ticked to accept, one alone,
 // and once tried (made, not done, not accepted). An artifact: running,
 // beside the version it revises, with newer versions since and what
-// won't load.
+// won't load. A change to ws's config: a repo's ws.repo.toml made new,
+// ws.toml changed, being edited, and opened as a pull request.
 
 const meta: Meta = { title: "Talk/TalkProposal" };
 export default meta;
@@ -208,6 +211,70 @@ export const Artifact: StoryObj = {
           <TextArea value="" rows={2} onChange={none} placeholder="What it tries out" aria-label="Its note" />
           <Text as="div" dim>The HTML is the agent's: ask it for another version to change that.</Text>
         </TalkProposalEdit>
+      </TalkProposal>
+    </Cards>
+  ),
+};
+
+const repoFile = `[capsule]
+copy_from_ground = [".env"]
+after_create = "pnpm install --frozen-lockfile"
+
+[run.service.web]
+command = "pnpm dev --port {port} --strictPort"
+ready = "/"
+description = "The storefront, on its dev server"
+
+[run.task.test]
+command = "pnpm test"
+inputs = ["src/**", "package.json", "pnpm-lock.yaml"]
+`;
+const wsWas = `[workspace]
+org = "sorrel"
+default_branch = "main"
+
+[repos.web]
+display_name = "Storefront"
+
+[repos.api]
+`;
+const wsNow = wsWas.replace('display_name = "Storefront"', 'display_name = "Storefront"\naliases = ["fe"]\ngroup = "apps"').replace("[repos.api]\n", '[repos.api]\ngroup = "apps"\n\n[missions]\nrecords = "records"\n');
+
+export const Config: StoryObj = {
+  render: () => (
+    <Cards>
+      <TalkProposal state="open" icon="sliders" label="New config file" title="Run web with ws run, and make its capsules workable" onEdit={none} foot={choice("Open pull request")}>
+        <TalkProposalWhat why>Crew start the dev server on a free port instead of by hand, checks run the tests by name, and a new capsule has its .env and packages.</TalkProposalWhat>
+        <TalkProposalConfig was="" now={repoFile} />
+        <TalkProposalMeta items={["Adds web:ws.repo.toml", "A pull request on sorrel/web"]} />
+      </TalkProposal>
+      <TalkProposal state="open" icon="sliders" label="Config change" title="Group the apps, and keep plans in records" onEdit={none} foot={choice("Open pull request", { busy: "Opening…" })}>
+        <TalkProposalWhat why>Missions file plans and decisions in records.</TalkProposalWhat>
+        <TalkProposalConfig was={wsWas} now={wsNow} />
+        <TalkProposalMeta items={["Changes ws.toml", "A pull request on sorrel/dogfood"]} />
+      </TalkProposal>
+      <TalkProposal state="open" icon="sliders" label="Config change" foot={choice("Open pull request")}>
+        <TalkProposalEdit>
+          <Input value="Group the apps, and keep plans in records" onChange={none} aria-label="Pull request title" />
+          <TalkProposalCode value={wsNow} rows={14} onChange={none} aria-label="ws.toml" />
+          <Text as="div" dim>The whole file, as it should read. ws checks it again before it opens the pull request.</Text>
+        </TalkProposalEdit>
+      </TalkProposal>
+      <TalkProposal
+        state="accepted"
+        icon="sliders"
+        label="New config file"
+        title="Run web with ws run, and make its capsules workable"
+        foot={
+          <>
+            <TalkProposalSettled done icon="check-circle" size={14}> Pull request opened: in once it's merged</TalkProposalSettled>
+            <a href="https://github.com/sorrel/web/pull/41" className={buttonClass()}>
+              Open pull request <Icon name="external" size={13} />
+            </a>
+          </>
+        }
+      >
+        <TalkProposalConfig was="" now={repoFile} />
       </TalkProposal>
     </Cards>
   ),

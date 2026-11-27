@@ -87,6 +87,8 @@ export function settled(t: TalkTurn, proposals: TalkProposal[] = []): Settled | 
       return { accepted, what: made ? `${p.label ?? p.plugin}: ${made}` : `${p.label ?? p.plugin} ${quoted(p.title)}`.trim(), edits };
     case "automation":
       return { accepted, what: `automation ${p.automation?.name ?? quoted(p.title)}`, edits };
+    case "config":
+      return { accepted, what: `change to ${p.path} ${quoted(p.title)}`.trim(), edits };
     case "artifact": {
       const v = addedVersion(made);
       const to = v ? `/artifacts/${v.id}/v${v.n}` : undefined;
@@ -224,6 +226,9 @@ export function made(proposals: TalkProposal[], slug = "", titleOf: (id: string)
       case "plugin":
         item(p.title || p.label || "Proposal", { tag: result || (p.items && p.items.length > 1 ? `${p.items.length} items` : undefined) });
         break;
+      case "config":
+        item(p.title || p.path || "Config", { tag: p.path });
+        break;
       case "comment": {
         const [repo, number] = (p.pr ?? "").split("#");
         item(`${file(p.path)}:${p.line}`, { tag: p.pr, to: open || !number ? undefined : `/reviews/${repo}/${number}` });
@@ -257,6 +262,7 @@ export function revisedText(p: TalkProposal): string {
     case "artifact":
       return p.note ?? "";
     case "automation":
+    case "config":
       return p.text ?? "";
     case "plugin":
       return (p.items ?? [])

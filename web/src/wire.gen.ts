@@ -1711,6 +1711,14 @@ export interface ConversationProposal {
     automation?: AutomationProposed;
     warnings?: string[];
     /**
+     * A change to ws's config: how it goes in, as worked out when it was
+     * proposed (LandsPR, a pull request; LandsCapsule, committed in a
+     * capsule of a repo with no pull requests, to land), and in words
+     * (Where: "a pull request on withworkspace/dogfood").
+     */
+    lands?: string;
+    where?: string;
+    /**
      * A plugin's: the plugin (Plugin), which of what it proposes (Proposes,
      * its id), what the card calls that (Label), what the agent wrote
      * (Input, in the plugin's own shape), and what the plugin drafted of

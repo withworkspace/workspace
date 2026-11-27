@@ -127,6 +127,8 @@ func proposalWhat(p conversation.Proposal, e ProposalEdits) string {
 		return "the artifact “" + edited(e.Title, p.Title) + "”"
 	case conversation.ProposePlugin:
 		return fmt.Sprintf("%s:%s “%s”", p.Plugin, p.Proposes, p.Title)
+	case conversation.ProposeConfig:
+		return "the change to " + p.Path + " “" + edited(e.Title, p.Title) + "”"
 	}
 	return "the " + firstNonEmpty(p.Kind, "proposal") // a kind ws no longer has
 }
@@ -188,6 +190,11 @@ func proposalMade(p conversation.Proposal, slug, id string) string {
 		return "added to the draft review of " + p.PR
 	case conversation.ProposeReplan:
 		return "the planner's asked, in " + p.Result + ", and revises the plan there or says why not"
+	case conversation.ProposeConfig:
+		if p.Lands == conversation.LandsCapsule {
+			return "committed in " + p.Result + ", for the user to land"
+		}
+		return "opened as a pull request, " + p.Result + ": it's in once the user merges it (and, for ws.toml, ws sync brings it here)"
 	}
 	if p.Result != "" {
 		return "made " + p.Result
@@ -244,6 +251,8 @@ func editable(p conversation.Proposal, e ProposalEdits) []editField {
 		return []editField{{"the document", p.Text, e.Text}}
 	case conversation.ProposeArtifact:
 		return []editField{{"the title", p.Title, e.Title}, {"its note", p.Note, e.Note}}
+	case conversation.ProposeConfig:
+		return []editField{{"the title", p.Title, e.Title}, {"the file", p.Text, e.Text}}
 	}
 	return nil
 }

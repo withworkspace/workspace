@@ -244,6 +244,16 @@ func (w *Workspace) CheckGitHub() CheckCategory {
 	return CheckCategory{Name: "GitHub", Checks: append(checks, w.checkOrigins()...)}
 }
 
+// GitHubAt is the repo a remote's URL is on GitHub (owner/name), if it's
+// GitHub's.
+func GitHubAt(url string) (ref.Remote, bool) {
+	m := githubOrigin.FindStringSubmatch(strings.TrimSpace(url))
+	if m == nil {
+		return ref.Remote{}, false
+	}
+	return ref.Remote{Owner: m[1], Name: m[2]}, true
+}
+
 var githubOrigin = regexp.MustCompile(`^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([^/]+)/([^/]+?)(?:\.git)?/?$`)
 
 // checkOrigins is each clone whose origin is on GitHub somewhere other

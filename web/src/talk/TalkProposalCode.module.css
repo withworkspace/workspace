@@ -1,0 +1,9 @@
+/* A card's text box for code (TalkProposalCode.tsx). */
+
+.code {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 2;
+}

@@ -1,0 +1,7 @@
+/* What a change to ws's config does to its file (TalkProposalConfig.tsx):
+   code, in the mono face, as a diff's lines are. */
+
+.config {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}

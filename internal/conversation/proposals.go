@@ -36,6 +36,17 @@ const (
 	// in Text, what it is and would have done lately in Automation; added,
 	// on, once accepted.
 	ProposeAutomation = "automation"
+	// ProposeConfig is a change to ws's config, committed and opened as a
+	// pull request: the whole of a file (Path: ws.toml, or repo:ws.repo.toml)
+	// as it should read in Text, as it read in Was, the pull request's
+	// title (Title) and why (Why); where it goes (Lands).
+	ProposeConfig = "config"
+)
+
+// How a change to ws's config goes in (Proposal.Lands).
+const (
+	LandsPR      = "pr"      // a pull request, from a branch of its own
+	LandsCapsule = "capsule" // committed in a capsule of a repo with no pull requests, for the user to land
 )
 
 // Proposal states.
@@ -76,6 +87,8 @@ func (p Proposal) supersedes(q Proposal) bool {
 		return q.Kind == ProposeDocument && q.To == "" && p.DocKind == q.DocKind && same(p.Title, q.Title)
 	case ProposeAutomation:
 		return q.Kind == ProposeAutomation && p.Automation != nil && q.Automation != nil && same(p.Automation.Name, q.Automation.Name)
+	case ProposeConfig:
+		return q.Kind == ProposeConfig && q.Path == p.Path
 	}
 	return false
 }
@@ -179,6 +192,13 @@ type Proposal struct {
 	// script is Text).
 	Automation *automation.Proposed `json:"automation,omitempty"`
 	Warnings   []string             `json:"warnings,omitempty"`
+
+	// A change to ws's config: how it goes in, as worked out when it was
+	// proposed (LandsPR, a pull request; LandsCapsule, committed in a
+	// capsule of a repo with no pull requests, to land), and in words
+	// (Where: "a pull request on withworkspace/dogfood").
+	Lands string `json:"lands,omitempty"`
+	Where string `json:"where,omitempty"`
 
 	// A plugin's: the plugin (Plugin), which of what it proposes (Proposes,
 	// its id), what the card calls that (Label), what the agent wrote
@@ -445,12 +465,16 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 		return nil, errors.New("an artifact's version has a note: what it tries out, or what changed and why")
 	case p.Kind == ProposeAutomation && (p.Automation == nil || p.Automation.Name == "" || strings.TrimSpace(p.Text) == ""):
 		return nil, errors.New("an automation has a name and its script")
+	case p.Kind == ProposeConfig && (p.Path == "" || p.Text == "" || p.Title == ""):
+		return nil, errors.New("a change to ws's config names its file, has the whole of it as it should read, and a title for its pull request")
+	case p.Kind == ProposeConfig && p.Text == strings.TrimSpace(p.Was):
+		return nil, errors.New("the file proposed is the file as it is: change something in it")
 	case p.Kind == ProposeReplan && p.Text == "":
 		return nil, errors.New("say what to change in the plan, or what doesn't fit it")
 	case p.Kind == ProposePlugin && (p.Plugin == "" || p.Proposes == "" || len(p.Items) == 0):
 		return nil, errors.New("a plugin's proposal is of something it proposes, and has something in it to do")
-	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan && p.Kind != ProposePlugin && p.Kind != ProposeAutomation:
-		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document, an artifact, an automation or a plugin's, not %q", p.Kind)
+	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan && p.Kind != ProposePlugin && p.Kind != ProposeAutomation && p.Kind != ProposeConfig:
+		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document, an artifact, an automation, a change to ws's config or a plugin's, not %q", p.Kind)
 	case (p.Kind == ProposeBrief || p.Kind == ProposeDispatch || p.Kind == ProposePlan || p.Kind == ProposeReplan) && s.Workspace():
 		return nil, fmt.Errorf("a %s is a mission's: this conversation is the workspace's", p.Kind)
 	}
@@ -530,6 +554,8 @@ func (p Proposal) Says() string {
 		if p.Automation != nil {
 			what = fmt.Sprintf("an automation, %s: when %s", p.Automation.Name, p.Automation.When)
 		}
+	case ProposeConfig:
+		what = fmt.Sprintf("a change to %s: %s", p.Path, p.Title)
 	case ProposePlugin:
 		what = fmt.Sprintf("%s:%s (%s): %s", p.Plugin, p.Proposes, firstNonEmptyString(p.Label, "a plugin's"), p.Title)
 		if len(p.Items) > 1 {
@@ -565,6 +591,8 @@ func (c *Conversation) revisable(p Proposal) error {
 		return fmt.Errorf("proposal %d is a document of the kind %s, and this is a %s: a revision is of the same kind", q.N, q.DocKind, p.DocKind)
 	case p.Kind == ProposeArtifact && q.To != p.To:
 		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same artifact", q.N, q.Says(), p.Says())
+	case p.Kind == ProposeConfig && q.Path != p.Path:
+		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same file", q.N, q.Says(), p.Says())
 	case p.Kind == ProposePlugin && (q.Plugin != p.Plugin || q.Proposes != p.Proposes):
 		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same plugin's same kind of proposal", q.N, q.Says(), p.Says())
 	case p.Kind == ProposePlugin && q.anyMade():

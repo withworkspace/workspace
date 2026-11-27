@@ -60,6 +60,9 @@ Outside a mission:
                     each is for, and the file that says how it's done
   kinds             the kinds of document it has: where each goes, what
                     it's named, its commit messages, and its guide
+  config            setting ws up: what its ws.toml, ws.local.toml and each
+                    repo's ws.repo.toml say, the signs in each repo of what's
+                    worth configuring, and a guide to every setting
   plugins [name]    its plugins that have a guide for agents, and what
                     each is for; with a name, that plugin's guide, whole
   passes            each pass over pages: what it found, and how much of
@@ -132,9 +135,11 @@ Views are kept short and say what they left out; --full shows it all.`,
 				}
 				return err
 			}
-			if ref == "skills" || ref == "kinds" || ref == "passes" || ref == "process" { // the workspace's own way of working
+			if ref == "skills" || ref == "kinds" || ref == "passes" || ref == "process" || ref == "config" { // the workspace's own way of working
 				v := skillsView(ctx.WS())
 				switch ref {
+				case "config":
+					v = configView(ctx.WS())
 				case "kinds":
 					v = kindsView(ctx.WS())
 				case "passes":
@@ -1429,6 +1434,8 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 				if p.To != "" {
 					what = fmt.Sprintf("an edit to the document %s (%s): %s", p.To, p.DocKind, p.Title)
 				}
+			case conversation.ProposeConfig:
+				what = fmt.Sprintf("a change to %s: %s (%s)", p.Path, p.Title, p.Where)
 			case conversation.ProposeArtifact:
 				what = fmt.Sprintf("artifact: %s — %s", p.Title, p.Note)
 				if p.To != "" {

@@ -39,6 +39,6 @@ export function talkStatus(t: Pick<Talk, "status" | "answering" | "waiting">): S
   return { icon: "message", tone: "quiet", words: "Open" };
 }
 
-export const proposalIcons: Record<string, IconName> = { decision: "gavel", mission: "flag", brief: "pencil", dispatch: "play", replan: "rotate", comment: "message", plan: "list-ordered", document: "file", artifact: "artifact", automation: "bolt" };
+export const proposalIcons: Record<string, IconName> = { decision: "gavel", mission: "flag", brief: "pencil", dispatch: "play", replan: "rotate", comment: "message", plan: "list-ordered", document: "file", artifact: "artifact", automation: "bolt", config: "sliders" };
 
 export const whoName = (by: string) => ({ you: "You", agent: "Agent", ws: "ws" })[by] ?? by;

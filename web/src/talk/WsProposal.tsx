@@ -9,6 +9,7 @@ import { proposalAccept, proposalBusy, proposalLabel } from "./proposalWords";
 import { RevisionChanges } from "./RevisionChanges";
 import { TalkProposal } from "./TalkProposal";
 import { TalkProposalChoice } from "./TalkProposalChoice";
+import { TalkProposalCode } from "./TalkProposalCode";
 import { TalkProposalEdit } from "./TalkProposalEdit";
 import { proposalIcons } from "./words";
 import { Text } from "../ui/Text";
@@ -60,6 +61,8 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
         return { text: docText() };
       case "artifact":
         return { title, note };
+      case "config":
+        return { title, text };
     }
   };
   const run = (action: "accept" | "decline") => {
@@ -85,6 +88,7 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
     artifact: note.trim() && (p.to || title.trim()),
     plugin: true,
     automation: true,
+    config: title.trim() && text.trim(),
   }[p.kind];
   const rows = (s: string) => Math.min(10, Math.max(3, s.split("\n").length + 1));
   // What's said in a card's box: markdown, its names drawn as refs.
@@ -161,11 +165,19 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
             <Text as="div" dim>To change the HTML, ask the agent for another version.</Text>
           </TalkProposalEdit>
         );
+      case "config":
+        return (
+          <TalkProposalEdit>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Pull request title" aria-label="Pull request title" />
+            <TalkProposalCode value={text} rows={Math.min(24, Math.max(6, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} aria-label={p.path ?? "File"} autoFocus />
+            <Text as="div" dim>The whole file, as it should read. ws checks it again before it opens the pull request.</Text>
+          </TalkProposalEdit>
+        );
     }
   };
   // Its title: a mission's, a document's or a brief's that starts one,
   // or an artifact's (the artifact's own, for a version of it).
-  const shownTitle = editing ? undefined : p.kind === "mission" || p.kind === "document" || briefing ? p.title || undefined : p.kind === "artifact" ? p.title || artifact?.title : p.kind === "automation" ? p.automation?.name : undefined;
+  const shownTitle = editing ? undefined : p.kind === "mission" || p.kind === "document" || briefing ? p.title || undefined : p.kind === "artifact" ? p.title || artifact?.title : p.kind === "automation" ? p.automation?.name : p.kind === "config" ? p.title || undefined : undefined;
   return (
     <TalkProposal
       state={p.state}

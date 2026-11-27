@@ -167,6 +167,8 @@ func (w *Workspace) acceptOther(store conversation.Store, c *conversation.Conver
 		return w.acceptArtifact(store, c, *p)
 	case conversation.ProposeAutomation:
 		return w.acceptAutomation(store, c, *p)
+	case conversation.ProposeConfig:
+		return w.acceptConfig(store, c, *p)
 	}
 	// A kind ws no longer has (an edit to the process, from when it was
 	// read back): it can be declined, not accepted.
@@ -212,6 +214,35 @@ func (w *Workspace) acceptArtifact(store conversation.Store, c *conversation.Con
 		}
 	}
 	return said + ".", nil
+}
+
+// acceptConfig makes a proposed change to ws's config (the file as
+// accepted: your edit, or the agent's) as a pull request, as you, merged
+// with what's changed in the file since it was proposed: on a repo's
+// ws.repo.toml, from a capsule lifted for it; on ws.toml, from a branch of
+// the workspace's config repo. Result is the pull request's URL, or, in a
+// repo with no pull requests, the capsule it's committed in, to land.
+func (w *Workspace) acceptConfig(store conversation.Store, c *conversation.Conversation, p conversation.Proposal) (string, error) {
+	from := "conversation " + c.ID
+	if !store.Workspace() {
+		from += " on mission " + store.Slug
+	}
+	body := strings.TrimSpace(p.Why)
+	if body != "" {
+		body += "\n\n"
+	}
+	body += fmt.Sprintf("Proposed in %s by its agent, and accepted by the user.", from)
+	made, err := w.EditConfig(p.Path, p.Was, p.Text, p.Title, body)
+	if err != nil {
+		return "", err
+	}
+	if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, made.Result(), conversation.You, time.Now()); err != nil {
+		return "", err
+	}
+	if !store.Workspace() {
+		w.Missions.AppendLogAfter(store.Slug, mission.Event{Kind: mission.EventNote, Text: "changed " + p.Path + " from " + c.ID + ": " + made.Result()})
+	}
+	return made.Message + ".", nil
 }
 
 // acceptDocument adds a proposed document, from its text as accepted (your

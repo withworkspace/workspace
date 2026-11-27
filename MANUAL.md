@@ -1133,6 +1133,23 @@ menu = ["team", "files"]                                             # moved int
 
 ## Configuration
 
+**Help setting it up.** Ask in a conversation ("what should I configure?", "set up runs for web") and its agent runs `ws show config`, which you can run yourself too. The agent recommends what's worth setting for your repos, and proposes the changes you want as cards under its reply. `ws show config` prints three things:
+
+- What `ws.toml` and `ws.local.toml` say now, and which tables neither says.
+- For each repo, what its `ws.repo.toml` says, or that it has none, and the signs at its root of what's worth configuring: package.json scripts, a justfile, a compose file, `.env.example`, lockfiles, `docs/`.
+- A guide to every setting: what it's for, when it's worth it, and every key ws reads. The guide is built into ws and tested against the config it reads, so a new key isn't missing from it.
+
+Conversations are told only that the guide is there. It's read when you ask about configuring ws. It reads files alone (no git, nothing from GitHub), and changes nothing.
+
+**Changes are pull requests.** A card shows what the change does to the file, as a diff, with what it gets you; Edit lets you change its title or the file before you confirm. ws.toml and ws.repo.toml are committed files, so confirming never writes one in place:
+
+- **A repo's `ws.repo.toml`:** a capsule is lifted in that repo for it (`config-<title>`), the file is committed there, its branch pushed and a pull request opened. In a repo with no pull requests (`landing = "direct"`) it's left committed in the capsule, for you to `ws land`.
+- **`ws.toml`:** a branch of the workspace's config repo is made from its remote's default branch, in a clone of its own (the root's checkout, which `ws sync` resets, isn't touched), committed as you, pushed, and a pull request opened. Once it's merged, `ws sync` brings it in.
+
+ws checks the file as it would read it when it's proposed and again when it's confirmed: TOML that doesn't parse, or a key ws doesn't read, is refused, saying which. If the file changed since the agent read it, the change is merged in; where both changed the same lines, nothing's made, and the agent is asked to make it again. `ws.local.toml` is yours and committed nowhere, so it isn't proposed: the agent says what to put in it, or which Settings row sets it.
+
+You can do the same yourself: `ws config edit <file> <text|->` with `--title` (and `--why` for the description), the file `ws.toml` or `<repo>:ws.repo.toml`.
+
 ### ws.toml
 
 The shared workspace config. Lives at the root of the workspace and is typically checked into the config repo.
