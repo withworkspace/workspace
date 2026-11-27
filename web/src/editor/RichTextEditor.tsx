@@ -151,6 +151,22 @@ export default function RichTextEditor(props: InnerProps) {
       style={{ "--rows": props.rows ?? 1, "--tallest": `${props.tallest ?? 320}px` } as React.CSSProperties}
       data-rich=""
       ref={host}
+      // Its room around the words is theirs, as a text box's is: a press
+      // there, or the focus given it, is the words'.
+      tabIndex={-1}
+      onFocus={(e) => {
+        if (e.target === e.currentTarget) view.current?.focus();
+      }}
+      onMouseDown={(e) => {
+        const v = view.current;
+        if (e.target !== e.currentTarget || !v) return;
+        e.preventDefault();
+        v.focus();
+        if (!v.hasFocus()) return;
+        const { top } = v.dom.getBoundingClientRect();
+        // Over the words, to their start; under them, to their end.
+        v.dispatch(v.state.tr.setSelection(e.clientY < top ? Selection.atStart(v.state.doc) : Selection.atEnd(v.state.doc)));
+      }}
     />
   );
 }
