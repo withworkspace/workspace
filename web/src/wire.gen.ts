@@ -697,6 +697,17 @@ export interface AutomationDryRun {
     output?: AutomationOutput;
 }
 
+// From web/automations.go
+/**
+ * AutomationGrant is what POST /api/automations/{name}/grants takes: a
+ * plugin's kind of proposal, and whether the automation may do it without
+ * asking.
+ */
+export interface AutomationGrant {
+    kind: string;
+    on: boolean;
+}
+
 // From automation/action.go
 /**
  * InputField is one thing an action asks before it runs: its name, and
@@ -3124,6 +3135,12 @@ export interface OpsAutomationDid {
     conversation?: string;
     started?: boolean;
     waiting?: boolean;
+    /**
+     * Proposal is what a propose or an act made (w12#1), and Settled how it
+     * stands now: open, accepted, declined.
+     */
+    proposal?: string;
+    settled?: string;
 }
 
 // From ops/automations.go
@@ -3151,6 +3168,27 @@ export interface OpsAutomationItem {
      */
     output?: number;
     scheduled?: boolean;
+    /**
+     * Kinds are the plugins' kinds of proposal it may act on (act), each
+     * with whether you let it do that without asking (granted).
+     */
+    kinds?: OpsAutomationKind[];
+}
+
+// From ops/automations.go
+/**
+ * AutomationKind is a plugin's kind of proposal an automation may act on:
+ * what it's called, whether its plugin says it's safe done with nobody
+ * looking (unattended; if not, it's always proposed), and whether you let
+ * this automation do it without asking. Missing: no plugin here proposes
+ * it.
+ */
+export interface OpsAutomationKind {
+    kind: string;
+    title?: string;
+    unattended?: boolean;
+    granted?: boolean;
+    missing?: boolean;
 }
 
 // From ops/automations.go

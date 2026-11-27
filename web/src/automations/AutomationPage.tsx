@@ -11,7 +11,9 @@ import {
   removeAutomation,
   setAutomationOn,
   useEvents,
+  setAutomationGrant,
 } from "../api";
+import { humanError } from "../ui/strings";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
@@ -29,6 +31,7 @@ import { Time } from "../ui/Time";
 import { toast } from "../ui/toast";
 import { useTitle } from "../ui/useTitle";
 import { AutomationFacts } from "./AutomationFacts";
+import { AutomationGrants } from "./AutomationGrants";
 import { AutomationFlow } from "./AutomationFlow";
 import { AutomationOutputView } from "./AutomationOutputView";
 import { AutomationRunItem } from "./AutomationRunItem";
@@ -155,6 +158,21 @@ export function AutomationPage() {
                 </Link>
               </GroupHead>
               <AutomationOutputView name={name} output={shown.output} versions={shown.versions.map((v) => v.version)} />
+            </AutomationsSection>
+          )}
+          {a.kinds && a.kinds.length > 0 && (
+            <AutomationsSection>
+              <GroupHead>Through plugins</GroupHead>
+              <AutomationGrants
+                kinds={a.kinds}
+                busy={busy}
+                onGrant={(kind, on) => {
+                  setBusy(true);
+                  setAutomationGrant(name, kind, on)
+                    .then(() => reload(), (e: Error) => toast(humanError(e.message), { tone: "danger" }))
+                    .finally(() => setBusy(false));
+                }}
+              />
             </AutomationsSection>
           )}
           {info.outline && (

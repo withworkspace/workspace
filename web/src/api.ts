@@ -1231,6 +1231,7 @@ export type {
   AutomationInputField,
   OpsAutomationAction as AutomationAction,
   OpsAutomationActionRun as AutomationActionRun,
+  OpsAutomationKind as AutomationKind,
   OpsAutomationDid as AutomationDid,
   OpsAutomationItem as AutomationItem,
   OpsAutomationRun as AutomationRun,
@@ -1259,6 +1260,8 @@ export const runAutomationNow = (name: string) => send<{ event: string }>("POST"
 // it stands, or on nothing in particular without one; runAction runs one,
 // by you, and says how it went by the time it's ended, parked, or a few
 // seconds have gone. Mirrors internal/web/automations.go.
+export const setAutomationGrant = (name: string, kind: string, on: boolean) =>
+  send<{ kind: string; on: boolean }>("POST", `/api/automations/${encodeURIComponent(name)}/grants`, { kind, on });
 export const getActions = (on?: string) => getJSON<ActionsInfo>(`/api/actions${on ? `?on=${encodeURIComponent(on)}` : ""}`);
 export const runAction = (body: { automation: string; title: string; on?: string; input?: Record<string, unknown> }) => send<ActionRan>("POST", "/api/actions/run", body);
 // dryRunAutomation is what one would have done over the last 30 days,

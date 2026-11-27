@@ -284,8 +284,8 @@ func (o *outliner) builtin(name string, c *syntax.CallExpr) (OutlineStep, bool) 
 		if ans := kw["answer"]; ans != nil {
 			step.Detail = "answers " + o.source(ans)
 		}
-	case name == "propose":
-		step.Kind, step.Text = "propose", o.words(first())
+	case name == "propose" || name == "act":
+		step.Kind, step.Text = name, o.words(first())
 		if len(args) > 1 {
 			step.Detail = o.source(args[1])
 		} else if in := kw["input"]; in != nil {

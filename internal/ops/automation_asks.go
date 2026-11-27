@@ -14,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/notification"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/spend"
 	"github.com/withworkspace/workspace/internal/turn"
 )
@@ -53,8 +54,93 @@ func (w *Workspace) automationSpent(name string, since time.Time) (int64, error)
 // (in, one it's proposed in this run; "" for a new one, chain the
 // automations that led to it), and tells you: it says the proposal's ref.
 func (w *Workspace) automationPropose(a *automation.Automation, p automation.Proposing, in string, chain []string) (string, error) {
+	ref, prop, err := w.proposeFor(a, p, in, chain)
+	if err != nil {
+		return "", err
+	}
+	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": yours to accept or decline")
+	return ref, nil
+}
+
+// automationAct is what a's act makes of p: a proposal as propose's, then
+// accepted at once by a where how says it may be (granted) and its plugin
+// says that's safe with nobody looking; put in front of you where you
+// started the run (how.Confirm: the page you started it from shows it,
+// and nothing's told); else left for you to accept, as propose's is.
+func (w *Workspace) automationAct(a *automation.Automation, p automation.Proposing, how automation.Acting, in string, chain []string) (string, error) {
+	ref, prop, err := w.proposeFor(a, p, in, chain)
+	if err != nil {
+		return "", err
+	}
+	id, _, _ := strings.Cut(ref, "#")
+	store := conversation.ForWorkspace(w.Root())
+	switch {
+	case how.Confirm:
+		return ref, nil
+	case how.Accept && !w.unattendedKind(p.Kind):
+		_, _ = store.Say(id, conversation.Turn{By: conversation.WS, At: w.now(), Body: "You let " + a.Name + " do " + p.Kind + " without asking, but its plugin doesn't say that's safe with nobody looking: it's yours to accept."})
+	case how.Accept:
+		_, err := w.acceptUnattended(a, ref)
+		if err == nil {
+			w.tellOfAutomation(a, ref, a.Name+" did it without asking, as you let it: "+firstNonEmpty(prop.Title, prop.Says()))
+			return ref, nil
+		}
+		_, _ = store.Say(id, conversation.Turn{By: conversation.WS, At: w.now(), Body: "It couldn't be done without asking: " + err.Error() + ". It's yours to accept, or not."})
+		w.tellOfAutomation(a, ref, a.Name+" couldn't do "+prop.Says()+" ("+err.Error()+"): yours to accept or decline")
+		return ref, nil
+	}
+	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": yours to accept or decline")
+	return ref, nil
+}
+
+// unattendedKind is whether a plugin says its kind (jira:changes) is safe
+// accepted with nobody looking.
+func (w *Workspace) unattendedKind(kind string) bool {
+	for _, p := range plugin.Proposables(w.Root()) {
+		if p.Name() == kind {
+			return p.Proposes.Unattended
+		}
+	}
+	return false
+}
+
+// acceptUnattended accepts the proposal ref names, all of it, as a: it
+// says what was done.
+func (w *Workspace) acceptUnattended(a *automation.Automation, ref string) (string, error) {
+	id, nth, _ := strings.Cut(ref, "#")
+	n, _ := strconv.Atoi(nth)
+	store := conversation.ForWorkspace(w.Root())
+	c, err := store.Load(id)
+	if err != nil {
+		return "", err
+	}
+	p := c.Proposal(n)
+	if p == nil {
+		return "", fmt.Errorf("%s has no proposal %d", id, n)
+	}
+	said, err := w.acceptPluginBy(store, c, *p, nil, conversation.ByAutomation(a.Name))
+	if err != nil {
+		return "", err
+	}
+	_, _ = store.Say(id, conversation.Turn{By: conversation.WS, At: w.now(), Body: "Done without asking, as you let " + a.Name + " do " + p.Plugin + ":" + p.Proposes + ": " + said})
+	return said, nil
+}
+
+// tellOfAutomation is a notification of a's, about the conversation ref
+// is in.
+func (w *Workspace) tellOfAutomation(a *automation.Automation, ref, text string) {
+	id, _, _ := strings.Cut(ref, "#")
+	_, _ = notification.Add(w.Root(), notification.Notification{
+		Source: notification.SourceAutomations, Kind: "automation:" + a.Name, Refs: []string{id}, By: events.ByWorkflow(a.Name), Text: text,
+	})
+}
+
+// proposeFor makes what a proposes a proposal, in a conversation of its
+// own (in, or a new one, titled for it): its ref, and the proposal.
+func (w *Workspace) proposeFor(a *automation.Automation, p automation.Proposing, in string, chain []string) (string, conversation.Proposal, error) {
 	store := conversation.ForWorkspace(w.Root())
 	now := w.now()
+	opened := in == ""
 	if in == "" {
 		body := p.Why
 		if body == "" {
@@ -65,42 +151,41 @@ func (w *Workspace) automationPropose(a *automation.Automation, p automation.Pro
 		}
 		c, err := store.OpenTalkChained("automation:"+a.Name, chain, conversation.Turn{By: conversation.WS, At: now, Body: body})
 		if err != nil {
-			return "", err
+			return "", conversation.Proposal{}, err
 		}
 		in = c.ID
-		// Named for what it's for, as an agent names its conversation.
-		_ = store.SetSummary(in, a.Name+" proposes "+p.Says(), "", now)
 	} else if p.Why != "" {
 		if _, err := store.Say(in, conversation.Turn{By: conversation.WS, At: now, Body: p.Why}); err != nil {
-			return "", err
+			return "", conversation.Proposal{}, err
 		}
 	}
 	prop, err := w.automationProposal(in, p, now)
 	if err != nil {
-		return "", err
+		return "", prop, err
 	}
 	prop.By, prop.At = conversation.WS, now
 	c, err := store.Propose(in, prop)
 	if err != nil {
-		return "", err
+		return "", prop, err
 	}
-	ref := fmt.Sprintf("%s#%d", c.ID, len(c.Proposals))
-	_, _ = notification.Add(w.Root(), notification.Notification{
-		Source: notification.SourceAutomations, Kind: "automation:" + a.Name, Refs: []string{c.ID}, By: events.ByWorkflow(a.Name),
-		Text: a.Name + " proposes " + prop.Says() + ": yours to accept or decline",
-	})
-	return ref, nil
+	if opened {
+		// Named for what it's for, as an agent names its conversation: a
+		// plugin's by its own title for it.
+		_ = store.SetSummary(in, a.Name+": "+firstNonEmpty(prop.Title, prop.Says()), "", now)
+	}
+	return fmt.Sprintf("%s#%d", c.ID, len(c.Proposals)), prop, nil
 }
 
 // automationProposal is the proposal p is: a mission or a decision as
 // ws records them, or a plugin's kind, drafted by the plugin as for a
 // conversation's agent.
 func (w *Workspace) automationProposal(in string, p automation.Proposing, now time.Time) (conversation.Proposal, error) {
-	str := func(k string) string { s, _ := p.Input[k].(string); return strings.TrimSpace(s) }
+	fields := p.Fields()
+	str := func(k string) string { s, _ := fields[k].(string); return strings.TrimSpace(s) }
 	switch p.Kind {
 	case "mission":
 		var about []string
-		if l, ok := p.Input["about"].([]any); ok {
+		if l, ok := fields["about"].([]any); ok {
 			for _, x := range l {
 				if s, ok := x.(string); ok && s != "" {
 					about = append(about, s)

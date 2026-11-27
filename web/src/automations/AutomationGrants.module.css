@@ -1,0 +1,30 @@
+/* What an automation may do through plugins, and whether without asking
+   (AutomationGrants.tsx): a switch and its words a row. */
+
+@layer components {
+  .grants {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .grant {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .note {
+    font-size: var(--text-sm);
+  }
+}

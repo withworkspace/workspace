@@ -30,6 +30,7 @@ import { Loading } from "./ui/Loading";
 import { humanError } from "./ui/strings";
 import { Confirmer } from "./ui/Confirm";
 import { ActionInputAsker } from "./automations/ActionInputAsker";
+import { ActConfirmer } from "./automations/ActConfirmer";
 import { Below } from "./chrome/Below";
 import { useBelow } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
@@ -314,6 +315,7 @@ export function App() {
           <Toasts />
           <Confirmer />
           <ActionInputAsker />
+          <ActConfirmer />
           <WhatsNew version={workspace?.version} />
           <FocusKeys />
         </>

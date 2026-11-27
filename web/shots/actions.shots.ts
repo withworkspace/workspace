@@ -46,5 +46,28 @@ export default defineFlow({
       },
     },
     { shot: "ran", viewport: true, shows: "What it did, said once it ran: its notification's words" },
+    { goto: "/" },
+    { press: "ControlOrMeta+k" },
+    { type: "THING-2" },
+    { press: "ControlOrMeta+k" },
+    { type: "dust" },
+    { press: "Enter" },
+    {
+      label: "its card",
+      run: async (page) => {
+        await page.waitForTimeout(2500);
+      },
+    },
+    { shot: "act-confirm", viewport: true, shows: "Dust it, run by you: what it'd do through the plugin, its card, in front of you to accept or decline" },
+    { click: 'role=dialog >> role=button[name="Accept"]' },
+    {
+      label: "done",
+      run: async (page) => {
+        await page.getByText("Dust it: Done.").waitFor();
+      },
+    },
+    { shot: "act-done", viewport: true, shows: "Accepted: done, and said so" },
+    { goto: "/automations/moved-notes" },
+    { shot: "grants", viewport: true, shows: "moved-notes's page: Through plugins, let do Fixture things without asking, and its run that did" },
   ],
 });

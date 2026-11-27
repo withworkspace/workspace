@@ -30,6 +30,7 @@ type Automating interface {
 	// write to what's kept of them.
 	AutomationsStamp() string
 	AutomationActions(on string) ([]ops.AutomationAction, error)
+	SetAutomationGrant(name, kind string, on bool) error
 	RunAutomationAction(name, title, on string, input map[string]any) (ops.AutomationActionRun, error)
 }
 
@@ -165,6 +166,27 @@ func (s *Server) automationOn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.App.SetAutomationOn(r.PathValue("name"), b.On); err != nil {
+		writeError(w, automationErr(err), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
+}
+
+// AutomationGrant is what POST /api/automations/{name}/grants takes: a
+// plugin's kind of proposal, and whether the automation may do it without
+// asking.
+type AutomationGrant struct {
+	Kind string `json:"kind"`
+	On   bool   `json:"on"`
+}
+
+// automationGrant is POST /api/automations/{name}/grants.
+func (s *Server) automationGrant(w http.ResponseWriter, r *http.Request) {
+	var b AutomationGrant
+	if !readBody(w, r, &b) {
+		return
+	}
+	if err := s.App.SetAutomationGrant(r.PathValue("name"), b.Kind, b.On); err != nil {
 		writeError(w, automationErr(err), http.StatusInternalServerError)
 		return
 	}

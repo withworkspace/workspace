@@ -3,6 +3,7 @@ import { type ActionRan, type AutomationAction, getActions, runAction } from "..
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/strings";
 import { askActionInput } from "./askActionInput";
+import { confirmAct } from "./confirmAct";
 
 // Your automations' actions (when = action(...)), where you act on things:
 // those on nothing in particular under Find's Do, those on a thing in
@@ -84,6 +85,15 @@ export async function doAction(a: AutomationAction, on: string | undefined, go: 
   }
   try {
     const r = await runAction({ automation: a.automation, title: a.title, on: on || undefined, input });
+    // What it would do through a plugin, it does once you've said so:
+    // its card, here, now.
+    const acting = (r.did ?? []).find((d) => d.what === "act" && d.settled === "open" && d.proposal);
+    if (acting?.proposal) {
+      const [conversation, n] = acting.proposal.split("#");
+      const said = await confirmAct(conversation, Number(n), a.title);
+      if (said) toast(`${a.title}: ${said}`, { tone: "done" });
+      return;
+    }
     const said = ranSaid(a, r);
     toast(said.text, { tone: said.tone, action: said.open && { label: said.open.label, run: () => go(said.open!.to) } });
   } catch (e) {

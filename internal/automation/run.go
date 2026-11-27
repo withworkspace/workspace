@@ -59,6 +59,11 @@ type Hooks struct {
 	// ("" for a new one, chain the automations that led to it). It says
 	// the proposal's ref (w12#1).
 	Propose func(a *Automation, p Proposing, conversation string, chain []string) (string, error)
+	// Act is Propose for act: a plugin's kind, made as a proposal and then
+	// accepted at once (how.Accept: granted; the plugin's to agree, else
+	// it's left proposed), or put in front of you to confirm (how.Confirm).
+	// It says the proposal's ref.
+	Act func(a *Automation, p Proposing, how Acting, conversation string, chain []string) (string, error)
 	// Proposal is how a proposal stands, by its ref: open, accepted,
 	// declined, withdrawn or superseded, and what accepting it made.
 	Proposal func(ref string) (state, result string, ok bool)
@@ -118,6 +123,9 @@ func (e *Engine) Add(name string, src []byte) (*Automation, error) {
 		if err := forget(tx, name); err != nil {
 			return err
 		}
+		if err := keepGrants(tx, name, a.May); err != nil {
+			return err
+		}
 		if err := keep(tx, name, latest, e.now()); err != nil {
 			return err
 		}
@@ -133,6 +141,9 @@ func (e *Engine) Remove(name string) error {
 	}
 	return write(e.Root, func(tx *store.Tx) error {
 		if err := forget(tx, name); err != nil {
+			return err
+		}
+		if err := keepGrants(tx, name, nil); err != nil {
 			return err
 		}
 		return os.Remove(Path(e.Root, name))
@@ -561,6 +572,7 @@ func (r *run) builtins() starlark.StringDict {
 		"things":   starlark.NewBuiltin("things", r.placed(r.thingsBuiltin)),
 		"ask":      starlark.NewBuiltin("ask", r.placed(r.ask)),
 		"propose":  starlark.NewBuiltin("propose", r.placed(r.propose)),
+		"act":      starlark.NewBuiltin("act", r.placed(r.act)),
 	}
 }
 

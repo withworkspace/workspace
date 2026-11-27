@@ -40,7 +40,7 @@ func TestAutomationPropose(t *testing.T) {
 	if c.Via != "automation:sketch-mission" || strings.Join(c.Chain, ">") != "sketch-mission" || c.NeedsAnswer() || !c.WaitingOnYou() || len(woken) != 0 {
 		t.Errorf("conversation %+v, woken %q", c, woken)
 	}
-	if c.Title != "sketch-mission proposes a mission: Build Queues" {
+	if c.Title != "sketch-mission: Build Queues" {
 		t.Errorf("titled %q", c.Title)
 	}
 	if t0 := c.Turns[0]; t0.By != conversation.WS || !strings.Contains(t0.Body, "Brendan drew Queues") || !strings.Contains(t0.Body, "on e12: Brendan added Queues") {
@@ -62,6 +62,13 @@ func TestAutomationPropose(t *testing.T) {
 	}
 	if state, _, _ := w.automationProposalState(second); state != conversation.ProposalDeclined || len(woken) != 0 {
 		t.Errorf("declined: %q, woken %q", state, woken)
+	}
+	// Settled, all of it, it's nobody's to wait on.
+	if _, _, err := w.SettleProposal("", id, 1, false, ProposalEdits{}); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := conversation.ForWorkspace(root).Load(id); c.WaitingOnYou() {
+		t.Error("settled, it still waits on you")
 	}
 	if _, _, ok := w.automationProposalState(id + "#9"); ok {
 		t.Error("a proposal there isn't stands")

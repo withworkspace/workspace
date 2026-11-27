@@ -427,8 +427,8 @@ func maysOf(v starlark.Value) ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("may has a %s in it: each is what it may do, as a string", x.Type())
 		}
-		if !slices.Contains(Mays, s) {
-			return nil, fmt.Errorf("%q isn't something an automation may do yet: it may %s", s, strings.Join(Mays, " or "))
+		if !slices.Contains(Mays, s) && !IsPluginKind(s) {
+			return nil, fmt.Errorf("%q isn't something an automation may do yet: it may %s, or act on a plugin's kind of proposal (jira:changes)", s, strings.Join(Mays, " or "))
 		}
 		out = append(out, s)
 	}
@@ -451,7 +451,7 @@ func scriptError(err error) error {
 }
 
 // builtinNames are every builtin a run's given (run.builtins).
-var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait", "wait_all", "wait_any", "run_task", "repos", "keep", "kept", "output", "chart", "things", "ask", "propose"}
+var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait", "wait_all", "wait_any", "run_task", "repos", "keep", "kept", "output", "chart", "things", "ask", "propose", "act"}
 
 // checkBuiltins are what a file's top level is read with: event, and
 // every other builtin's name, so run can use them, refusing to be called

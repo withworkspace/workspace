@@ -43,6 +43,12 @@ func ProposalKey(slug, id string, n int) string {
 }
 
 func (w *Workspace) acceptPlugin(store conversation.Store, c *conversation.Conversation, p conversation.Proposal, picked []int) (string, error) {
+	return w.acceptPluginBy(store, c, p, picked, conversation.You)
+}
+
+// acceptPluginBy is acceptPlugin, as by: you, or an automation you let do
+// it without asking (conversation.ByAutomation).
+func (w *Workspace) acceptPluginBy(store conversation.Store, c *conversation.Conversation, p conversation.Proposal, picked []int, by string) (string, error) {
 	open := p.OpenItems()
 	if len(picked) == 0 {
 		picked = open
@@ -98,7 +104,7 @@ func (w *Workspace) acceptPlugin(store conversation.Store, c *conversation.Conve
 			}
 		}
 	}
-	if _, err := store.ItemsDone(c.ID, p.N, out, conversation.You, w.now()); err != nil {
+	if _, err := store.ItemsDone(c.ID, p.N, out, by, w.now()); err != nil {
 		return "", err
 	}
 	if len(problems) > 0 {
