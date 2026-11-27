@@ -61,7 +61,7 @@ func withGiven(t conversation.Turn) string {
 
 // talkProposing says what a conversation's agent may propose, and how: a
 // document only where the workspace has kinds of them.
-func talkProposing(h Here) string {
+func talkProposing(h Here, config bool) string {
 	var b strings.Builder
 	if h.Sandbox != nil {
 		b.WriteString("What's the workspace's (its missions, decisions, documents and artifacts) you don't change yourself, but you can propose: run one of these commands yourself, and it puts a button under your reply for the user to confirm it (or not). Don't paste the command into your reply: run it.\n\n")
@@ -73,7 +73,9 @@ func talkProposing(h Here) string {
 	if len(h.Kinds) > 0 {
 		fmt.Fprintf(&b, "- A document of one of the workspace's kinds (%s), when the user asks for one, or wants what's been worked out kept as one. Each kind's guide says how one's written, and you read it before you write: first run `ws doc add --propose <kind>`, which proposes nothing but prints the kind's guide and the `--guide` value to propose with (a proposal without it is refused, with the guide). Write the document as the guide says, then run `ws doc add --propose <kind> --guide <value> - <<'EOF'`, then the whole document in markdown, its title as its first heading (`# …`), then `EOF` on a line of its own. Confirming adds it where its kind says, named from its title and committed with its kind's message: you don't choose its path, and you don't write it anywhere yourself. To change one that's there (yours, once it's added, as ws told you: records:docs/x.md), first run `ws doc amend --propose <ref>`, which proposes nothing but prints it as it is and the `--on` value to propose with; then run `ws doc amend --propose <ref> --on <value> - <<'EOF'`, then the whole of it as it should read, then `EOF` on a line of its own. The user sees what it changes; confirming saves it where it is, committed with its kind's message.\n", strings.Join(h.Kinds, ", "))
 	}
-	b.WriteString("- A change to ws's config (ws.toml, or a repo's ws.repo.toml), when the user wants something set up: `ws show config -f llm` says what's worth setting and every key. First run `ws config edit --propose <file>` (ws.toml, or <repo>:ws.repo.toml), which proposes nothing but prints the file as it is and the `--on` value to propose with. Then run `ws config edit --propose <file> --on <value> --title \"<what it sets up, in a line>\" --why \"<what it gets the user>\" - <<'EOF'`, then the whole file as it should read (what's there kept, comments too), then `EOF` on a line of its own. ws refuses a key it doesn't read. Confirming opens it as a pull request: you don't write these files yourself. One file to a proposal: a change to two repos' files is two. ws.local.toml is the user's own and isn't proposed: say what to put in it, or which Settings row sets it.\n")
+	if config {
+		b.WriteString("- A change to ws's config (ws.toml, or a repo's ws.repo.toml), when the user wants something set up: `ws show config -f llm` says what's worth setting and every key. First run `ws config edit --propose <file>` (ws.toml, or <repo>:ws.repo.toml), which proposes nothing but prints the file as it is and the `--on` value to propose with. Then run `ws config edit --propose <file> --on <value> --title \"<what it sets up, in a line>\" --why \"<what it gets the user>\" - <<'EOF'`, then the whole file as it should read (what's there kept, comments too), then `EOF` on a line of its own. ws refuses a key it doesn't read. Confirming opens it as a pull request: you don't write these files yourself. One file to a proposal: a change to two repos' files is two. ws.local.toml is the user's own and isn't proposed: say what to put in it, or which Settings row sets it.\n")
+	}
 	b.WriteString("- An automation: what ws does when something happens, when the user asks for one (notify me when…, when CI fails…, after a merge…). First run `ws automation kinds`, which says how one's written in Starlark and every kind of event there is. Then run `ws automation add --propose --name <name> - <<'EOF'`, then the script (its first line a comment in the user's words), then `EOF` on a line of its own. ws checks it and dry-runs it over the last 30 days, and the user reads on its card what it would have done before turning it on. `ws automation list` says what's there already, and `ws events` what's happened lately.\n")
 	b.WriteString("- An artifact: a page that shows an idea, for the user to look at and use, when something's better seen than described (a colour, a layout, a diagram to click through) or they ask for one. First run `ws artifact add --propose`, which proposes nothing but says how one's written (its page, alone or with the files it loads beside it; nothing from the network; and tweaks, for ws to draw the controls where there's something to choose between). Then run `ws artifact add --propose --title \"<what it is>\" --note \"<what it tries out>\" - <<'EOF'`, then the whole HTML file, then `EOF` on a line of its own. To revise one, read it first (`ws show a3`, `ws artifact show a3.v2`), then propose the whole file again with `--to a3 --on v2 --note \"<what changed, and why>\"` in place of the title: each revision is a new version.")
 	if h.Sandbox != nil {
@@ -118,6 +120,14 @@ const talkProposingMission = "About this mission, you can also propose:\n\n" +
 	"- A replan: `ws mission replan --propose \"<what to change in the plan, and why>\"`. The plan is its planner's, so you don't write it, but you can ask for it: confirming asks the planner as `ws mission replan` does, and it revises the plan in its own conversation (the steps behind the mission stay as they were), or says why not. When the user asks you to replan, or wants work added to the plan, dropped or moved, propose this: don't send them to do it.\n" +
 	"A mission you propose here is a follow-up, raised from this one; a decision is this mission's once confirmed.\n\n" +
 	"Place every ask. When the user's message asks for more than one thing, name each ask in your reply and say where it goes, and propose it there: work that's part of what this mission is for, and isn't in its plan, is a replan (`ws mission replan --propose`), the default; a change to what the mission is for, or to what's been settled, is an edit to the brief or a decision; work that's clearly separate is a new mission (`ws mission new --propose`), raised from this one. Say which you chose and why. An ask your reply leaves unplaced, or only says could be done later, is dropped: if you can't tell where it goes, ask.\n\n"
+
+// settingUp is whether a conversation is one setting ws up is asked about
+// in, and so is told how (talkConfig, and proposing a change to its
+// config): a conversation of the workspace's, or a mission's. Not one
+// briefing a mission, nor one about a document, a thing or a pull request.
+func settingUp(c *conversation.Conversation) bool {
+	return c.Goal != conversation.GoalBrief && c.What != conversation.WhatDoc && c.What != conversation.WhatThing && c.Anchor.PR == ""
+}
 
 // talkConfig is how a conversation's agent helps set ws up: the guide is
 // read when it's asked for, not told every agent.
@@ -189,13 +199,13 @@ func TalkFirst(h Here, c *conversation.Conversation) string {
 	}
 	b.WriteString(para(h.Agents))
 	b.WriteString(talkReading(h))
-	if c.Goal != conversation.GoalBrief && c.What != conversation.WhatDoc && c.What != conversation.WhatThing && c.Anchor.PR == "" {
-		b.WriteString(talkConfig) // where setting ws up is asked about: a conversation of the workspace's, or a mission's
+	if settingUp(c) {
+		b.WriteString(talkConfig)
 	}
 	// An ask proposes nothing until it's kept (but a pull request's review
 	// comment, which its intro says): it's a conversation like any then.
 	if c.Goal != conversation.GoalBrief && !c.Ephemeral {
-		b.WriteString(talkProposing(h))
+		b.WriteString(talkProposing(h, settingUp(c)))
 		if h.Mission != nil {
 			b.WriteString(talkProposingMission)
 		}
@@ -347,7 +357,7 @@ func TalkNext(h Here, c *conversation.Conversation) string {
 			said = "about the pull request. You were told to propose nothing but review comments while it wasn't kept; from here on you can propose the rest too."
 		}
 		fmt.Fprintf(&b, "(The user kept this conversation: it's in Conversations now, %s)\n\n", said)
-		b.WriteString(talkProposing(h))
+		b.WriteString(talkProposing(h, settingUp(c)))
 	}
 	b.WriteString("The user says:\n\n")
 	for _, s := range youSince(c) {
