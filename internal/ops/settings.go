@@ -1167,3 +1167,20 @@ func Models(name string) ([]harness.Model, error) {
 	modelsCache.Unlock()
 	return models, err
 }
+
+// SettingKeys are the keys the Settings page has a row for, each as a
+// dotted path (crew.model), in the page's order: what it writes to
+// ws.local.toml for you.
+func SettingKeys(root string) []string {
+	var out []string
+	for _, g := range settingDefs(root) {
+		for _, d := range g.settings {
+			if d.section == "" {
+				out = append(out, d.key)
+			} else {
+				out = append(out, d.section+"."+d.key)
+			}
+		}
+	}
+	return out
+}

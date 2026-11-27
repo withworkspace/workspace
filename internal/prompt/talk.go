@@ -118,6 +118,10 @@ const talkProposingMission = "About this mission, you can also propose:\n\n" +
 	"A mission you propose here is a follow-up, raised from this one; a decision is this mission's once confirmed.\n\n" +
 	"Place every ask. When the user's message asks for more than one thing, name each ask in your reply and say where it goes, and propose it there: work that's part of what this mission is for, and isn't in its plan, is a replan (`ws mission replan --propose`), the default; a change to what the mission is for, or to what's been settled, is an edit to the brief or a decision; work that's clearly separate is a new mission (`ws mission new --propose`), raised from this one. Say which you chose and why. An ask your reply leaves unplaced, or only says could be done later, is dropped: if you can't tell where it goes, ask.\n\n"
 
+// talkConfig is how a conversation's agent helps set ws up: the guide is
+// read when it's asked for, not told every agent.
+const talkConfig = "When the user asks about setting ws up or configuring it (ws.toml, ws.local.toml, a repo's ws.repo.toml, what's worth setting, why something isn't working the way they expected), first run `ws show config -f llm`: it says what each file says now, what's in each repo that's worth configuring, and every setting ws has. Recommend from that and from the repos themselves, with TOML ready to paste and the file it goes in.\n\n"
+
 const talkEnding = "End your reply with these two lines, which ws takes off before the user sees it:\n\nTitle: <a few words naming this conversation>\nSummary: <two or three sentences: what it's about, what's been concluded, what's still open>\n"
 
 // talkReading says what a conversation's agent may read, and how: it
@@ -184,6 +188,9 @@ func TalkFirst(h Here, c *conversation.Conversation) string {
 	}
 	b.WriteString(para(h.Agents))
 	b.WriteString(talkReading(h))
+	if c.Goal != conversation.GoalBrief && c.What != conversation.WhatDoc && c.What != conversation.WhatThing && c.Anchor.PR == "" {
+		b.WriteString(talkConfig) // where setting ws up is asked about: a conversation of the workspace's, or a mission's
+	}
 	// An ask proposes nothing until it's kept (but a pull request's review
 	// comment, which its intro says): it's a conversation like any then.
 	if c.Goal != conversation.GoalBrief && !c.Ephemeral {

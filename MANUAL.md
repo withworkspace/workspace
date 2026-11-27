@@ -1133,6 +1133,14 @@ menu = ["team", "files"]                                             # moved int
 
 ## Configuration
 
+**Help setting it up.** Ask in a conversation ("what should I configure?", "set up runs for web") and its agent runs `ws show config`, which you can run yourself too. The agent recommends what's worth setting for your repos, with TOML ready to paste and the file it goes in. `ws show config` prints three things:
+
+- What `ws.toml` and `ws.local.toml` say now, and which tables neither says.
+- For each repo, what its `ws.repo.toml` says, or that it has none, and the signs at its root of what's worth configuring: package.json scripts, a justfile, a compose file, `.env.example`, lockfiles, `docs/`.
+- A guide to every setting: what it's for, when it's worth it, and every key ws reads. The guide is built into ws and tested against the config it reads, so a new key isn't missing from it.
+
+Conversations are told only that the guide is there. It's read when you ask about configuring ws. It reads files alone (no git, nothing from GitHub), and changes nothing.
+
 ### ws.toml
 
 The shared workspace config. Lives at the root of the workspace and is typically checked into the config repo.
