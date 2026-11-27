@@ -186,6 +186,9 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			if _, ok := recipes[args[0]]; !ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 && typelessRecipe(w, here, args[0]) {
 				return fmt.Errorf("[run.%s] in %s isn't read: a recipe is a service or a task, and is written as one, [run.service.%s] or [run.task.%s]", args[0], recipeFileOf(here), args[0], args[0])
 			}
+			if err := wordsAfterRecipe(recipes, args, cmd.ArgsLenAtDash()); err != nil {
+				return err
+			}
 			ask := ops.RunAsk{Command: commandOf(args)}
 			if task {
 				ask.Type = runs.Task
@@ -446,6 +449,20 @@ func reportsKept(r runs.Run) []string {
 		}
 	}
 	return out
+}
+
+// wordsAfterRecipe refuses words after a recipe's name with no -- before
+// them: ws run build --fresh would otherwise be the command "build
+// --fresh", a service, which takes build's name and loses its results.
+// Flags go before the recipe; a command of that name goes after --.
+func wordsAfterRecipe(recipes map[string]config.RunRecipe, args []string, atDash int) error {
+	if len(args) < 2 || atDash >= 0 {
+		return nil
+	}
+	if _, ok := recipes[args[0]]; !ok {
+		return nil
+	}
+	return fmt.Errorf("%s is a recipe, and nothing goes after its name: flags go before it (ws run %s %s), and a command of that name after -- (ws run -- %s)", args[0], strings.Join(args[1:], " "), args[0], strings.Join(args, " "))
 }
 
 // withOf is --with's pairs, by need: api=ground, api=https://staging….
