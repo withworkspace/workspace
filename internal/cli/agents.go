@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -56,4 +57,34 @@ func skillsView(ws *workspace.Workspace) *view {
 		v.body = append(v.body, "- "+s.Name+": "+firstNonEmpty(clipString(s.About, 400), "(it doesn't say what it's for)"), "  "+s.Path)
 	}
 	return v
+}
+
+// pluginsView is ws show plugins: the workspace's plugins that have a
+// guide for agents, each with what it's for; or, with a name, that
+// plugin's guide, whole. Agents are told only what each is for, and read
+// a guide here when their work touches the plugin.
+func pluginsView(ws *workspace.Workspace, name string) (*view, error) {
+	if name != "" {
+		guide, word, ok := ops.PluginGuide(ws.Root, name)
+		if !ok {
+			return nil, fmt.Errorf("no plugin %q with a guide is set up here: ws show plugins lists those that are", name)
+		}
+		v := &view{head: "The " + name + " plugin's guide for agents"}
+		v.body = append(v.body, guide)
+		if word != "" {
+			v.more = append(v.more, "ws "+word+" --help  its commands, as ws lists them")
+		}
+		return v, nil
+	}
+	names, summaries := ops.PluginGuides(ws.Root)
+	v := &view{head: fmt.Sprintf("The workspace's plugins with a guide for agents (%d)", len(names))}
+	if len(names) == 0 {
+		v.body = append(v.body, "None is set up with one: ws plugin list says where each plugin stands.")
+		return v, nil
+	}
+	v.body = append(v.body, "Each adds commands to ws. Read a plugin's guide before working with its things or its commands: ws show plugins <name>.", "")
+	for i, n := range names {
+		v.body = append(v.body, "- "+n+": "+summaries[i])
+	}
+	return v, nil
 }
