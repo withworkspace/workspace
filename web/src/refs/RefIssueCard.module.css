@@ -1,0 +1,7 @@
+/* An issue's card (RefIssueCard.tsx): its name, in the code's type, as
+   it's written. */
+
+.name {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}

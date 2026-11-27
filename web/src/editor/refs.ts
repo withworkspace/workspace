@@ -49,9 +49,9 @@ interface Drawn {
 
 const refsKey = new PluginKey<Drawn>("refs");
 
-// The kinds of ref whose name is drawn heavier: a thing of ws's own, or a
-// plugin's.
-const heavy: Partial<Record<string, string>> = { mission: css.kMission, page: css.kPage, talk: css.kTalk, pr: css.kPr, thing: css.kThing };
+// The kinds of ref whose name is drawn heavier: a thing of ws's own (and
+// an issue, named as a pull request is), or a plugin's.
+const heavy: Partial<Record<string, string>> = { mission: css.kMission, page: css.kPage, talk: css.kTalk, pr: css.kPr, issue: css.kPr, thing: css.kThing };
 
 // refClass is a ref's look in the editor: underlined, or a pill.
 const refClass = (kind: string, shape: string) => cx(css.namedRef, heavy[kind], shape === "pill" && css.shapePill);
