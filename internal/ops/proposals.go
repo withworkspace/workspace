@@ -425,7 +425,7 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 		said = append(said, strings.ToUpper(made[0][:1])+strings.Join(made, ", ")[1:]+".")
 	}
 	if len(failed) > 0 {
-		said = append(said, "Could not make "+strings.Join(failed, "; ")+": lift or dock yourself (WS_MISSION="+slug+").")
+		said = append(said, "Not set up: "+strings.Join(failed, "; ")+". Lift or dock yourself (WS_MISSION="+slug+").")
 	}
 	if plan != nil {
 		if m, err := ms.Load(slug); err == nil {
