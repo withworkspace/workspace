@@ -219,14 +219,15 @@ type AutomationItem struct {
 }
 
 // AutomationKind is a plugin's kind of proposal an automation may act on:
-// what it's called, whether its plugin says it's safe done with nobody
-// looking (unattended; if not, it's always proposed), and whether you let
-// this automation do it without asking. Missing: no plugin here proposes
-// it.
+// what it's called, whether you let this automation do it without asking
+// (your call), and what its plugin advises: that it's safe done with
+// nobody looking (unattended), or why it might not be (caution). Missing:
+// no plugin here proposes it.
 type AutomationKind struct {
 	Kind       string `json:"kind"`
 	Title      string `json:"title,omitempty"`
 	Unattended bool   `json:"unattended,omitempty"`
+	Caution    string `json:"caution,omitempty"`
 	Granted    bool   `json:"granted,omitempty"`
 	Missing    bool   `json:"missing,omitempty"`
 }
@@ -246,7 +247,7 @@ func automationKinds(root string, a *automation.Automation) []AutomationKind {
 	for _, k := range kinds {
 		ak := AutomationKind{Kind: k, Granted: slices.Contains(grants, k)}
 		if p, ok := byName[k]; ok {
-			ak.Title, ak.Unattended = p.Title, p.Proposes.Unattended
+			ak.Title, ak.Unattended, ak.Caution = p.Title, p.Proposes.Unattended, p.Proposes.Caution
 		} else {
 			ak.Missing = true
 		}

@@ -27,4 +27,9 @@
   .note {
     font-size: var(--text-sm);
   }
+
+  .caution {
+    font-size: var(--text-sm);
+    color: var(--amber);
+  }
 }

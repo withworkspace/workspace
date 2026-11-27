@@ -14,7 +14,6 @@ import (
 	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/notification"
-	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/spend"
 	"github.com/withworkspace/workspace/internal/turn"
 )
@@ -63,8 +62,8 @@ func (w *Workspace) automationPropose(a *automation.Automation, p automation.Pro
 }
 
 // automationAct is what a's act makes of p: a proposal as propose's, then
-// accepted at once by a where how says it may be (granted) and its plugin
-// says that's safe with nobody looking; put in front of you where you
+// accepted at once by a where how says it may be (you granted it: your
+// call, whatever its plugin advises); put in front of you where you
 // started the run (how.Confirm: the page you started it from shows it,
 // and nothing's told); else left for you to accept, as propose's is.
 func (w *Workspace) automationAct(a *automation.Automation, p automation.Proposing, how automation.Acting, in string, chain []string) (string, error) {
@@ -77,8 +76,6 @@ func (w *Workspace) automationAct(a *automation.Automation, p automation.Proposi
 	switch {
 	case how.Confirm:
 		return ref, nil
-	case how.Accept && !w.unattendedKind(p.Kind):
-		_, _ = store.Say(id, conversation.Turn{By: conversation.WS, At: w.now(), Body: "You let " + a.Name + " do " + p.Kind + " without asking, but its plugin doesn't say that's safe with nobody looking: it's yours to accept."})
 	case how.Accept:
 		_, err := w.acceptUnattended(a, ref)
 		if err == nil {
@@ -91,17 +88,6 @@ func (w *Workspace) automationAct(a *automation.Automation, p automation.Proposi
 	}
 	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": yours to accept or decline")
 	return ref, nil
-}
-
-// unattendedKind is whether a plugin says its kind (jira:changes) is safe
-// accepted with nobody looking.
-func (w *Workspace) unattendedKind(kind string) bool {
-	for _, p := range plugin.Proposables(w.Root()) {
-		if p.Name() == kind {
-			return p.Proposes.Unattended
-		}
-	}
-	return false
 }
 
 // acceptUnattended accepts the proposal ref names, all of it, as a: it

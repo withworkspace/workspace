@@ -25,8 +25,9 @@ here="$(cd "$(dirname "$0")" && pwd)/actions"
 for f in "$here"/*.star; do
 	"$ws" automation add "$f" >/dev/null
 done
-# Yours to say: moved-notes does it without asking.
-"$ws" automation grant moved-notes frame-fixture:things >/dev/null
+# Yours to say: moved-notes does it without asking. The fixture cautions
+# against it (a note rewritten loses what it said), and it's granted anyway.
+"$ws" automation grant moved-notes frame-fixture:things --yes >/dev/null
 
 cat <<SAID
 actions: thing-actions, mission-actions and digest, each an action of yours.

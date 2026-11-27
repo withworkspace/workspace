@@ -166,9 +166,18 @@ export function AutomationPage() {
               <AutomationGrants
                 kinds={a.kinds}
                 busy={busy}
-                onGrant={(kind, on) => {
+                onGrant={async (k, on) => {
+                  // Your call: what its plugin cautions is said first.
+                  if (on && !k.unattended) {
+                    const yes = await confirm({
+                      title: `Let ${name} do ${k.title || k.kind} without asking?`,
+                      body: `${k.caution || "Its plugin doesn't say it's safe done with nobody looking."} It'll be done as it runs on what happens, and you'll be told.`,
+                      confirm: "Let it",
+                    });
+                    if (!yes) return;
+                  }
                   setBusy(true);
-                  setAutomationGrant(name, kind, on)
+                  setAutomationGrant(name, k.kind, on)
                     .then(() => reload(), (e: Error) => toast(humanError(e.message), { tone: "danger" }))
                     .finally(() => setBusy(false));
                 }}

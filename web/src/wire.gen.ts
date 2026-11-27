@@ -3178,15 +3178,16 @@ export interface OpsAutomationItem {
 // From ops/automations.go
 /**
  * AutomationKind is a plugin's kind of proposal an automation may act on:
- * what it's called, whether its plugin says it's safe done with nobody
- * looking (unattended; if not, it's always proposed), and whether you let
- * this automation do it without asking. Missing: no plugin here proposes
- * it.
+ * what it's called, whether you let this automation do it without asking
+ * (your call), and what its plugin advises: that it's safe done with
+ * nobody looking (unattended), or why it might not be (caution). Missing:
+ * no plugin here proposes it.
  */
 export interface OpsAutomationKind {
     kind: string;
     title?: string;
     unattended?: boolean;
+    caution?: string;
     granted?: boolean;
     missing?: boolean;
 }
