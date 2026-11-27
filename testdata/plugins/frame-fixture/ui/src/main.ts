@@ -56,7 +56,7 @@ async function main() {
   let things: Thing[] | undefined;
   let poked = 0;
   let failed = "";
-  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0 };
+  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0, polished: 0 };
   // The conversation about the thing that's open: where ws last said it
   // is, and whether the app's holding something for it.
   let talk = "not said";
@@ -218,6 +218,7 @@ async function main() {
         row("ws:navigate received", counts.navigated, "navigated"),
         row("ws:refs-changed received", counts.refs, "refs"),
         row("ws:outside received", counts.outside, "outside"),
+        row("Polished, from ws's menu", counts.polished, "polished"),
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
@@ -322,6 +323,26 @@ async function main() {
     ws.root.replaceChildren(h("main", {}, h("section", {}, ...body, words), status()));
     unmark = ws.markRefs(words);
   }
+
+  // A right click on a thing's name opens ws's menu: the app's own entry
+  // first, then what ws does to the thing (your automations' actions on
+  // it among them).
+  // The ref is ws's key for it: the thing's name is the words clicked.
+  ws.ui.onMenu((target, ref) => {
+    const name = ref ? target.closest(".ws-ref")?.textContent?.trim() : undefined;
+    return name?.startsWith("THING-")
+      ? [
+          {
+            label: `Polish ${name}`,
+            icon: "sparkle",
+            run: () => {
+              counts.polished++;
+              render();
+            },
+          },
+        ]
+      : undefined;
+  });
 
   // Wherever ws's address moves in the plugin (a link here, a go, the
   // sidebar, back and forward), the app shows it. Links need nothing of

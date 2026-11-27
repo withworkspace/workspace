@@ -92,6 +92,38 @@ export interface Action {
     look?: Look[];
 }
 
+// From web/automations.go
+/**
+ * ActionRan is what POST /api/actions/run answers: how the run went by
+ * the time it's said.
+ */
+export interface ActionRan extends OpsAutomationActionRun {
+}
+
+// From web/automations.go
+/**
+ * ActionRun is what POST /api/actions/run takes: which automation's
+ * action, on what (a ref, "" for nothing), with what it asks.
+ */
+export interface ActionRun {
+    automation: string;
+    title: string;
+    on?: string;
+    // empty interface{} type, falling back to unknown
+    input?: Record<string, unknown>;
+}
+
+// From web/automations.go
+/**
+ * ActionsInfo is what GET /api/actions serves: your automations' actions
+ * on what ?on= names (a ref), as it stands, or on nothing in particular
+ * without one.
+ */
+export interface ActionsInfo {
+    on?: string;
+    actions: OpsAutomationAction[];
+}
+
 // From web/github_repos.go
 /**
  * AddableRepo is one of an owner's repos, and its name here when the
@@ -575,6 +607,28 @@ export interface ArtifactsFound {
     found: ArtifactFound[];
 }
 
+// From automation/action.go
+/**
+ * Action is one of an automation's actions, as its when says it.
+ */
+export interface AutomationAction {
+    title: string;
+    /**
+     * On is the kind of thing it's for, "" for none (it's run on nothing
+     * in particular).
+     */
+    on?: string;
+    /**
+     * Where is which of them, by their fields: each a value or a pattern,
+     * any of a list.
+     */
+    where?: Record<string, string[]>;
+    /**
+     * Input is what it asks before it runs, in order.
+     */
+    input?: AutomationInputField[];
+}
+
 // From automation/dryrun.go
 /**
  * DryLine is one run a dry run had, or one held back.
@@ -641,6 +695,28 @@ export interface AutomationDryRun {
      * preview of it.
      */
     output?: AutomationOutput;
+}
+
+// From web/automations.go
+/**
+ * AutomationGrant is what POST /api/automations/{name}/grants takes: a
+ * plugin's kind of proposal, and whether the automation may do it without
+ * asking.
+ */
+export interface AutomationGrant {
+    kind: string;
+    on: boolean;
+}
+
+// From automation/action.go
+/**
+ * InputField is one thing an action asks before it runs: its name, and
+ * its type (text, bool, int, number), or the words it's one of.
+ */
+export interface AutomationInputField {
+    name: string;
+    type: string;
+    choices?: string[];
 }
 
 // From web/automations.go
@@ -3021,6 +3097,31 @@ export interface NotificationsMark {
     all?: boolean;
 }
 
+// From ops/automation_actions.go
+/**
+ * AutomationAction is one of your automations' actions, as it's offered:
+ * its automation, what that's for, and the action (its title, what it's
+ * on, which of them, and what it asks before it runs).
+ */
+export interface OpsAutomationAction extends AutomationAction {
+    automation: string;
+    about?: string;
+}
+
+// From ops/automation_actions.go
+/**
+ * AutomationActionRun is an action run, as it went by the time it's said:
+ * the event it's run on, its run's state (running, still, if it's taking
+ * a while), what it did, why it failed, and what it logged.
+ */
+export interface OpsAutomationActionRun {
+    event: string;
+    state: string;
+    did?: OpsAutomationDid[];
+    error?: string;
+    log?: string[];
+}
+
 // From ops/automations.go
 /**
  * AutomationDid is a step a run took that reached outside it: a
@@ -3034,6 +3135,12 @@ export interface OpsAutomationDid {
     conversation?: string;
     started?: boolean;
     waiting?: boolean;
+    /**
+     * Proposal is what a propose or an act made (w12#1), and Settled how it
+     * stands now: open, accepted, declined.
+     */
+    proposal?: string;
+    settled?: string;
 }
 
 // From ops/automations.go
@@ -3061,6 +3168,28 @@ export interface OpsAutomationItem {
      */
     output?: number;
     scheduled?: boolean;
+    /**
+     * Kinds are the plugins' kinds of proposal it may act on (act), each
+     * with whether you let it do that without asking (granted).
+     */
+    kinds?: OpsAutomationKind[];
+}
+
+// From ops/automations.go
+/**
+ * AutomationKind is a plugin's kind of proposal an automation may act on:
+ * what it's called, whether you let this automation do it without asking
+ * (your call), and what its plugin advises: that it's safe done with
+ * nobody looking (unattended), or why it might not be (caution). Missing:
+ * no plugin here proposes it.
+ */
+export interface OpsAutomationKind {
+    kind: string;
+    title?: string;
+    unattended?: boolean;
+    caution?: string;
+    granted?: boolean;
+    missing?: boolean;
 }
 
 // From ops/automations.go

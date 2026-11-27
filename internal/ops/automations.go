@@ -62,6 +62,7 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 		Ask:      w.automationAsk,
 		Spent:    w.automationSpent,
 		Propose:  w.automationPropose,
+		Act:      w.automationAct,
 		Proposal: w.automationProposalState,
 		Report:   w.runReports,
 		Repos:    w.automationRepos,
@@ -212,6 +213,62 @@ type AutomationItem struct {
 	// now.
 	Output    int  `json:"output,omitempty"`
 	Scheduled bool `json:"scheduled,omitempty"`
+	// Kinds are the plugins' kinds of proposal it may act on (act), each
+	// with whether you let it do that without asking (granted).
+	Kinds []AutomationKind `json:"kinds,omitempty"`
+}
+
+// AutomationKind is a plugin's kind of proposal an automation may act on:
+// what it's called, whether you let this automation do it without asking
+// (your call), and what its plugin advises: that it's safe done with
+// nobody looking (unattended), or why it might not be (caution). Missing:
+// no plugin here proposes it.
+type AutomationKind struct {
+	Kind       string `json:"kind"`
+	Title      string `json:"title,omitempty"`
+	Unattended bool   `json:"unattended,omitempty"`
+	Caution    string `json:"caution,omitempty"`
+	Granted    bool   `json:"granted,omitempty"`
+	Missing    bool   `json:"missing,omitempty"`
+}
+
+// automationKinds are a's plugin kinds, as they stand.
+func automationKinds(root string, a *automation.Automation) []AutomationKind {
+	kinds := a.PluginKinds()
+	if len(kinds) == 0 {
+		return nil
+	}
+	grants, _ := automation.Grants(root, a.Name)
+	byName := map[string]plugin.Proposable{}
+	for _, p := range plugin.Proposables(root) {
+		byName[p.Name()] = p
+	}
+	out := []AutomationKind{}
+	for _, k := range kinds {
+		ak := AutomationKind{Kind: k, Granted: slices.Contains(grants, k)}
+		if p, ok := byName[k]; ok {
+			ak.Title, ak.Unattended, ak.Caution = p.Title, p.Proposes.Unattended, p.Proposes.Caution
+		} else {
+			ak.Missing = true
+		}
+		out = append(out, ak)
+	}
+	return out
+}
+
+// SetAutomationGrant lets one of yours do a plugin's kind without asking
+// (on), or no longer.
+func (w *Workspace) SetAutomationGrant(name, kind string, on bool) error {
+	if !automation.ValidName(name) {
+		return automation.ErrNotFound
+	}
+	if err := automation.Grant(w.Root(), name, kind, on, w.now()); err != nil {
+		if errors.Is(err, automation.ErrNotFound) {
+			return err
+		}
+		return &Invalid{Reason: err.Error()}
+	}
+	return nil
 }
 
 // AutomationRun is one run of an automation: the event it ran on (its
@@ -240,6 +297,10 @@ type AutomationDid struct {
 	Conversation string `json:"conversation,omitempty"`
 	Started      bool   `json:"started,omitempty"`
 	Waiting      bool   `json:"waiting,omitempty"`
+	// Proposal is what a propose or an act made (w12#1), and Settled how it
+	// stands now: open, accepted, declined.
+	Proposal string `json:"proposal,omitempty"`
+	Settled  string `json:"settled,omitempty"`
 }
 
 // AutomationDetail is one automation on its page: as listed, its script,
@@ -284,7 +345,7 @@ func (w *Workspace) Automations() ([]AutomationItem, error) {
 
 func automationItem(root string, a *automation.Automation, st automation.State, t automation.Tally) AutomationItem {
 	item := AutomationItem{Name: a.Name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), On: st.On, Added: st.Added, Failed: st.Failed, Tally: t,
-		Output: automation.LatestOutput(root, a.Name), Scheduled: len(a.Schedules()) > 0}
+		Output: automation.LatestOutput(root, a.Name), Scheduled: len(a.Schedules()) > 0, Kinds: automationKinds(root, a)}
 	if runs, _ := automationRuns(root, a.Name, 1); len(runs) > 0 {
 		item.Last = &runs[0]
 	}
@@ -364,8 +425,10 @@ func automationRuns(root, name string, limit int) ([]AutomationRun, error) {
 		}
 		for _, st := range steps[r.Event] {
 			d := didOf(st)
-			if d.What == "propose" && !d.Started {
+			if (d.What == "propose" || d.What == "act") && !d.Started {
+				d.Proposal = st.Result
 				d.Text = firstNonEmpty(proposalSays(root, st.Result), d.Text)
+				d.Settled = proposalState(root, st.Result)
 			}
 			ar.Did = append(ar.Did, d)
 		}
@@ -382,7 +445,7 @@ func didOf(st automation.Step) AutomationDid {
 		d.Text = st.Result
 	case "converse":
 		d.Conversation = st.Result
-	case "propose":
+	case "propose", "act":
 		d.Text = st.Result
 		d.Conversation, _, _ = strings.Cut(st.Result, "#")
 	case "ask":
@@ -458,6 +521,21 @@ func answeredWith(result string) string {
 	return clipLine(string(o.Answer), 300)
 }
 
+// proposalState is how a proposal an automation made stands (open,
+// accepted, declined…), by its ref: "" where it's gone.
+func proposalState(root, ref string) string {
+	id, nth, _ := strings.Cut(ref, "#")
+	n, err := strconv.Atoi(nth)
+	if err != nil {
+		return ""
+	}
+	c, err := conversation.ForWorkspace(root).Load(id)
+	if err != nil || n < 1 || n > len(c.Proposals) {
+		return ""
+	}
+	return c.Proposals[n-1].State
+}
+
 // proposalSays is what a proposal an automation made is, in a line ("a
 // mission: Build Queues"), by its ref (w12#1): "" where it's gone.
 func proposalSays(root, ref string) string {
@@ -470,7 +548,9 @@ func proposalSays(root, ref string) string {
 	if err != nil || n < 1 || n > len(c.Proposals) {
 		return ""
 	}
-	return c.Proposals[n-1].Says()
+	p := c.Proposals[n-1]
+	// A plugin's is its own title ("The note on THING-3, rewritten").
+	return firstNonEmpty(p.Title, p.Says())
 }
 
 // waitedFor is what a wait came to, in words: an event (e12: what it

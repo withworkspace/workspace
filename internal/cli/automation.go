@@ -74,7 +74,7 @@ even if the run's run again. You're told once when one can't run.
 		RunE: func(cmd *cobra.Command, args []string) error { return listAutomations(false) },
 	}
 	cmd.AddCommand(newAutomationAddCmd(), newAutomationCheckCmd(), newAutomationKindsCmd(), newAutomationListCmd(), newAutomationRunsCmd(),
-		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd(), newAutomationRunNowCmd())
+		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd(), newAutomationRunNowCmd(), newAutomationGrantCmd())
 	return cmd
 }
 
@@ -415,6 +415,64 @@ func newAutomationSetCmd(to string) *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newAutomationGrantCmd() *cobra.Command {
+	var off, yes bool
+	cmd := &cobra.Command{
+		Use:   "grant <name> <plugin:kind>",
+		Short: "Let an automation do a plugin's kind of proposal without asking (act), or no longer (--off)",
+		Long: `Let an automation do a plugin's kind of proposal without asking: act() in
+it, run on what happens, is accepted at once, where its plugin says that kind
+Whether it's safe done with nobody looking is your call: its plugin's
+advice is said, and one it doesn't vouch for is granted only with --yes.
+Ungranted, it's proposed for you to accept. An action you run yourself puts
+it in front of you to confirm either way.
+
+It's yours to say: an agent (crew, the orchestrator, a conversation's) is
+refused.`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			if ops.ActorFromEnv() != ops.AsYou || os.Getenv(conversation.EnvConversation) != "" {
+				return errors.New("what an automation may do without asking is yours to say, not an agent's: the user grants it, here or on its page")
+			}
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			if !off && !yes {
+				d, err := w.Automation(args[0])
+				if errors.Is(err, automation.ErrNotFound) {
+					return fmt.Errorf("there's no automation %s (ws automation list)", args[0])
+				}
+				for _, k := range d.Automation.Kinds {
+					if k.Kind != args[1] || k.Unattended {
+						continue
+					}
+					why := k.Caution
+					if why == "" {
+						why = "its plugin doesn't say it's safe done with nobody looking"
+					}
+					return fmt.Errorf("%s: %s. It's your call: grant it with --yes", args[1], strings.TrimSuffix(why, "."))
+				}
+			}
+			if err := w.SetAutomationGrant(args[0], args[1], !off); errors.Is(err, automation.ErrNotFound) {
+				return fmt.Errorf("there's no automation %s (ws automation list)", args[0])
+			} else if err != nil {
+				return err
+			}
+			if off {
+				fmt.Fprintf(ui.Stdout, "%s proposes %s for you to accept again.\n", args[0], args[1])
+			} else {
+				fmt.Fprintf(ui.Stdout, "%s does %s without asking, as it runs on what happens.\n", args[0], args[1])
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&off, "off", false, "no longer: propose it for you to accept")
+	cmd.Flags().BoolVar(&yes, "yes", false, "grant a kind its plugin doesn't vouch for, its caution read")
+	return cmd
 }
 
 func newAutomationRmCmd() *cobra.Command {

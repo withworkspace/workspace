@@ -28,16 +28,18 @@ const ProposalOpen = "open"
 // Proposing is what an automation proposes: its kind, what it is (as the
 // script gave it, JSON's types), and why, in its words.
 type Proposing struct {
-	Kind  string         `json:"kind"`
-	Input map[string]any `json:"input,omitempty"`
-	Why   string         `json:"why,omitempty"`
+	Kind string `json:"kind"`
+	// Input is what it is: a dict for a mission or a decision; for a
+	// plugin's kind, whatever its guide says it's written as.
+	Input any    `json:"input,omitempty"`
+	Why   string `json:"why,omitempty"`
 	// On is the event its run's on, said (e12: …).
 	On string `json:"on,omitempty"`
 }
 
 // Says is what's proposed, in a line: "a mission: Fix the login".
 func (p Proposing) Says() string {
-	str := func(k string) string { s, _ := p.Input[k].(string); return s }
+	str := func(k string) string { s, _ := p.Fields()[k].(string); return s }
 	switch p.Kind {
 	case "mission":
 		return "a mission: " + str("title")
@@ -50,12 +52,22 @@ func (p Proposing) Says() string {
 	return p.Kind
 }
 
+// Fields are Input's, where it's a dict: none, where it isn't.
+func (p Proposing) Fields() map[string]any {
+	m, _ := p.Input.(map[string]any)
+	return m
+}
+
 // checkProposing is why p can't be proposed, nil where it can: a mission
 // has a title, a decision says what; a plugin's kind (plugin:what) is the
 // plugin's to read.
 func checkProposing(p Proposing) error {
+	fields := p.Fields()
+	if !strings.Contains(p.Kind, ":") && fields == nil {
+		return fmt.Errorf("what's proposed is a dict, as {\"title\": \"…\"}")
+	}
 	str := func(k string, need bool) error {
-		v, ok := p.Input[k]
+		v, ok := fields[k]
 		if !ok {
 			if need {
 				return fmt.Errorf("a %s has a %s", p.Kind, k)
@@ -68,7 +80,7 @@ func checkProposing(p Proposing) error {
 		return nil
 	}
 	list := func(k string) error {
-		v, ok := p.Input[k]
+		v, ok := fields[k]
 		if !ok {
 			return nil
 		}
@@ -84,7 +96,7 @@ func checkProposing(p Proposing) error {
 		return nil
 	}
 	only := func(keys ...string) error {
-		for k := range p.Input {
+		for k := range fields {
 			found := false
 			for _, want := range keys {
 				found = found || k == want
@@ -156,7 +168,7 @@ func (r *run) propose(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "kind", &kind, "input?", &input, "why?", &why); err != nil {
 		return nil, err
 	}
-	p := Proposing{Kind: strings.TrimSpace(kind), Why: strings.TrimSpace(why), Input: map[string]any{}, On: r.ev.Ref() + ": " + r.ev.Says()}
+	p := Proposing{Kind: strings.TrimSpace(kind), Why: strings.TrimSpace(why), On: r.ev.Ref() + ": " + r.ev.Says()}
 	if r.ev.Kind == "schedule.due" {
 		p.On = "its schedule: " + r.ev.Says()
 	}
@@ -165,11 +177,9 @@ func (r *run) propose(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		if err != nil {
 			return nil, fmt.Errorf("propose: %w", err)
 		}
-		m, ok := v.(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf("propose: what's proposed is a dict, as {\"title\": \"…\"}")
-		}
-		p.Input = m
+		p.Input = v
+	} else if !strings.Contains(p.Kind, ":") {
+		p.Input = map[string]any{}
 	}
 	if err := checkProposing(p); err != nil {
 		return nil, fmt.Errorf("propose: %w", err)

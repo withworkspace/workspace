@@ -29,6 +29,59 @@ type Automating interface {
 	// AutomationsStamp names where they stand, cheaply: it moves with each
 	// write to what's kept of them.
 	AutomationsStamp() string
+	AutomationActions(on string) ([]ops.AutomationAction, error)
+	SetAutomationGrant(name, kind string, on bool) error
+	RunAutomationAction(name, title, on string, input map[string]any) (ops.AutomationActionRun, error)
+}
+
+// ActionsInfo is what GET /api/actions serves: your automations' actions
+// on what ?on= names (a ref), as it stands, or on nothing in particular
+// without one.
+type ActionsInfo struct {
+	On      string                 `json:"on,omitempty"`
+	Actions []ops.AutomationAction `json:"actions"`
+}
+
+// ActionRun is what POST /api/actions/run takes: which automation's
+// action, on what (a ref, "" for nothing), with what it asks.
+type ActionRun struct {
+	Automation string         `json:"automation"`
+	Title      string         `json:"title"`
+	On         string         `json:"on,omitempty"`
+	Input      map[string]any `json:"input,omitempty"`
+}
+
+// ActionRan is what POST /api/actions/run answers: how the run went by
+// the time it's said.
+type ActionRan struct {
+	ops.AutomationActionRun
+}
+
+// actions is GET /api/actions?on=ref.
+func (s *Server) actions(w http.ResponseWriter, r *http.Request) {
+	on := r.URL.Query().Get("on")
+	list, err := s.App.AutomationActions(on)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, ActionsInfo{On: on, Actions: list})
+}
+
+// actionRun is POST /api/actions/run: one of your automations' actions,
+// run by you, and how it went once it's ended or parked (or still
+// running, after a few seconds).
+func (s *Server) actionRun(w http.ResponseWriter, r *http.Request) {
+	var b ActionRun
+	if !readBody(w, r, &b) {
+		return
+	}
+	got, err := s.App.RunAutomationAction(b.Automation, b.Title, b.On, b.Input)
+	if err != nil {
+		writeError(w, automationErr(err), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, ActionRan{got})
 }
 
 // AutomationsInfo is what GET /api/automations serves: each of yours, by
@@ -113,6 +166,27 @@ func (s *Server) automationOn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.App.SetAutomationOn(r.PathValue("name"), b.On); err != nil {
+		writeError(w, automationErr(err), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
+}
+
+// AutomationGrant is what POST /api/automations/{name}/grants takes: a
+// plugin's kind of proposal, and whether the automation may do it without
+// asking.
+type AutomationGrant struct {
+	Kind string `json:"kind"`
+	On   bool   `json:"on"`
+}
+
+// automationGrant is POST /api/automations/{name}/grants.
+func (s *Server) automationGrant(w http.ResponseWriter, r *http.Request) {
+	var b AutomationGrant
+	if !readBody(w, r, &b) {
+		return
+	}
+	if err := s.App.SetAutomationGrant(r.PathValue("name"), b.Kind, b.On); err != nil {
 		writeError(w, automationErr(err), http.StatusInternalServerError)
 		return
 	}

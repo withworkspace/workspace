@@ -142,7 +142,7 @@ def run(e):
 	if len(given) != 1 || given[0].Kind != "jira:changes" {
 		t.Fatalf("given %+v", given)
 	}
-	ch := given[0].Input["changes"].([]any)[0].(map[string]any)
+	ch := given[0].Fields()["changes"].([]any)[0].(map[string]any)
 	if ch["issue"] != "RAM-881" || ch["comment"] != "Merged in api#212" || ch["done"] != true {
 		t.Errorf("input %+v", given[0].Input)
 	}

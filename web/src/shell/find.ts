@@ -1,4 +1,4 @@
-import type { ActionAsk, ActVerb, Plugin, Workspace } from "../api";
+import type { ActionAsk, ActVerb, AutomationAction, Plugin, Workspace } from "../api";
 import { docAddress, docRef, pageAddress, spaceAt, type SpaceRef } from "../api";
 import { GROUND, type Known, type Named, namedOf, type PageRef, refAt, refHref, type ThingAction } from "../refs/refs";
 import { decisionsPath } from "../mission/decisions";
@@ -58,6 +58,7 @@ export type Doing =
   | { plugin: string; action: ThingAction }
   | { thing: Extract<PageRef, { kind: "thing" }>; does: ActOn }
   | { ws: WsDoing }
+  | { automation: AutomationAction; on?: string }
   | { shutDown: true };
 
 // ActOn is something to do to a plugin's thing: one of its kind's actions,
@@ -384,6 +385,24 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
     ...pluginActionItems(plugins),
   );
   return out;
+}
+
+// automationActionItems are your automations' actions as things to do,
+// on what on names (a ref: Here's) or on nothing in particular (Do's):
+// found by their titles and what their automation's for, each saying
+// whose it is.
+export function automationActionItems(actions: AutomationAction[], on?: string): Item[] {
+  return actions.map((a) => ({
+    id: `do:automation:${a.automation}/${a.title}${on ? `@${on}` : ""}`,
+    group: on ? ("here" as const) : ("do" as const),
+    kind: "Do",
+    title: a.title,
+    hint: a.input?.length ? "asks first" : undefined,
+    icon: "bolt" as const,
+    score: 0,
+    notes: [a.automation],
+    doing: { automation: a, on },
+  }));
 }
 
 // pluginActionItems are the plugins' own actions as things to do: found

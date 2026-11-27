@@ -69,6 +69,16 @@ func OutlineOf(a *Automation) (Outline, error) {
 		if s := a.scheduleAt(i); s != nil {
 			w.Match = "every " + s.Said
 		}
+		if i < len(a.actions) && a.actions[i] != nil {
+			x := a.actions[i]
+			w.Match = "you run \"" + x.Title + "\""
+			if x.On != "" {
+				w.Match += " on a " + x.On
+				for _, k := range sortedWhere(x.Where) {
+					w.Match += " " + k + "=" + strings.Join(x.Where[k], ",")
+				}
+			}
+		}
 		if i < len(a.Paces) {
 			w.Pace = a.Paces[i].String()
 		}
@@ -274,8 +284,8 @@ func (o *outliner) builtin(name string, c *syntax.CallExpr) (OutlineStep, bool) 
 		if ans := kw["answer"]; ans != nil {
 			step.Detail = "answers " + o.source(ans)
 		}
-	case name == "propose":
-		step.Kind, step.Text = "propose", o.words(first())
+	case name == "propose" || name == "act":
+		step.Kind, step.Text = name, o.words(first())
 		if len(args) > 1 {
 			step.Detail = o.source(args[1])
 		} else if in := kw["input"]; in != nil {

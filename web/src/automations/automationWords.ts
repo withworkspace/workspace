@@ -45,7 +45,7 @@ export function tallyWords(t: AutomationTally): string[] {
 // mayWords is what it may do, said: "notify you", "start a conversation".
 export function mayWords(may: string[]): string {
   if (may.length === 0) return "notify you of the event";
-  return may.map((m) => mayWord[m] ?? m).join(", ");
+  return may.map((m) => mayWord[m] ?? (m.includes(":") ? `act on ${m}` : m)).join(", ");
 }
 
 const mayWord: Record<string, string> = {

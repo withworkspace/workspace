@@ -13,7 +13,7 @@ import css from "./AutomationRunItem.module.css";
 // a proposal the conversation it's in.
 export function AutomationRunItem({ r }: { r: AutomationRun }) {
   const look = runLook(r.state);
-  const did = (r.did ?? []).filter((d) => ["notify", "converse", "wait", "ask", "propose"].includes(d.what));
+  const did = (r.did ?? []).filter((d) => ["notify", "converse", "wait", "ask", "propose", "act"].includes(d.what));
   return (
     <li className={css.run}>
       <StatusIcon icon={look.icon} tone={look.tone} size={13} title={look.words} className={css.mark} />
@@ -60,6 +60,15 @@ function Did({ d }: { d: AutomationDid }) {
       <li>
         Started{" "}
         {d.conversation ? <Link to={`/conversations/${encodeURIComponent(d.conversation)}`}>conversation {d.conversation}</Link> : "a conversation"}
+        {half}
+      </li>
+    );
+  }
+  if (d.what === "act") {
+    const link = d.conversation ? <Link to={`/conversations/${encodeURIComponent(d.conversation)}`}>{d.text || `in ${d.conversation}`}</Link> : "something";
+    return (
+      <li>
+        {d.settled === "accepted" ? <>Did: {link}</> : d.settled === "declined" ? <>You declined: {link}</> : <>Asked you to accept: {link}</>}
         {half}
       </li>
     );

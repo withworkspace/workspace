@@ -307,8 +307,8 @@ func (p *Proposal) applyItems(out []ItemOutcome) {
 // they made, if any was done; declined otherwise. An item that wasn't
 // done (a Problem, no State) stays open.
 func (s Store) ItemsDone(id string, n int, out []ItemOutcome, by string, at time.Time) (*Conversation, error) {
-	if by != You {
-		return nil, errors.New("only the user accepts or declines a proposal")
+	if by != You && !IsAutomation(by) {
+		return nil, errors.New("only the user accepts or declines a proposal, or an automation they let do it")
 	}
 	return s.update(id, func(tx *store.Tx, c *Conversation) error {
 		p := c.Proposal(n)
@@ -333,6 +333,15 @@ func (s Store) ItemsDone(id string, n int, out []ItemOutcome, by string, at time
 		}
 		return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: state, Result: strings.Join(p.made(), " "), By: by, At: at}})
 	})
+}
+
+// ByAutomation is who an automation is, accepting what it was let do
+// without asking (act): automation:<name>.
+func ByAutomation(name string) string { return "automation:" + name }
+
+// IsAutomation is whether by is an automation's.
+func IsAutomation(by string) bool {
+	return strings.HasPrefix(by, "automation:") && len(by) > len("automation:")
 }
 
 // ProposalOrigin is the Origin of the turn ws writes for you settling

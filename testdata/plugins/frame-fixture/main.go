@@ -185,7 +185,10 @@ func main() {
 				// What it can do, from Find.
 				"actions": []map[string]string{{"id": "dust", "title": "Dust the shelf", "icon": "sparkle", "hint": "Every thing on it"}},
 				// What a conversation's agent may propose of it.
-				"proposes": []map[string]string{{"id": "things", "title": "Fixture things", "icon": "box", "when": "New things for the shelf, or a thing's note rewritten."}},
+				// Its things aren't vouched for with nobody looking: it
+				// cautions why, for whoever lets an automation do them
+				// without asking (their call).
+				"proposes": []map[string]any{{"id": "things", "title": "Fixture things", "icon": "box", "when": "New things for the shelf, or a thing's note rewritten.", "caution": "A new thing goes on the shelf for everyone, and a note rewritten loses what it said."}},
 			}}, nil
 		case "action/run":
 			var p struct {

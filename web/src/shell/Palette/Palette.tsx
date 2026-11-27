@@ -20,6 +20,7 @@ import {
   type ActOn,
   askOptions,
   asks,
+  automationActionItems,
   build,
   type CodeEnd,
   type CodeHit,
@@ -44,6 +45,8 @@ import { useFocus } from "../useFocus";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "../here";
 import type { Waiting } from "../notify";
 import { doToThing } from "../perform";
+import { doAction, useActions } from "../../automations/actions";
+import { refOfId } from "../ThingMenu";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "../recent";
 import { FindBar } from "./FindBar";
 import { FindFoot } from "./FindFoot";
@@ -148,7 +151,7 @@ export function Palette({
   );
   // Acting on a thing (⌘K on its row), a plugin's or one of ws's own:
   // what can be done to it is the list, until one's chosen or it's left.
-  const [acting, setActing] = useState<{ thing?: Thing; subject?: Subject; title: string; typed: string }>();
+  const [acting, setActing] = useState<{ thing?: Thing; subject?: Subject; ref?: string; title: string; typed: string }>();
   // An action that's asked something before it goes on: of a thing, or a
   // plugin's own. What it's been answered so far is sent again with each
   // answer, until it asks nothing more.
@@ -175,7 +178,9 @@ export function Palette({
   // What the page holds, with what the plugins do of their own.
   const does = JSON.stringify((plugins ?? []).map((p) => [p.name, p.actions ?? []]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const local = useMemo(() => localItems(workspace, plugins), [workspace, does]);
+  // Your automations' actions on nothing in particular are Do's too.
+  const globalActs = useActions("");
+  const local = useMemo(() => [...localItems(workspace, plugins), ...automationActionItems(globalActs)], [workspace, does, globalActs]);
   const memory = useMemo(() => loadMemory(workspace.root), [workspace.root]);
 
   // Opening Find has the server read what's due, before the first letter.
@@ -280,7 +285,9 @@ export function Palette({
     return () => drop.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hereKey]);
-  const doHere = useMemo(() => hereItems(here, workspace, known), [here, workspace, known]);
+  // What your automations do to the thing the page is of is Here's too.
+  const hereActs = useActions(here && !here.id.startsWith("settings:") ? here.ref : undefined);
+  const doHere = useMemo(() => [...hereItems(here, workspace, known), ...automationActionItems(hereActs, here?.ref)], [here, workspace, known, hereActs]);
   const linked = useMemo(() => (here ? nearItems(near, here, local, workspace.spaces) : []), [near, here, local, workspace.spaces]);
   const nearby = useMemo(() => nearIds(linked, near), [linked, near]);
 
@@ -310,12 +317,16 @@ export function Palette({
   // to the thing Find's acting on, or, most of the time, what's found.
   const mode = asking ? "asking" : acting ? "acting" : undefined;
   const typed = asking ? asking.typed : acting ? acting.typed : raw;
+  // What your automations do to the thing Find's acting on comes after
+  // what ws and its plugin do.
+  const actingActs = useActions(acting ? (acting.thing?.id ?? acting.ref) : undefined);
+  const actingRef = acting?.thing?.id ?? acting?.ref;
   const rows = asking
     ? askOptions(asking.ask, asking.typed)
     : acting?.thing
-      ? actingOn(namedOf(acting.thing, known), acting.typed, acting.thing.id)
+      ? [...actingOn(namedOf(acting.thing, known), acting.typed, acting.thing.id), ...ordered(automationActionItems(actingActs, actingRef), acting.typed)]
       : acting?.subject
-        ? ordered(actsFor(acting.subject, workspace), acting.typed)
+        ? ordered([...actsFor(acting.subject, workspace), ...automationActionItems(actingActs, actingRef)], acting.typed)
         : built.rows;
   // Until the cursor's moved, it's on the first row that goes somewhere:
   // what can be done to where you are is a step down, so ⌘K then ⏎ never
@@ -417,7 +428,8 @@ export function Palette({
       run(asking.plugin, asking.action, asking.thing, [...asking.answers, answer]);
       return;
     }
-    if (acting?.thing && it?.act) doTo(acting.thing, it.act);
+    if (it?.doing && "automation" in it.doing) perform(it, false);
+    else if (acting?.thing && it?.act) doTo(acting.thing, it.act);
     else if (acting?.subject && it) perform(it, false);
   };
 
@@ -439,6 +451,13 @@ export function Palette({
     if (it.doing && "does" in it.doing) {
       // Done to the thing the page is of: Find stays, for what it may ask.
       doTo(it.doing.thing, it.doing.does);
+      return;
+    }
+    if (it.doing && "automation" in it.doing) {
+      // One of your automations': what it asks is asked over the page.
+      const d = it.doing;
+      onClose();
+      void doAction(d.automation, d.on, navigate);
       return;
     }
     if (it.doing && "plugin" in it.doing) {
@@ -591,7 +610,7 @@ export function Palette({
                 setActing({ thing: onThing, title: onThing.id, typed: "" });
                 setCursor(undefined);
               } else if (!mode && actable && on) {
-                setActing({ subject: onSubject, title: on.title, typed: "" });
+                setActing({ subject: onSubject, ref: refOfId(on.id), title: on.title, typed: "" });
                 setCursor(undefined);
               }
             } else if (mod && e.key === "." && pinName && focus) {

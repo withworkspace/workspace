@@ -687,9 +687,13 @@ func (c *Conversation) WaitingOnYou() bool {
 		return false
 	}
 	// One that's only begun isn't, but for one ws began with something
-	// for you to accept (an automation's proposal).
+	// for you to accept (an automation's proposal). An automation's, its
+	// words ws's, waits on you while it has something open, and no longer.
 	if len(c.Turns) <= 1 && (last.By != WS || len(c.Open()) == 0) {
 		return false
+	}
+	if last.By == WS && strings.HasPrefix(c.Via, "automation:") {
+		return len(c.Open()) > 0
 	}
 	// What the agent's latest reply proposed, all settled since (a
 	// mission made, a decision kept): what it asked of you is done.
@@ -1693,6 +1697,9 @@ func byOf(by string) string {
 		return events.ByYou
 	case Agent, WS:
 		return events.ByWS
+	}
+	if name, ok := strings.CutPrefix(by, "automation:"); ok && name != "" {
+		return events.ByWorkflow(name)
 	}
 	return events.ByCrew(by)
 }

@@ -73,6 +73,10 @@ export interface Host {
   // How the app wants ws's chrome laid out: expanded, ws folds its
   // sidebar to a rail. It's standard again once the page is hung up on.
   chromeLayout(mode: V1.ChromeMode): void;
+  // A right click in the app: ws's menu, at x, y in the frame's viewport,
+  // holding the app's own items first, then what ws does to ref. What
+  // came of it is said with the session's menuClosed.
+  menu(asked: { id: number; x: number; y: number; ref?: string; items: V1.MenuItem[] }): void;
   // The conversation about the page: ws's own (conversation/host.ts),
   // which the page drives as ws's own pages do. What the page said of it
   // is forgotten once the page is hung up on.
@@ -97,6 +101,9 @@ export interface Session {
   // ws closed one of its UIs the app had asked for: dismissed, or done,
   // with what came of it.
   uiClosed(id: number, result?: unknown): void;
+  // ws's menu the app asked for was put away: with the app's own item
+  // that was chosen, if one was.
+  menuClosed(id: number, item?: string): void;
   // Where the conversation about the page is now.
   conversation(status: Status): void;
   // Stops listening, and closes the port.
@@ -146,6 +153,7 @@ export interface Frame {
   refsChanged(): void;
   outside(): void;
   uiClosed(id: number, result?: unknown): void;
+  menuClosed(id: number, item?: string): void;
   conversation(status: Status): void;
   // The frame loaded a page. If it isn't the one that's connected, that
   // one is gone, and is hung up on: a page that went with a backdrop up,
@@ -216,6 +224,7 @@ export function listen(
     refsChanged: () => session?.refsChanged(),
     outside: () => session?.outside(),
     uiClosed: (id, result) => session?.uiClosed(id, result),
+    menuClosed: (id, item) => session?.menuClosed(id, item),
     conversation: (status) => session?.conversation(status),
     loaded() {
       const now = frame();
