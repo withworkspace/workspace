@@ -1458,11 +1458,15 @@ Several words after `--` are each run as a word (`ws run -- sh -c 'echo hi; exec
 [run.service.web]
 command = "pnpm dev --port {port} --strictPort"
 ready = "/"                    # up once this answers below 500
+description = "The storefront, on its dev server"
 
 [run.service.stack]
 command = "docker compose up"
 stop = "docker compose down"   # run where it ran, once the run is ended
+description = "Postgres and Redis, for the API's tests"
 ```
+
+**Agents are told the recipes.** Crew working in a worktree are told its repo's recipes: each one's name, its type, its command and its `description`, a line saying what it is and when it's wanted. They're told to run them with `ws run <name>`, not by their commands, so a `pnpm dev` the repo's own docs mention is run as `ws run web`. `ws run` gives each service a free port, so the same server in two worktrees doesn't fight over one, and prints the address it's reached at.
 
 The two types share their names, as `ws run <name>` says a recipe by its name alone: one written as both a service and a task isn't run until one of them has another. A key that's the other type's (`ready`, `page`, `kind` or `render` on a task, `reports` on a service) isn't read, and `ws doctor` and Settings say so, as they do of any key ws doesn't know.
 

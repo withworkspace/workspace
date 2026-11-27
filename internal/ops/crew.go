@@ -3,8 +3,10 @@ package ops
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/config"
@@ -385,13 +387,32 @@ func (w *Workspace) prepare(m *mission.Mission, h harness.Harness, d Dispatch, p
 		b.Stage, b.StageN, b.StageOf, b.Steps = st.Whole(), st.N, len(states), st.Step != nil
 		b.OpensPR = st.Step != nil && st.Step.MakesPR()
 	}
-	b.Prompt = prompt.Crew(crewBrief(b))
+	cb := crewBrief(b)
+	cb.Recipes = capsuleRecipes(place.Dir)
+	b.Prompt = prompt.Crew(cb)
 	if st.Step != nil && st.Step.Type == mission.StepVerify {
 		// Crew at a Verify step are its verifier: told their step and
 		// where to start, to show the work, not to do it.
 		b.Prompt = prompt.Verifier(w.verifying(m, states, st, place.Capsule, place.Dir, brief, guide))
 	}
 	return func() (harness.Launch, error) { return h.Start(b) }, nil
+}
+
+// capsuleRecipes are the recipes of the repo checked out in dir, as its
+// ws.repo.toml there has them, for crew working in it: none where it has
+// none, or none ws can read.
+func capsuleRecipes(dir string) []prompt.Recipe {
+	cfg, err := config.ParseRepoConfig(filepath.Join(dir, config.RepoFileName))
+	if err != nil || cfg == nil {
+		return nil
+	}
+	recipes := cfg.Run.Recipes()
+	var out []prompt.Recipe
+	for _, name := range slices.Sorted(maps.Keys(recipes)) {
+		r := recipes[name]
+		out = append(out, prompt.Recipe{Name: name, Type: r.Type, Command: r.Command, Description: r.Description})
+	}
+	return out
 }
 
 // crewBrief is what a crew's prompt is written from.

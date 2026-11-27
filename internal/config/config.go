@@ -845,6 +845,11 @@ type ServiceRecipe struct {
 	// DisplayName is what it's called in the web UI (Storefront), for its
 	// name: "" is its name.
 	DisplayName string `toml:"display_name,omitempty"`
+	// Description says in a line what it is and when it's wanted (the
+	// storefront, on its dev server, against the local API): agents ws
+	// starts are told it, with its name and command, so they run it with
+	// ws run rather than its command by hand.
+	Description string `toml:"description,omitempty"`
 	// Kind is what it's for: an app (RunApp, the default), what's being
 	// built, as a dev server serves it; or a tool (RunTool), something
 	// that helps build it: API docs, Storybook, a mail catcher, a
@@ -881,6 +886,9 @@ type TaskRecipe struct {
 	Command string `toml:"command"`
 	// DisplayName is what it's called in the web UI, as a service's is.
 	DisplayName string `toml:"display_name,omitempty"`
+	// Description says in a line what it is and when it's wanted, as a
+	// service's does (the unit tests, without the slow ones).
+	Description string `toml:"description,omitempty"`
 	// Stop is run in the same place once the command has ended or been
 	// stopped: "" for nothing.
 	Stop string `toml:"stop,omitempty"`
@@ -924,6 +932,7 @@ type RunRecipe struct {
 	Type        string
 	Command     string
 	DisplayName string
+	Description string
 	Stop        string
 	Where       string
 	Needs       map[string]RunNeed
@@ -976,10 +985,10 @@ func (r Runs) Recipes() map[string]RunRecipe {
 	}
 	out := make(map[string]RunRecipe, len(r.Service)+len(r.Task))
 	for name, t := range r.Task {
-		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout}
+		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Description: t.Description, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout}
 	}
 	for name, s := range r.Service {
-		out[name] = RunRecipe{Type: RunService, Command: s.Command, DisplayName: s.DisplayName, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page, Kind: s.Kind, Render: s.Render}
+		out[name] = RunRecipe{Type: RunService, Command: s.Command, DisplayName: s.DisplayName, Description: s.Description, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page, Kind: s.Kind, Render: s.Render}
 	}
 	return out
 }
