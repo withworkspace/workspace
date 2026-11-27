@@ -294,7 +294,7 @@ func NameFolder(name string, made time.Time, title string, numbers []string, tak
 				return base, nil
 			}
 		}
-		return "", fmt.Errorf("couldn't number a folder for %q", title)
+		return "", fmt.Errorf("could not number a folder for %q", title)
 	}
 	base := f.Fill(name)
 	for i := 1; i <= 100; i++ {
@@ -306,5 +306,5 @@ func NameFolder(name string, made time.Time, title string, numbers []string, tak
 			return n, nil
 		}
 	}
-	return "", fmt.Errorf("couldn't name a folder for %q", title)
+	return "", fmt.Errorf("could not name a folder for %q", title)
 }

@@ -108,7 +108,7 @@ func TestRun_PointingANeedStartsTheRecipeAgainOnIt(t *testing.T) {
 	for _, c := range []struct{ said, want string }{
 		{"web=nope", "web has no nope"},
 		{"api=feat", "api/feat has no recipe server"},
-		{"db=ground", "docs has no need db that can be pointed (its: api, web)"},
+		{"db=ground", "docs has no need db that can be pointed (has: api, web)"},
 	} {
 		if res := testutil.RunCommand(t, w.Root, nil, "run", "point", "docs", c.said); res.Err == nil || !strings.Contains(res.Err.Error(), c.want) {
 			t.Errorf("point %s: %v", c.said, res.Err)
@@ -128,7 +128,7 @@ func TestRun_PointingANeedStartsTheRecipeAgainOnIt(t *testing.T) {
 		t.Fatalf("burn: %v\n%s", res.Err, res.Stderr)
 	}
 	res = testutil.RunCommand(t, w.Root, nil, "run", "ls")
-	if !strings.Contains(res.Stderr, "Ended docs: feat, the folder it was started on for web, has gone.") {
+	if !strings.Contains(res.Stderr, "Ended docs: feat, the folder for web, has gone.") {
 		t.Errorf("ls said:\n%s%s", res.Stdout, res.Stderr)
 	}
 	res = testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "none", "docs")

@@ -31,7 +31,7 @@ type Decided struct {
 
 func (d Decided) String() string {
 	if d.Decision.Supersedes != "" {
-		return "Recorded " + d.Decision.ID + ", in place of " + d.Decision.Supersedes + "."
+		return "Recorded " + d.Decision.ID + ", replacing " + d.Decision.Supersedes + "."
 	}
 	return "Recorded " + d.Decision.ID + "."
 }
@@ -43,7 +43,7 @@ func (w *Workspace) RecordDecision(slug string, d Deciding, by Actor) (Decided, 
 		return Decided{}, invalid("say what was decided")
 	}
 	if d.Supersedes != "" && !mission.IsDecisionRef(d.Supersedes) {
-		return Decided{}, invalid("%q isn't a decision (they're named d1, d2, …)", d.Supersedes)
+		return Decided{}, invalid("%q is not a decision (d1, d2, …)", d.Supersedes)
 	}
 	rec, err := w.Missions.Decide(slug, mission.Decision{What: d.What, Why: d.Why, By: by.By(), From: d.From, About: d.About, Supersedes: d.Supersedes})
 	if err != nil {
@@ -63,10 +63,10 @@ func (d DecisionWithdrawn) String() string { return "Withdrew " + d.ID + "." }
 // WithdrawDecision takes a decision that stands back, saying why.
 func (w *Workspace) WithdrawDecision(slug, id, why string, by Actor) (DecisionWithdrawn, error) {
 	if !mission.IsDecisionRef(id) {
-		return DecisionWithdrawn{}, invalid("%q isn't a decision (they're named d1, d2, …)", id)
+		return DecisionWithdrawn{}, invalid("%q is not a decision (d1, d2, …)", id)
 	}
 	if why = strings.TrimSpace(why); why == "" {
-		return DecisionWithdrawn{}, invalid("say why it's withdrawn")
+		return DecisionWithdrawn{}, invalid("give a reason")
 	}
 	if err := w.Missions.Withdraw(slug, id, by.By(), why); err != nil {
 		return DecisionWithdrawn{}, notStanding(err)

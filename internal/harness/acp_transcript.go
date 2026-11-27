@@ -262,7 +262,7 @@ func PermissionAnswer(r acp.PermissionRequest, choice string) (acp.Answer, error
 		}
 	}
 	if id == "" {
-		return acp.Answer{}, fmt.Errorf("it offers no %q", choice)
+		return acp.Answer{}, fmt.Errorf("no %q option", choice)
 	}
 	return acp.Answer{Option: id}, nil
 }
@@ -276,13 +276,13 @@ func QuestionAnswer(a acp.Ask, option, text string) (acp.Answer, error) {
 	case a.Form != nil:
 		f, ok := formField(a.Form.RequestedSchema)
 		if !ok {
-			return acp.Answer{}, errors.New("its form has no field to answer")
+			return acp.Answer{}, errors.New("form has no field to answer")
 		}
 		v := strings.TrimSpace(text)
 		if option != "" {
 			i := slices.Index(f.options, option)
 			if i < 0 {
-				return acp.Answer{}, fmt.Errorf("%q isn't one of its answers", option)
+				return acp.Answer{}, fmt.Errorf("%q is not one of the answers", option)
 			}
 			v = f.values[i]
 		}
@@ -294,7 +294,7 @@ func QuestionAnswer(a acp.Ask, option, text string) (acp.Answer, error) {
 	case a.Method == "cursor/ask_question":
 		var p cursorQuestions
 		if json.Unmarshal(a.Params, &p) != nil || len(p.Questions) == 0 {
-			return acp.Answer{}, errors.New("its question can't be read")
+			return acp.Answer{}, errors.New("could not read the question")
 		}
 		q := p.Questions[0]
 		if option == "" {
@@ -309,9 +309,9 @@ func QuestionAnswer(a acp.Ask, option, text string) (acp.Answer, error) {
 				return acp.Answer{Result: out}, nil
 			}
 		}
-		return acp.Answer{}, fmt.Errorf("%q isn't one of its answers", option)
+		return acp.Answer{}, fmt.Errorf("%q is not one of the answers", option)
 	}
-	return acp.Answer{}, errors.New("it isn't a question")
+	return acp.Answer{}, errors.New("not a question")
 }
 
 // answeredWith is what a question was answered, as the transcript says it.

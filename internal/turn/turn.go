@@ -24,7 +24,7 @@ import (
 // ErrEnded is a turn's error when what it ran for ended first: the daemon
 // going, with it still at it. It's not the turn failing: whoever runs it
 // leaves it to be run again by the next.
-var ErrEnded = errors.New("ws stopped before it was finished")
+var ErrEnded = errors.New("Workspace stopped before the turn finished")
 
 // Spec is a turn to run.
 type Spec struct {
@@ -112,7 +112,7 @@ func Run(s Spec) (harness.Report, error) {
 	case life.Err() != nil:
 		err = ErrEnded
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
-		err = fmt.Errorf("it took longer than %s", s.Timeout)
+		err = fmt.Errorf("timed out after %s", s.Timeout)
 	}
 	result := "exit 0"
 	if err != nil {

@@ -128,7 +128,7 @@ func discussion(said []github.Said, me, head string) *Discussion {
 func (s *Service) Comment(repo string, number int, body string) (*Discussion, error) {
 	body = strings.TrimSpace(body)
 	if body == "" {
-		return nil, fmt.Errorf("say something")
+		return nil, fmt.Errorf("comment is empty")
 	}
 	behind, err := s.say(sendComment, "your comment on "+Key(repo, number), outgoing{Repo: repo, Number: number, Body: body})
 	if err != nil {

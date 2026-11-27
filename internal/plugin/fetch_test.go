@@ -160,7 +160,7 @@ func TestFetchChecksum(t *testing.T) {
 	// What's downloaded isn't what the release said it published.
 	files["jira_v0.3.0_linux_arm64.tar.gz"] = archive(t, entry{name: "plugin.toml", text: jiraToml}, entry{name: "extra", text: "x"})
 	dir, _, _, err := fetch(t, &published{tag: "v0.3.0", files: files}, "")
-	if err == nil || !strings.Contains(err.Error(), "isn't what the release's checksums.txt says") {
+	if err == nil || !strings.Contains(err.Error(), "does not match the release's checksums.txt") {
 		t.Errorf("a build that doesn't match its checksum: %v", err)
 	}
 	if entries, _ := os.ReadDir(dir); len(entries) != 0 {
@@ -169,7 +169,7 @@ func TestFetchChecksum(t *testing.T) {
 
 	// A build the checksums don't list isn't taken on trust.
 	files["checksums.txt"] = []byte("abc  something_else.tar.gz\n")
-	if _, _, _, err := fetch(t, &published{tag: "v0.3.0", files: files}, ""); err == nil || !strings.Contains(err.Error(), "isn't in the release's checksums.txt") {
+	if _, _, _, err := fetch(t, &published{tag: "v0.3.0", files: files}, ""); err == nil || !strings.Contains(err.Error(), "is not in the release's checksums.txt") {
 		t.Errorf("a build its checksums don't list: %v", err)
 	}
 
@@ -239,7 +239,7 @@ func TestFetchRefusesWhatIsntAPlugins(t *testing.T) {
 	}
 	files := map[string][]byte{"jira_v0.3.0_linux_arm64.tar.gz": []byte("not an archive")}
 	files["checksums.txt"] = sums(files)
-	if _, _, _, err := fetch(t, &published{tag: "v0.3.0", files: files}, ""); err == nil || !strings.Contains(err.Error(), "isn't a .tar.gz") {
+	if _, _, _, err := fetch(t, &published{tag: "v0.3.0", files: files}, ""); err == nil || !strings.Contains(err.Error(), "not a .tar.gz") {
 		t.Errorf("something that isn't an archive: %v", err)
 	}
 }

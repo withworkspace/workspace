@@ -283,7 +283,7 @@ func (h *Host) ExportRemote(ctx context.Context, name string, in protocol.Remote
 	exports := i >= 0 && p.reg.Refs[i].Remote != nil && p.reg.Refs[i].Remote.Exports
 	p.mu.Unlock()
 	if !exports {
-		return out, &noExport{fmt.Sprintf("%s doesn't give a %s for a repo", name, in.Kind)}
+		return out, &noExport{fmt.Sprintf("%s cannot save a %s to a repo", name, in.Kind)}
 	}
 	if h.Hold != nil {
 		defer h.Hold()()
@@ -294,7 +294,7 @@ func (h *Host) ExportRemote(ctx context.Context, name string, in protocol.Remote
 	var re *acp.RPCError
 	switch {
 	case errors.As(err, &re) && re.Code == protocol.CodeMethodNotFound:
-		return out, &noExport{fmt.Sprintf("%s doesn't give a %s for a repo", name, in.Kind)}
+		return out, &noExport{fmt.Sprintf("%s cannot save a %s to a repo", name, in.Kind)}
 	case errors.As(err, &re) && re.Code == protocol.CodeNotFound:
 		return out, &noThing{fmt.Sprintf("%s has no %s called %s", name, in.Kind, in.Ref)}
 	}
@@ -328,9 +328,9 @@ func (h *Host) said(name, doing string, err error) error {
 	case errors.As(err, &re):
 		return fmt.Errorf("%s: %s", name, re.Message)
 	case errors.Is(err, acp.ErrClosed):
-		return fmt.Errorf("%s stopped while it was %s: see %s", name, doing, LogPath(h.Root, name))
+		return fmt.Errorf("%s stopped while %s: see %s", name, doing, LogPath(h.Root, name))
 	case errors.Is(err, context.DeadlineExceeded):
-		return fmt.Errorf("%s wasn't done %s in time", name, doing)
+		return fmt.Errorf("%s timed out %s", name, doing)
 	}
 	return err
 }

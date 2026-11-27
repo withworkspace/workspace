@@ -37,7 +37,7 @@ func (w *Workspace) untilResult(st mission.StageState, c mission.Check) mission.
 	}
 	list, err := events.List(w.Root(), events.Filter{Since: since, Kinds: []string{match.Kind}})
 	if err != nil {
-		r.Result, r.Evidence = mission.CheckCantTell, "ws couldn't read what it's heard of: "+err.Error()
+		r.Result, r.Evidence = mission.CheckCantTell, "could not read events: "+err.Error()
 		return r
 	}
 	for _, e := range list {
@@ -52,7 +52,7 @@ func (w *Workspace) untilResult(st mission.StageState, c mission.Check) mission.
 			return r
 		}
 	}
-	r.Result, r.Evidence = mission.CheckUnmet, "ws hasn't heard of it since the mission reached the step"
+	r.Result, r.Evidence = mission.CheckUnmet, "not heard since the step began"
 	return r
 }
 
@@ -93,7 +93,7 @@ func (w *Workspace) untilStands(match events.Match) (bool, string) {
 		}
 		merged := strings.EqualFold(pr.State, "MERGED") || pr.MergedAt != ""
 		if (match.Kind == events.PRMerged) == merged && (merged || strings.EqualFold(pr.State, "CLOSED")) {
-			return true, fmt.Sprintf("%s#%d was %s already when the mission reached the step", repo, number, strings.ToLower(pr.State))
+			return true, fmt.Sprintf("%s#%d already %s when the step began", repo, number, strings.ToLower(pr.State))
 		}
 	case events.ThingChanged:
 		kind, ref := field("kind"), field("thing")
@@ -118,7 +118,7 @@ func (w *Workspace) untilStands(match events.Match) (bool, string) {
 			asked = append(asked, f.Key+" "+got)
 		}
 		if len(asked) > 0 {
-			return true, fmt.Sprintf("%s's %s already when the mission reached the step", ref, strings.Join(asked, ", "))
+			return true, fmt.Sprintf("%s's %s already when the step began", ref, strings.Join(asked, ", "))
 		}
 	}
 	return false, ""

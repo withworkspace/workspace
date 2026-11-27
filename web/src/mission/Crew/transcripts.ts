@@ -91,6 +91,6 @@ export const editing = working(edit);
 export const toRun = working({ by: "call", tool: "Bash", input: "rm -rf build && go build -o build/greet ./..." });
 export const asking: Transcript = working({ by: "call", tool: "AskUserQuestion", input: "", questions: [{ question: "Should greet.To trim the name it's given?", options: ["Trim it", "Leave it as it's given"] }] });
 
-export const none: Transcript = { harness: "shell", available: false, version: 0, entries: [], why: "shell keeps no transcript ws can read, so there's none: its terminal is what there is." };
+export const none: Transcript = { harness: "shell", available: false, version: 0, entries: [], why: "shell keeps no readable transcript: see the terminal." };
 export const nothingYet: Transcript = { harness: "claude", available: true, version: 0, entries: [] };
 export const root = "/try/demo";

@@ -199,7 +199,7 @@ func TestStackReviewsSentBehindInOrder(t *testing.T) {
 		t.Errorf("the refused layer's = %+v", un)
 	}
 	un := w.svc.Unsent("api", 90)
-	if len(un) != 1 || !strings.Contains(un[0].Error, "your review of api#89, before it, wasn't taken") {
+	if len(un) != 1 || !strings.Contains(un[0].Error, "your review of api#89, which came first, failed") {
 		t.Fatalf("the layer above's = %+v", un)
 	}
 	if s := w.svc.Sends(); s == nil || s.Failed != 2 || s.At != "api#89" {

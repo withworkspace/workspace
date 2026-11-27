@@ -128,9 +128,9 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       const m = useMergeOffers.getState()[`${s.repo}#${s.number}`];
       if (m) {
         const api = prAPI(m.repo, m.number);
-        if (m.offer === "now") out.push(row(`merge:${s.repo}#${s.number}`, m.stack ? "Merge stack" : "Merge", "merge", { hint: m.layers ? `all ${m.layers} layers, on GitHub` : "on GitHub, as it is", doing: { ws: { merge: api, when: "now", head: m.head } } }));
-        if (m.offer === "ready") out.push(row(`merge-ready:${s.repo}#${s.number}`, "Merge when ready", "merge", { hint: "once checks and reviews let it", doing: { ws: { merge: api, when: "ready", head: m.head } } }));
-        if (m.offer === "on") out.push(row(`merge-off:${s.repo}#${s.number}`, "Don't merge by itself", "merge", { hint: "it's set to merge once it can", doing: { ws: { merge: api, when: "off" } } }));
+        if (m.offer === "now") out.push(row(`merge:${s.repo}#${s.number}`, m.stack ? "Merge stack" : "Merge", "merge", { hint: m.layers ? `all ${m.layers} layers, on GitHub` : "on GitHub", doing: { ws: { merge: api, when: "now", head: m.head } } }));
+        if (m.offer === "ready") out.push(row(`merge-ready:${s.repo}#${s.number}`, "Merge when ready", "merge", { hint: "once checks and reviews pass", doing: { ws: { merge: api, when: "ready", head: m.head } } }));
+        if (m.offer === "on") out.push(row(`merge-off:${s.repo}#${s.number}`, "Cancel auto-merge", "merge", { hint: "auto-merge is on", doing: { ws: { merge: api, when: "off" } } }));
       }
       out.push(row(`dock:${s.repo}#${s.number}`, "Dock here", "branch", { hint: "check out in a capsule", doing: { ws: { dock: prAPI(s.repo, s.number) } } }));
       if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));

@@ -66,10 +66,10 @@ func TestOutput_Refused(t *testing.T) {
 	e.Add("words", []byte(strings.Replace(trend, `keep("coverage", n)`, `keep("coverage", "lots")`, 1)))
 	later(25 * time.Hour)
 	e.RunDue()
-	if runs, _ := Runs(e.Root, "quiet", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "output: it may not") {
+	if runs, _ := Runs(e.Root, "quiet", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "output: not allowed without") {
 		t.Errorf("quiet: %+v", runs)
 	}
-	if runs, _ := Runs(e.Root, "words", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "keeps numbers") {
+	if runs, _ := Runs(e.Root, "words", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "only numbers are kept") {
 		t.Errorf("words: %+v", runs)
 	}
 }

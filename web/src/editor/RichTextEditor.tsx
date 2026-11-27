@@ -43,7 +43,7 @@ export default function RichTextEditor(props: InnerProps) {
 
   useEffect(() => {
     const f = { marks: props.marks, lists: props.lists, quote: props.quote, code: props.code, pictures: props.pictures };
-    const failed = (why: string) => toast(`Couldn't paste the picture: ${why}`, { tone: "danger" });
+    const failed = (why: string) => toast(`Could not paste picture: ${why}`, { tone: "danger" });
     const plugins = [
       history(),
       composeRules(f),

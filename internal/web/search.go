@@ -48,7 +48,7 @@ func (s *Server) codeSearch(w http.ResponseWriter, r *http.Request) {
 		if v := q.Get(key); v != "" {
 			n, err := strconv.Atoi(v)
 			if err != nil || n <= 0 {
-				jsonError(w, http.StatusBadRequest, key+" is a number above 0")
+				jsonError(w, http.StatusBadRequest, key+" must be a number above 0")
 				return
 			}
 			*to = n

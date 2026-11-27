@@ -131,7 +131,7 @@ func (r Roles) ForOrchestrator() (Pick, Orchestrator, error) {
 			return r.orchestratorPick(o), o, nil
 		}
 	}
-	return Pick{}, nil, errors.New("no harness here can run the headless orchestrator: install the Cursor CLI, Claude Code or pi, or set [orchestrator] harness")
+	return Pick{}, nil, errors.New("no harness can run the orchestrator: install the Cursor CLI, Claude Code or pi, or set [orchestrator] harness")
 }
 
 func (r Roles) orchestratorPick(o Orchestrator) Pick {
@@ -149,7 +149,7 @@ func orchestratorNamed(name string) (Orchestrator, error) {
 	}
 	o, ok := h.(Orchestrator)
 	if !ok {
-		return nil, fmt.Errorf("harness %q can't run the headless orchestrator", name)
+		return nil, fmt.Errorf("harness %q cannot run the orchestrator", name)
 	}
 	return o, nil
 }
@@ -307,7 +307,7 @@ func converserNamed(name string) (Converser, error) {
 	}
 	c, ok := h.(Converser)
 	if !ok {
-		return nil, fmt.Errorf("harness %q can't hold a conversation yet (Claude Code can): set [conversation] harness = \"claude\"", name)
+		return nil, fmt.Errorf("harness %q cannot hold conversations: set [conversation] harness = \"claude\"", name)
 	}
 	return c, nil
 }

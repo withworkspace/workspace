@@ -162,13 +162,13 @@ func (s *Server) frame(w http.ResponseWriter, r *http.Request) {
 		n, ok = artifact.ParseVersion(num)
 	}
 	if !ok || !artifact.IsRef(id) || strings.Contains(id, ".") {
-		framePage(w, http.StatusNotFound, "There's no such version", "A version's frame is /frame/a3/v2: an artifact, then the version.")
+		framePage(w, http.StatusNotFound, "Version not found", "Version frames are at /frame/a3/v2: artifact, then version.")
 		return
 	}
 	if _, _, _, err := s.artifacts().ReadVersion(r.Context(), id, n); err != nil {
 		// No such artifact or version, its folder gone, or its files: there's
 		// nothing here to run, whichever.
-		framePage(w, http.StatusNotFound, "It can't be shown", html.EscapeString(err.Error()))
+		framePage(w, http.StatusNotFound, "Could not show version", html.EscapeString(err.Error()))
 		return
 	}
 	s.toFramed(w, r, "/frame/"+id+"/v"+strconv.Itoa(n))
@@ -184,11 +184,11 @@ func (s *Server) foundFrame(w http.ResponseWriter, r *http.Request) {
 	repo, tree := r.PathValue("repo"), r.PathValue("tree")
 	address := "in/" + repo + "/tree/" + tree
 	if !frameShape.MatchString(address) {
-		framePage(w, http.StatusNotFound, "There's no such artifact", "An artifact in a repo runs at /frame/in/records/tree/…: its repo, then its folder as git names it.")
+		framePage(w, http.StatusNotFound, "Artifact not found", "Artifacts in a repo are at /frame/in/records/tree/…: repo, then folder tree.")
 		return
 	}
 	if _, _, err := s.App.FoundArtifactAt(r.Context(), repo, tree, artifact.IndexFile); err != nil {
-		framePage(w, http.StatusNotFound, "It can't be shown", html.EscapeString(err.Error()))
+		framePage(w, http.StatusNotFound, "Could not show artifact", html.EscapeString(err.Error()))
 		return
 	}
 	s.toFramed(w, r, "/frame/"+address)
@@ -222,7 +222,7 @@ func (s *Server) proposed(w http.ResponseWriter, r *http.Request, slug, id, num 
 	n, err := strconv.Atoi(num)
 	store, serr := s.talkStoreOf(slug)
 	if err != nil || n < 1 || serr != nil || (store.Workspace() && !conversation.IsWorkspaceRef(id)) || (!store.Workspace() && !conversation.IsRef(id)) {
-		framePage(w, http.StatusNotFound, "There's no such proposal", "A proposal's frame is /frame/w9/proposals/2: a conversation, then the proposal.")
+		framePage(w, http.StatusNotFound, "Proposal not found", "Proposal frames are at /frame/w9/proposals/2: conversation, then proposal.")
 		return nil, store, false
 	}
 	c, err := store.Load(id)
@@ -231,7 +231,7 @@ func (s *Server) proposed(w http.ResponseWriter, r *http.Request, slug, id, num 
 		p = c.Proposal(n)
 	}
 	if p == nil || p.Kind != conversation.ProposeArtifact {
-		framePage(w, http.StatusNotFound, "It can't be shown", html.EscapeString(fmt.Sprintf("%s has no artifact proposed as %d.", id, n)))
+		framePage(w, http.StatusNotFound, "Could not show proposal", html.EscapeString(fmt.Sprintf("%s has no artifact proposal %d.", id, n)))
 		return nil, store, false
 	}
 	return p, store, true
@@ -258,7 +258,7 @@ func (s *Server) framedFile(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, to, http.StatusFound)
 			return
 		}
-		framePage(w, http.StatusNotFound, "There's nothing here", "A frame's files are under /framed/, each frame's under its own key.")
+		framePage(w, http.StatusNotFound, "Nothing here", "No frame at this address.")
 		return
 	}
 	if file == "" || strings.HasSuffix(file, "/") {
@@ -301,9 +301,9 @@ func (s *Server) framedFile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		what := html.EscapeString(err.Error())
 		if errors.Is(err, artifact.ErrNoFile) {
-			what = html.EscapeString(file) + " isn't one of its files."
+			what = html.EscapeString(file) + " not found."
 		}
-		framePage(w, http.StatusNotFound, "It can't be shown", what)
+		framePage(w, http.StatusNotFound, "Could not show file", what)
 		return
 	}
 	s.serveFrameFile(w, r, salt, file, data, blob, own)
@@ -466,7 +466,7 @@ func (s *Server) artifactFoundDetail(w http.ResponseWriter, r *http.Request) {
 func (s *Server) artifactDetail(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if !artifact.IsRef(id) || strings.Contains(id, ".") {
-		jsonError(w, http.StatusNotFound, fmt.Sprintf("%q isn't an artifact: they're named a1, a2, …", id))
+		jsonError(w, http.StatusNotFound, fmt.Sprintf("%q is not an artifact: refs are a1, a2, …", id))
 		return
 	}
 	st := s.artifacts()
@@ -555,12 +555,12 @@ func (s *Server) artifactSource(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("v"); v != "" {
 		var ok bool
 		if n, ok = artifact.ParseVersion(v); !ok {
-			jsonError(w, http.StatusBadRequest, "v is a version: 2, or v2")
+			jsonError(w, http.StatusBadRequest, "v must be a version: 2 or v2")
 			return
 		}
 	}
 	if !artifact.IsRef(id) || strings.Contains(id, ".") {
-		jsonError(w, http.StatusNotFound, fmt.Sprintf("%q isn't an artifact: they're named a1, a2, …", id))
+		jsonError(w, http.StatusNotFound, fmt.Sprintf("%q is not an artifact: refs are a1, a2, …", id))
 		return
 	}
 	file := cmp.Or(r.URL.Query().Get("file"), artifact.IndexFile)
@@ -602,7 +602,7 @@ func (s *Server) artifactCompare(w http.ResponseWriter, r *http.Request) {
 	for i, side := range []string{"a", "b"} {
 		id, n, ok := artifact.ParseRef(r.URL.Query().Get(side))
 		if !ok {
-			jsonError(w, http.StatusBadRequest, side+" is a version to compare: a3.v2 (or a3, its latest)")
+			jsonError(w, http.StatusBadRequest, side+" must be a version: a3.v2, or a3 for latest")
 			return
 		}
 		all, _, n, err := st.AllFiles(r.Context(), id, n)
@@ -623,7 +623,7 @@ func (s *Server) artifactCompare(w http.ResponseWriter, r *http.Request) {
 		}
 		f, err := review.TextDiff(r.Context(), c.Path, was, is)
 		if err != nil {
-			jsonError(w, http.StatusInternalServerError, "couldn't diff "+c.Path+" of "+refs[0]+" and "+refs[1]+": "+err.Error())
+			jsonError(w, http.StatusInternalServerError, "could not diff "+c.Path+" of "+refs[0]+" and "+refs[1]+": "+err.Error())
 			return
 		}
 		f.Status = status

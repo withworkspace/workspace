@@ -95,7 +95,7 @@ func loadIn(tx *store.Tx, repo string, number int) (*Record, bool, error) {
 	}
 	var r Record
 	if err := json.Unmarshal([]byte(data), &r); err != nil {
-		return nil, false, fmt.Errorf("what's kept of %s: %w", Key(repo, number), err)
+		return nil, false, fmt.Errorf("could not read %s: %w", Key(repo, number), err)
 	}
 	return &r, true, nil
 }

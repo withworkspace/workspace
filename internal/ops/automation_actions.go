@@ -88,7 +88,7 @@ func (w *Workspace) RunAutomationAction(name, title, on string, input map[string
 		return AutomationActionRun{}, automation.ErrNotFound
 	}
 	if st, _ := automation.States(w.Root()); !st[name].On {
-		return AutomationActionRun{}, &Invalid{Reason: name + " is off: turn it on to run its actions"}
+		return AutomationActionRun{}, &Invalid{Reason: name + " is off: turn on to run actions"}
 	}
 	x, ok := a.ActionNamed(title)
 	if !ok {
@@ -97,11 +97,11 @@ func (w *Workspace) RunAutomationAction(name, title, on string, input map[string
 	kind, fields := "", map[string]string(nil)
 	if on = strings.TrimSpace(on); on != "" {
 		if kind, fields, ok = w.thingKindOf(on); !ok {
-			return AutomationActionRun{}, &Invalid{Reason: "ws can't say what " + on + " is"}
+			return AutomationActionRun{}, &Invalid{Reason: "could not tell what " + on + " is"}
 		}
 	}
 	if why := x.WhyNot(kind, fields); why != "" {
-		return AutomationActionRun{}, &Invalid{Reason: fmt.Sprintf("%q isn't for that: %s", title, why)}
+		return AutomationActionRun{}, &Invalid{Reason: fmt.Sprintf("%q does not apply: %s", title, why)}
 	}
 	in, err := x.ReadInput(input)
 	if err != nil {

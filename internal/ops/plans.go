@@ -134,7 +134,7 @@ func (w *Workspace) setPlan(slug, text string, by Actor, was *string) (PlanSet, 
 		states, _ := m.StageProgress(brief)
 		rev = mission.Revise(m.Plan, p, states)
 		if prob := rev.Problem(); prob != "" {
-			return PlanSet{}, refused("steps-behind", "%s: change only what's after them", prob)
+			return PlanSet{}, refused("steps-behind", "%s: change only the steps after them", prob)
 		}
 		logged = "plan revised: " + rev.Summary()
 	}
@@ -144,7 +144,7 @@ func (w *Workspace) setPlan(slug, text string, by Actor, was *string) (PlanSet, 
 		err = w.Missions.WriteFilesIf(m.Slug, mission.FileWrite{Plan: true, Was: *was, Now: p.Text})
 	}
 	if errors.Is(err, mission.ErrChanged) {
-		return PlanSet{}, &Refused{Code: "changed", Reason: "the plan has changed since it was read", Err: err}
+		return PlanSet{}, &Refused{Code: "changed", Reason: "the plan changed since it was read", Err: err}
 	}
 	if err != nil {
 		return PlanSet{}, err
@@ -222,7 +222,7 @@ func (w *Workspace) acceptPlan(store conversation.Store, c *conversation.Convers
 	if err != nil {
 		return "", err
 	}
-	changed := refused("changed", "the plan has changed since this was proposed: ask in %s for it again, from the plan as it is now", c.ID)
+	changed := refused("changed", "the plan changed since this was proposed: ask in %s again", c.ID)
 	if now, _ := w.Missions.ReadPlan(m.Slug); now != p.Was {
 		return "", changed
 	}
@@ -273,7 +273,7 @@ func (w *Workspace) acceptPlan(store conversation.Store, c *conversation.Convers
 		}
 		said = append(said, upperFirst(sentence(started)))
 	case m.ToBrief():
-		said = append(said, "It's still being briefed: confirming its brief makes it ready.")
+		said = append(said, "Still being briefed: confirm the brief to make it ready.")
 	case p.Step == 0 && set.Revised && set.Revision.Changed():
 		// A revision of a mission under way that was yours to confirm: the
 		// orchestrator looks at the plan as it is now, as it does when the
@@ -281,7 +281,7 @@ func (w *Workspace) acceptPlan(store conversation.Store, c *conversation.Convers
 		// run again once the planner had revised it; without this the
 		// mission rests where it was until something else happens.
 		if w.Notify(m.Slug, mission.OrchestratorEvent{Trigger: "plan"}) {
-			said = append(said, "The orchestrator looks at the plan as it is now.")
+			said = append(said, "The orchestrator reviews the updated plan.")
 		}
 	}
 	if len(warnings) > 0 {

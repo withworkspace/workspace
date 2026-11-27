@@ -69,7 +69,7 @@ func TestOutline_DrawsTheScript(t *testing.T) {
 	wait := o.Steps[2]
 	if wait.Text != "pr.checks_passed pr={e.pr}" || wait.Detail != "up to 2h" || len(wait.Branches) != 2 ||
 		wait.Branches[0].Label != "met" || wait.Branches[0].Steps[0].Text != "{e.pr} is green again" ||
-		wait.Branches[1].Label != "time's up" || wait.Branches[1].Steps[0].Text != "{e.pr} is still red after 2h" {
+		wait.Branches[1].Label != "timed out" || wait.Branches[1].Steps[0].Text != "{e.pr} is still red after 2h" {
 		t.Errorf("the wait: %+v", wait)
 	}
 	if f := o.Steps[3]; f.Branches[0].Label != "for each c in e.commits" || f.Branches[0].Steps[0].Text != "n = len(c)" {

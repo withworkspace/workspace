@@ -133,7 +133,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		rec.ID = orchestrator.NewRunID(store, m.Slug, rec.Started)
 		start := "looking at " + what + " with " + with
 		if retry {
-			start = "it ran no ws mission commands: running it again, told its shell works"
+			start = "ran no ws mission commands: running again"
 		}
 		store.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventOrchestrateRun, Crew: "orchestrator", Run: rec.ID, Text: start})
 		var err error
@@ -379,9 +379,9 @@ func orchestratorDidNothing(store mission.Store, slug, what, out string, runErr 
 	if _, asking := m.Question(); asking {
 		return // the user's asked something already
 	}
-	text := "The orchestrator looked at " + what + " but ran no commands, twice, so nothing happened."
+	text := "The orchestrator looked at " + what + " twice but ran no commands."
 	if runErr != nil {
-		text = "The orchestrator couldn't run on " + what + ": " + oneLine(runErr.Error()) + "."
+		text = "The orchestrator could not run on " + what + ": " + oneLine(runErr.Error()) + "."
 	}
 	if gist := orchestrator.Gist(out); gist != "" {
 		text += " It said: " + gist

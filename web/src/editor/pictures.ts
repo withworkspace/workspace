@@ -27,7 +27,7 @@ export function picturesPlugin(): Plugin<DecorationSet> {
         if (said && "add" in said) {
           const el = document.createElement("span");
           el.className = said.add.cls;
-          el.setAttribute("aria-label", "Pasting a picture");
+          el.setAttribute("aria-label", "Pasting picture");
           set = set.add(tr.doc, [Decoration.widget(said.add.pos, el, { id: said.add.id })]);
         } else if (said && "remove" in said) {
           set = set.remove(set.find(undefined, undefined, (spec) => spec.id === said.remove.id));

@@ -251,7 +251,7 @@ func (w *Workspace) numberTaken(repo, dir, base string) string {
 			if g, ok := k.Match(other); ok {
 				if o, _ := strconv.Atoi(g.Number); o == n {
 					next := DocFields{Date: f.Date, Slug: f.Slug, Number: k.NextNumber(dir)}
-					return fmt.Sprintf("%s takes number %s, which %s has on %s: two %s can't share one, and nothing was pushed. Renumber it %s (git mv %s %s, and anywhere it says its number), commit, and land again", rel, f.Number, other, w.DefaultBranch, k.Title, next.Number, rel, next.Fill(k.Pattern))
+					return fmt.Sprintf("%s takes number %s, which %s has on %s: two %s cannot share one, nothing pushed. Renumber to %s (git mv %s %s, and wherever it says its number), commit, and land again", rel, f.Number, other, w.DefaultBranch, k.Title, next.Number, rel, next.Fill(k.Pattern))
 				}
 			}
 		}

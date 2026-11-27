@@ -49,7 +49,7 @@ func replanFixture(t *testing.T) (*Workspace, *fakeHost) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(a.Next, "step 3 is the planner's: it's asked, in t1, to write the steps after it, and ws moves on once it has") {
+	if !strings.Contains(a.Next, "step 3 is the planner's: asked in t1 to write the next steps, then the mission moves on") {
 		t.Fatalf("reaching step 3: %s", a.Next)
 	}
 	return w, host
@@ -82,7 +82,7 @@ func TestPlannerAtItsStep(t *testing.T) {
 	refusedWith(t, err, "steps-behind")
 	// A malformed plan is refused, saying why.
 	_, err = w.RevisePlan("cache", c.ID, strings.Replace(fixPlanned, "   - who: the planner\n", "", 1))
-	if err == nil || !strings.Contains(err.Error(), "step 3 doesn't say what kind of step it is") {
+	if err == nil || !strings.Contains(err.Error(), "step 3 has no kind") {
 		t.Errorf("malformed: %v", err)
 	}
 
@@ -91,7 +91,7 @@ func TestPlannerAtItsStep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rev.Proposed != 0 || !strings.HasPrefix(rev.String(), "Revised the plan: step 4 is step 5 now (Review the fix); step 4 added (Fix it, the test passing, crew, in `frontend/two`). Passed step 3, and started step 4: c1 in frontend/two.") {
+	if rev.Proposed != 0 || !strings.HasPrefix(rev.String(), "Revised the plan: step 4 moved to step 5 (Review the fix); step 4 added (Fix it, the test passing, crew, in `frontend/two`). Passed step 3, and started step 4: c1 in frontend/two.") {
 		t.Errorf("revised: %s", rev)
 	}
 	if len(host.specs) != 1 || !strings.Contains(host.specs[0].Prompt, "Fix it, the test passing.") {
@@ -102,7 +102,7 @@ func TestPlannerAtItsStep(t *testing.T) {
 	if len(states) != 5 || !states[2].Accepted() || states[2].Record.AcceptedBy != "planner" || !states[3].Current {
 		t.Errorf("steps = %+v", states)
 	}
-	if !logSays(t, w, "revised the plan, in t1: step 4 is step 5 now (Review the fix); step 4 added") {
+	if !logSays(t, w, "revised the plan, in t1: step 4 moved to step 5 (Review the fix); step 4 added") {
 		t.Error("the log doesn't say what changed")
 	}
 	// Elsewhere than its conversation, it's refused.
@@ -123,7 +123,7 @@ func TestPlannerRevisionIsYours(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rev.Proposed != 1 || rev.String() != "Proposed to the user (proposal 1 in t1): It removes the checkpoint at step 4 (Review the fix), which is the user's to confirm. They accept it, or not." {
+	if rev.Proposed != 1 || rev.String() != "Proposed to the user (proposal 1 in t1): It removes the checkpoint at step 4 (Review the fix), so needs confirming. They accept it, or not." {
 		t.Errorf("revised: %s", rev)
 	}
 	if text, _ := w.Missions.ReadPlan("cache"); text != replanPlan {
@@ -214,10 +214,10 @@ func TestSetPlan_Revising(t *testing.T) {
 	_, err := w.SetPlan("cache", strings.Replace(replanPlan, "Is this the cause?", "Is it?", 1), AsYou)
 	refusedWith(t, err, "steps-behind")
 	set, err := w.SetPlan("cache", fixPlanned, AsYou)
-	if err != nil || !strings.HasPrefix(set.String(), "Revised the plan: step 4 is step 5 now") {
+	if err != nil || !strings.HasPrefix(set.String(), "Revised the plan: step 4 moved to step 5") {
 		t.Errorf("set: %s, %v", set, err)
 	}
-	if !logSays(t, w, "plan revised: step 4 is step 5 now") {
+	if !logSays(t, w, "plan revised: step 4 moved to step 5") {
 		t.Error("the log doesn't say what changed")
 	}
 }

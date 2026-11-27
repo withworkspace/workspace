@@ -205,7 +205,7 @@ func TestWebAct_LaunchesAndStopsCrew(t *testing.T) {
 	if m, _ := store.Load(slug); m.Crew[0].Ended == nil || !m.Crew[0].Stopped {
 		t.Errorf("c1's end: %+v", m.Crew[0])
 	}
-	if _, err := act(slug, web.ActRequest{Verb: "resume", Crew: "c1"}); err == nil || !strings.Contains(err.Error(), "no conversation") {
+	if _, err := act(slug, web.ActRequest{Verb: "resume", Crew: "c1"}); err == nil || !strings.Contains(err.Error(), "no session to resume") {
 		t.Errorf("resumed crew with no conversation: %v", err)
 	}
 	if _, err := act(slug, web.ActRequest{Verb: "brief"}); err == nil {
@@ -296,7 +296,7 @@ func TestWebAct_LaunchesOnAPick(t *testing.T) {
 		t.Errorf("crew picks with none allowed = %+v", d.CrewPicks)
 	}
 	var refused *ops.Refused
-	if _, err := act(slug, web.ActRequest{Verb: "launch", Harness: "picker", Model: "small"}); !errors.As(err, &refused) || refused.Code != "not-allowed" || !strings.Contains(err.Error(), "crew may run on shell") {
+	if _, err := act(slug, web.ActRequest{Verb: "launch", Harness: "picker", Model: "small"}); !errors.As(err, &refused) || refused.Code != "not-allowed" || !strings.Contains(err.Error(), "(allowed: shell)") {
 		t.Errorf("launched on a pick no longer allowed: %v", err)
 	}
 }
@@ -326,14 +326,14 @@ func TestAfterAccept_MovesThePlanOn(t *testing.T) {
 	}
 
 	// Stage 1 says to check in: you're asked, with go on and not yet.
-	if said := accept(); !strings.Contains(said, "the user is asked before stage 2") {
+	if said := accept(); !strings.Contains(said, "asking before stage 2") {
 		t.Fatalf("after stage 1: %s", said)
 	}
 	m, _ := store.Load(slug)
 	if f := m.Asking(); f == nil || f.By != "ws" || f.Step != 2 || strings.Join(f.Options, "|") != "Go on|Not yet" || !strings.Contains(f.Text, "Go on to stage 2: Build it in") {
 		t.Fatalf("check-in = %+v", f)
 	}
-	if a, err := ctx.Answer(slug, ops.AsYou, "Not yet"); err != nil || !strings.Contains(a.Next, "it waits for you") {
+	if a, err := ctx.Answer(slug, ops.AsYou, "Not yet"); err != nil || !strings.Contains(a.Next, "waits for you: launch crew") {
 		t.Errorf("not yet: %q, %v", a.Next, err)
 	}
 	if m, _ := store.Load(slug); m.Asking() != nil || len(m.Crew) != 0 {
@@ -413,7 +413,7 @@ func TestWebAct_AskAnAgentToAnswer(t *testing.T) {
 		t.Error("asked an agent to answer when nothing was asked")
 	}
 	store.Ask(slug, "Commit and open PRs?", "orchestrator", "Commit both", "Leave them")
-	if said, err := act(slug, web.ActRequest{Verb: "ask-agent"}); err != nil || !strings.HasPrefix(said, "Asked c1 to answer it") {
+	if said, err := act(slug, web.ActRequest{Verb: "ask-agent"}); err != nil || said != "Asked c1 to answer." {
 		t.Fatalf("ask an agent: %q, %v", said, err)
 	}
 	waitScreen(t, srv, slug+"/c1", "$")

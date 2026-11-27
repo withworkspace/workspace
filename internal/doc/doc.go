@@ -104,7 +104,7 @@ func (v Versions) Text(version string) ([]byte, error) {
 	}
 	data, err := os.ReadFile(filepath.Join(v.Scope.versionsDir(v.Root), version+".md"))
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("%w: version %s of the document isn't kept", ErrNotFound, version)
+		return nil, fmt.Errorf("%w: version %s is no longer kept", ErrNotFound, version)
 	}
 	return data, err
 }

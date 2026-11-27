@@ -96,7 +96,7 @@ func TestJoinAndAcceptStages(t *testing.T) {
 		t.Errorf("accepted while c1 works: %v", err)
 	}
 	s.SetCrewStatus(m.Slug, c1.ID, CrewAsking, "which cache?")
-	if _, _, err := s.AcceptStage(m.Slug, "orchestrator", ""); err == nil || !strings.Contains(err.Error(), "asking") {
+	if _, _, err := s.AcceptStage(m.Slug, "orchestrator", ""); err == nil || !strings.Contains(err.Error(), "has a question waiting") {
 		t.Errorf("accepted while c1 asks: %v", err)
 	}
 	s.SetCrewStatus(m.Slug, c1.ID, CrewDone, "proposal written")

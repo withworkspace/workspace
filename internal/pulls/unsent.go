@@ -99,7 +99,7 @@ func (s *Service) SendBehind(q *outbox.Queue) {
 		Made: func(it outbox.Item) (bool, error) {
 			w, ok := outgoingOf(it)
 			if !ok {
-				return false, errors.New("what was to be sent can't be read")
+				return false, errors.New("could not read what was queued to send")
 			}
 			return s.reviewMade(w, it.Queued)
 		},
@@ -126,7 +126,7 @@ func (s *Service) SendBehind(q *outbox.Queue) {
 func (s *Service) send(it outbox.Item) error {
 	w, ok := outgoingOf(it)
 	if !ok {
-		return errors.New("what was to be sent can't be read")
+		return errors.New("could not read what was queued to send")
 	}
 	return s.post(it.Kind, w)
 }
@@ -134,7 +134,7 @@ func (s *Service) send(it outbox.Item) error {
 // post makes a write on GitHub, now.
 func (s *Service) post(kind string, w outgoing) error {
 	if s.GitHub == nil {
-		return errors.New("there's no GitHub to ask here")
+		return errors.New("not connected to GitHub")
 	}
 	owner, name := s.owner(w.Repo), s.name(w.Repo)
 	switch kind {
@@ -150,11 +150,11 @@ func (s *Service) post(kind string, w outgoing) error {
 	case sendDecline:
 		me, err := s.GitHub.Viewer()
 		if err != nil {
-			return fmt.Errorf("asking GitHub who you are: %w", err)
+			return fmt.Errorf("could not get your GitHub account: %w", err)
 		}
 		return s.GitHub.DropReviewRequest(owner, name, w.Number, me)
 	}
-	return fmt.Errorf("ws doesn't know how to send %s", kind)
+	return fmt.Errorf("cannot send %s: unknown kind", kind)
 }
 
 // sentBehind is what a kind is told once a lane's writes of it have been

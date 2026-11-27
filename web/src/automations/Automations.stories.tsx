@@ -115,7 +115,7 @@ const runs: AutomationRun[] = [
   { n: 9, event: "e41", says: "Checks failed on api#212 Retry flaky uploads", at: ago(4), state: "waiting", key: "api#212", did: [{ what: "wait", waiting: true, text: "for pr.checks_passed pr=api#212, till Nov 27 09:12" }] },
   { n: 8, event: "e38", says: "Checks failed on api#209 Bump Go", at: ago(90), state: "ran", key: "api#209", did: [{ what: "converse", conversation: "w12" }], log: ["looked at 3 failing jobs"] },
   { n: 7, event: "e33", says: "Checks failed on api#209 Bump Go", at: ago(95), state: "held", key: "api#209", error: "held back: it's run 1 of at most 1 in 1h for api#209" },
-  { n: 10, event: "e44", says: "triage answered in w14", at: ago(2), state: "held", error: "it'd loop: ci-red → triage → ci-red" },
+  { n: 10, event: "e44", says: "triage answered in w14", at: ago(2), state: "held", error: "would loop: ci-red → triage → ci-red" },
   { n: 6, event: "e30", says: "Checks failed on api#204 New uploads", at: ago(60 * 5), state: "failed", error: "ci-red.star:6:9: show: got int, want string" },
   { n: 5, event: "e22", says: "Checks failed on api#201 Docs", at: ago(60 * 26), state: "unsure", did: [{ what: "notify", text: "api#201's checks are red", started: true }] },
   { n: 4, event: "e15", says: "Brendan added Release flow", at: ago(60 * 50), state: "ran", did: [{ what: "notify", text: "Brendan drew Release flow" }, { what: "wait", text: "e17: Ana changed Release flow" }] },

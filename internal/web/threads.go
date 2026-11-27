@@ -26,7 +26,7 @@ import (
 func (s *Server) doc(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need a document's ref")
+		jsonError(w, http.StatusBadRequest, "missing document ref")
 		return
 	}
 	a, err := s.docText(ref)
@@ -78,7 +78,7 @@ func annotatable(a *ArtifactContent) bool { return a.Markdown && a.Kind != "revi
 func (s *Server) threadDoc(w http.ResponseWriter, r *http.Request) (conversation.Store, *ArtifactContent, bool) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need a document's ref")
+		jsonError(w, http.StatusBadRequest, "missing document ref")
 		return conversation.Store{}, nil, false
 	}
 	a, err := s.docOf(scope(r), ref)
@@ -90,7 +90,7 @@ func (s *Server) threadDoc(w http.ResponseWriter, r *http.Request) (conversation
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
 		return conversation.Store{}, nil, false
 	case !annotatable(a):
-		jsonError(w, http.StatusUnprocessableEntity, ref+" isn't a document to comment on: only markdown is")
+		jsonError(w, http.StatusUnprocessableEntity, ref+" cannot be commented on: only markdown documents can")
 		return conversation.Store{}, nil, false
 	}
 	// With no mission, these are the workspace's conversations.
@@ -193,7 +193,7 @@ func (s *Server) settleSuggestion(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusOK, st)
 	default:
-		jsonError(w, http.StatusBadRequest, "action is accept or decline")
+		jsonError(w, http.StatusBadRequest, "action must be accept or decline")
 	}
 }
 
@@ -261,7 +261,7 @@ func onThisDoc(store conversation.Store, a *ArtifactContent, id string) error {
 		return err
 	}
 	if c.Anchor.Doc != a.Ref {
-		return fmt.Errorf("%w: %s isn't a thread on %s", conversation.ErrNotFound, id, a.Ref)
+		return fmt.Errorf("%w: %s is not a thread on %s", conversation.ErrNotFound, id, a.Ref)
 	}
 	return nil
 }
@@ -341,7 +341,7 @@ func (s *Server) recordDecision(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusOK, st)
 	default:
-		jsonError(w, http.StatusBadRequest, "action is record or skip")
+		jsonError(w, http.StatusBadRequest, "action must be record or skip")
 	}
 }
 

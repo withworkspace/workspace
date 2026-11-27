@@ -38,7 +38,7 @@ func TestDryRun(t *testing.T) {
 	}
 	want := []struct{ did, waited string }{
 		{"notify: deployed api#1 (Idempotency keys)", "waited 15m for e2"},
-		{"notify: not deployed api#2", "and its time was up"},
+		{"notify: not deployed api#2", "then timed out"},
 		{"notify: not deployed api#3", "waited 1h for e5"},
 	}
 	for i, w := range want {

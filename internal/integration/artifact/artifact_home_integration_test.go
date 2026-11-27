@@ -102,7 +102,7 @@ func TestArtifactHome_PromotedLivesInRecordsAndAgainIsOneCommit(t *testing.T) {
 	local := filepath.Join(w.Root, ".ws", "artifacts", glowName())
 
 	r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow.html", glowV1), "--note", "Accent at 8% in dark.")
-	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "in .ws/artifacts/"+glowName()+"/ (on this machine: promote it to keep it)") {
+	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "in .ws/artifacts/"+glowName()+"/ (on this machine only: promote to keep)") {
 		t.Errorf("add said:\n%s%s", r.Stdout, r.Stderr)
 	}
 	testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow2.html", glowV2), "--to", "a1", "--note", "No glow in light.")
@@ -166,7 +166,7 @@ func TestArtifactHome_PromotedLivesInRecordsAndAgainIsOneCommit(t *testing.T) {
 	if list := testutil.Run(t, w, nil, "artifact", "list").Stdout; !strings.Contains(list, "a1   v3   promoted") || !strings.Contains(list, "· v2 in records:"+folder+"/") {
 		t.Errorf("ws artifact list:\n%s", list)
 	}
-	if added := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow4.html", glowV3b), "--to", "a1", "--note", "Warmer.").Stderr; !strings.Contains(added, "(records:"+folder+"/ has v2: promote it to put this one there)") {
+	if added := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow4.html", glowV3b), "--to", "a1", "--note", "Warmer.").Stderr; !strings.Contains(added, "(records:"+folder+"/ has v2: promote to replace)") {
 		t.Errorf("a version of one that lives there:\n%s", added)
 	}
 
@@ -193,8 +193,8 @@ func TestArtifactHome_PromotedLivesInRecordsAndAgainIsOneCommit(t *testing.T) {
 	}
 
 	// It isn't moved, nor kept here only: it lives where it lives.
-	refused(t, w, "lives in records:"+folder+"/ already", "artifact", "promote", "a1", "--home", "records:elsewhere/glow/")
-	refused(t, w, "it isn't kept on this machine only", "artifact", "promote", "a1", "--here")
+	refused(t, w, "already lives in records:"+folder+"/ and cannot be moved", "artifact", "promote", "a1", "--home", "records:elsewhere/glow/")
+	refused(t, w, "cannot keep on this machine only", "artifact", "promote", "a1", "--here")
 	// Named as the folder it has, it's the same.
 	testutil.Run(t, w, nil, "artifact", "promote", "a1.v4", "--home", "records:"+folder+"/")
 	if got := remoteFile(t, w, folder+"/index.html"); got != glowV3b {
@@ -241,15 +241,15 @@ func TestArtifactHome_ChosenTheFirstTime(t *testing.T) {
 
 	// What a home can't be.
 	before := testutil.Subjects(t, src, "main")
-	refused(t, w, "there's something at records:kept/glow/ already", "artifact", "promote", "a2", "--home", "records:kept/glow/")
+	refused(t, w, "records:kept/glow/ already exists", "artifact", "promote", "a2", "--home", "records:kept/glow/")
 	refused(t, w, "api takes pull requests", "artifact", "promote", "a2", "--home", "api:artifacts/two/")
-	refused(t, w, "nowhere isn't one of the workspace's repos", "artifact", "promote", "a2", "--home", "nowhere:two/")
-	refused(t, w, "leads out of records", "artifact", "promote", "a2", "--home", "records:../two/")
-	refused(t, w, "isn't a folder in a repo", "artifact", "promote", "a2", "--home", "two")
+	refused(t, w, "nowhere is not a repo in this workspace", "artifact", "promote", "a2", "--home", "nowhere:two/")
+	refused(t, w, "is not a folder inside records", "artifact", "promote", "a2", "--home", "records:../two/")
+	refused(t, w, "is not a folder in a repo", "artifact", "promote", "a2", "--home", "two")
 	refused(t, w, "not both", "artifact", "promote", "a2", "--here", "--home", "records:two/")
 	// Into a document, it must live in a repo, where the document cites it.
-	refused(t, w, "a document cites an artifact by its folder in a repo", "artifact", "promote", "a2", "--here", "--into", "records:plans/glow.md")
-	refused(t, w, "neither a mission nor a document", "artifact", "promote", "a2", "--into", "nosuch")
+	refused(t, w, "documents cite artifacts by their folder in a repo", "artifact", "promote", "a2", "--here", "--into", "records:plans/glow.md")
+	refused(t, w, "is not a mission or a document", "artifact", "promote", "a2", "--into", "nosuch")
 	if got := testutil.Subjects(t, src, "main"); got != before {
 		t.Errorf("records' main, after what was refused: %s", got)
 	}
@@ -366,7 +366,7 @@ func TestArtifactHome_CrewsAreOnThisMachine(t *testing.T) {
 	t.Setenv(mission.EnvMission, "glow")
 	t.Setenv(mission.EnvCrew, "c1")
 	r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, t.TempDir(), "glow.html", glowV1), "--note", "Accent at 8% in dark.")
-	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "in .ws/artifacts/"+glowName()+"/") || !strings.Contains(r.Stderr, "recorded it on glow") {
+	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "in .ws/artifacts/"+glowName()+"/") || !strings.Contains(r.Stderr, "recorded on glow") {
 		t.Errorf("crew's add said:\n%s%s", r.Stdout, r.Stderr)
 	}
 	if got := testutil.Subjects(t, w.Sources["records"], "main"); got != "initial" {
@@ -418,7 +418,7 @@ func TestArtifactHome_Doctor(t *testing.T) {
 		t.Errorf("in a repo with pull requests:\n%s", got)
 	}
 	// One's added all the same, here; it's promoting it there that isn't done.
-	if r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, t.TempDir(), "g.html", glowV1), "--note", "x"); !strings.Contains(r.Stderr, "(on this machine: promote it to keep it)") {
+	if r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, t.TempDir(), "g.html", glowV1), "--note", "x"); !strings.Contains(r.Stderr, "(on this machine only: promote to keep)") {
 		t.Errorf("adding one:\n%s", r.Stderr)
 	}
 	refused(t, w, "api takes pull requests", "artifact", "promote", "a1")

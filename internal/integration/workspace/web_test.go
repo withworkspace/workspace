@@ -159,7 +159,7 @@ func TestWebMissionAndArtifact(t *testing.T) {
 	if a, err := read("cache", "mission:run.webm"); err != nil || a.Media != "video/webm" {
 		t.Errorf("a video: %+v, %v", a, err)
 	}
-	if _, err := read("cache", "mission:blob.bin"); err == nil || !strings.Contains(err.Error(), "isn't text, or an image or a video") {
+	if _, err := read("cache", "mission:blob.bin"); err == nil || !strings.Contains(err.Error(), "is not text, an image or a video") {
 		t.Errorf("a binary that isn't an image or a video: %v", err)
 	}
 	// Only references the mission recorded: not any path.
@@ -219,7 +219,7 @@ func TestWebAct(t *testing.T) {
 	if said, err := say("accept", ""); err != nil || !strings.HasPrefix(said, "Accepted stage 1: stage 2 names no capsule") {
 		t.Errorf("accept: %q, %v", said, err)
 	}
-	if _, err := say("reply", "hello"); err == nil || !strings.Contains(err.Error(), "isn't something a mission's page does") {
+	if _, err := say("reply", "hello"); err == nil || !strings.Contains(err.Error(), `unknown mission action "reply"`) {
 		t.Errorf("talking to crew through act: %v", err)
 	}
 	if _, err := say("unpark", ""); err == nil {

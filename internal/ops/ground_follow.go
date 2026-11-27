@@ -157,18 +157,18 @@ func (w *Workspace) pullGround(ctx context.Context, repo string) (SpaceFresh, bo
 	ground := w.WS().MainWorktree(repo)
 	switch {
 	case f.Dirty:
-		return f, false, refused("ground-dirty", "%s's ground has changes of its own: it's read-only by rule, so look at what's there before anything moves it", repo)
+		return f, false, refused("ground-dirty", "%s's ground has local changes: look before updating", repo)
 	case f.Ahead > 0:
-		return f, false, refused("ground-ahead", "%s's ground has %d commits the remote hasn't: it can't be moved forward without losing them", repo, f.Ahead)
+		return f, false, refused("ground-ahead", "%s's ground has %d commits not on the remote: updating would lose them", repo, f.Ahead)
 	case f.Behind == 0:
 		return f, false, nil
 	}
 	if on, _ := git.ReadLine(ctx, ground, "symbolic-ref", "--quiet", "--short", "HEAD"); on != f.Branch {
-		return f, false, refused("ground-branch", "%s's ground isn't on %s: look at why before anything moves it", repo, f.Branch)
+		return f, false, refused("ground-branch", "%s's ground is not on %s: look before updating", repo, f.Branch)
 	}
 	if err := workspace.GitFFMerge(ground, "refs/remotes/origin/"+f.Branch); err != nil {
 		if ge, ok := errors.AsType[*git.Error](err); ok {
-			return f, false, refused("ground-pull", "moving %s's ground forward: %s", repo, ge.Stderr)
+			return f, false, refused("ground-pull", "could not update %s's ground: %s", repo, ge.Stderr)
 		}
 		return f, false, err
 	}

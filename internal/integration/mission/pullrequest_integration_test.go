@@ -60,7 +60,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	// The orchestrator is given the process as it's written, what ws holds,
 	// and a shorter prompt: the route's rules are ws's to hold now.
 	prompt := testutil.Run(t, w, gh, "mission", "orchestrate", "-m", "cache", "--print-prompt").Stdout
-	for _, want := range []string{"## The process", "We always self-review code before opening a pull request.", "## What ws holds", "- ws opens a pull request from a mission's capsule only once the user's latest review of it approves the commit it's at.", "ws holds the route", "ws mission resume-with"} {
+	for _, want := range []string{"## The process", "We always self-review code before opening a pull request.", "## What ws holds", "- Workspace opens a pull request from a mission's capsule only once the user's latest review approves its current commit.", "ws holds the route", "ws mission resume-with"} {
 		if !strings.Contains(prompt, want) {
 			t.Errorf("orchestrator prompt lacks %q", want)
 		}
@@ -73,7 +73,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	if out := testutil.Run(t, w, gh, "show", "-m", "cache", "-f", "llm", "s3").Stdout; !strings.Contains(out, "It opens a pull request, through ws") {
 		t.Errorf("ws show s3:\n%s", out)
 	}
-	if out := testutil.Run(t, w, gh, "process").Stdout; !strings.Contains(out, "missions.review_before_pr: ws opens a pull request") || !strings.Contains(out, "missions.review_before_land: ws lands") {
+	if out := testutil.Run(t, w, gh, "process").Stdout; !strings.Contains(out, "missions.review_before_pr: Workspace opens a pull request") || !strings.Contains(out, "missions.review_before_land: Workspace lands") {
 		t.Errorf("ws process:\n%s", out)
 	}
 	t.Setenv("WS_ROLE", "orchestrator")
@@ -109,7 +109,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	store.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
 	t.Setenv("WS_ROLE", "orchestrator")
 	testutil.Run(t, w, gh, "mission", "accept", "-m", "cache", "cached")
-	if m := testutil.LoadMission(t, w, "cache"); m.Asking() == nil || !strings.Contains(m.Asking().Text, "Step 3 opens a pull request, and ws holds missions.review_before_pr: review the work here") {
+	if m := testutil.LoadMission(t, w, "cache"); m.Asking() == nil || !strings.Contains(m.Asking().Text, "Step 3 opens a pull request: approve a review here first (missions.review_before_pr)") {
 		t.Errorf("the checkpoint's check-in: %+v", m.Asking())
 	}
 	t.Setenv("WS_ROLE", "")
@@ -125,7 +125,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	}
 
 	// Its crew are refused until the user's review approves it as it is.
-	if r := openPR(asCrew(c2.ID), "--title", "Cache it"); r.Err == nil || !strings.Contains(r.Err.Error(), "ws holds missions.review_before_pr") || !strings.Contains(r.Err.Error(), "the user hasn't reviewed backend/cache-lookup") || !strings.Contains(r.Err.Error(), "ws mission ask") {
+	if r := openPR(asCrew(c2.ID), "--title", "Cache it"); r.Err == nil || !strings.Contains(r.Err.Error(), "missions.review_before_pr (") || !strings.Contains(r.Err.Error(), "holds back opening a pull request: no review of backend/cache-lookup") || !strings.Contains(r.Err.Error(), "ws mission ask") {
 		t.Errorf("unreviewed: %v", r.Err)
 	}
 	d, err := review.Compare(capsule, "origin/main")
@@ -135,7 +135,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	reviews := review.For(w.Root, "cache")
 	reviews.Submit("backend/cache-lookup", review.Diffed{Dir: capsule, BaseRef: "origin/main", Base: d.Base, Head: d.Head}, review.Approve, "", time.Now())
 	testutil.CommitIn(t, capsule, "cache_test.go", "package cache\n", "Test it")
-	if r := openPR(asCrew(c2.ID), "--title", "Cache it"); r.Err == nil || !strings.Contains(r.Err.Error(), "approved "+d.Head[:7]+", and it's at") {
+	if r := openPR(asCrew(c2.ID), "--title", "Cache it"); r.Err == nil || !strings.Contains(r.Err.Error(), "approved "+d.Head[:7]+", now at") {
 		t.Errorf("moved on since the review: %v", r.Err)
 	}
 	head := strings.TrimSpace(testutil.GitOut(t, capsule, "rev-parse", "HEAD"))
@@ -158,7 +158,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	if !logged(t, store, "backend#1 opened, at step 3: Cache the lookup") {
 		t.Error("the log doesn't say it was opened")
 	}
-	if r := openPR(asCrew(c2.ID), "--title", "Again"); r.Err == nil || !strings.Contains(r.Err.Error(), "backend#1 is open from backend/cache-lookup already") {
+	if r := openPR(asCrew(c2.ID), "--title", "Again"); r.Err == nil || !strings.Contains(r.Err.Error(), "backend#1 is already open from backend/cache-lookup") {
 		t.Errorf("a second: %v", r.Err)
 	}
 
@@ -166,7 +166,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	store.SetCrewStatus("cache", c2.ID, mission.CrewDone, "opened it")
 	t.Setenv(mission.EnvCrew, "")
 	t.Setenv("WS_ROLE", "orchestrator")
-	if r := testutil.RunCommand(t, w.Root, gh, "mission", "accept", "-m", "cache", "opened"); r.Err != nil || !strings.Contains(r.Stderr, "step 4 waits on a teammate's review, and nobody's watching for it") {
+	if r := testutil.RunCommand(t, w.Root, gh, "mission", "accept", "-m", "cache", "opened"); r.Err != nil || !strings.Contains(r.Stderr, "step 4 waits on a teammate's review, unwatched") {
 		t.Errorf("accepting step 3 with its pull request open: %v\n%s", r.Err, r.Stderr)
 	}
 }
@@ -184,7 +184,7 @@ func TestOpenPR_WithoutAPlan(t *testing.T) {
 		t.Errorf("nothing committed: %v", r.Err)
 	}
 	os.WriteFile(filepath.Join(capsule, "cache.go"), []byte("package cache\n"), 0o644)
-	if r := testutil.RunCommand(t, w.Root, gh, "mission", "open-pr", "--title", "x"); r.Err == nil || !strings.Contains(r.Err.Error(), "changes not committed") {
+	if r := testutil.RunCommand(t, w.Root, gh, "mission", "open-pr", "--title", "x"); r.Err == nil || !strings.Contains(r.Err.Error(), "has uncommitted changes") {
 		t.Errorf("uncommitted: %v", r.Err)
 	}
 	testutil.GitCmd(t, capsule, "add", "-A")
@@ -193,7 +193,7 @@ func TestOpenPR_WithoutAPlan(t *testing.T) {
 	// for but the goal, and as the workspace's PR.md says.
 	os.WriteFile(filepath.Join(w.Root, "PR.md"), []byte("Titles start with the area.\n"), 0o644)
 	r := testutil.Run(t, w, gh, "mission", "open-pr", "--draft")
-	if !strings.Contains(r.Stderr, "The PR writer is writing backend/cache-lookup's pull request: ws opens it once it's written") {
+	if !strings.Contains(r.Stderr, "The PR writer is writing backend/cache-lookup's pull request: opens when done") {
 		t.Errorf("said:\n%s", r.Stderr)
 	}
 	open, _ := gh.PRsForRepo("test-org", "backend")
@@ -249,7 +249,7 @@ func TestLand_HoldsTheReviewGuarantee(t *testing.T) {
 	t.Setenv(mission.EnvMission, "")
 	dir := testutil.CapsuleDir(w, "records", "note")
 	testutil.CommitIn(t, dir, "notes/a.md", "# A\n", "docs: add note a")
-	if r := testutil.RunCommand(t, w.Root, nil, "land", "records", "note"); r.Err == nil || !strings.Contains(r.Err.Error(), "ws holds missions.review_before_land") || !strings.Contains(r.Err.Error(), "Review it first") {
+	if r := testutil.RunCommand(t, w.Root, nil, "land", "records", "note"); r.Err == nil || !strings.Contains(r.Err.Error(), "missions.review_before_land (") || !strings.Contains(r.Err.Error(), "Review and approve first") {
 		t.Fatalf("landing unreviewed: %v", r.Err)
 	}
 	d, err := review.Compare(dir, "origin/main")
@@ -356,7 +356,7 @@ func TestWeb_OpenPR(t *testing.T) {
 	capsule := filepath.Join(w.Root, "repos", "backend", "cache-lookup")
 	testutil.CommitIn(t, capsule, "cache.go", "package cache\n", "Cache the lookup")
 	open := web.ActRequest{Verb: "open-pr", Capsule: "backend/cache-lookup", Title: "Cache the lookup", Text: "It was slow."}
-	if _, err := act("cache", open); err == nil || !strings.Contains(err.Error(), "Review it first") {
+	if _, err := act("cache", open); err == nil || !strings.Contains(err.Error(), "Review and approve first") {
 		t.Errorf("unreviewed, from the page: %v", err)
 	}
 	d2, _ := review.Compare(capsule, "origin/main")
@@ -417,7 +417,7 @@ func TestOpenPR_RefusesOneThatConflicts(t *testing.T) {
 	t.Setenv(mission.EnvMission, "cache")
 	t.Setenv(mission.EnvCrew, "c1")
 	r := testutil.RunCommand(t, w.Root, gh, "mission", "open-pr", "--title", "Cache it")
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "backend/cache-lookup doesn't merge cleanly onto main: it conflicts in cache.go. Merge origin/main into it (don't rebase, don't force-push)") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "backend/cache-lookup does not merge cleanly onto main: conflicts in cache.go. Merge origin/main into it (do not rebase or force-push)") {
 		t.Errorf("opening one that conflicts: %v", r.Err)
 	}
 	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 0 {

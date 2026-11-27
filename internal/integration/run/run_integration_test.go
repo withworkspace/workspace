@@ -228,7 +228,7 @@ func TestRun_CrewOnNoStepOwnTheirRunsThemselves(t *testing.T) {
 		return nil
 	})
 	res = testutil.RunCommand(t, w.Root, nil, "run", "ls")
-	if !strings.Contains(res.Stderr, "crew c1 of mission "+m.Slug+" have closed") {
+	if !strings.Contains(res.Stderr, "crew c1 of mission "+m.Slug+" ended.") {
 		t.Fatalf("ls:\n%s%s", res.Stdout, res.Stderr)
 	}
 }
@@ -372,7 +372,7 @@ func TestRun_ARecipeStartsWhatItNeeds(t *testing.T) {
 	}
 	// Stopped, what was started for it goes too.
 	res = testutil.RunCommand(t, w.Root, nil, "run", "stop", "web")
-	if res.Err != nil || !strings.Contains(res.Stderr, "Stopped web.feat.web.") || !strings.Contains(res.Stderr, "Ended server.ground.api: nothing needs it now.") {
+	if res.Err != nil || !strings.Contains(res.Stderr, "Stopped web.feat.web.") || !strings.Contains(res.Stderr, "Ended server.ground.api: no longer needed.") {
 		t.Fatalf("stop web: %v\n%s", res.Err, res.Stderr)
 	}
 	if list := lsJSON(t, w); len(list) != 0 {

@@ -224,7 +224,7 @@ func (e *Engine) tasksPass() []string {
 			_ = endedTask(e.Root, t.ID, ended.Status, reports, now)
 			said = append(said, fmt.Sprintf("%s's task %s on %s: %s", t.Name, t.Recipe, t.Repo, ended.Status))
 		case now.Sub(t.Started) > lostAfter:
-			_ = endedTask(e.Root, t.ID, "lost: its run never said it ended", nil, now)
+			_ = endedTask(e.Root, t.ID, "lost: run never reported ending", nil, now)
 		default:
 			busy++
 		}
@@ -238,7 +238,7 @@ func (e *Engine) tasksPass() []string {
 			break
 		}
 		if e.Hooks.RunTask == nil {
-			_ = endedTask(e.Root, t.ID, "not run: there's nothing here to run it", nil, now)
+			_ = endedTask(e.Root, t.ID, "not run: nothing available to run it", nil, now)
 			continue
 		}
 		after := latestN(e.Root)
@@ -295,7 +295,7 @@ func (h taskHandle) Attr(name string) (starlark.Value, error) {
 // handle at once.
 func (r *run) runTask(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if !r.a.Allows(MayRun) {
-		return nil, fmt.Errorf("run_task: it may not (may = [\"run\"] says it may)")
+		return nil, fmt.Errorf("run_task: not allowed without may = [\"run\"]")
 	}
 	var recipe, repo string
 	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "recipe", &recipe, "repo", &repo); err != nil {
@@ -326,7 +326,7 @@ func (r *run) runTask(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		return nil, err
 	}
 	if h.id, err = strconv.ParseInt(got, 10, 64); err != nil {
-		return nil, fmt.Errorf("run_task: %q isn't a task's number: %w", got, err)
+		return nil, fmt.Errorf("run_task: %q is not a task number: %w", got, err)
 	}
 	return h, nil
 }
@@ -349,9 +349,9 @@ func hasTask(repos []RepoInfo, repo, recipe string) error {
 		if len(names) == 0 {
 			return fmt.Errorf("%s has no tasks ([run.task.<name>] in its ws.repo.toml)", repo)
 		}
-		return fmt.Errorf("%s has no task %s: it has %s", repo, recipe, strings.Join(names, ", "))
+		return fmt.Errorf("%s has no task %s (tasks: %s)", repo, recipe, strings.Join(names, ", "))
 	}
-	return fmt.Errorf("the workspace has no repo %s", repo)
+	return fmt.Errorf("no repo %s in the workspace", repo)
 }
 
 // RepoInfo is a repo as repos() gives it a script: its name, group and
@@ -472,7 +472,7 @@ func (r *run) waitMany(any bool) func(*starlark.Thread, *starlark.Builtin, starl
 				items = append(items, waitItem{Match: v.m.String()})
 			default:
 				iter.Done()
-				return nil, fmt.Errorf("%s: a %s isn't something to wait on: a task (run_task's), a proposal (propose's) or an event()", b.Name(), x.Type())
+				return nil, fmt.Errorf("%s: cannot wait on a %s: use a task (run_task's), a proposal (propose's) or an event()", b.Name(), x.Type())
 			}
 		}
 		iter.Done()
@@ -673,7 +673,7 @@ func (r *run) thingsBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starla
 	}
 	kind, ok := starlark.AsString(args[0])
 	if !ok || !strings.Contains(kind, ":") {
-		return nil, fmt.Errorf(`things: its kind is a plugin's, as "jira:issue"`)
+		return nil, fmt.Errorf(`things: kind must be a plugin's, as "jira:issue"`)
 	}
 	var idle time.Duration
 	want := map[string][]string{}
@@ -698,13 +698,13 @@ func (r *run) thingsBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starla
 				s, ok := starlark.AsString(x)
 				if !ok {
 					iter.Done()
-					return nil, fmt.Errorf("things: %s's values are strings", key)
+					return nil, fmt.Errorf("things: %s's values must be strings", key)
 				}
 				want[key] = append(want[key], s)
 			}
 			iter.Done()
 		default:
-			return nil, fmt.Errorf("things: %s is a %s: a string, or a list of them", key, kv[1].Type())
+			return nil, fmt.Errorf("things: %s is a %s: use a string, or a list of strings", key, kv[1].Type())
 		}
 	}
 	got, err := r.read("things", func() (any, error) {

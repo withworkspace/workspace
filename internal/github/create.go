@@ -23,12 +23,12 @@ func CreatePR(org, repo string, n NewPR) (*PR, error) {
 	}
 	stdOut, stdErr, err := ghExec(args...)
 	if err != nil {
-		return nil, fmt.Errorf("opening a pull request on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
+		return nil, fmt.Errorf("could not open a pull request on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	url := lastLine(stdOut.String())
 	number, err := strconv.Atoi(url[strings.LastIndex(url, "/")+1:])
 	if err != nil {
-		return nil, fmt.Errorf("gh opened a pull request, but said %q, not its address", url)
+		return nil, fmt.Errorf("gh opened a pull request but returned %q instead of a URL", url)
 	}
 	return &PR{Number: number, Title: n.Title, HeadRefName: n.Head, BaseRefName: n.Base, State: "OPEN", URL: url, IsDraft: n.Draft}, nil
 }
@@ -93,7 +93,7 @@ func (s *Stub) CreatePR(org, repo string, n NewPR) (*PR, error) {
 func MarkReady(org, repo string, number int) error {
 	stdOut, stdErr, err := ghExec("pr", "ready", strconv.Itoa(number), "--repo", repoSlug(org, repo))
 	if err != nil {
-		return fmt.Errorf("marking %s#%d ready on GitHub: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return fmt.Errorf("could not mark %s#%d ready on GitHub: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return nil
 }

@@ -108,7 +108,7 @@ func RouteFile(root string, web int, name, dir string) router.File {
 		case runs.Exited:
 			f.Routes[key] = router.Route{Ended: fmt.Sprintf("exited (%d) at %s", r.Status, r.Ended.Local().Format("15:04"))}
 		default:
-			f.Routes[key] = router.Route{Ended: "was ended outside ws"}
+			f.Routes[key] = router.Route{Ended: "was stopped outside Workspace"}
 		}
 	}
 	if local, err := config.ReadLocal(root); err == nil {

@@ -108,11 +108,11 @@ func (w *Workspace) SpaceActivity(ctx context.Context, repo string) (*SpaceActiv
 func (w *Workspace) spaceNamed(repo string) (workspace.Space, error) {
 	name, ok := w.WS().ResolveAlias(repo)
 	if !ok {
-		return workspace.Space{}, fmt.Errorf("%w: the workspace has no repo %s", ErrNotFound, repo)
+		return workspace.Space{}, fmt.Errorf("%w: no repo %s", ErrNotFound, repo)
 	}
 	s, ok := w.WS().SpaceOf(name)
 	if !ok {
-		return workspace.Space{}, fmt.Errorf("%w: %s isn't a space of documents", ErrNotFound, name)
+		return workspace.Space{}, fmt.Errorf("%w: %s is not a space of documents", ErrNotFound, name)
 	}
 	return s, nil
 }

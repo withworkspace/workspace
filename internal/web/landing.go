@@ -62,7 +62,7 @@ func (s *Server) landing(w http.ResponseWriter, r *http.Request) {
 	l, err := s.App.Landing(r.PathValue("repo"), r.PathValue("name"))
 	switch {
 	case errors.Is(err, ErrNotFound):
-		jsonError(w, http.StatusNotFound, "the workspace has no "+r.PathValue("repo")+"/"+r.PathValue("name"))
+		jsonError(w, http.StatusNotFound, "no capsule "+r.PathValue("repo")+"/"+r.PathValue("name"))
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:
@@ -79,7 +79,7 @@ func (s *Server) land(w http.ResponseWriter, r *http.Request) {
 	res, err := s.App.LandCapsule(r.PathValue("repo"), r.PathValue("name"))
 	switch {
 	case errors.Is(err, ErrNotFound):
-		jsonError(w, http.StatusNotFound, "the workspace has no "+r.PathValue("repo")+"/"+r.PathValue("name"))
+		jsonError(w, http.StatusNotFound, "no capsule "+r.PathValue("repo")+"/"+r.PathValue("name"))
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:

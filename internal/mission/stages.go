@@ -482,9 +482,9 @@ func (s Store) JoinStage(slug, crewID string, n int) (Stage, error) {
 func PickStage(states []StageState, n int) (StageState, error) {
 	if n < 0 || n > len(states) {
 		if len(states) > 0 && states[0].Step != nil {
-			return StageState{}, fmt.Errorf("there's no step %d: the plan has %d", n, len(states))
+			return StageState{}, fmt.Errorf("no step %d: plan has %d", n, len(states))
 		}
-		return StageState{}, fmt.Errorf("there's no stage %d: the brief lists %d", n, len(states))
+		return StageState{}, fmt.Errorf("no stage %d: brief lists %d", n, len(states))
 	}
 	if n > 0 {
 		return states[n-1], nil
@@ -496,10 +496,10 @@ func PickStage(states []StageState, n int) (StageState, error) {
 }
 
 // ErrStageBusy is refusing to accept a stage its crew are still on.
-var ErrStageBusy = errors.New("the stage's crew are still on it")
+var ErrStageBusy = errors.New("crew still working")
 
 // ErrAllAccepted is accept with no stage left to accept.
-var ErrAllAccepted = errors.New("every stage is accepted")
+var ErrAllAccepted = errors.New("nothing left to accept")
 
 // AcceptStage accepts the current stage: its work is complete and good
 // enough. It's refused while any of the stage's crew are still working
@@ -532,7 +532,7 @@ func (s Store) AcceptStageAt(slug string, n int, by, why string) (StageState, []
 			return ErrAllAccepted
 		}
 		if n != 0 && cur.N != n {
-			return fmt.Errorf("%w: it's at %d, not %d", ErrStageMoved, cur.N, n)
+			return fmt.Errorf("%w: now at %d, not %d", ErrStageMoved, cur.N, n)
 		}
 		if cur.Record != nil {
 			for _, id := range cur.Record.Crew {
@@ -540,7 +540,7 @@ func (s Store) AcceptStageAt(slug string, n int, by, why string) (StageState, []
 					switch {
 					case c.ID != id || c.Role != "":
 					case c.Status == CrewAsking:
-						return fmt.Errorf("%w: %s is asking the user something", ErrStageBusy, id)
+						return fmt.Errorf("%w: %s has a question waiting", ErrStageBusy, id)
 					case c.Ended != nil:
 					case c.Status == CrewDone:
 						if by != "you" && c.InTurnSinceDone() {
@@ -548,7 +548,7 @@ func (s Store) AcceptStageAt(slug string, n int, by, why string) (StageState, []
 						}
 					case by == "you" && c.Activity != ActivityWorking && cur.Record.checkedFor(id):
 					default:
-						return fmt.Errorf("%w: %s is still working on it (it reports done when it's finished)", ErrStageBusy, id)
+						return fmt.Errorf("%w: %s has not reported done", ErrStageBusy, id)
 					}
 				}
 			}

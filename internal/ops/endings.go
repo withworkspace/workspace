@@ -195,9 +195,9 @@ func (w *Workspace) endAtZ(slug string, run time.Time) (Concluded, string) {
 
 // What a mission came to, where nobody said: its plan, done.
 const (
-	landedUnsaid   = "Every step of the plan done, and its work merged."
-	answeredUnsaid = "Every step of the plan done."
-	handedOnUnsaid = "Its work handed on."
+	landedUnsaid   = "Plan done, work merged."
+	answeredUnsaid = "Plan done."
+	handedOnUnsaid = "Work handed on."
 )
 
 // planDone reports whether the mission has a plan, with every step of it
@@ -219,7 +219,7 @@ func planDone(m *mission.Mission, brief string) bool {
 func (w *Workspace) unsuggested(m *mission.Mission) (mission.Conclusion, error) {
 	brief, _ := w.Missions.ReadBrief(m.Slug)
 	if !planDone(m, brief) {
-		return mission.Conclusion{}, refused("nothing-suggested", "nothing suggests how it ends, and its plan isn't done: drop it (ws mission end --as dropped), or say how it ends (--as answered, --as handed-on)")
+		return mission.Conclusion{}, refused("nothing-suggested", "no ending suggested and the plan is not done: drop the mission (ws mission end --as dropped), or choose an ending (--as answered, --as handed-on)")
 	}
 	c := mission.Conclusion{Z: mission.Conclusion{}.OnZ(m.Z(brief))}
 	why := w.notLanded(m)
@@ -231,7 +231,7 @@ func (w *Workspace) unsuggested(m *mission.Mission) (mission.Conclusion, error) 
 	case len(m.Capsules) == 0:
 		c.Ending, c.Text = mission.EndAnswered, answeredUnsaid
 	default:
-		return mission.Conclusion{}, refused("not-landed", "%s: it ends landed once its work has merged or landed. To give it up, drop it (ws mission end --as dropped)", why)
+		return mission.Conclusion{}, refused("not-landed", "%s: ends landed once the work merges or lands. To give up, drop it (ws mission end --as dropped)", why)
 	}
 	return c, nil
 }
@@ -259,7 +259,7 @@ func (w *Workspace) End(slug string, as *EndAs, by Actor) (Concluded, error) {
 	}
 	for _, c := range m.Crew {
 		if c.Ended == nil && c.Status != mission.CrewDone && c.Role != mission.RoleBriefing {
-			return Concluded{}, refused("crew-working", "%s is still on it: stop it, or let it report done, before the mission ends", c.ID)
+			return Concluded{}, refused("crew-working", "%s is still working: stop them or wait for done before ending", c.ID)
 		}
 	}
 	var c mission.Conclusion
@@ -283,7 +283,7 @@ func (w *Workspace) End(slug string, as *EndAs, by Actor) (Concluded, error) {
 	if err := w.Missions.End(m.Slug, c); err != nil {
 		return Concluded{}, wrap(err)
 	}
-	w.closeEnded(m, "the mission has ended")
+	w.closeEnded(m, "mission ended")
 	w.youActed(m.Slug, by)
 	return Concluded{Slug: m.Slug, Conclusion: c, Ended: true}, nil
 }
@@ -299,7 +299,7 @@ func (w *Workspace) Unend(slug string, by Actor) (StateSet, error) {
 		return StateSet{}, err
 	}
 	if m.Ending == nil {
-		return StateSet{}, refused("not-ended", "it hasn't ended")
+		return StateSet{}, refused("not-ended", "mission has not ended")
 	}
 	if err := w.Missions.Unend(m.Slug, by.By()); err != nil {
 		return StateSet{}, wrap(err)
@@ -311,7 +311,7 @@ func (w *Workspace) Unend(slug string, by Actor) (StateSet, error) {
 // stillOpen refuses ending a mission that has.
 func stillOpen(m *mission.Mission) error {
 	if e := m.Ending; e != nil {
-		return refused("ended", "it has ended already, %s: ws mission reopen takes that back", e.Ending.Words())
+		return refused("ended", "already ended, %s: reopen with ws mission reopen", e.Ending.Words())
 	}
 	return nil
 }
@@ -338,26 +338,26 @@ func (w *Workspace) conclusion(m *mission.Mission, as EndAs, by Actor) (mission.
 	}
 	c := mission.Conclusion{Ending: ending, Text: text, Z: checks, By: by.By(), At: w.now()}
 	if len(as.To) > 0 && ending != mission.EndHandedOn {
-		return mission.Conclusion{}, invalid("--to names the missions its work is handed on to: it's for handed on")
+		return mission.Conclusion{}, invalid("--to is only for handed on")
 	}
 	switch ending {
 	case mission.EndLanded:
 		for i, z := range checks {
 			if z.Checked() && !z.Met {
-				return mission.Conclusion{}, refused("not-at-z", "landed is at Z, and part %d of Z isn't met (%s): end it answered, handed on or dropped, saying why it stops before Z", i+1, z.How)
+				return mission.Conclusion{}, refused("not-at-z", "landed needs Z met, and part %d of Z is not (%s): end answered, handed on or dropped, saying why it stops short", i+1, z.How)
 			}
 		}
 		if why := w.notLanded(m); why != "" {
-			return mission.Conclusion{}, refused("not-landed", "%s: it ends landed once its work has merged or landed. A finding with no code ends answered", why)
+			return mission.Conclusion{}, refused("not-landed", "%s: ends landed once the work merges or lands. A finding with no code ends answered", why)
 		}
 	case mission.EndHandedOn:
 		for _, to := range as.To {
 			t, err := w.load(to)
 			if err != nil {
-				return mission.Conclusion{}, invalid("there's no mission %s to hand it on to: raise it with ws mission new first", to)
+				return mission.Conclusion{}, invalid("no mission %s: raise it with ws mission new first", to)
 			}
 			if t.Slug == m.Slug {
-				return mission.Conclusion{}, invalid("it can't be handed on to itself")
+				return mission.Conclusion{}, invalid("cannot hand on to the same mission")
 			}
 			if !slices.Contains(c.To, t.Slug) {
 				c.To = append(c.To, t.Slug)
@@ -369,7 +369,7 @@ func (w *Workspace) conclusion(m *mission.Mission, as EndAs, by Actor) (mission.
 			}
 		}
 		if len(c.To) == 0 {
-			return mission.Conclusion{}, invalid("say which missions it's handed on to (--to <mission>), or hand its capsules on first (ws mission hand-on)")
+			return mission.Conclusion{}, invalid("name the missions to hand on to (--to <mission>), or hand the capsules on first (ws mission hand-on)")
 		}
 	}
 	return c, nil
@@ -395,7 +395,7 @@ func (w *Workspace) notLanded(m *mission.Mission) string {
 		return strings.Join(open, "; ")
 	}
 	if !mission.CapsulesLanded(m, func(c mission.Capsule) mission.CapsuleFacts { return facts[capsuleKey(c)] }) {
-		return "nothing of it has merged or landed"
+		return "nothing has merged or landed"
 	}
 	return ""
 }
@@ -425,9 +425,9 @@ type CapsuleEnded struct {
 func (c CapsuleEnded) String() string {
 	switch {
 	case c.Ending == mission.EndDropped:
-		return fmt.Sprintf("Dropped %s: it's no longer the mission's (its worktree is kept: ws burn removes it).", c.Capsule)
+		return fmt.Sprintf("Dropped %s from the mission. Capsule kept: ws burn removes it.", c.Capsule)
 	case c.Raised:
-		return fmt.Sprintf("Handed %s on to %s, raised for it: it waits to be briefed.", c.Capsule, c.To)
+		return fmt.Sprintf("Handed %s on to new mission %s, ready to brief.", c.Capsule, c.To)
 	}
 	return fmt.Sprintf("Handed %s on to %s.", c.Capsule, c.To)
 }
@@ -450,15 +450,15 @@ func (w *Workspace) HandOnCapsule(slug, capsule, what, to string, by Actor) (Cap
 	if to != "" {
 		t, err := w.load(to)
 		if err != nil {
-			return CapsuleEnded{}, invalid("there's no mission %s to hand %s on to", to, out.Capsule)
+			return CapsuleEnded{}, invalid("no mission %s to hand %s on to", to, out.Capsule)
 		}
 		if t.Slug == m.Slug {
-			return CapsuleEnded{}, invalid("%s is this mission's already", out.Capsule)
+			return CapsuleEnded{}, invalid("%s already belongs to this mission", out.Capsule)
 		}
 		out.To = t.Slug
 	} else {
 		if what == "" {
-			return CapsuleEnded{}, invalid("say what the mission it's handed on to is for: it's raised from that, to be briefed")
+			return CapsuleEnded{}, invalid("say what the new mission is for")
 		}
 		n, err := w.Missions.CreateBriefing(what)
 		if err != nil {
@@ -494,7 +494,7 @@ func (w *Workspace) DropCapsule(slug, capsule, why string, by Actor) (CapsuleEnd
 	}
 	why = strings.TrimSpace(why)
 	if why == "" {
-		return CapsuleEnded{}, invalid("say why it's dropped")
+		return CapsuleEnded{}, invalid("give a reason")
 	}
 	m, c, err := w.endingCapsule(slug, capsule)
 	if err != nil {
@@ -527,12 +527,12 @@ func (w *Workspace) endingCapsule(slug, capsule string) (*mission.Mission, missi
 	}
 	i := slices.IndexFunc(m.Capsules, func(c mission.Capsule) bool { return c.Repo == repo && c.Name == name })
 	if i < 0 {
-		return nil, mission.Capsule{}, refused("not-attached", "%s/%s isn't one of the mission's capsules", repo, name)
+		return nil, mission.Capsule{}, refused("not-attached", "%s/%s is not one of the mission's capsules", repo, name)
 	}
 	c := m.Capsules[i]
 	for _, cr := range m.Crew {
 		if cr.Capsule == repo+"/"+name && cr.Ended == nil && cr.Status != mission.CrewDone {
-			return nil, mission.Capsule{}, refused("crew-working", "%s is at work in %s/%s: it ends alone once they've stopped, or reported done", cr.ID, repo, name)
+			return nil, mission.Capsule{}, refused("crew-working", "%s is working in %s/%s: wait until they stop or report done", cr.ID, repo, name)
 		}
 	}
 	return m, c, nil

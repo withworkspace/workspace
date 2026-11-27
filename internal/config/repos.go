@@ -62,7 +62,7 @@ func AddTeamRepo(root, name string, rc RepoConfig) error {
 		return err
 	}
 	if _, ok := team.Repos[name]; ok {
-		return fmt.Errorf("%s has [repos.%s] already", FileName, name)
+		return fmt.Errorf("%s already has [repos.%s]", FileName, name)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -101,12 +101,12 @@ func AddTeamRepo(root, name string, rc RepoConfig) error {
 	again, err := Parse(path)
 	if err == nil {
 		if _, ok := again.Repos[name]; !ok {
-			err = fmt.Errorf("[repos.%s] didn't read back", name)
+			err = fmt.Errorf("could not verify [repos.%s] after writing", name)
 		}
 	}
 	if err != nil {
 		_ = os.WriteFile(path, data, 0o644) // put back as it was: the error says what went wrong
-		return fmt.Errorf("writing %s: %w", FileName, err)
+		return fmt.Errorf("could not write %s: %w", FileName, err)
 	}
 	return nil
 }
@@ -154,7 +154,7 @@ func AddLocalRepo(root, name string, rc RepoConfig) error {
 			return err
 		}
 		if _, ok := local.Repos[name]; ok {
-			return fmt.Errorf("%s has [repos.%s] already", LocalFileName, name)
+			return fmt.Errorf("%s already has [repos.%s]", LocalFileName, name)
 		}
 		path := filepath.Join(root, LocalFileName)
 		data, err := os.ReadFile(path)
@@ -176,7 +176,7 @@ func AddLocalRepo(root, name string, rc RepoConfig) error {
 		}
 		if again, err := ReadLocal(root); err != nil || !hasRepo(again.Repos, name) {
 			_ = os.WriteFile(path, data, 0o644) // put back as it was: the error says what went wrong
-			return fmt.Errorf("writing %s: [repos.%s] didn't read back (%v)", LocalFileName, name, err)
+			return fmt.Errorf("could not write %s: [repos.%s] did not read back (%v)", LocalFileName, name, err)
 		}
 		return nil
 	})

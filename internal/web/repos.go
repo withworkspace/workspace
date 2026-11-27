@@ -34,7 +34,7 @@ func (s *Server) worktrees(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case errors.Is(err, ErrNotFound):
-		jsonError(w, http.StatusNotFound, "the workspace has no repo "+r.PathValue("repo"))
+		jsonError(w, http.StatusNotFound, "no repo "+r.PathValue("repo"))
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:

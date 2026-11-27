@@ -95,9 +95,9 @@ func WatchTrust(store mission.Store, root string, spec Spec, t Term, trust func(
 	}
 	folder := d.Folder
 	if folder == "" {
-		folder = "its folder"
+		folder = "the folder"
 	}
-	notice := "Claude Code asks whether to trust " + folder + ": answer it in its terminal"
+	notice := "Claude Code asks whether to trust " + folder + ": answer in terminal"
 	if err := store.CrewHook(spec.Slug, spec.CrewID, mission.Hook{Activity: mission.ActivityPermission, Notice: notice}); err != nil {
 		execlog.Note(root, key, "marking it on Claude Code's trust dialog: %v", err)
 		return

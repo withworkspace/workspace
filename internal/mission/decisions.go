@@ -165,7 +165,7 @@ func (s Store) Decide(slug string, d Decision) (Decision, error) {
 			case !ok:
 				return fmt.Errorf("%w: no decision %s to supersede", ErrNotFound, d.Supersedes)
 			case old.State != DecisionCurrent:
-				return fmt.Errorf("%s is %s already: supersede what stands now", old.ID, old.State)
+				return fmt.Errorf("%s is already %s: supersede the current decision", old.ID, old.State)
 			}
 		}
 		next := 1
@@ -210,7 +210,7 @@ func (s Store) stepAt(m *Mission, by string) int {
 func (s Store) Withdraw(slug, id, by, why string) error {
 	why = strings.TrimSpace(why)
 	if why == "" {
-		return errors.New("say why it's withdrawn")
+		return errors.New("give a reason")
 	}
 	return s.write(func(tx *store.Tx) error {
 		if _, err := s.loadIn(tx, slug); err != nil {
@@ -225,7 +225,7 @@ func (s Store) Withdraw(slug, id, by, why string) error {
 		case !ok:
 			return fmt.Errorf("%w: mission %s has no decision %s", ErrNotFound, slug, id)
 		case d.State != DecisionCurrent:
-			return fmt.Errorf("%s is %s already", id, d.State)
+			return fmt.Errorf("%s is already %s", id, d.State)
 		}
 		if err := s.addDecision(tx, slug, decisionLine{Withdraw: &withdrawn{ID: id, Why: why, By: by, At: now()}}); err != nil {
 			return err

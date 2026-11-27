@@ -24,7 +24,7 @@ func TestConfirmBrief_StartsIt(t *testing.T) {
 	w.Missions.WritePlan(idea.Slug, plan)
 	w.Attach(idea.Slug, "frontend", "one", true, AsYou)
 	said, err := w.ConfirmBrief(idea.Slug, AsYou)
-	if err != nil || !strings.Contains(said, "it's under way: started step 1: c1 in frontend/one") || len(host.specs) != 1 {
+	if err != nil || !strings.Contains(said, "under way: started step 1: c1 in frontend/one") || len(host.specs) != 1 {
 		t.Fatalf("confirmed: %q, %v", said, err)
 	}
 	m, _ := w.Missions.Load(idea.Slug)
@@ -36,7 +36,7 @@ func TestConfirmBrief_StartsIt(t *testing.T) {
 
 	// Without a plan, it waits for its crew.
 	bare, _ := w.Missions.CreateBriefing("tidy up")
-	if said, _ := w.ConfirmBrief(bare.Slug, AsYou); said != "it's ready for crew" {
+	if said, _ := w.ConfirmBrief(bare.Slug, AsYou); said != "ready for crew" {
 		t.Errorf("without a plan: %q", said)
 	}
 }
@@ -68,7 +68,7 @@ func TestNewGoal_ConfirmedWithItsPlan(t *testing.T) {
 	}
 	c, _ = talks.Propose(c.ID, p)
 	said, _, err := w.SettleProposal("cache", c.ID, len(c.Proposals), true, ProposalEdits{})
-	if err != nil || !strings.Contains(said, "Wrote the new brief, and its plan (3 steps).") || !strings.Contains(said, "Passed step 2") {
+	if err != nil || !strings.Contains(said, "Wrote the new brief and plan (3 steps).") || !strings.Contains(said, "Passed step 2") {
 		t.Fatalf("accepted: %q, %v", said, err)
 	}
 	m, _ := w.Missions.Load("cache")
@@ -83,7 +83,7 @@ func TestNewGoal_ConfirmedWithItsPlan(t *testing.T) {
 	bad := conversation.Proposal{Kind: conversation.ProposeBrief, By: conversation.Agent, Brief: "## Goal\nSomething else.\n", Was: was,
 		Plan: strings.Replace(newPlan, "find the cause", "find something else", 1), PlanWas: planWas}
 	c, _ = talks.Propose(c.ID, bad)
-	if _, _, err := w.SettleProposal("cache", c.ID, len(c.Proposals), true, ProposalEdits{}); err == nil || !strings.Contains(err.Error(), "the steps behind the mission stay as they were") {
+	if _, _, err := w.SettleProposal("cache", c.ID, len(c.Proposals), true, ProposalEdits{}); err == nil || !strings.Contains(err.Error(), "only steps ahead can change") {
 		t.Errorf("a new goal changing what's behind: %v", err)
 	}
 }
@@ -122,7 +122,7 @@ func TestBriefedMission_PlanStartsIt(t *testing.T) {
 		t.Fatalf("proposing the brief as it is with its plan: %v", err)
 	}
 	said, _, err := w.SettleProposal(m.Slug, c.ID, len(c.Proposals), true, ProposalEdits{})
-	if err != nil || !strings.HasPrefix(said, "Wrote its plan (2 steps).") || !strings.Contains(said, "It's under way") {
+	if err != nil || !strings.HasPrefix(said, "Wrote the plan (2 steps).") || !strings.Contains(said, "Under way") {
 		t.Fatalf("confirmed: %q, %v", said, err)
 	}
 	if m, _ = w.Missions.Load(m.Slug); m.ToBrief() {
@@ -143,7 +143,7 @@ func TestBriefedMission_PlanStartsIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	said, _, err = w.SettleProposal(m.Slug, c.ID, len(c.Proposals), true, ProposalEdits{})
-	if err != nil || !strings.Contains(said, "It's under way") {
+	if err != nil || !strings.Contains(said, "Under way") {
 		t.Fatalf("a plan accepted on its own: %q, %v", said, err)
 	}
 
@@ -156,7 +156,7 @@ func TestBriefedMission_PlanStartsIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	said, _, err = w.SettleProposal(m.Slug, c.ID, len(c.Proposals), true, ProposalEdits{})
-	if err != nil || !strings.Contains(said, "still being briefed") {
+	if err != nil || !strings.Contains(said, "Still being briefed") {
 		t.Errorf("an idea's plan accepted: %q, %v", said, err)
 	}
 	if m, _ = w.Missions.Load(m.Slug); !m.ToBrief() {
@@ -189,7 +189,7 @@ func TestBriefWithPlan_ConfirmedAsYouEditedThem(t *testing.T) {
 	brief := "## Goal\nThe flaky test passes every time.\n"
 	edited := strings.Replace(plan, "Find the flake.", "Find the flake, and why.", 1)
 	said, _, err := w.SettleProposal(m.Slug, c.ID, len(c.Proposals), true, ProposalEdits{Brief: brief, Plan: edited})
-	if err != nil || !strings.Contains(said, "It's under way") {
+	if err != nil || !strings.Contains(said, "Under way") {
 		t.Fatalf("confirmed: %q, %v", said, err)
 	}
 	if got, _ := w.Missions.ReadBrief(m.Slug); got != brief {

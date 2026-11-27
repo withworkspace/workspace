@@ -101,12 +101,12 @@ func TestFetch_Refuses(t *testing.T) {
 	for _, tc := range []struct {
 		version, os, arch, want string
 	}{
-		{"v1.4.1", "linux", "amd64", "doesn't match its checksum"},
-		{"v1.4.2", "linux", "amd64", "doesn't run here"},
-		{"v1.4.3", "linux", "amd64", "isn't in the release's checksums.txt"},
-		{"v9.9.9", "linux", "amd64", "is there such a release?"},
-		{"v1.4.0", "darwin", "amd64", "no release of ws for Intel Macs"},
-		{"v1.4.0", "windows", "amd64", "no release of ws for windows/amd64"},
+		{"v1.4.1", "linux", "amd64", "does not match the release checksum"},
+		{"v1.4.2", "linux", "amd64", "does not run here"},
+		{"v1.4.3", "linux", "amd64", "is not in the release's checksums.txt"},
+		{"v9.9.9", "linux", "amd64", "no such release"},
+		{"v1.4.0", "darwin", "amd64", "no release for Intel Macs"},
+		{"v1.4.0", "windows", "amd64", "no release for windows/amd64"},
 	} {
 		exe := installed(t, "v1.3.0")
 		_, _, err := src.Fetch(context.Background(), tc.version, tc.os, tc.arch, exe)

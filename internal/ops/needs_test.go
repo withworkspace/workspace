@@ -140,7 +140,7 @@ func TestPullRequestsAskedOfYouByNameComeLast(t *testing.T) {
 	if got[2].Title != "Rate limits" || got[2].Text != "api#95, from carol, needs your review." {
 		t.Errorf("a pull request's need = %+v", got[2])
 	}
-	if got[3].Title != "Storage layer" || got[3].Text != "api#89, from alice, needs your review, and 1 more of its stack do." {
+	if got[3].Title != "Storage layer" || got[3].Text != "api#89, from alice, needs your review, plus 1 more in the stack." {
 		t.Errorf("a stack's need = %+v", got[3])
 	}
 }

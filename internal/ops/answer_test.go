@@ -299,7 +299,7 @@ func TestAnswerConversation(t *testing.T) {
 	if err := w.AnswerConversation(doc.Scope{}, gone.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, turn = last(ws, gone.ID); turn.By != conversation.WS || !strings.Contains(turn.Body, "no pass named nosuch") {
+	if _, turn = last(ws, gone.ID); turn.By != conversation.WS || !strings.Contains(turn.Body, "Pass nosuch no longer exists") {
 		t.Errorf("a pass that's gone: %+v", turn)
 	}
 
@@ -308,7 +308,7 @@ func TestAnswerConversation(t *testing.T) {
 	if err := w.AnswerConversation(doc.Scope{}, failed.ID); err == nil {
 		t.Error("an agent that said nothing answered")
 	}
-	if _, turn = last(ws, failed.ID); turn.By != conversation.WS || turn.Body != "The agent couldn't answer: it said nothing" {
+	if _, turn = last(ws, failed.ID); turn.By != conversation.WS || turn.Body != "Agent could not answer: no reply" {
 		t.Errorf("an agent that failed: %+v", turn)
 	}
 
@@ -317,7 +317,7 @@ func TestAnswerConversation(t *testing.T) {
 	if err := w.AnswerConversation(doc.Scope{}, none.ID); err == nil {
 		t.Error("answered with no agent")
 	}
-	if _, turn = last(ws, none.ID); turn.By != conversation.WS || !strings.HasPrefix(turn.Body, "No agent can answer here: ") {
+	if _, turn = last(ws, none.ID); turn.By != conversation.WS || !strings.HasPrefix(turn.Body, "No agent available: ") {
 		t.Errorf("no agent: %+v", turn)
 	}
 }

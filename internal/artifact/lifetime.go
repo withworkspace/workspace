@@ -30,7 +30,7 @@ func (s Store) Promote(ctx context.Context, id string, p Promotion, home *Home, 
 	p.At = p.At.UTC().Truncate(time.Second)
 	return s.rewrite(ctx, id, func(k *kept, a *Artifact) error {
 		if a.Status == Discarded {
-			return fmt.Errorf("%w: %s was discarded: restore it first (ws artifact restore %s)", ErrDiscarded, id, id)
+			return fmt.Errorf("%w: %s was discarded: restore first (ws artifact restore %s)", ErrDiscarded, id, id)
 		}
 		v, err := chosen(id, a, p.Version)
 		if err != nil {
@@ -66,7 +66,7 @@ func chosen(id string, a *Artifact, n int) (int, error) {
 	if n == 0 {
 		latest, ok := a.Latest()
 		if !ok {
-			return 0, fmt.Errorf("%s has no versions to choose", id)
+			return 0, fmt.Errorf("%s has no versions", id)
 		}
 		return latest.N, nil
 	}
@@ -99,14 +99,14 @@ func (s Store) rewrite(ctx context.Context, id string, change func(*kept, *Artif
 		dir := s.Path(k.Entry)
 		data, err := os.ReadFile(filepath.Join(dir, RecordFile))
 		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%s's folder has gone (%s)", id, dir)
+			return fmt.Errorf("%s's folder is missing (%s)", id, dir)
 		}
 		if err != nil {
 			return err
 		}
 		a, err := Parse(data)
 		if err != nil {
-			return fmt.Errorf("%s's record can't be read (%s): %w", id, filepath.Join(dir, RecordFile), err)
+			return fmt.Errorf("could not read %s's record (%s): %w", id, filepath.Join(dir, RecordFile), err)
 		}
 		if err := change(k, a); err != nil {
 			return err
@@ -149,26 +149,26 @@ func (s Store) Restore(ctx context.Context, id string, r Restoration) (Entry, er
 			return awayError(k.Entry)
 		}
 		if k.Status != Discarded {
-			return fmt.Errorf("%s isn't discarded: it's %s", id, k.Status)
+			return fmt.Errorf("%s is not discarded: %s", id, k.Status)
 		}
 		from, to := filepath.Join(s.DiscardedDir(), k.Folder), filepath.Join(s.Dir(), k.Folder)
 		was, err := os.ReadFile(filepath.Join(from, RecordFile))
 		if errors.Is(err, os.ErrNotExist) {
 			when := ""
 			if k.Discarded != nil {
-				when = fmt.Sprintf(" (it was discarded %s, and a folder's kept %d days)", k.Discarded.At.Local().Format("2006-01-02"), int(KeepDiscarded.Hours()/24))
+				when = fmt.Sprintf(" (discarded %s; folders are kept %d days)", k.Discarded.At.Local().Format("2006-01-02"), int(KeepDiscarded.Hours()/24))
 			}
-			return fmt.Errorf("%s's files are gone for good%s: there's nothing to restore. ws show %s says what it was", id, when, id)
+			return fmt.Errorf("%s's files are deleted%s: nothing to restore (ws show %s says what it was)", id, when, id)
 		}
 		if err != nil {
 			return err
 		}
 		if _, err := os.Lstat(to); err == nil {
-			return fmt.Errorf("there's a folder at %s already: move it aside, and restore %s again", to, id)
+			return fmt.Errorf("a folder already exists at %s: move it, then restore %s again", to, id)
 		}
 		a, err := Parse(was)
 		if err != nil {
-			return fmt.Errorf("%s's record can't be read (%s): %w", id, filepath.Join(from, RecordFile), err)
+			return fmt.Errorf("could not read %s's record (%s): %w", id, filepath.Join(from, RecordFile), err)
 		}
 		a.Status, a.Discarded, a.Restored = Live, nil, &r
 		if a.Promoted != nil {

@@ -90,7 +90,7 @@ func TestLand_Refuses(t *testing.T) {
 
 	testutil.CommitIn(t, dir, "notes/a.md", "# A\n", "docs: add note a")
 	os.WriteFile(filepath.Join(dir, "notes", "draft.md"), []byte("not committed\n"), 0o644)
-	fails("aren't committed", "land", "records", "note")
+	fails("has uncommitted changes", "land", "records", "note")
 	os.Remove(filepath.Join(dir, "notes", "draft.md"))
 
 	// It's yours to do: not crew's, nor the orchestrator's.
@@ -119,7 +119,7 @@ func TestLand_AClashLeavesTheCapsuleAsItWas(t *testing.T) {
 
 	r := testutil.RunCommand(t, w.Root, nil, "land", "records", "note")
 
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "clashes") || !strings.Contains(r.Err.Error(), "README.md") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "conflicts with main") || !strings.Contains(r.Err.Error(), "README.md") {
 		t.Fatalf("land: %v, want a clash in README.md", r.Err)
 	}
 	if got := strings.TrimSpace(testutil.GitOut(t, dir, "rev-parse", "HEAD")); got != head {
@@ -143,7 +143,7 @@ func TestLand_VerifyMustPass(t *testing.T) {
 	testutil.CommitIn(t, bad, "notes/bad.md", "# Bad\n", "docs: add a bad note")
 
 	r := testutil.RunCommand(t, w.Root, nil, "land", "records", "bad")
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "doesn't pass") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "fails records's check") {
 		t.Fatalf("land: %v, want the check to fail", r.Err)
 	}
 	if got := testutil.Subjects(t, w.Sources["records"], "main"); got != "initial" {
@@ -227,7 +227,7 @@ func TestLand_ARefusedPushIsNeverForced(t *testing.T) {
 
 	r := testutil.RunCommand(t, w.Root, nil, "land", "records", "note")
 
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "refused the push") || !strings.Contains(r.Err.Error(), "isn't direct") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "refused the push") || !strings.Contains(r.Err.Error(), "the repo is not direct") {
 		t.Fatalf("land: %v, want the push refused", r.Err)
 	}
 	if got := testutil.Subjects(t, src, "main"); got != "initial" {
@@ -264,7 +264,7 @@ func TestLand_AMissionsCapsuleCountsAsLanded(t *testing.T) {
 		t.Errorf("the log has: %s", kinds)
 	}
 	// Burned, with no pull request: it still counts, as landed.
-	if r := testutil.Run(t, w, nil, "mission", "show", "notes", "-f", "llm"); !strings.Contains(r.Stdout, "State: landed") || !strings.Contains(r.Stdout, "Everything has landed") {
+	if r := testutil.Run(t, w, nil, "mission", "show", "notes", "-f", "llm"); !strings.Contains(r.Stdout, "State: landed") || !strings.Contains(r.Stdout, "Everything landed") {
 		t.Errorf("after landing, the mission says:\n%s", r.Stdout)
 	}
 }
@@ -296,7 +296,7 @@ func TestLand_AMissionThatCantRecordItKeepsTheCapsule(t *testing.T) {
 	if got := testutil.Subjects(t, filepath.Join(w.Root, "repos", "records", ".ground"), "-1"); got != "docs: add note a" {
 		t.Fatalf("it should have landed all the same; the ground is at %q", got)
 	}
-	if !strings.Contains(r.Stderr, "couldn't record the landing") || strings.Contains(r.Stderr, "Removed the capsule") {
+	if !strings.Contains(r.Stderr, "could not record the landing") || strings.Contains(r.Stderr, "Removed the capsule") {
 		t.Errorf("land should say the mission wasn't told, and keep the capsule:\n%s", r.Stderr)
 	}
 	if _, err := os.Stat(testutil.CapsuleDir(w, "records", "note")); err != nil {

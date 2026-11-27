@@ -51,7 +51,7 @@ func IsGitIgnored(dir, relPath string) bool {
 func FullSync(srcDir, dstDir string) (int, error) {
 	srcFiles, err := GitSyncableFiles(srcDir)
 	if err != nil {
-		return 0, fmt.Errorf("listing source files: %w", err)
+		return 0, fmt.Errorf("could not list files: %w", err)
 	}
 
 	srcSet := make(map[string]bool, len(srcFiles))
@@ -88,11 +88,11 @@ func FullSync(srcDir, dstDir string) (int, error) {
 	// Write manifest with successfully synced files. Without it, what was
 	// synced isn't taken away when the silo's pointed elsewhere.
 	if err := writeManifest(dstDir, synced); err != nil {
-		return changed, fmt.Errorf("noting what was synced: %w", err)
+		return changed, fmt.Errorf("could not record what was synced: %w", err)
 	}
 
 	if len(errs) > 0 {
-		return changed, fmt.Errorf("failed to sync %d file(s): %s", len(errs), strings.Join(errs, ", "))
+		return changed, fmt.Errorf("could not sync %d file(s): %s", len(errs), strings.Join(errs, ", "))
 	}
 	return changed, nil
 }

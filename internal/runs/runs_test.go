@@ -194,7 +194,7 @@ func TestSweepEndsARunWhoseOwnerHasGone(t *testing.T) {
 	if err != nil || len(swept) != 1 || swept[0].Run.Name != "web" {
 		t.Fatalf("Sweep = %v, %v; want web", swept, err)
 	}
-	if !strings.Contains(swept[0].Why, "its owner") {
+	if !strings.Contains(swept[0].Why, "owner (pid") {
 		t.Errorf("why: %s", swept[0].Why)
 	}
 	if n := len(s.snapshot().group(r.PID, r.Began)); n != 0 {
@@ -241,7 +241,7 @@ func TestSweepEndsARunWhoseTimeIsUp(t *testing.T) {
 		t.Fatal("swept though it was kept for longer")
 	}
 	swept, _ := s.Sweep(nil, time.Now().Add(121*time.Minute))
-	if len(swept) != 1 || swept[0].Why != "its time was up" {
+	if len(swept) != 1 || swept[0].Why != "timed out" {
 		t.Fatalf("Sweep = %v", swept)
 	}
 }
@@ -396,7 +396,7 @@ func TestEnds(t *testing.T) {
 		{Run{Worktree: "feat", Owner: Owner{Kind: ByCapsule}}, "when capsule feat is burned or landed"},
 		{Run{Owner: Owner{Kind: ByMission, Mission: "m1"}, Expires: now.Add(90*time.Minute + time.Second)}, "when mission m1 ends, or in 1h31"},
 		{Run{Owner: Owner{Kind: ByNone}, Expires: now.Add(time.Hour)}, "in 1h00"},
-		{Run{Owner: Owner{Kind: ByNone}}, "only when it's stopped"},
+		{Run{Owner: Owner{Kind: ByNone}}, "only when stopped"},
 	} {
 		if got := Ends(c.r, now); got != c.want {
 			t.Errorf("Ends = %q, want %q", got, c.want)
@@ -449,7 +449,7 @@ func TestALookingRunEndsWhenNobodyHasLooked(t *testing.T) {
 		t.Fatal("swept though it was looked at since")
 	}
 	swept, _ := s.Sweep(nil, now.Add(26*time.Minute))
-	if len(swept) != 1 || !strings.Contains(swept[0].Why, "nobody has looked") {
+	if len(swept) != 1 || !strings.Contains(swept[0].Why, "not viewed for") {
 		t.Fatalf("Sweep = %v", swept)
 	}
 }
@@ -468,7 +468,7 @@ func TestAnAppsRunEndsWhenNobodyHasItsPageOpen(t *testing.T) {
 	now := time.Now()
 	// A mission's page open, and a worktree's files, keep nothing of this.
 	s.Looked(Looking{Missions: map[string]bool{"": true, "m1": true}, Worktrees: map[string]bool{"/": true, "demo/feat": true}}, now.Add(10*time.Minute))
-	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 1 || !strings.Contains(swept[0].Why, "nobody has looked") {
+	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 1 || !strings.Contains(swept[0].Why, "not viewed for") {
 		t.Fatalf("Sweep = %v", swept)
 	}
 
@@ -638,7 +638,7 @@ func TestARunIsEndedOnceEveryoneItsForHasGone(t *testing.T) {
 	}
 	endB()
 	swept, _ := s.Sweep(nil, now)
-	if names(swept) != "web" || strings.Count(swept[0].Why, "has gone") != 2 {
+	if names(swept) != "web" || strings.Count(swept[0].Why, ") exited") != 2 {
 		t.Fatalf("Sweep = %v", swept)
 	}
 }
@@ -682,7 +682,7 @@ func TestWhatARunNeedsIsKeptUntilTheLastThatNeedsItGoes(t *testing.T) {
 		t.Fatalf("swept %q, want admin and api", names(swept))
 	}
 	for _, sw := range swept {
-		if sw.Run.Name == "api" && sw.Why != "nothing needs it now" {
+		if sw.Run.Name == "api" && sw.Why != "no longer needed" {
 			t.Errorf("api: %s", sw.Why)
 		}
 	}
@@ -740,14 +740,14 @@ func TestARunStartedForANeedIsHeldWhileWhatNeedsItStarts(t *testing.T) {
 	if swept, _ := s.Sweep(nil, now.Add(30*time.Second)); len(swept) != 0 {
 		t.Fatalf("swept %s while it was held", names(swept))
 	}
-	if got := Ends(api, now); got != "within seconds, as nothing needs it now" {
+	if got := Ends(api, now); got != "within seconds: no longer needed" {
 		t.Errorf("Ends = %q", got)
 	}
 	api, err := s.HoldUntil(api, time.Time{})
 	if err != nil || !api.Hold.IsZero() {
 		t.Fatalf("HoldUntil: %v, %s", err, api.Hold)
 	}
-	if swept, _ := s.Sweep(nil, now); names(swept) != "api" || swept[0].Why != "nothing needs it now" {
+	if swept, _ := s.Sweep(nil, now); names(swept) != "api" || swept[0].Why != "no longer needed" {
 		t.Fatalf("Sweep = %v", swept)
 	}
 }

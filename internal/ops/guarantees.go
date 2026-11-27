@@ -21,9 +21,9 @@ type Guarantee struct {
 
 // The guarantees ws can hold.
 var (
-	GuaranteeReviewBeforePR    = Guarantee{"missions.review_before_pr", "ws opens a pull request from a mission's capsule only once the user's latest review of it approves the commit it's at"}
-	GuaranteeReviewBeforeLand  = Guarantee{"missions.review_before_land", "ws lands a mission's capsule in a repo with no pull requests only once the user's latest review of it approves it as it is"}
-	GuaranteeReviewBeforeReady = Guarantee{"missions.review_before_ready", "ws marks a mission's draft pull request ready only once the user's latest review of its capsule approves the commit it's at"}
+	GuaranteeReviewBeforePR    = Guarantee{"missions.review_before_pr", "Workspace opens a pull request from a mission's capsule only once the user's latest review approves its current commit"}
+	GuaranteeReviewBeforeLand  = Guarantee{"missions.review_before_land", "Workspace lands a mission's capsule in a repo with no pull requests only once the user's latest review approves it as it is"}
+	GuaranteeReviewBeforeReady = Guarantee{"missions.review_before_ready", "Workspace marks a mission's draft pull request ready only once the user's latest review of its capsule approves its current commit"}
 	GuaranteeRepliesNeedMe     = Guarantee{"missions.replies_need_me", "ws posts a reply drafted to a person on a mission's pull request only once the user has approved it; a reply to a bot needn't wait"}
 	GuaranteeEndWhenMerged     = Guarantee{"missions.end_when_merged", "ws ends a mission landed itself once the orchestrator suggests it landed (every part of Z met, every pull request merged) and nothing else on it waits for the user or crew, and so it does one whose plan is done and pull requests merged after a turn of the orchestrator's that suggested no ending; any other ending waits for the user, who isn't asked to check Z"}
 )
@@ -69,7 +69,7 @@ func (w *Workspace) holding(g Guarantee) bool {
 // does next.
 func reviewThen(by Actor, then string) string {
 	if by.IsYou() {
-		return "Review it first, approving it as it is (Review on its capsule, in the web UI), then " + then + "."
+		return "Review and approve first (Review on the capsule), then " + then + "."
 	}
 	return "Ask the user to review it (ws mission ask \"…\") and wait for them: once their review approves it as it is, " + then + "."
 }
@@ -88,13 +88,13 @@ func (w *Workspace) holdReview(g Guarantee, slug, repo, name, what, then string)
 	var why string
 	switch {
 	case r == nil:
-		why = "the user hasn't reviewed " + capsule
+		why = "no review of " + capsule
 	case r.Verdict != review.Approve:
-		why = fmt.Sprintf("the user's latest review of %s (%s) doesn't approve it", capsule, r.ID)
+		why = fmt.Sprintf("latest review of %s (%s) does not approve", capsule, r.ID)
 	case r.Head != head:
-		why = fmt.Sprintf("the user's latest review of %s (%s) approved %s, and it's at %s now", capsule, r.ID, short(r.Head), short(head))
+		why = fmt.Sprintf("latest review of %s (%s) approved %s, now at %s", capsule, r.ID, short(r.Head), short(head))
 	default:
 		return nil
 	}
-	return refused("guarantee", "ws holds %s (%s) before %s: %s. %s", g.Key, g.What, what, why, then)
+	return refused("guarantee", "%s (%s) holds back %s: %s. %s", g.Key, g.What, what, why, then)
 }

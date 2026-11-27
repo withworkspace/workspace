@@ -78,7 +78,7 @@ func parseCheck(v string) (Check, string) {
 		return Check{Text: v}, ""
 	}
 	if rest := strings.Trim(m[3], " .;,"); rest != "" {
-		return Check{}, fmt.Sprintf("check: %q: a check ws runs is a command in backticks, then passes or fails, and nothing more (it's run in the step's capsule once its crew report done): say %q as a check of its own", v, rest)
+		return Check{}, fmt.Sprintf("check: %q: a command check is a command in backticks, then passes or fails, and nothing more: put %q in a check of its own", v, rest)
 	}
 	return Check{Text: v, Command: strings.TrimSpace(m[1]), Expect: m[2]}, ""
 }
@@ -401,7 +401,7 @@ func (s Store) SetLimit(slug string, n int, d time.Duration, by string, shorterO
 			return err
 		}
 		if st.Accepted() {
-			return fmt.Errorf("%s %d is passed already", st.Noun(), st.N)
+			return fmt.Errorf("%s %d has already passed", st.Noun(), st.N)
 		}
 		r := recordFor(m, m.Route(brief), st.Stage)
 		deadline = now().Add(d)

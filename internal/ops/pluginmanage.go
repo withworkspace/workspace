@@ -38,7 +38,7 @@ type PluginRunner interface {
 var PluginRunners = func(root string, start bool) (PluginRunner, error) {
 	c, err := plugin.Dial(root)
 	if err != nil {
-		return nil, fmt.Errorf("the plugins can't be reached (is the workspace's daemon running?): %w", err)
+		return nil, fmt.Errorf("could not reach plugins (is Workspace running?): %w", err)
 	}
 	return c, nil
 }
@@ -112,7 +112,7 @@ func homeFolder(path string) string {
 func (w *Workspace) AddPlugin(ctx context.Context, from string, o PluginAdd) (PluginAdded, plugin.Status, error) {
 	from = strings.TrimSpace(from)
 	if from == "" {
-		return PluginAdded{}, plugin.Status{}, invalid("say which plugin: a folder on this machine, or the repo it's published at (owner/repo)")
+		return PluginAdded{}, plugin.Status{}, invalid("name a plugin: a folder on this machine, or its repo (owner/repo)")
 	}
 	w.plugins.Lock()
 	defer w.plugins.Unlock()
@@ -129,7 +129,7 @@ func (w *Workspace) AddPlugin(ctx context.Context, from string, o PluginAdd) (Pl
 	repo, tag, ok := plugin.ParseRepo(from)
 	switch {
 	case !ok:
-		return PluginAdded{}, plugin.Status{}, invalid("%s isn't a folder here, or a plugin's repo (owner/repo)", from)
+		return PluginAdded{}, plugin.Status{}, invalid("%s is not a folder here or a plugin repo (owner/repo)", from)
 	case o.Link:
 		return PluginAdded{}, plugin.Status{}, invalid("--link runs a plugin from a folder on this machine: give the folder")
 	}
@@ -198,7 +198,7 @@ func (w *Workspace) addPluginFolder(ctx context.Context, src string, link, build
 	st, err := run.Refresh(ctx, m.Name)
 	if err != nil {
 		res.State, res.Error = plugin.Failed, err.Error()
-		return res, st, &Refused{Code: "start", Reason: fmt.Sprintf("%s is installed, but didn't start: %v", m.Name, err), Err: err}
+		return res, st, &Refused{Code: "start", Reason: fmt.Sprintf("%s is installed, but did not start: %v", m.Name, err), Err: err}
 	}
 	res.State, res.Missing = st.State, st.Missing
 	return res, st, nil
@@ -214,7 +214,7 @@ func (w *Workspace) RemovePlugin(ctx context.Context, name string, data bool) er
 	// One whose folder is there with nothing in it that would run is still
 	// there to remove.
 	if !plugin.ValidName(name) || !slices.Contains(pluginFolders(w.root), name) {
-		return fmt.Errorf("%w: there's no plugin called %s", ErrNotFound, name)
+		return fmt.Errorf("%w: no plugin called %s", ErrNotFound, name)
 	}
 	if run, err := w.pluginRunner(false); err == nil {
 		run.Stop(ctx, name) //nolint:errcheck // not running is as good
@@ -224,7 +224,7 @@ func (w *Workspace) RemovePlugin(ctx context.Context, name string, data bool) er
 		return err
 	}
 	if err := plugin.Forget(w.root, name); err != nil {
-		return fmt.Errorf("%s is removed, but what ws kept of it in its records isn't forgotten: %w", name, err)
+		return fmt.Errorf("removed %s, but could not clear its records: %w", name, err)
 	}
 	return nil
 }
@@ -267,13 +267,13 @@ func (w *Workspace) UpdatePlugin(ctx context.Context, name string, say func(line
 	defer w.plugins.Unlock()
 	out := PluginUpdated{Name: name}
 	if !plugin.IsInstalled(w.root, name) {
-		return out, fmt.Errorf("%w: there's no plugin called %s (ws plugin list)", ErrNotFound, name)
+		return out, fmt.Errorf("%w: no plugin called %s (ws plugin list)", ErrNotFound, name)
 	}
 	src, ok := plugin.ReadSource(w.root, name)
 	if !ok {
-		return out, refused("folder", "%s was added from a folder, not from a repo: there's nowhere to update it from", name)
+		return out, refused("folder", "%s was added from a folder, not a repo: nothing to update from", name)
 	}
-	out.Was = cmp.Or(src.Tag, "its source")
+	out.Was = cmp.Or(src.Tag, "source")
 	latest, _, found, err := PluginReleases.Release(src.Repo, "")
 	if err != nil {
 		return out, &Upstream{Err: err}
@@ -290,7 +290,7 @@ func (w *Workspace) UpdatePlugin(ctx context.Context, name string, say func(line
 	if err != nil {
 		return out, err
 	}
-	out.Now = cmp.Or(res.Release, "its source, built here")
+	out.Now = cmp.Or(res.Release, "built from source")
 	return out, nil
 }
 

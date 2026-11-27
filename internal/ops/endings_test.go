@@ -31,7 +31,7 @@ func TestConcludeAndEnd(t *testing.T) {
 	refusedWith(t, err, "not-landed") // its capsule has neither merged nor landed
 	_, err = w.Conclude("cache", EndAs{Ending: "landed", Text: "x", Met: as.Met, Unmet: as.Unmet}, AsOrchestrator)
 	refusedWith(t, err, "not-at-z")
-	if _, err := w.Conclude("cache", EndAs{Ending: "handed-on", Text: "x", Met: as.Met, Unmet: as.Unmet}, AsOrchestrator); err == nil || !strings.Contains(err.Error(), "which missions") {
+	if _, err := w.Conclude("cache", EndAs{Ending: "handed-on", Text: "x", Met: as.Met, Unmet: as.Unmet}, AsOrchestrator); err == nil || !strings.Contains(err.Error(), "name the missions to hand on to") {
 		t.Errorf("handed on to nowhere: %v", err)
 	}
 	if _, err := w.Conclude("cache", EndAs{Ending: "answered", Text: "x", Met: as.Met, Unmet: as.Unmet, To: []string{"cache"}}, AsOrchestrator); err == nil {

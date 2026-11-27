@@ -151,14 +151,14 @@ func TestChecks_CantTellIsYours(t *testing.T) {
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
 	w.CrewDone("cache", "c1")
 	m, _ := w.Missions.Load("cache")
-	if task := m.Asking(); task == nil || task.Verb != mission.TaskChecks || !strings.Contains(task.Text, "The judge can't tell of “the lookup is cached”: it's yours to say") || len(*runs) != 0 {
+	if task := m.Asking(); task == nil || task.Verb != mission.TaskChecks || !strings.Contains(task.Text, "The judge could not decide on “the lookup is cached”: your call") || len(*runs) != 0 {
 		t.Fatalf("the task = %+v (runs %v)", task, *runs)
 	}
 
 	w.cur.cfg.Judge.Harness = "no-such-harness"
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached, again")
 	w.CrewDone("cache", "c1")
-	if r, _ := stepRecord(t, w, 1).Record.LatestChecks(); r.Results[1].Result != mission.CheckCantTell || !strings.Contains(r.Results[1].Evidence, "the judge couldn't be asked") {
+	if r, _ := stepRecord(t, w, 1).Record.LatestChecks(); r.Results[1].Result != mission.CheckCantTell || !strings.Contains(r.Results[1].Evidence, "could not ask the judge") {
 		t.Errorf("with no judge: %+v", r.Results)
 	}
 }
@@ -223,7 +223,7 @@ func TestLimit_OutOfTime(t *testing.T) {
 	w.CheckLimits()
 	m, _ := w.Missions.Load("cache")
 	task := m.Asking()
-	if task == nil || task.Verb != mission.TaskTime || task.Step != 1 || strings.Join(task.Options, "|") != "More time|Wrap up" || !strings.Contains(task.Text, "c1 is still at it") {
+	if task == nil || task.Verb != mission.TaskTime || task.Step != 1 || strings.Join(task.Options, "|") != "More time|Wrap up" || !strings.Contains(task.Text, "c1 is still working") {
 		t.Fatalf("the task = %+v", task)
 	}
 	a, err := w.AnswerTask("cache", task.N, AsYou, mission.TimeMore)
@@ -255,7 +255,7 @@ func TestChecks_CarryingOnWithCrewStillRunning(t *testing.T) {
 	w.opts.Host = host
 	os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n"), 0o644)
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
-	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "told c1, which is still running, to carry on at step 2") {
+	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "told c1 to carry on at step 2") {
 		t.Errorf("CrewDone said %q", said)
 	}
 	if len(host.said) != 1 || !strings.HasPrefix(host.said[0], "cache/c1: Step 1 is done, and you carry on with step 2 of the plan: test it.") {

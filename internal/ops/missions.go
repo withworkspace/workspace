@@ -53,7 +53,7 @@ func (w *Workspace) SetState(slug string, state mission.State, by Actor) (StateS
 	case mission.Archived:
 		return w.Archive(slug, false, by)
 	default:
-		return StateSet{}, invalid("a mission is put in %q by what happens to it, not by hand", state)
+		return StateSet{}, invalid("%q cannot be set by hand", state)
 	}
 	m, err := w.load(slug)
 	if err != nil {
@@ -63,7 +63,7 @@ func (w *Workspace) SetState(slug string, state mission.State, by Actor) (StateS
 		return w.Unend(m.Slug, by)
 	}
 	if state == mission.Parked && m.Ending != nil {
-		return StateSet{}, refused("ended", "it has ended, %s: there's nothing to park", m.Ending.Ending.Words())
+		return StateSet{}, refused("ended", "already ended, %s: nothing to park", m.Ending.Ending.Words())
 	}
 	return w.putIn(m.Slug, state, by)
 }
@@ -103,7 +103,7 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 	}
 	for _, c := range m.Crew {
 		if c.Ended == nil && c.Status != mission.CrewDone && c.Role != mission.RoleBriefing {
-			return StateSet{}, refused("crew-working", "%s is still on it: stop it, or let it report done, before it's archived", c.ID)
+			return StateSet{}, refused("crew-working", "%s is still working: stop them or wait for done before archiving", c.ID)
 		}
 	}
 	v := BuildMissionViews(w.WS(), w.GitHub(), []*mission.Mission{m})[0]
@@ -119,20 +119,20 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 		}
 	}
 	if len(unmerged) > 0 && !burnAll {
-		which := "1 hasn't merged as it is"
+		which := "1 has unmerged work"
 		if len(unmerged) > 1 {
-			which = fmt.Sprintf("%d haven't merged as they are", len(unmerged))
+			which = fmt.Sprintf("%d have unmerged work", len(unmerged))
 		}
-		return StateSet{}, refused("unmerged-capsules", "Archiving burns its capsules, and %s: %s. Archive it anyway to burn them: their branches are kept, and what's not committed is lost",
+		return StateSet{}, refused("unmerged-capsules", "Archiving burns the mission's capsules, and %s: %s. Archive anyway to burn them: branches are kept, uncommitted changes are lost",
 			which, strings.Join(unmerged, ", "))
 	}
 	// Before their capsules go: a session left open would sit in a folder
 	// that's gone.
-	w.closeEnded(m, "the mission is archived")
+	w.closeEnded(m, "mission archived")
 	var burned []string
 	for _, c := range burn {
 		if _, err := w.Burn(c.Repo, c.Name, BurnOptions{Force: burnAll}); err != nil {
-			return StateSet{}, fmt.Errorf("burning %s/%s, so it isn't archived: %w", c.Repo, c.Name, err)
+			return StateSet{}, fmt.Errorf("could not burn %s/%s, so the mission is not archived: %w", c.Repo, c.Name, err)
 		}
 		burned = append(burned, c.Repo+"/"+c.Name)
 	}
@@ -145,7 +145,7 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 				continue
 			}
 			if left := w.putAwayCapsules(convs, c); len(left) > 0 {
-				return StateSet{}, refused("capsules-left", "%s's agent lifted capsules that couldn't be put away, so the mission isn't archived: %s", c.ID, strings.Join(left, "; "))
+				return StateSet{}, refused("capsules-left", "not archived: could not put away capsules %s's agent lifted: %s", c.ID, strings.Join(left, "; "))
 			}
 			for _, cp := range c.Lifted() {
 				if !slices.Contains(burned, cp.Ref()) { // the mission's too, taken on from it
@@ -166,24 +166,24 @@ func whyUnmerged(c CapsuleView) string {
 	switch {
 	case c.Landed != nil:
 		if c.Head != c.Landed.Head {
-			return "it has moved since it landed"
+			return "new commits since it landed"
 		}
 	case c.PRS == mission.PRMerged:
 		// GitHub says what a merged pull request's head was: a capsule
 		// that's moved on from it has commits that didn't merge.
 		if c.PR.HeadRefOid == "" {
-			return fmt.Sprintf("GitHub didn't say what #%d merged", c.PR.Number)
+			return fmt.Sprintf("GitHub did not say what #%d merged", c.PR.Number)
 		}
 		if c.Head != c.PR.HeadRefOid {
-			return fmt.Sprintf("it has moved since #%d merged", c.PR.Number)
+			return fmt.Sprintf("new commits since #%d merged", c.PR.Number)
 		}
 	case c.PRS == mission.PROpen:
 		return fmt.Sprintf("#%d is open", c.PR.Number)
 	default:
-		return "its work hasn't merged or landed"
+		return "not merged or landed"
 	}
 	if workspace.GitIsDirty(c.Path) {
-		return "it has changes not committed"
+		return "uncommitted changes"
 	}
 	return ""
 }
@@ -196,7 +196,7 @@ func (w *Workspace) Reopen(slug string, from mission.State, by Actor) (StateSet,
 		return StateSet{}, err
 	}
 	if m.State != from {
-		return StateSet{}, refused("not-"+string(from), "it isn't %s", from)
+		return StateSet{}, refused("not-"+string(from), "mission is not %s", from)
 	}
 	return w.SetState(m.Slug, "", by)
 }
@@ -260,7 +260,7 @@ func (w *Workspace) RenameMission(old, slug string) error {
 		return nil
 	}
 	if err := conversation.MoveMission(w.Root(), old, slug); err != nil {
-		return fmt.Errorf("renamed, but its conversations weren't moved with it: %w", err)
+		return fmt.Errorf("renamed, but could not move conversations: %w", err)
 	}
 	return nil
 }
@@ -397,7 +397,7 @@ func (w *Workspace) StopCrew(slug, id string, by Actor) (string, error) {
 	}
 	c, ok := m.CrewByID(id)
 	if !ok || c.Ended != nil {
-		return "", fmt.Errorf("%s isn't running", firstNonEmpty(id, "that crew"))
+		return "", fmt.Errorf("%s is not running", firstNonEmpty(id, "that crew"))
 	}
 	if w.opts.Host == nil {
 		return "", errors.New("crew can't be stopped from here")

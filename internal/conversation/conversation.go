@@ -842,9 +842,9 @@ var ErrNotFound = doc.ErrNotFound
 func (s Store) Load(id string) (*Conversation, error) {
 	if !s.isID(id) {
 		if s.Workspace() {
-			return nil, fmt.Errorf("%w: %q isn't a workspace conversation (they're named w1, w2, …)", ErrNotFound, id)
+			return nil, fmt.Errorf("%w: %q is not a workspace conversation (named w1, w2, …)", ErrNotFound, id)
 		}
-		return nil, fmt.Errorf("%w: %q isn't a thread (they're named t1, t2, …)", ErrNotFound, id)
+		return nil, fmt.Errorf("%w: %q is not a thread (named t1, t2, …)", ErrNotFound, id)
 	}
 	var c *Conversation
 	err := s.read(func(tx *store.Tx) error {
@@ -894,7 +894,7 @@ func (s Store) Send(ids []string, crew, by string, at time.Time) error {
 				return err
 			}
 			if c.Status != Open {
-				return fmt.Errorf("%s is resolved: reopen it to send it", id)
+				return fmt.Errorf("%s is resolved: reopen to send", id)
 			}
 			cs = append(cs, c)
 		}
@@ -974,7 +974,7 @@ func (s Store) OpenThread(n NewThread, at time.Time) (*Conversation, error) {
 	case body == "":
 		return nil, errors.New("say something")
 	case n.Anchor.Doc == "" || n.Anchor.Line < 1:
-		return nil, errors.New("a thread is on a document's text: its ref and lines")
+		return nil, errors.New("a thread needs a document ref and lines")
 	}
 	c, err := s.open(&Conversation{Kind: n.Kind, Anchor: n.Anchor, By: n.By, At: at, Status: Open}, Turn{By: n.By, At: at, Body: body, Version: n.Anchor.Version})
 	if err != nil {
@@ -1005,7 +1005,7 @@ type DocThread struct {
 
 // ErrStale is a thread opened on, or a document approved at, a version
 // that isn't the document's any more.
-var ErrStale = errors.New("the document has changed since it was read: reload it, and comment on it as it is now")
+var ErrStale = errors.New("the document has changed: reload and try again")
 
 const (
 	quoteMax   = 4000 // runes of quoted text kept
@@ -1023,7 +1023,7 @@ func (s Store) OpenOnDoc(ref string, text []byte, t DocThread, by string, at tim
 		t.EndLine = t.Line
 	}
 	if t.Line < 1 || t.EndLine < t.Line || t.EndLine > len(lines) {
-		return nil, fmt.Errorf("lines %d–%d aren't in the document (it has %d)", t.Line, t.EndLine, len(lines))
+		return nil, fmt.Errorf("lines %d–%d are out of range (document has %d)", t.Line, t.EndLine, len(lines))
 	}
 	if _, err := s.KeepVersion(text); err != nil {
 		return nil, err
@@ -1145,7 +1145,7 @@ func (s Store) OpenTalkChained(via string, chain []string, first Turn) (*Convers
 // pass's tab: it's a question whatever its goal.
 func (s Store) OpenCell(page, prompt, goal, holds, finding string, at time.Time) (*Conversation, error) {
 	if !s.Workspace() {
-		return nil, errors.New("a page's cells are the workspace's")
+		return nil, errors.New("page cells are workspace-only")
 	}
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
@@ -1190,7 +1190,7 @@ const GoalBrief = "brief"
 // first message.
 func (s Store) OpenBriefing(request string, at time.Time) (*Conversation, error) {
 	if s.Workspace() {
-		return nil, errors.New("briefing is a mission's")
+		return nil, errors.New("briefing is only for missions")
 	}
 	request = strings.TrimSpace(request)
 	if request == "" {
@@ -1228,11 +1228,11 @@ func (s Store) Planner() *Conversation {
 // without one, with what's asked of it first: by ws, or by you.
 func (s Store) OpenPlanner(by, body string, at time.Time) (*Conversation, error) {
 	if s.Workspace() {
-		return nil, errors.New("the planner is a mission's")
+		return nil, errors.New("the planner is only for missions")
 	}
 	body = strings.TrimSpace(body)
 	if body == "" {
-		return nil, errors.New("say what the planner's asked")
+		return nil, errors.New("say what to ask the planner")
 	}
 	c, err := s.open(&Conversation{Kind: Talk, Goal: GoalBrief, By: by, At: at, Status: Open}, Turn{By: by, At: at, Body: body, Asks: by == WS})
 	if err != nil {
@@ -1247,7 +1247,7 @@ func (s Store) OpenPlanner(by, body string, at time.Time) (*Conversation, error)
 func (s Store) AskAgent(id, body string, at time.Time) (*Conversation, error) {
 	body = strings.TrimSpace(body)
 	if body == "" {
-		return nil, errors.New("say what the agent's asked")
+		return nil, errors.New("say what to ask the agent")
 	}
 	c, err := s.update(id, func(tx *store.Tx, c *Conversation) error {
 		if c.Status == Resolved {
@@ -1566,7 +1566,7 @@ func (s Store) setAnswering(tx *store.Tx, id string, pid int) error {
 
 // ErrNotOnce is the answer for a suggestion whose text isn't in the
 // document exactly once.
-var ErrNotOnce = errors.New("the text to replace isn't in the document exactly once")
+var ErrNotOnce = errors.New("the text to replace is not in the document exactly once")
 
 // Suggest records an edit suggested in an open thread, replacing any
 // suggestion still open. text is the document now: From must appear in it
@@ -1580,13 +1580,13 @@ func (s Store) Suggest(id string, sg Suggestion, text []byte) (*Conversation, er
 	}
 	if n := strings.Count(string(text), sg.From); n != 1 {
 		if n == 0 {
-			return nil, fmt.Errorf("%w: it isn't there. Quote the markdown exactly as it is in the file, line breaks and all", ErrNotOnce)
+			return nil, fmt.Errorf("%w: not found. Quote the markdown exactly as in the file, line breaks and all", ErrNotOnce)
 		}
-		return nil, fmt.Errorf("%w: it's there %d times. Quote enough around it to say which", ErrNotOnce, n)
+		return nil, fmt.Errorf("%w: found %d times. Quote enough around it to make it unique", ErrNotOnce, n)
 	}
 	c, err := s.update(id, func(tx *store.Tx, c *Conversation) error {
 		if c.Status != Open {
-			return fmt.Errorf("%s is resolved: reopen it to suggest something", id)
+			return fmt.Errorf("%s is resolved: reopen to suggest", id)
 		}
 		sg.N, sg.State, sg.Version = len(c.Suggestions)+1, SuggestOpen, doc.Version(text)
 		return s.add(tx, c, line{Suggest: &sg})
@@ -1609,7 +1609,7 @@ func (s Store) SettleSuggestion(id, by, state, commit string, at time.Time) (*Co
 	c, err := s.update(id, func(tx *store.Tx, c *Conversation) error {
 		p := c.Pending()
 		if p == nil {
-			return fmt.Errorf("%w: %s has no suggestion waiting", ErrNotFound, id)
+			return fmt.Errorf("%w: %s has no pending suggestion", ErrNotFound, id)
 		}
 		return s.add(tx, c, line{Suggestion: &settled{N: p.N, State: state, By: by, At: at, Commit: commit}})
 	})
@@ -1666,7 +1666,7 @@ func (s Store) SettleDraft(id, state, decision, by string, at time.Time) (*Conve
 	}
 	return s.update(id, func(tx *store.Tx, c *Conversation) error {
 		if c.Draft != nil && c.Draft.State != DraftOpen {
-			return fmt.Errorf("what was decided in %s is %s already", id, c.Draft.State)
+			return fmt.Errorf("the decision in %s is already %s", id, c.Draft.State)
 		}
 		return s.add(tx, c, line{Drafted: &drafted{State: state, Decision: decision, By: by, At: at}})
 	})

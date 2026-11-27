@@ -119,7 +119,7 @@ func (t StepType) param(key string) (StepParam, bool) {
 
 func (t StepType) paramKeys() string {
 	if len(t.Params) == 0 {
-		return "nothing under it"
+		return "no parameters"
 	}
 	keys := make([]string, len(t.Params))
 	for i, p := range t.Params {
@@ -136,7 +136,7 @@ var (
 		read: func(st *Step, v string) string {
 			c := planIn.FindStringSubmatch(v)
 			if c == nil {
-				return fmt.Sprintf("in: %q isn't a repo or a capsule: name the repo (`api`), or the capsule as `repo/name`", v)
+				return fmt.Sprintf("in: %q is not a repo or capsule: name the repo (`api`) or capsule as `repo/name`", v)
 			}
 			st.Capsule = c[1]
 			return ""
@@ -144,7 +144,7 @@ var (
 	paramOn = StepParam{Key: "on", About: "what its crew run on, as harness:model (claude:opus), or a model alone, when it's not crew's own: one of what ws holds crew may run on ([crew] allowed), as the process prefers",
 		read: func(st *Step, v string) string {
 			if !planModel.MatchString(v) {
-				return fmt.Sprintf("on: %q isn't a harness and model: write it harness:model (claude:opus), or a model alone (opus)", v)
+				return fmt.Sprintf("on: %q is not a harness and model: write harness:model (claude:opus) or a model alone (opus)", v)
 			}
 			st.Model = v
 			return ""
@@ -152,7 +152,7 @@ var (
 	paramMakes = StepParam{Key: "makes", About: "what it produces: a document of a kind, findings, a failing test. Not a pull request: an Open Pull Request step opens that",
 		read: func(st *Step, v string) string {
 			if makesPR.MatchString(v) {
-				return fmt.Sprintf("makes: %q: a pull request is opened by an Open Pull Request step, after this one, not by crew: say what the work makes, and put that step after it", v)
+				return fmt.Sprintf("makes: %q: pull requests come from an Open Pull Request step: say what the work makes, and add that step after this one", v)
 			}
 			st.Makes = v
 			return ""
@@ -185,7 +185,7 @@ var (
 		read: func(st *Step, v string) string {
 			d, _, ok := ParseLimit(v)
 			if !ok {
-				return fmt.Sprintf("limit: %q: start with how long, as 45m, 1h or 1h30m (words after it are welcome)", v)
+				return fmt.Sprintf("limit: %q: start with a duration, as 45m, 1h or 1h30m", v)
 			}
 			st.Limit, st.LimitText = d, v
 			return ""
@@ -206,7 +206,7 @@ var (
 				return why
 			}
 			if c.Run() {
-				return fmt.Sprintf("yours: %q is a command, which ws runs itself: a check that's the user's is in words", v)
+				return fmt.Sprintf("yours: %q is a command: write the user's checks in words", v)
 			}
 			c.Yours = true
 			st.Checks = append(st.Checks, c)
@@ -219,7 +219,7 @@ var (
 			case "you", "the user", "user", "me":
 				st.Who, st.Whom = WhoYou, ""
 			case "":
-				return "on: is empty: say who it waits on (you, or who or what in a few words)"
+				return "on: is empty: say who or what the step waits on (you, or a few words)"
 			default:
 				st.Who, st.Whom = WhoOutside, v
 			}
@@ -234,7 +234,7 @@ var (
 				return why
 			}
 			if !c.Run() {
-				return fmt.Sprintf("check: %q is in words, and a Wait's check is a command ws runs to see whether it's happened (`gh release view v1.4.0` passes): give a command, or leave the check out and say what it waits for in the step", v)
+				return fmt.Sprintf("check: %q is in words, but a Wait's check is a command (`gh release view v1.4.0` passes): give a command, or remove the check and say what the step waits for", v)
 			}
 			st.Checks = append(st.Checks, c)
 			return ""

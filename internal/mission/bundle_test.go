@@ -458,7 +458,7 @@ func TestVerifyStep_ChecksAndYours(t *testing.T) {
 	}
 	for written, want := range map[string]string{
 		strings.Replace(plan, "   - check: the page loads\n   - check: `npm test` passes\n   - yours: it reads well at phone width\n", "", 1): "step 2 verifies nothing",
-		strings.Replace(plan, "- yours: it reads well at phone width", "- yours: `npm test` passes", 1):                                       "is a command, which ws runs itself",
+		strings.Replace(plan, "- yours: it reads well at phone width", "- yours: `npm test` passes", 1):                                       "is a command: write the user's checks in words",
 		strings.Replace(plan, "   - limit: 30m\n", "   - carrying on from: 1\n", 1):                                                           "carrying on from",
 		strings.Replace(plan, "1. Work: fix it.\n   - in: `web`\n", "1. Work: fix it.\n   - in: `web`\n   - yours: it's tidy\n", 1):           "yours",
 	} {

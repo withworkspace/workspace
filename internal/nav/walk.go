@@ -258,7 +258,7 @@ func (w *walker) name(p string, f *Facts, name string, at Span, in byte, exact b
 		}
 		switch {
 		case ns.kind != "none" && base.name != "":
-			return res{kind: "external", external: name, likely: true, how: "not the repo's: " + strings.TrimPrefix(ns.how, "likely ") + ", or a member of " + base.name}
+			return res{kind: "external", external: name, likely: true, how: "external: " + strings.TrimPrefix(ns.how, "likely ") + ", or a member of " + base.name}
 		case ns.kind != "none":
 			return ns
 		case base.name != "":
@@ -349,7 +349,7 @@ func (w *walker) importRes(p string, im Import) res {
 		return res{kind: "external", mod: where, modPath: im.Path, how: "a dependency"}
 	}
 	if len(where.Files) == 0 {
-		return res{kind: "none", how: "imports " + im.Path + ", which isn't here"}
+		return res{kind: "none", how: "imports " + im.Path + ", not found"}
 	}
 	if im.Kind == "named" || im.Kind == "default" {
 		name := im.Name

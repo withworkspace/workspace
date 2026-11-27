@@ -25,7 +25,7 @@ type draftReply struct {
 func (s *Server) getDraft(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need a document's ref")
+		jsonError(w, http.StatusBadRequest, "missing document ref")
 		return
 	}
 	d, err := s.drafts(r).Get(ref)
@@ -46,7 +46,7 @@ func (s *Server) putDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.Ref == "" || d.Base == "" {
-		jsonError(w, http.StatusBadRequest, "a draft needs the document's ref and the version it's from")
+		jsonError(w, http.StatusBadRequest, "missing document ref or base version")
 		return
 	}
 	d.At = time.Now().UTC()
@@ -64,7 +64,7 @@ func (s *Server) putDraft(w http.ResponseWriter, r *http.Request) {
 func (s *Server) dropDraft(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need a document's ref")
+		jsonError(w, http.StatusBadRequest, "missing document ref")
 		return
 	}
 	switch err := s.App.DropDraft(scope(r), ref); {
@@ -86,11 +86,11 @@ func (s *Server) saveDoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.Ref == "" || d.Base == "" {
-		jsonError(w, http.StatusBadRequest, "need the document's ref and the version the edit's from")
+		jsonError(w, http.StatusBadRequest, "missing document ref or base version")
 		return
 	}
 	if strings.TrimSpace(d.Text) == "" {
-		jsonError(w, http.StatusBadRequest, "a document can't be saved empty")
+		jsonError(w, http.StatusBadRequest, "cannot save an empty document")
 		return
 	}
 	saved, err := s.App.SaveDocument(r.PathValue("slug"), d.Ref, d.Base, d.Text, d.Message)

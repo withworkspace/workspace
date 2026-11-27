@@ -20,7 +20,7 @@ func TestStages_ShowAcceptAndDispatch(t *testing.T) {
 	// Written by you: a stage naming a capsule the mission lacks is warned of.
 	t.Setenv("WS_ROLE", "")
 	r := testutil.Run(t, w, nil, "mission", "brief", "--set", briefFile)
-	if !strings.Contains(r.Stderr, "stage 2 names `frontend/cache-ui`, which isn't one of the mission's capsules (yet): ws lift frontend cache-ui") {
+	if !strings.Contains(r.Stderr, "stage 2 names `frontend/cache-ui`, not a capsule of the mission yet: ws lift frontend cache-ui") {
 		t.Errorf("no warning:\n%s", r.Stderr)
 	}
 	show := testutil.Run(t, w, nil, "mission", "show", "-f", "llm").Stdout
@@ -42,7 +42,7 @@ func TestStages_ShowAcceptAndDispatch(t *testing.T) {
 	t.Setenv("WS_ROLE", "orchestrator")
 	r = testutil.Run(t, w, nil, "mission", "accept", "the proposal is written")
 	// Stage 1 says to check in: ws asks the user before stage 2 starts.
-	if !strings.Contains(r.Stderr, "accepted stage 1 of 2: Write the proposal") || !strings.Contains(r.Stderr, "the user is asked before stage 2 starts") {
+	if !strings.Contains(r.Stderr, "accepted stage 1 of 2: Write the proposal") || !strings.Contains(r.Stderr, "asking before stage 2 starts") {
 		t.Errorf("accept said:\n%s", r.Stderr)
 	}
 	if m, _ := store.Load("cache"); m.Asking() == nil || m.Asking().Step != 2 {
@@ -50,7 +50,7 @@ func TestStages_ShowAcceptAndDispatch(t *testing.T) {
 	}
 
 	// Dispatched crew join the current stage, and are told it.
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "dispatch", "--stage", "3", "x"); r.Err == nil || !strings.Contains(r.Err.Error(), "there's no stage 3") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "dispatch", "--stage", "3", "x"); r.Err == nil || !strings.Contains(r.Err.Error(), "no stage 3") {
 		t.Errorf("dispatched for a stage that isn't there: %v", r.Err)
 	}
 	testutil.Run(t, w, nil, "mission", "dispatch", "Implement the proposal")

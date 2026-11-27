@@ -185,7 +185,7 @@ func readCursorStream(out string) Report {
 		case "result":
 			rep.Done = true
 			if e.IsError {
-				rep.Failed = "it failed: " + ClipHead(strings.TrimSpace(e.Result), 300, "…")
+				rep.Failed = "failed: " + ClipHead(strings.TrimSpace(e.Result), 300, "…")
 			}
 			if rep.Output == "" {
 				rep.Output = strings.TrimSpace(e.Result)
@@ -279,7 +279,7 @@ func readPiStream(out string) Report {
 				if why == "" {
 					why = e.Message.StopReason
 				}
-				rep.Failed = "it failed: " + ClipHead(why, 300, "…")
+				rep.Failed = "failed: " + ClipHead(why, 300, "…")
 			}
 		case "agent_settled":
 			rep.Done = true
@@ -402,9 +402,9 @@ func readClaudeStream(out string) Report {
 			}
 			switch {
 			case e.Subtype == "error_max_turns":
-				rep.Failed = "it ran out of turns before answering"
+				rep.Failed = "ran out of turns"
 			case e.IsError:
-				rep.Failed = "it failed: " + ClipHead(strings.TrimSpace(e.Result), 300, "…")
+				rep.Failed = "failed: " + ClipHead(strings.TrimSpace(e.Result), 300, "…")
 			}
 		}
 	}

@@ -156,7 +156,7 @@ var ErrNotFound = errors.New("not found")
 // Load reads one review.
 func (s Store) Load(id string) (*Review, error) {
 	if !idShape.MatchString(id) {
-		return nil, fmt.Errorf("%w: no review %q (they're named r1, r2, …)", ErrNotFound, id)
+		return nil, fmt.Errorf("%w: no review %q (reviews are r1, r2, …)", ErrNotFound, id)
 	}
 	var r *Review
 	err := s.read(func(tx *store.Tx) error {
@@ -282,10 +282,10 @@ func (s Store) AddNote(capsule string, d Diffed, n NewNote, at time.Time) (*Revi
 		n.EndLine = n.Line
 	}
 	if n.Line < 1 || n.EndLine < n.Line {
-		return nil, fmt.Errorf("lines %d–%d aren't a range", n.Line, n.EndLine)
+		return nil, fmt.Errorf("lines %d–%d are not a range", n.Line, n.EndLine)
 	}
 	if !validKind(n.Kind) {
-		return nil, fmt.Errorf("a comment is %s, not %q", strings.Join(Kinds, ", "), n.Kind)
+		return nil, fmt.Errorf("comment kind must be %s, not %q", strings.Join(Kinds, ", "), n.Kind)
 	}
 	if strings.TrimSpace(n.Body) == "" && n.Suggestion == nil {
 		return nil, errors.New("say something, or suggest a change")
@@ -327,7 +327,7 @@ func (s Store) AddNote(capsule string, d Diffed, n NewNote, at time.Time) (*Revi
 // fix this).
 func (s Store) addGeneral(capsule string, d Diffed, n NewNote, at time.Time) (*Review, error) {
 	if !validKind(n.Kind) {
-		return nil, fmt.Errorf("a comment is %s, not %q", strings.Join(Kinds, ", "), n.Kind)
+		return nil, fmt.Errorf("comment kind must be %s, not %q", strings.Join(Kinds, ", "), n.Kind)
 	}
 	if strings.TrimSpace(n.Body) == "" {
 		return nil, errors.New("say something")
@@ -396,7 +396,7 @@ func (s Store) draftNote(capsule, id string, fn func(r *Review, i int) error) (*
 				return s.saveIn(tx, r)
 			}
 		}
-		return fmt.Errorf("%w: the draft has no comment %s", ErrNotFound, id)
+		return fmt.Errorf("%w: draft has no comment %s", ErrNotFound, id)
 	})
 	return r, err
 }
@@ -404,7 +404,7 @@ func (s Store) draftNote(capsule, id string, fn func(r *Review, i int) error) (*
 // EditNote changes a draft comment's kind, words and suggestion.
 func (s Store) EditNote(capsule, id, kind, body string, suggestion *string) (*Review, error) {
 	if !validKind(kind) {
-		return nil, fmt.Errorf("a comment is %s, not %q", strings.Join(Kinds, ", "), kind)
+		return nil, fmt.Errorf("comment kind must be %s, not %q", strings.Join(Kinds, ", "), kind)
 	}
 	if strings.TrimSpace(body) == "" && suggestion == nil {
 		return nil, errors.New("say something, or suggest a change")
@@ -445,7 +445,7 @@ func (s Store) Discard(capsule string) error {
 // mission's, which is logged and rendered once it's submitted.
 func (s Store) Unsubmit(id string) (*Review, error) {
 	if s.ofMission() {
-		return nil, errors.New("a mission's review isn't taken back once it's submitted")
+		return nil, errors.New("a submitted mission review cannot be taken back")
 	}
 	var r *Review
 	err := s.write(func(tx *store.Tx) error {
@@ -458,7 +458,7 @@ func (s Store) Unsubmit(id string) (*Review, error) {
 			return err
 		}
 		if draft != nil {
-			return fmt.Errorf("there's a newer draft review of %s: post or discard that one first", r.Capsule)
+			return fmt.Errorf("%s has a newer draft review: post or discard it first", r.Capsule)
 		}
 		r.State, r.Verdict, r.Submitted = Draft, "", nil
 		return s.saveIn(tx, r)
@@ -487,7 +487,7 @@ func (s Store) submit(capsule, verdict, summary string, at time.Time, start func
 		ok = ok || v == verdict
 	}
 	if !ok {
-		return nil, fmt.Errorf("a review ends with %s, not %q", strings.Join(Verdicts, ", "), verdict)
+		return nil, fmt.Errorf("verdict must be %s, not %q", strings.Join(Verdicts, ", "), verdict)
 	}
 	var r *Review
 	err := s.write(func(tx *store.Tx) error {
@@ -501,7 +501,7 @@ func (s Store) submit(capsule, verdict, summary string, at time.Time, start func
 			}
 		}
 		if verdict != Approve && len(r.Comments) == 0 && strings.TrimSpace(summary) == "" {
-			return errors.New("say what needs changing: comment on the lines, or write a summary")
+			return errors.New("say what needs changing: add a comment or a summary")
 		}
 		if err := set(r); err != nil {
 			return err

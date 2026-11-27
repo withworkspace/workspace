@@ -109,18 +109,18 @@ func (x Action) WhyNot(kind string, fields map[string]string) string {
 	case x.Applies(kind, fields):
 		return ""
 	case x.On == "":
-		return "it's run on nothing in particular"
+		return "runs on nothing in particular"
 	case kind == "":
-		return "it's run on a " + x.On
+		return "runs on a " + x.On
 	case normalKind(x.On) != normalKind(kind):
-		return fmt.Sprintf("it's run on a %s, not a %s", x.On, kind)
+		return fmt.Sprintf("runs on a %s, not a %s", x.On, kind)
 	}
 	var said []string
 	for _, k := range sortedWhere(x.Where) {
 		v, _ := fieldOf(fields, k)
 		said = append(said, fmt.Sprintf("%s is %q, not %s", k, v, strings.Join(x.Where[k], " or ")))
 	}
-	return "it's for those whose " + strings.Join(said, ", ")
+	return "only for those whose " + strings.Join(said, ", ")
 }
 
 func sortedWhere(w map[string][]string) []string {
@@ -157,7 +157,7 @@ func (x Action) ReadInput(in map[string]any) (map[string]any, error) {
 				out[f.Name] = false
 				continue
 			}
-			return nil, fmt.Errorf("%s asks for %s", x.Title, f.Name)
+			return nil, fmt.Errorf("%s needs %s", x.Title, f.Name)
 		}
 		got, err := f.read(v)
 		if err != nil {
@@ -167,7 +167,7 @@ func (x Action) ReadInput(in map[string]any) (map[string]any, error) {
 	}
 	for k := range in {
 		if !x.asks(k) {
-			return nil, fmt.Errorf("%s asks for no %s", x.Title, k)
+			return nil, fmt.Errorf("%s does not take %s", x.Title, k)
 		}
 	}
 	return out, nil
@@ -188,7 +188,7 @@ func (f InputField) read(v any) (any, error) {
 	switch f.Type {
 	case "text":
 		if !isString {
-			return nil, fmt.Errorf("it's words, not %v", v)
+			return nil, fmt.Errorf("must be text, not %v", v)
 		}
 		return s, nil
 	case "bool":
@@ -198,7 +198,7 @@ func (f InputField) read(v any) (any, error) {
 		if b, err := strconv.ParseBool(s); isString && err == nil {
 			return b, nil
 		}
-		return nil, fmt.Errorf("it's yes or no, not %v", v)
+		return nil, fmt.Errorf("must be yes or no, not %v", v)
 	case "int", "number":
 		n, ok := v.(float64)
 		if isString {
@@ -206,7 +206,7 @@ func (f InputField) read(v any) (any, error) {
 			n, ok = p, err == nil
 		}
 		if !ok || (f.Type == "int" && n != math.Trunc(n)) {
-			return nil, fmt.Errorf("it's %s, not %v", map[string]string{"int": "a whole number", "number": "a number"}[f.Type], v)
+			return nil, fmt.Errorf("must be %s, not %v", map[string]string{"int": "a whole number", "number": "a number"}[f.Type], v)
 		}
 		return n, nil
 	case "choice":
@@ -215,9 +215,9 @@ func (f InputField) read(v any) (any, error) {
 				return c, nil
 			}
 		}
-		return nil, fmt.Errorf("it's one of %s, not %v", strings.Join(f.Choices, ", "), v)
+		return nil, fmt.Errorf("must be one of %s, not %v", strings.Join(f.Choices, ", "), v)
 	}
-	return nil, fmt.Errorf("its type %q isn't one there is", f.Type)
+	return nil, fmt.Errorf("unknown type %q", f.Type)
 }
 
 // actionBuiltin is action(title, on = "kind", input = {...}, **where): an
@@ -227,11 +227,11 @@ func (f InputField) read(v any) (any, error) {
 func actionBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	x := &Action{}
 	if len(args) != 1 {
-		return nil, fmt.Errorf(`action says what it's called, as action("Is it ready to build?", on = "sketch")`)
+		return nil, fmt.Errorf(`action needs a title, as action("Is it ready to build?", on = "sketch")`)
 	}
 	title, ok := starlark.AsString(args[0])
 	if !ok || strings.TrimSpace(title) == "" {
-		return nil, fmt.Errorf(`action's title is words, as action("Is it ready to build?")`)
+		return nil, fmt.Errorf(`action's title must be text, as action("Is it ready to build?")`)
 	}
 	x.Title = strings.TrimSpace(title)
 	for _, kv := range kwargs {
@@ -244,7 +244,7 @@ func actionBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 			}
 			x.On = normalKind(on)
 			if x.On == "" {
-				return nil, fmt.Errorf("action: on is a kind of thing, as \"pr\" or \"jira:issue\": leave it out for one run on nothing")
+				return nil, fmt.Errorf("action: on is a kind of thing, as \"pr\" or \"jira:issue\": leave out to run on nothing")
 			}
 		case "input":
 			fields, err := inputOf(kv[1])
@@ -272,7 +272,7 @@ func actionBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		}
 	}
 	if x.On == "" && len(x.Where) > 0 {
-		return nil, fmt.Errorf("action: which things (%s) is for those of a kind: say it, as on = \"pr\"", strings.Join(sortedWhere(x.Where), ", "))
+		return nil, fmt.Errorf("action: filtering on %s needs a kind, as on = \"pr\"", strings.Join(sortedWhere(x.Where), ", "))
 	}
 	return matchValue{m: events.Match{Kind: events.ActionRun}, action: x}, nil
 }
@@ -282,7 +282,7 @@ func actionBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 func inputOf(v starlark.Value) ([]InputField, error) {
 	d, ok := v.(*starlark.Dict)
 	if !ok {
-		return nil, fmt.Errorf("input is a dict of what it asks, as {\"note\": \"text\"}")
+		return nil, fmt.Errorf("input is a dict of fields, as {\"note\": \"text\"}")
 	}
 	var out []InputField
 	for _, item := range d.Items() {
@@ -296,12 +296,12 @@ func inputOf(v starlark.Value) ([]InputField, error) {
 			case "text", "bool", "int", "number":
 				out = append(out, InputField{Name: k, Type: string(t)})
 			default:
-				return nil, fmt.Errorf("input: %s is %q: a field's \"text\", \"bool\", \"int\", \"number\", or a list of the words it's one of", k, string(t))
+				return nil, fmt.Errorf("input: %s is %q: a field is \"text\", \"bool\", \"int\", \"number\", or a list of choices", k, string(t))
 			}
 		case *starlark.List:
 			words := stringsOf(t)
 			if len(words) < 2 || len(words) != t.Len() {
-				return nil, fmt.Errorf("input: %s is one of a list of two or more words", k)
+				return nil, fmt.Errorf("input: %s needs a list of two or more choices", k)
 			}
 			out = append(out, InputField{Name: k, Type: "choice", Choices: words})
 		default:

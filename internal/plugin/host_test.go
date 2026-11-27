@@ -256,7 +256,7 @@ func TestBadgeAndChanged(t *testing.T) {
 func TestRefusals(t *testing.T) {
 	root, h := workspace(t)
 	add(t, root, "taker", fakeplugin.Options{Command: "status"})
-	if _, err := h.Refresh("taker"); err == nil || !strings.Contains(err.Error(), "ws's own command") {
+	if _, err := h.Refresh("taker"); err == nil || !strings.Contains(err.Error(), "is a built-in command") {
 		t.Errorf("a plugin taking ws's command: %v", err)
 	}
 	if st := h.Status("taker"); st.State != plugin.Failed {

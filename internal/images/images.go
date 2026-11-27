@@ -30,7 +30,7 @@ const Most = 20 << 20
 var ErrNotPicture = errors.New("not a picture: paste a PNG, JPEG, GIF or WebP")
 
 // ErrTooBig is a picture over Most.
-var ErrTooBig = fmt.Errorf("too large: a picture is at most %d MB", Most>>20)
+var ErrTooBig = fmt.Errorf("too large: maximum %d MB", Most>>20)
 
 // kinds are the pictures an agent's model reads, and what each is saved as.
 var kinds = map[string]string{

@@ -128,7 +128,7 @@ func (s *Server) reserve(key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closing {
-		return errors.New("server is shutting down")
+		return errors.New("Workspace is shutting down")
 	}
 	if s.taken(key) {
 		return fmt.Errorf("crew %s is %w", key, crew.ErrRunning)

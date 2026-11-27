@@ -124,12 +124,12 @@ func shapeOf(v starlark.Value) (Shape, error) {
 			case "bool", "int", "number", "text":
 				out[k] = string(t)
 			default:
-				return nil, fmt.Errorf("answer: %s is %q: a field's \"bool\", \"int\", \"number\", \"text\", or a list of the words it's one of", k, string(t))
+				return nil, fmt.Errorf("answer: %s is %q: a field is \"bool\", \"int\", \"number\", \"text\", or a list of choices", k, string(t))
 			}
 		case *starlark.List:
 			words := stringsOf(t)
 			if len(words) < 2 || len(words) != t.Len() {
-				return nil, fmt.Errorf("answer: %s is one of a list of two or more words", k)
+				return nil, fmt.Errorf("answer: %s needs a list of two or more choices", k)
 			}
 			out[k] = words
 		default:
@@ -137,7 +137,7 @@ func shapeOf(v starlark.Value) (Shape, error) {
 		}
 	}
 	if len(out) == 0 {
-		return nil, fmt.Errorf("answer has no fields: leave it out for words")
+		return nil, fmt.Errorf("answer has no fields: leave out for a plain-text answer")
 	}
 	return out, nil
 }
@@ -206,26 +206,26 @@ func sortedKeys(m map[string]any) []string {
 func readAnswer(said string, shape Shape) (any, error) {
 	said = strings.TrimSpace(said)
 	if said == "" {
-		return nil, errors.New("it said nothing")
+		return nil, errors.New("the agent said nothing")
 	}
 	if shape == nil {
 		return said, nil
 	}
 	start, end := strings.Index(said, "{"), strings.LastIndex(said, "}")
 	if start < 0 || end < start {
-		return nil, fmt.Errorf("it didn't answer with a JSON object: %s", clipped(said, 200))
+		return nil, fmt.Errorf("the agent did not answer with a JSON object: %s", clipped(said, 200))
 	}
 	var got map[string]any
 	if err := json.Unmarshal([]byte(said[start:end+1]), &got); err != nil {
-		return nil, fmt.Errorf("its answer isn't JSON: %v", err)
+		return nil, fmt.Errorf("answer is not JSON: %v", err)
 	}
 	out := map[string]any{}
 	for _, k := range shape.fields() {
 		v, ok := got[k]
 		if !ok || v == nil {
-			return nil, fmt.Errorf("its answer has no %s", k)
+			return nil, fmt.Errorf("answer has no %s", k)
 		}
-		bad := fmt.Errorf("its answer's %s isn't %s: %v", k, shape.said(k), v)
+		bad := fmt.Errorf("answer's %s is not %s: %v", k, shape.said(k), v)
 		switch t := shape[k].(type) {
 		case string:
 			switch t {
@@ -287,7 +287,7 @@ func clipped(s string, n int) string {
 // shape asked (words, without one), or None where there's no answer.
 func (r *run) ask(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if !r.a.Allows(MayAsk) {
-		return nil, fmt.Errorf("ask: it may not (may = [\"ask\"] says it may)")
+		return nil, fmt.Errorf("ask: not allowed without may = [\"ask\"]")
 	}
 	var question string
 	var answer starlark.Value
@@ -296,7 +296,7 @@ func (r *run) ask(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, err
 	}
 	if strings.TrimSpace(question) == "" {
-		return nil, fmt.Errorf("ask: ask something")
+		return nil, fmt.Errorf("ask: question is empty")
 	}
 	shape, err := shapeOf(answer)
 	if err != nil {
@@ -318,7 +318,7 @@ func (r *run) ask(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	if r.dry != nil {
 		// A dry run asks no one: what it'd ask is said, and it's None.
 		r.dry.did = append(r.dry.did, "ask: "+clipped(question, 120))
-		kept, _ := json.Marshal(outcome{Why: "a dry run asks no one"})
+		kept, _ := json.Marshal(outcome{Why: "not asked in a dry run"})
 		if err := r.keepStep(n, "ask", "done", string(kept)); err != nil {
 			return nil, err
 		}
@@ -369,9 +369,9 @@ func (r *run) ask(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 func (r *run) answered(result string) (starlark.Value, error) {
 	var o outcome
 	if strings.TrimSpace(result) == "null" {
-		o.Why = fmt.Sprintf("no answer came in %s", shortDuration(askWaitsFor))
+		o.Why = fmt.Sprintf("no answer within %s", shortDuration(askWaitsFor))
 	} else if err := json.Unmarshal([]byte(result), &o); err != nil {
-		return nil, fmt.Errorf("ask: what it came to can't be read: %w", err)
+		return nil, fmt.Errorf("ask: could not read the result: %w", err)
 	}
 	if strings.HasPrefix(o.Why, overBudget) {
 		return nil, fmt.Errorf("ask: %s", o.Why)
@@ -512,12 +512,12 @@ func (e *Engine) asksPass() []string {
 			break
 		}
 		if e.Hooks.Ask == nil {
-			_ = endAsk(e.Root, a.ID, nil, "there's no agent here to ask", now)
+			_ = endAsk(e.Root, a.ID, nil, "no agent available to ask", now)
 			continue
 		}
 		if budget > 0 && e.Hooks.Spent != nil {
 			if spent, err := e.Hooks.Spent(a.Name, dayStart(now)); err == nil && spent >= budget {
-				why := fmt.Sprintf("%s: it's spent %s of its %s tokens today ([automations] ask_budget)", overBudget, tokens(spent), tokens(budget))
+				why := fmt.Sprintf("%s: spent %s of %s tokens today ([automations] ask_budget)", overBudget, tokens(spent), tokens(budget))
 				_ = endAsk(e.Root, a.ID, nil, why, now)
 				said = append(said, fmt.Sprintf("%s's ask: %s", a.Name, why))
 				continue
@@ -547,7 +547,7 @@ func (e *Engine) answer(a AskInfo) {
 	case errors.Is(err, ErrAskAgain):
 		_ = setAsk(e.Root, a.ID, TaskQueued, now)
 	case err != nil:
-		_ = endAsk(e.Root, a.ID, nil, "its agent couldn't answer: "+err.Error(), now)
+		_ = endAsk(e.Root, a.ID, nil, "the agent could not answer: "+err.Error(), now)
 	default:
 		v, err := readAnswer(said, a.Shape)
 		if err != nil {

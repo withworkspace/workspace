@@ -153,9 +153,9 @@ func (h *Host) callPlugin(ctx context.Context, p *proc, name, method string, in,
 	case errors.As(err, &re):
 		return fmt.Errorf("%s: %s", name, re.Message)
 	case errors.Is(err, acp.ErrClosed):
-		return fmt.Errorf("%s stopped while it was doing it: see %s", name, LogPath(h.Root, name))
+		return fmt.Errorf("%s stopped mid-action: see %s", name, LogPath(h.Root, name))
 	case errors.Is(err, context.DeadlineExceeded):
-		return fmt.Errorf("%s hadn't done it in %s", name, actTimeout)
+		return fmt.Errorf("%s did not finish within %s", name, actTimeout)
 	}
 	return err
 }

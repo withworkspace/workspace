@@ -49,7 +49,7 @@ func TestAutomation_ProposedInATalkAndAccepted(t *testing.T) {
 		t.Errorf("added by the agent itself: %v", r.Err)
 	}
 	testutil.WithStdin(t, `when = event("pr.mergd")`)
-	if r := testutil.RunCommand(t, w.Root, nil, "automation", "add", "--propose", "--name", "bad", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "not proposed: bad.star:1:") || !strings.Contains(r.Err.Error(), `"pr.mergd" isn't a kind of event`) {
+	if r := testutil.RunCommand(t, w.Root, nil, "automation", "add", "--propose", "--name", "bad", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "not proposed: bad.star:1:") || !strings.Contains(r.Err.Error(), `"pr.mergd" is not an event kind`) {
 		t.Errorf("a bad one: %v", r.Err)
 	}
 	testutil.WithStdin(t, proposedDrawing)

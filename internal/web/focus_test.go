@@ -46,7 +46,7 @@ func TestFocusAPI(t *testing.T) {
 	if code, d, raw := post(map[string]string{"unpin": "demo#12"}); code != http.StatusOK || d.Said != "Unpinned demo#12." || len(d.Focus) != 1 {
 		t.Errorf("unpin: %d %s", code, raw)
 	}
-	if code, _, raw := post(map[string]string{"pin": "nothing-here"}); code != http.StatusUnprocessableEntity || !strings.Contains(raw, "nothing called nothing-here") {
+	if code, _, raw := post(map[string]string{"pin": "nothing-here"}); code != http.StatusUnprocessableEntity || !strings.Contains(raw, "nothing named nothing-here") {
 		t.Errorf("pinning what isn't there: %d %s", code, raw)
 	}
 	if code, _, raw := post(map[string]any{"pin": "cache", "unpin": "cache"}); code != http.StatusBadRequest {

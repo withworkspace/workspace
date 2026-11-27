@@ -699,7 +699,7 @@ func (s Store) Find(ref, repo, worktree string) (Run, error) {
 		// One run of a task, by its number: the latest, or one behind it.
 		k, err := strconv.Atoi(n)
 		if err != nil || k < 1 {
-			return Run{}, fmt.Errorf("%s: after # is which run of a task, a number from 1", ref)
+			return Run{}, fmt.Errorf("%s: the number after # must be 1 or more", ref)
 		}
 		r, err := s.Find(at, repo, worktree)
 		if err != nil {
@@ -713,7 +713,7 @@ func (s Store) Find(ref, repo, worktree string) (Run, error) {
 				return p, nil
 			}
 		}
-		return Run{}, fmt.Errorf("no run %d of %s is kept (its latest is %d, with %d behind it)", k, r.Ref(), r.N, r.Past)
+		return Run{}, fmt.Errorf("no run %d of %s (latest is %d, with %d kept before it)", k, r.Ref(), r.N, r.Past)
 	}
 	runs, err := s.List()
 	if err != nil {
@@ -736,13 +736,13 @@ func (s Store) Find(ref, repo, worktree string) (Run, error) {
 	case 1:
 		return match[0], nil
 	case 0:
-		return Run{}, fmt.Errorf("no run %s (ws run ls lists them)", ref)
+		return Run{}, fmt.Errorf("no run %s (see ws run ls)", ref)
 	}
 	var refs []string
 	for _, r := range match {
 		refs = append(refs, r.Ref())
 	}
-	return Run{}, fmt.Errorf("there are runs named %s in several places: say which (%s)", ref, strings.Join(refs, ", "))
+	return Run{}, fmt.Errorf("several runs named %s: say which (%s)", ref, strings.Join(refs, ", "))
 }
 
 // Looking is the pages someone has open that runs owned by looking are

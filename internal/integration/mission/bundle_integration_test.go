@@ -171,7 +171,7 @@ func TestBundle_ApprovedAndSentBack(t *testing.T) {
 	testutil.WithStdin(t, bundle)
 	testutil.Run(t, w, nil, "mission", "bundle", "--set", "-")
 	t.Setenv(mission.EnvCrew, "")
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "bundle", "approve", "b1"); r.Err == nil || !strings.Contains(r.Err.Error(), "b2 has taken b1's place") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "bundle", "approve", "b1"); r.Err == nil || !strings.Contains(r.Err.Error(), "b2 replaced b1") {
 		t.Errorf("approved one that's replaced: %v", r.Err)
 	}
 	r = testutil.Run(t, w, nil, "mission", "bundle", "approve", "b2")

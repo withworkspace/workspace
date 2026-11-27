@@ -65,7 +65,7 @@ func TestSetPlan(t *testing.T) {
 	}
 	// A capsule it names that the mission hasn't is warned of.
 	set, _ = w.SetPlan("cache", strings.Replace(cachePlan, "frontend/two", "frontend/three", 1), AsYou)
-	if len(set.Warnings) != 1 || !strings.Contains(set.Warnings[0], "step 3 names `frontend/three`, which isn't one of the mission's capsules (yet): ws lift frontend three, or change the plan") {
+	if len(set.Warnings) != 1 || !strings.Contains(set.Warnings[0], "step 3 names `frontend/three`, not a capsule of the mission yet: ws lift frontend three, or change the plan") {
 		t.Errorf("warnings = %q", set.Warnings)
 	}
 	// Briefing, the planner may write it.
@@ -89,11 +89,11 @@ func TestPlanSteps(t *testing.T) {
 
 	// Step 1 done: step 2 is yours.
 	acc, err := w.AcceptStage("cache", AsOrchestrator, "the proposal's written")
-	if err != nil || acc.String() != "Accepted step 1: step 2 is the user's, to review: they're asked, and their review approving what it looks at, or going on, passes it." {
+	if err != nil || acc.String() != "Accepted step 1: step 2 waits for the user's review." {
 		t.Fatalf("accept 1: %s, %v", acc, err)
 	}
 	m, _ := w.Missions.Load("cache")
-	if m.Asking() == nil || m.Asking().Step != 2 || m.Asking().Text != "Step 1 is done. Step 2 is yours, to review: Is the proposal right? Read what the crew found (their handoffs), and go on when you're satisfied; say what's to change, and it goes back to them." {
+	if m.Asking() == nil || m.Asking().Step != 2 || m.Asking().Text != "Step 1 is done. Step 2 is yours to review: Is the proposal right? Read what the crew found (their handoffs), then go on, or say what to change and it goes back to them." {
 		t.Errorf("the checkpoint's question = %+v", m.Asking())
 	}
 	// The orchestrator can't pass it, nor send crew to it.
@@ -117,14 +117,14 @@ func TestPlanSteps(t *testing.T) {
 	// Step 3 done: step 4 is waited for, and accepted once it's happened.
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "built it")
 	acc, err = w.AcceptStage("cache", AsOrchestrator, "built")
-	if err != nil || !strings.Contains(acc.Next, "step 4 waits on a teammate's review, and nobody's watching for it: it's passed when someone says it's happened") {
+	if err != nil || !strings.Contains(acc.Next, "step 4 waits on a teammate's review, unwatched: passes when marked done") {
 		t.Fatalf("accept 3: %s, %v", acc, err)
 	}
 	if m, _ := w.Missions.Load("cache"); m.Asking() != nil {
 		t.Errorf("asked the user about an outside step: %+v", m.Asking())
 	}
 	acc, err = w.AcceptStage("cache", AsOrchestrator, "merged")
-	if err != nil || !strings.Contains(acc.Next, "that was the plan's last step: the mission is at Z") {
+	if err != nil || !strings.Contains(acc.Next, "that was the plan's last step: check each part of Z, then say how the mission ends") {
 		t.Errorf("accept 4: %s, %v", acc, err)
 	}
 }
@@ -136,7 +136,7 @@ func TestCheckpointAcceptedByYou(t *testing.T) {
 	w.Missions.WritePlan("cache", "## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Look at it.\n   - who: you\n2. The planner plans.\n   - who: the planner\n")
 	w.Missions.AskAtStep("cache", mission.TaskApprove, "Step 1 is yours", 1)
 	acc, err := w.AcceptStage("cache", AsYou, "")
-	if err != nil || !strings.Contains(acc.Next, "step 2 is the planner's: it's asked, in t1, to write the steps after it") {
+	if err != nil || !strings.Contains(acc.Next, "step 2 is the planner's: asked in t1 to write the next steps") {
 		t.Fatalf("accept: %s, %v", acc, err)
 	}
 	m, _ := w.Missions.Load("cache")

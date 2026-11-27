@@ -89,7 +89,7 @@ func (c *Cursor) bin() (string, error) {
 			return p, nil
 		}
 	}
-	return "", fmt.Errorf("cursor CLI not found (looked for %s; set %s to override)", strings.Join(cursorBinaries, ", "), EnvCursorBin)
+	return "", fmt.Errorf("could not find cursor CLI (looked for %s; set %s to override)", strings.Join(cursorBinaries, ", "), EnvCursorBin)
 }
 
 func (c *Cursor) Available() error {
@@ -121,7 +121,7 @@ func (c *Cursor) Start(b Brief) (Launch, error) {
 
 func (c *Cursor) Resume(dir, conversation string) (Launch, error) {
 	if conversation == "" {
-		return Launch{}, errors.New("no cursor chat id recorded for this crew, so it can't be resumed")
+		return Launch{}, errors.New("cannot resume: no Cursor chat recorded for this crew")
 	}
 	bin, err := c.bin()
 	if err != nil {

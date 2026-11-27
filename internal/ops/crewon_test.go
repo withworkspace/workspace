@@ -32,7 +32,7 @@ func TestCrewOn_HeldToAllowed(t *testing.T) {
 	plan := "## Z\n- Fixed.\n## Stops early\n- None.\n## Steps\n1. Work: fix it.\n   - in: `frontend/one`\n   - on: fake-crew:big\n2. Review: it.\n"
 	w, _, host := reposFixture(t, plan)
 	_, err := w.CheckPlan(plan)
-	if err == nil || !strings.Contains(err.Error(), "line 6: step 1's on: fake-crew:big isn't what crew may run on here: [crew] allowed lists fake-crew (the default)") {
+	if err == nil || !strings.Contains(err.Error(), "line 6: step 1's on: fake-crew:big is not in [crew] allowed (fake-crew (default))") {
 		t.Fatalf("not allowed: %v", err)
 	}
 	w.Config().Crew.Allowed = []string{"fake-crew:big"}
@@ -52,7 +52,7 @@ func TestCrewOn_HeldToAllowed(t *testing.T) {
 	// Not allowed any more: the plan's on: is passed over for crew's own.
 	w.Config().Crew.Allowed = nil
 	said, err := w.Repeat("cache", "", "", "again, as it was", AsYou)
-	if err != nil || !strings.Contains(said, "(on crew's own: fake-crew:big isn't in [crew] allowed)") {
+	if err != nil || !strings.Contains(said, "(on crew default: fake-crew:big not in [crew] allowed)") {
 		t.Fatalf("again: %q, %v", said, err)
 	}
 	if m, _ = w.Missions.Load("cache"); m.Crew[1].Model != "" {
@@ -74,7 +74,7 @@ func TestCrewOn_AGuarantee(t *testing.T) {
 	for _, g := range w.Guarantees() {
 		said = append(said, g.Key+": "+g.What)
 	}
-	if !strings.Contains(strings.Join(said, "\n"), "crew.allowed: crew run only on what [crew] allowed lists: fake-crew (the default), claude:sonnet") {
+	if !strings.Contains(strings.Join(said, "\n"), "crew.allowed: crew run only on what [crew] allowed lists: fake-crew (default), claude:sonnet") {
 		t.Errorf("guarantees: %v", said)
 	}
 }

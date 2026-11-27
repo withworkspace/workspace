@@ -116,7 +116,7 @@ type Harness interface {
 }
 
 // ErrNoResume is returned by harnesses that can't resume a conversation.
-var ErrNoResume = errors.New("this harness can't resume conversations")
+var ErrNoResume = errors.New("cannot resume this crew")
 
 var registry = map[string]Harness{}
 
@@ -131,7 +131,7 @@ func Get(name string) (Harness, error) {
 	if h, ok := registry[name]; ok {
 		return h, nil
 	}
-	return nil, fmt.Errorf("unknown harness %q (have %s)", name, strings.Join(Names(), ", "))
+	return nil, fmt.Errorf("unknown harness %q (available: %s)", name, strings.Join(Names(), ", "))
 }
 
 // Names lists the registered harnesses.

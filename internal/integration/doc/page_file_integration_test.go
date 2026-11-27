@@ -72,7 +72,7 @@ func TestPages_FilingAPageLandsItWhereItsKindSays(t *testing.T) {
 	if len(entries) != 2 {
 		t.Errorf("a capsule was left: %v", entries)
 	}
-	if _, err := file(p.ID, web.PageFile{Kind: "adr"}); err == nil || !strings.Contains(err.Error(), "filed already") {
+	if _, err := file(p.ID, web.PageFile{Kind: "adr"}); err == nil || !strings.Contains(err.Error(), "already filed as") {
 		t.Errorf("filing it again: %v", err)
 	}
 	a := openDoc(t, w, "records:adr/0008-how-loud.md")
@@ -90,10 +90,10 @@ func TestPages_FilingIntoAPRRepoLeavesACapsule(t *testing.T) {
 	p, _ := ps.New([]byte("Caching, in short.\n"))
 	file := testutil.FilePage(w.Root, time.Date(2026, 11, 11, 9, 0, 0, 0, time.Local))
 
-	if _, err := file(p.ID, web.PageFile{Kind: "note"}); err == nil || !strings.Contains(err.Error(), "give it a title") {
+	if _, err := file(p.ID, web.PageFile{Kind: "note"}); err == nil || !strings.Contains(err.Error(), "add a title") {
 		t.Errorf("no heading and no title: %v", err)
 	}
-	if _, err := file(p.ID, web.PageFile{Kind: "bp", Title: "Caching"}); err == nil || !strings.Contains(err.Error(), "no kind of document named") {
+	if _, err := file(p.ID, web.PageFile{Kind: "bp", Title: "Caching"}); err == nil || !strings.Contains(err.Error(), "no document kind") {
 		t.Errorf("a kind it hasn't: %v", err)
 	}
 	done, err := file(p.ID, web.PageFile{Kind: "note", Title: "Caching requirements", Message: "Note what caching needs"})
@@ -119,7 +119,7 @@ func TestPages_FilingIntoAPRRepoLeavesACapsule(t *testing.T) {
 		t.Errorf("a file there already: %v", err)
 	}
 	empty, _ := ps.New(nil)
-	if _, err := file(empty.ID, web.PageFile{Kind: "note", Title: "x"}); err == nil || !strings.Contains(err.Error(), "nothing in it") {
+	if _, err := file(empty.ID, web.PageFile{Kind: "note", Title: "x"}); err == nil || !strings.Contains(err.Error(), "is empty: nothing to file") {
 		t.Errorf("an empty page: %v", err)
 	}
 }
@@ -136,7 +136,7 @@ func TestLand_ANumberTakenMeanwhileStops(t *testing.T) {
 
 	r := testutil.RunCommand(t, w.Root, nil, "land", "records", "quiet")
 
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "adr/0008-quiet-hours.md takes number 0008, which adr/0008-loud-hours.md has on main") || !strings.Contains(r.Err.Error(), "Renumber it 0009 (git mv adr/0008-quiet-hours.md adr/0009-quiet-hours.md") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "adr/0008-quiet-hours.md takes number 0008, which adr/0008-loud-hours.md has on main") || !strings.Contains(r.Err.Error(), "Renumber to 0009 (git mv adr/0008-quiet-hours.md adr/0009-quiet-hours.md") {
 		t.Errorf("ws land: %v", r.Err)
 	}
 	if got := testutil.Subjects(t, w.Sources["records"], "main"); got != before {
@@ -184,7 +184,7 @@ func TestPages_FilingAPageOfNoKindToAFolder(t *testing.T) {
 	ps := page.Store{Root: w.Root}
 	p, _ := ps.New([]byte("# Release checklist\n\nWhat to check.\n"))
 	file := testutil.FilePage(w.Root, time.Date(2026, 11, 11, 9, 0, 0, 0, time.Local))
-	if _, err := file(p.ID, web.PageFile{Dry: true}); err == nil || !strings.Contains(err.Error(), "say where") {
+	if _, err := file(p.ID, web.PageFile{Dry: true}); err == nil || !strings.Contains(err.Error(), "choose where") {
 		t.Fatalf("filed nowhere: %v", err)
 	}
 	ps.SetMeta(p.ID, page.Meta{To: "records:guides/"})

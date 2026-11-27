@@ -43,7 +43,7 @@ func (s Store) OpenAskTurn(anchor Anchor, t Turn) (*Conversation, error) {
 	case t.Body == "":
 		return nil, errors.New("say something")
 	case anchor.Doc == "" && anchor.PR == "" && anchor.Thing == "":
-		return nil, errors.New("an ask is about a document, a pull request or a plugin's thing: its ref")
+		return nil, errors.New("an ask needs a ref: a document, a pull request or a plugin's thing")
 	}
 	if q := anchor.Quote; q != nil {
 		anchor.Quote = &Quote{Exact: clipRunes(q.Exact, quoteMax), Prefix: lastRunes(q.Prefix, contextMax), Suffix: clipRunes(q.Suffix, contextMax)}

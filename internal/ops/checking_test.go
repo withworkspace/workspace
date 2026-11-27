@@ -89,7 +89,7 @@ func TestChecks_WhatsRunningIsKeptAndLogged(t *testing.T) {
 	heads := mission.Resolve(mission.Snapshot{M: m, State: mission.Active, OrchestratorOff: true})
 	if !slices.ContainsFunc(heads, func(h mission.Headline) bool {
 		return h.Kind == mission.KindChecking && strings.HasPrefix(h.Text, "Check 1 of 2 for step 1: `"+slowCheck+"`, ") &&
-			strings.Contains(h.Text, "(stopped at 15m). Last line: “ok  internal/cli  4.2s”. The judge reads check 2 after")
+			strings.Contains(h.Text, "(limit 15m). Last line: “ok  internal/cli  4.2s”. The judge reads check 2 after")
 	}) {
 		t.Errorf("headlines: %+v", heads)
 	}

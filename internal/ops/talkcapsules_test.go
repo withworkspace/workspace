@@ -235,7 +235,7 @@ func TestProposedMissionJoinsACapsuleLiftedAlready(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(said, "Joined api/parallel-tests, lifted already.") || strings.Contains(said, "Couldn't") {
+	if !strings.Contains(said, "Joined api/parallel-tests, already lifted.") || strings.Contains(said, "Couldn't") {
 		t.Errorf("accepting it said %q", said)
 	}
 	m, ok := w.Missions.FindByCapsule("api", "parallel-tests")

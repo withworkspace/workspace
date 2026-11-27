@@ -301,10 +301,10 @@ func TestAPluginAsksWSForItsThingsInASpace(t *testing.T) {
 	// Nothing by that name, a kind that isn't its own, and another
 	// plugin's: each is said.
 	for params, want := range map[string]string{
-		`{"kind":"sketch","name":"records/sketches/gone/"}`:   "ws has no sketch at",
-		`{"kind":"sketch","name":"records/sketches/arch"}`:    "ws has no sketch at",
+		`{"kind":"sketch","name":"records/sketches/gone/"}`:   "no sketch at",
+		`{"kind":"sketch","name":"records/sketches/arch"}`:    "no sketch at",
 		`{"kind":"issue","name":"records/sketches/arch/"}`:    "has no kind",
-		`{"kind":"sketch","name":"../records/sketches/arch"}`: "ws has no sketch at",
+		`{"kind":"sketch","name":"../records/sketches/arch"}`: "no sketch at",
 	} {
 		if err := ask("sketch", protocol.MethodRemoteOpen, params, &opened); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("open %s: %v, want it to say %q", params, err, want)
@@ -382,7 +382,7 @@ func TestAThingIsPromotedAndSaved(t *testing.T) {
 	// It lives there now: it's saved, not promoted again. Another of the
 	// same title has a folder of its own, and one put where you say is
 	// named after that folder.
-	if _, err := ask(protocol.MethodRemotePromote, `{"kind":"sketch","ref":"sketch-12"}`); err == nil || !strings.Contains(err.Error(), "lives at "+name+" already") {
+	if _, err := ask(protocol.MethodRemotePromote, `{"kind":"sketch","ref":"sketch-12"}`); err == nil || !strings.Contains(err.Error(), "already lives at "+name) {
 		t.Errorf("promoted twice: %v", err)
 	}
 	if again, err := ask(protocol.MethodRemotePromote, `{"kind":"sketch","ref":"sketch-14"}`); err != nil || again.Thing.Name != "records/sketches/release-flow-2/" || again.Thing.Main != "release-flow-2.excalidraw" {
@@ -395,9 +395,9 @@ func TestAThingIsPromotedAndSaved(t *testing.T) {
 	// find it, a thing the plugin hasn't, a kind that isn't its own.
 	r.own["sketch-15"] = &ownSketch{title: "Clash", scene: "x"}
 	for _, c := range [][2]string{
-		{`{"kind":"sketch","ref":"sketch-15","to":"records:design/arch/"}`, "there's something at records:design/arch/ already"},
-		{`{"kind":"sketch","ref":"sketch-15","to":"nowhere:a/b/"}`, "isn't one of the workspace's repos"},
-		{`{"kind":"sketch","ref":"sketch-15","to":"records:../out/"}`, "leads out of"},
+		{`{"kind":"sketch","ref":"sketch-15","to":"records:design/arch/"}`, "records:design/arch/ is already taken"},
+		{`{"kind":"sketch","ref":"sketch-15","to":"nowhere:a/b/"}`, "nowhere is not a repo in this workspace"},
+		{`{"kind":"sketch","ref":"sketch-15","to":"records:../out/"}`, "is not a folder inside"},
 		{`{"kind":"sketch","ref":"sketch-99"}`, "nothing by that name"},
 		{`{"kind":"issue","ref":"sketch-15"}`, "has no kind"},
 	} {
@@ -405,7 +405,7 @@ func TestAThingIsPromotedAndSaved(t *testing.T) {
 			t.Errorf("promote %s: %v, want it to say %q", c[0], err, c[1])
 		}
 	}
-	if _, err := ask(protocol.MethodRemoteSave, `{"kind":"sketch","ref":"sketch-15"}`); err == nil || !strings.Contains(err.Error(), "isn't in a repo: promote it first") {
+	if _, err := ask(protocol.MethodRemoteSave, `{"kind":"sketch","ref":"sketch-15"}`); err == nil || !strings.Contains(err.Error(), "is not in a repo: promote it first") {
 		t.Errorf("one that isn't in a repo, saved: %v", err)
 	}
 
@@ -532,7 +532,7 @@ func TestWhereAKindsThingsGo(t *testing.T) {
 		t.Fatalf("offered, with a ws.local.toml beside ws.toml: %s", got)
 	}
 	problems := strings.Join(cli.OpenOps(w.Root, nil).ThingPlaceProblems(), "\n")
-	for _, want := range []string{`[things.note]: no plugin here has a kind "note"`, `[things.sketch] "api:sketches/{slug}/": api isn't a space of documents`, `[things.sketch] "docs:flat/" is a folder for each one`} {
+	for _, want := range []string{`[things.note]: no plugin here has a kind "note"`, `[things.sketch] "api:sketches/{slug}/": api is not a space of documents`, `[things.sketch] "docs:flat/" is a folder for each one`} {
 		if !strings.Contains(problems, want) {
 			t.Errorf("what's wrong with the places lacks %q:\n%s", want, problems)
 		}
@@ -617,7 +617,7 @@ func TestAKindsThingsAreGroupedInFolders(t *testing.T) {
 			t.Errorf("grouped in %q: %v", bad, err)
 		}
 	}
-	if _, err := promote("sketch-1", ops.ThingWhere{Place: "records:elsewhere/{slug}/"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "isn't one of the places") {
+	if _, err := promote("sketch-1", ops.ThingWhere{Place: "records:elsewhere/{slug}/"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is not a place for a sketch") {
 		t.Errorf("a place that isn't one of the kind's: %v", err)
 	}
 
@@ -659,10 +659,10 @@ func TestAKindsThingsAreGroupedInFolders(t *testing.T) {
 	}
 
 	// A thing's folder is the thing's: nothing's put in it, grouped there or named there.
-	if _, err := promote("sketch-4", ops.ThingWhere{Under: "cross-stack/architecture"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is a thing itself") {
+	if _, err := promote("sketch-4", ops.ThingWhere{Under: "cross-stack/architecture"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is a thing already, and things cannot nest") {
 		t.Errorf("grouped in a thing's own folder: %v", err)
 	}
-	if _, err := promote("sketch-4", ops.ThingWhere{To: "records:sketches/cross-stack/architecture/inside/"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is a thing itself") {
+	if _, err := promote("sketch-4", ops.ThingWhere{To: "records:sketches/cross-stack/architecture/inside/"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is a thing already, and things cannot nest") {
 		t.Errorf("put in a thing's own folder: %v", err)
 	}
 	// Where you say is still anywhere in a space, however deep.

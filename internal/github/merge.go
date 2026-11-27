@@ -52,7 +52,7 @@ func (s MergeSettings) Method(want string) string {
 func RepoMergeSettings(org, repo string) (MergeSettings, error) {
 	stdOut, stdErr, err := ghExec("api", "repos/"+repoSlug(org, repo))
 	if err != nil {
-		return MergeSettings{}, fmt.Errorf("asking how %s merges: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
+		return MergeSettings{}, fmt.Errorf("could not read merge settings for %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return parseMergeSettings(stdOut.Bytes())
 }
@@ -66,7 +66,7 @@ func parseMergeSettings(data []byte) (MergeSettings, error) {
 		DeleteBranch bool `json:"delete_branch_on_merge"`
 	}
 	if err := json.Unmarshal(data, &r); err != nil {
-		return MergeSettings{}, fmt.Errorf("reading how the repo merges: %w", err)
+		return MergeSettings{}, fmt.Errorf("could not read merge settings: %w", err)
 	}
 	s := MergeSettings{AutoMerge: r.AutoMerge, DeleteBranch: r.DeleteBranch}
 	for _, m := range []struct {
@@ -136,7 +136,7 @@ func MergePR(org, repo string, number int, ask MergeAsk) (Merging, error) {
 	}
 	stdOut, stdErr, err := ghExec(args...)
 	if err != nil {
-		return Merging{}, fmt.Errorf("merging %s#%d: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return Merging{}, fmt.Errorf("could not merge %s#%d: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return parseMerging(stdOut.Bytes())
 }
@@ -150,7 +150,7 @@ func MergeStatus(org, repo string, number int, id string) (Merging, error) {
 		fmt.Sprintf("repos/%s/pulls/%d/merge-async/%s", repoSlug(org, repo), number, url.PathEscape(id)),
 		"-H", "X-GitHub-Api-Version: "+mergeAsyncVersion)
 	if err != nil {
-		return Merging{}, fmt.Errorf("asking how merging %s#%d went: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return Merging{}, fmt.Errorf("could not check the merge of %s#%d: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	m, err := parseMerging(stdOut.Bytes())
 	if m.ID == "" {
@@ -170,7 +170,7 @@ func parseMerging(data []byte) (Merging, error) {
 		Details json.RawMessage `json:"details"`
 	}
 	if err := json.Unmarshal(data, &r); err != nil {
-		return Merging{}, fmt.Errorf("reading GitHub's answer to the merge: %w", err)
+		return Merging{}, fmt.Errorf("could not read the merge result: %w", err)
 	}
 	m := Merging{ID: r.UUID, Status: strings.ToLower(r.Status)}
 	if m.ID == "" && len(r.ID) > 0 {
@@ -194,7 +194,7 @@ func parseMerging(data []byte) (Merging, error) {
 		}
 	}
 	if m.Status == "" {
-		return m, fmt.Errorf("GitHub's answer to the merge said nothing of how it stands")
+		return m, fmt.Errorf("GitHub returned no merge status")
 	}
 	return m, nil
 }
@@ -246,9 +246,9 @@ func SetAutoMerge(org, repo string, number int, on bool, ask MergeAsk) error {
 		err = graphQLError(stdOut.Bytes())
 	}
 	if err != nil {
-		how := "having %s#%d merge when it's ready: %s"
+		how := "could not turn on auto-merge for %s#%d: %s"
 		if !on {
-			how = "stopping %s#%d merging by itself: %s"
+			how = "could not turn off auto-merge for %s#%d: %s"
 		}
 		return fmt.Errorf(how, repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
@@ -261,7 +261,7 @@ func prNodeID(org, repo string, number int) (string, error) {
 		"-f", `query=query($owner: String!, $repo: String!, $number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $number) { id } } }`,
 		"-f", "owner="+org, "-f", "repo="+repo, "-F", "number="+strconv.Itoa(number))
 	if err != nil {
-		return "", fmt.Errorf("finding %s#%d on GitHub: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return "", fmt.Errorf("could not find %s#%d on GitHub: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	var r struct {
 		Data struct {
@@ -273,7 +273,7 @@ func prNodeID(org, repo string, number int) (string, error) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(stdOut.Bytes(), &r); err != nil || r.Data.Repository.PullRequest.ID == "" {
-		return "", fmt.Errorf("finding %s#%d on GitHub: no such pull request", repo, number)
+		return "", fmt.Errorf("%s#%d not found on GitHub", repo, number)
 	}
 	return r.Data.Repository.PullRequest.ID, nil
 }
@@ -303,7 +303,7 @@ func DeleteBranch(org, repo, branch string) error {
 	stdOut, stdErr, err := ghExec("api", "--method", "DELETE",
 		fmt.Sprintf("repos/%s/git/refs/heads/%s", repoSlug(org, repo), escapeRef(branch)))
 	if err != nil {
-		return fmt.Errorf("deleting %s's branch %s: %s", repo, branch, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return fmt.Errorf("could not delete %s's branch %s: %s", repo, branch, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return nil
 }
@@ -407,7 +407,7 @@ func (c FixtureClient) MergePR(org, repo string, number int, ask MergeAsk) (Merg
 		return nil
 	})
 	if err != nil {
-		return Merging{}, fmt.Errorf("merging %s#%d: %w", repo, number, err)
+		return Merging{}, fmt.Errorf("could not merge %s#%d: %w", repo, number, err)
 	}
 	return Merging{ID: fmt.Sprintf("fixture-%s-%d", repo, number), Status: MergeMerged}, nil
 }

@@ -30,7 +30,7 @@ func AskedByName(org string) ([]PRRef, error) {
 		"--", "user-review-requested:@me",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("gh search prs user-review-requested:@me: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
+		return nil, fmt.Errorf("could not search pull requests asking for your review: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	var found []struct {
 		Number     int `json:"number"`
@@ -40,7 +40,7 @@ func AskedByName(org string) ([]PRRef, error) {
 		} `json:"repository"`
 	}
 	if err := json.Unmarshal(stdOut.Bytes(), &found); err != nil {
-		return nil, fmt.Errorf("parsing gh output: %w", err)
+		return nil, fmt.Errorf("could not read GitHub's answer: %w", err)
 	}
 	out := make([]PRRef, 0, len(found))
 	for _, f := range found {
@@ -90,7 +90,7 @@ func DropReviewRequest(org, repo string, number int, login string) error {
 		fmt.Sprintf("repos/%s/%s/pulls/%d/requested_reviewers", org, repo, number),
 		"-f", "reviewers[]="+login)
 	if err != nil {
-		return fmt.Errorf("taking %s off %s#%d's reviewers on GitHub: %s", login, repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return fmt.Errorf("could not remove %s from %s#%d's reviewers on GitHub: %s", login, repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return nil
 }

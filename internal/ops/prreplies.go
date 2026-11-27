@@ -105,7 +105,7 @@ func (w *Workspace) DraftReply(slug, prRef, thread, to, text string, by Actor) (
 	}
 	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventReplyDrafted, Repo: repo, Crew: by.By(),
 		Text: fmt.Sprintf("drafted a reply on %s, to %s: %s", r.Where(), r.To, clipString(oneLine(r.Text), 200))})
-	task := fmt.Sprintf("%s drafted a reply on %s, to %s: “%s” Post it, as you?", by.By(), r.Where(), r.To, clipString(oneLine(r.Text), 600))
+	task := fmt.Sprintf("%s drafted a reply on %s, to %s: “%s” Post as you?", by.By(), r.Where(), r.To, clipString(oneLine(r.Text), 600))
 	if _, err := w.Missions.OpenTask(m.Slug, mission.Task{Verb: mission.TaskReply, Text: task, Reply: r.N, Options: []string{mission.ReplyPost, mission.ReplyDont}, By: by.By()}); err != nil {
 		return out, wrap(err)
 	}
@@ -120,7 +120,7 @@ func (w *Workspace) postReply(slug string, r mission.Reply, by Actor) error {
 	}
 	gh := w.GitHub()
 	if gh == nil {
-		return refused("no-github", "ws can't reach GitHub here, so it can't post the reply")
+		return refused("no-github", "could not post the reply: no GitHub access")
 	}
 	if r.Thread != "" {
 		err = gh.ReplyToThread(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number, r.Thread, r.Text)
@@ -132,7 +132,7 @@ func (w *Workspace) postReply(slug string, r mission.Reply, by Actor) error {
 		err = gh.Comment(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number, body)
 	}
 	if err != nil {
-		return fmt.Errorf("posting the reply on %s: %w", r.Where(), err)
+		return fmt.Errorf("could not post the reply on %s: %w", r.Where(), err)
 	}
 	logFailed(w.Missions.SettleReply(slug, r.N, true))
 	w.Missions.AppendLogAfter(slug, mission.Event{Kind: mission.EventPR, What: mission.PREventReplied, Repo: repo, Crew: by.By(),
@@ -153,15 +153,15 @@ func (w *Workspace) answerReply(m *mission.Mission, t mission.Task, by Actor, te
 		if err := w.postReply(m.Slug, r, by); err != nil {
 			return out, true, err
 		}
-		out.Next = "posted it on " + r.Where()
+		out.Next = "posted on " + r.Where()
 	case strings.EqualFold(text, mission.ReplyDont):
 		if err := w.Missions.SettleReply(m.Slug, r.N, false); err != nil {
 			return out, true, wrap(err)
 		}
 		repo, _, _ := strings.Cut(r.PR, "#")
 		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventReplyDismissed, Repo: repo, Crew: by.By(),
-			Text: fmt.Sprintf("the reply drafted on %s isn't posted", r.Where())})
-		out.Next = "it isn't posted"
+			Text: fmt.Sprintf("the reply drafted on %s was not posted", r.Where())})
+		out.Next = "not posted"
 	default:
 		return out, false, nil
 	}

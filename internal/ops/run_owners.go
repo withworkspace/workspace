@@ -55,7 +55,7 @@ func (o *runOwners) Ended(ow runs.Owner) string {
 	if ow.Mission != "" {
 		m, gone := o.mission(ow.Mission)
 		if gone {
-			return fmt.Sprintf("mission %s has gone", ow.Mission)
+			return fmt.Sprintf("mission %s was removed", ow.Mission)
 		}
 		if m == nil {
 			return ""
@@ -77,7 +77,7 @@ func (o *runOwners) Ended(ow runs.Owner) string {
 		case runs.ByCrew:
 			i := slices.IndexFunc(m.Crew, func(c mission.Crew) bool { return c.ID == ow.Crew })
 			if i < 0 || m.Crew[i].Ended != nil {
-				return fmt.Sprintf("crew %s of mission %s have closed", ow.Crew, ow.Mission)
+				return fmt.Sprintf("crew %s of mission %s ended", ow.Crew, ow.Mission)
 			}
 		}
 	}
@@ -85,7 +85,7 @@ func (o *runOwners) Ended(ow runs.Owner) string {
 		c, err := conversation.For(o.root, ow.Mission).Load(ow.Conversation)
 		switch {
 		case errors.Is(err, conversation.ErrNotFound):
-			return fmt.Sprintf("conversation %s has gone", ow.Conversation)
+			return fmt.Sprintf("conversation %s was removed", ow.Conversation)
 		case err != nil:
 			return ""
 		case c.Status == conversation.Resolved:

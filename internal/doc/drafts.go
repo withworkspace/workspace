@@ -49,7 +49,7 @@ func (d Drafts) Get(ref string) (*Draft, error) {
 	}
 	var dr Draft
 	if err := json.Unmarshal(data, &dr); err != nil {
-		return nil, fmt.Errorf("the draft of %s: %w", ref, err)
+		return nil, fmt.Errorf("could not read draft of %s: %w", ref, err)
 	}
 	if dr.Ref != ref {
 		return nil, nil

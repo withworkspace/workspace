@@ -200,7 +200,7 @@ func SetOn(root, name string, on bool) error {
 }
 
 // ErrNotFound is the answer for an automation there isn't.
-var ErrNotFound = errors.New("there's no automation by that name")
+var ErrNotFound = errors.New("no automation by that name")
 
 // forget lets go of what's kept of name.
 func forget(tx *store.Tx, name string) error {

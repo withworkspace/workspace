@@ -56,14 +56,14 @@ func TestPlanner_Revises(t *testing.T) {
 	testutil.WithStdin(t, strings.Replace(strings.Replace(replanCLIPlan, "3. Is the cache right?", "4. Is the cache right?", 1), "2. Plan the cache.", "2. Measure it under load.\n   - who: crew, in `backend/cache-lookup`\n3. Plan the cache.", 1))
 	// Step 1 hasn't begun (no crew joined it), so it may go after it.
 	r = testutil.RunCommand(t, w.Root, nil, "mission", "plan", "--propose", "--set", "-")
-	if r.Err != nil || !strings.Contains(r.Stderr, "✓ Revised the plan: step 2 is step 3 now (Plan the cache); step 3 is step 4 now (Is the cache right?); step 2 added (Measure it under load, crew, in `backend/cache-lookup`)") {
+	if r.Err != nil || !strings.Contains(r.Stderr, "✓ Revised the plan: step 2 moved to step 3 (Plan the cache); step 3 moved to step 4 (Is the cache right?); step 2 added (Measure it under load, crew, in `backend/cache-lookup`)") {
 		t.Fatalf("revising: %v\n%s", r.Err, r.Stderr)
 	}
 	// Z changed is the user's: proposed to them.
 	plan, _ := store.ReadPlan("cache")
 	testutil.WithStdin(t, strings.Replace(plan, "- The lookup is cached, with its tests.", "- The lookup is cached, with its tests.\n- It's twice as fast under load.", 1))
 	r = testutil.Run(t, w, nil, "mission", "plan", "--propose", "--set", "-")
-	if !strings.Contains(r.Stderr, "Proposed to the user (proposal 1 in t1): It changes Z, which is the user's to confirm.") {
+	if !strings.Contains(r.Stderr, "Proposed to the user (proposal 1 in t1): It changes Z, so needs confirming.") {
 		t.Errorf("changing Z said %q", r.Stderr)
 	}
 	if now, _ := store.ReadPlan("cache"); now != plan {
@@ -137,7 +137,7 @@ func TestTalk_ProposesReplan(t *testing.T) {
 	}
 	untouched("declined")
 
-	if r := testutil.Run(t, w, nil, "conversation", "accept", "-m", "cache", "t1", "1"); !strings.Contains(r.Stderr, "Asked the planner, in t2") {
+	if r := testutil.Run(t, w, nil, "conversation", "accept", "-m", "cache", "t1", "1"); !strings.Contains(r.Stderr, "Asked the planner to revise the plan, in t2") {
 		t.Errorf("confirming said %q", r.Stderr)
 	}
 	p := talks.Planner()

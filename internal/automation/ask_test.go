@@ -84,7 +84,7 @@ func TestAsk_NoAnswer(t *testing.T) {
 		t.Fatalf("notified %q", got.notified)
 	}
 	runs, _ := Runs(e.Root, "flaky", 1)
-	if runs[0].State != Ran || !strings.Contains(runs[0].Log, "no answer: its answer's flaky isn't true or false") {
+	if runs[0].State != Ran || !strings.Contains(runs[0].Log, "no answer: answer's flaky is not true or false") {
 		t.Errorf("run %+v", runs[0])
 	}
 }
@@ -103,10 +103,10 @@ func TestAsk_OverBudget(t *testing.T) {
 	e.Quiet()
 	e.RunDue()
 	runs, _ := Runs(e.Root, "flaky", 1)
-	if asked != 0 || runs[0].State != Failed || !strings.Contains(runs[0].Error, "over its budget: it's spent 61.2k of its 50k tokens today") {
+	if asked != 0 || runs[0].State != Failed || !strings.Contains(runs[0].Error, "over its budget: spent 61.2k of 50k tokens today") {
 		t.Fatalf("asked %d, run %+v", asked, runs[0])
 	}
-	if len(got.notified) != 1 || !strings.Contains(got.notified[0], "couldn't run") {
+	if len(got.notified) != 1 || !strings.Contains(got.notified[0], "could not run") {
 		t.Errorf("told %q", got.notified)
 	}
 }
@@ -189,10 +189,10 @@ func TestAsk_Shapes(t *testing.T) {
 		t.Errorf("read %+v", m)
 	}
 	for said, want := range map[string]string{
-		`{"n": 3.5, "x": 1, "ok": true, "said": "", "verdict": "fix"}`: "n isn't a whole number",
+		`{"n": 3.5, "x": 1, "ok": true, "said": "", "verdict": "fix"}`: "n is not a whole number",
 		`{"x": 1, "ok": true, "said": "", "verdict": "fix"}`:           "has no n",
-		`{"n": 1, "x": 1, "ok": true, "said": "", "verdict": "later"}`: `verdict isn't one of "fix", "flake"`,
-		`I think it's a flake.`: "didn't answer with a JSON object",
+		`{"n": 1, "x": 1, "ok": true, "said": "", "verdict": "later"}`: `verdict is not one of "fix", "flake"`,
+		`I think it's a flake.`: "did not answer with a JSON object",
 		``:                      "said nothing",
 	} {
 		if _, err := readAnswer(said, shape); err == nil || !strings.Contains(err.Error(), want) {
@@ -221,7 +221,7 @@ def run(e):
 may = ["ask"]
 def run(e):
     ask("why?", answer = {"ok": ["one"]})
-`: "two or more words",
+`: "two or more choices",
 	} {
 		name := "refused"
 		if _, err := e.Add(name, []byte(script)); err != nil {

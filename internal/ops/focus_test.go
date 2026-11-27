@@ -44,7 +44,7 @@ func TestFocus_YouPinWhatWSNames(t *testing.T) {
 			t.Fatalf("pin %s: %+v, %v", name, got, err)
 		}
 	}
-	if got, err := w.Pin(AsYou, "RAM-12"); err != nil || !got.Already || got.String() != "RAM-12 is pinned already." {
+	if got, err := w.Pin(AsYou, "RAM-12"); err != nil || !got.Already || got.String() != "RAM-12 is already pinned." {
 		t.Errorf("pinning RAM-12 again: %+v, %v", got, err)
 	}
 	want := []string{"cache mission Cache", "RAM-12 thing Token refresh is flaky", "frontend#12", "frontend/src/app.ts"}

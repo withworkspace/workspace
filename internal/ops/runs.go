@@ -89,12 +89,12 @@ func (w *Workspace) runCapsule(slug, repo, capsule string) (string, error) {
 		if c.Repo == repo && c.Name == capsule {
 			dir := filepath.Join(w.WS().RepoDir(repo), capsule)
 			if !dirExists(dir) {
-				return "", refused("capsule-gone", "%s/%s has been burned: there's nowhere to run it", repo, capsule)
+				return "", refused("capsule-gone", "%s/%s has been burned: nowhere to run", repo, capsule)
 			}
 			return dir, nil
 		}
 	}
-	return "", fmt.Errorf("%w: %s/%s isn't one of %s's capsules", ErrNotFound, repo, capsule, slug)
+	return "", fmt.Errorf("%w: %s/%s is not one of %s's capsules", ErrNotFound, repo, capsule, slug)
 }
 
 // RunRecipe starts recipe in one of a mission's capsules, for whoever's
@@ -129,7 +129,7 @@ func (w *Workspace) runUp(a RunAsk) (runs.Run, error) {
 	up, err := w.StartRun(a)
 	var ended *runs.EndedError
 	if errors.As(err, &ended) {
-		return ended.Run, refused("run-ended", "%s. Its last words: %s", err, ended.Run.Tail(3))
+		return ended.Run, refused("run-ended", "%s. Last output: %s", err, ended.Run.Tail(3))
 	}
 	if err != nil {
 		return runs.Run{}, err
@@ -140,7 +140,7 @@ func (w *Workspace) runUp(a RunAsk) (runs.Run, error) {
 	}
 	if _, err := w.runStore().Wait(r, RunUpWait); err != nil {
 		if errors.As(err, &ended) {
-			return ended.Run, refused("run-ended", "%s. Its last words: %s", err, ended.Run.Tail(3))
+			return ended.Run, refused("run-ended", "%s. Last output: %s", err, ended.Run.Tail(3))
 		}
 		return r, err
 	}
@@ -235,7 +235,7 @@ func recipeOf(name string, rc config.RunRecipe) Recipe {
 func (w *Workspace) worktreeOf(repo, name string) (string, error) {
 	ws := w.WS()
 	if !slices.Contains(ws.RepoNames, repo) {
-		return "", fmt.Errorf("%w: the workspace has no repo %s", ErrNotFound, repo)
+		return "", fmt.Errorf("%w: no repo %s", ErrNotFound, repo)
 	}
 	if name != workspace.GroundDir {
 		capsules, _ := workspace.ListWorktrees(ws.RepoDir(repo))
@@ -245,7 +245,7 @@ func (w *Workspace) worktreeOf(repo, name string) (string, error) {
 	}
 	dir := filepath.Join(ws.RepoDir(repo), name)
 	if !dirExists(dir) {
-		return "", fmt.Errorf("%w: %s/%s isn't there", ErrNotFound, repo, runs.Label(name))
+		return "", fmt.Errorf("%w: %s/%s is missing", ErrNotFound, repo, runs.Label(name))
 	}
 	return dir, nil
 }
@@ -327,7 +327,7 @@ func (w *Workspace) runByRef(ref string) (runs.Run, error) {
 			}
 		}
 	}
-	return runs.Run{}, fmt.Errorf("%w: no run %s: it may have ended already", ErrNotFound, ref)
+	return runs.Run{}, fmt.Errorf("%w: no run %s (it may have ended)", ErrNotFound, ref)
 }
 
 // Run is one run by its ref, and, for a task, the earlier runs kept

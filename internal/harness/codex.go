@@ -74,7 +74,7 @@ func (c *Codex) agent() ([]string, error) {
 	}
 	p, err := c.lookPath(codexACPBinary)
 	if err != nil {
-		return nil, fmt.Errorf("codex-acp not found: install it (npm install -g @agentclientprotocol/codex-acp), or set %s", EnvCodexACP)
+		return nil, fmt.Errorf("could not find codex-acp: install it (npm install -g @agentclientprotocol/codex-acp), or set %s", EnvCodexACP)
 	}
 	return []string{p}, nil
 }
@@ -112,7 +112,7 @@ func (c *Codex) Start(b Brief) (Launch, error) {
 // it (ws has its record).
 func (c *Codex) Resume(dir, conversation string) (Launch, error) {
 	if conversation == "" {
-		return Launch{}, errors.New("no Codex session recorded for this crew, so it can't be resumed")
+		return Launch{}, errors.New("cannot resume: no Codex session recorded for this crew")
 	}
 	agent, err := c.agent()
 	if err != nil {

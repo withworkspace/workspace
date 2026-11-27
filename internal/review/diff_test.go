@@ -261,7 +261,7 @@ func TestCompareSince(t *testing.T) {
 	write(t, dir, "x.txt", "x\n")
 	run(t, dir, "add", "-A")
 	run(t, dir, "commit", "-q", "-m", "elsewhere")
-	if _, err := CompareSince(dir, "origin/main", first); err == nil || !strings.Contains(err.Error(), "isn't in the capsule's history") {
+	if _, err := CompareSince(dir, "origin/main", first); err == nil || !strings.Contains(err.Error(), "is no longer in the capsule's history") {
 		t.Errorf("rebased away: %v", err)
 	}
 }

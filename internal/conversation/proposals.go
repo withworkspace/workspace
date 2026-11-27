@@ -316,9 +316,9 @@ func (s Store) ItemsDone(id string, n int, out []ItemOutcome, by string, at time
 		case p == nil:
 			return fmt.Errorf("%w: %s has no proposal %d", ErrNotFound, id, n)
 		case p.Kind != ProposePlugin:
-			return fmt.Errorf("proposal %d in %s isn't a plugin's", n, id)
+			return fmt.Errorf("proposal %d in %s is not a plugin's", n, id)
 		case p.State != ProposalOpen:
-			return fmt.Errorf("proposal %d in %s is %s already", n, id, p.State)
+			return fmt.Errorf("proposal %d in %s is already %s", n, id, p.State)
 		}
 		if err := s.add(tx, c, line{Items: &itemsDone{N: n, Items: out, At: at}}); err != nil {
 			return err
@@ -506,7 +506,7 @@ func (p Proposal) Says() string {
 	case ProposeBrief:
 		what = "an edit to the brief"
 		if p.Plan != "" {
-			what = "the brief, with its plan"
+			what = "the brief and plan"
 		}
 	case ProposePlan:
 		what = "an edit to the plan"
@@ -647,7 +647,7 @@ func (s Store) SettleProposal(id string, n int, state, result, by string, at tim
 		case p.State == ProposalAccepted && state == ProposalAccepted && p.Kind == ProposeDecision && p.Result == "" && result != "":
 			// moved to its mission
 		default:
-			return fmt.Errorf("proposal %d in %s is %s already", n, id, p.State)
+			return fmt.Errorf("proposal %d in %s is already %s", n, id, p.State)
 		}
 		wasOpen := p.State == ProposalOpen
 		if err := s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: state, Result: result, By: by, At: at}}); err != nil {

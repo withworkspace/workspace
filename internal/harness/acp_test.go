@@ -199,7 +199,7 @@ func TestReadACPStream(t *testing.T) {
 		t.Errorf("a run still going = %+v", rep)
 	}
 	// A turn that ended otherwise, and a run that couldn't start.
-	if rep := readACPStream(`{"at":"2026-11-11T13:49:05Z","stop":"refusal"}`); rep.Failed != "it refused" || !rep.Done {
+	if rep := readACPStream(`{"at":"2026-11-11T13:49:05Z","stop":"refusal"}`); rep.Failed != "refused" || !rep.Done {
 		t.Errorf("refused = %+v", rep)
 	}
 	if rep := readACPStream(`{"at":"2026-11-11T13:49:05Z","error":"the agent has no model \"x\""}`); !strings.Contains(rep.Failed, `no model "x"`) {

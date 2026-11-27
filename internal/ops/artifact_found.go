@@ -160,7 +160,7 @@ type FoundArtifactDetail struct {
 // one, or as it's said to people: records:artifacts/x/), as its space has
 // it now.
 func (w *Workspace) artifactThing(ctx context.Context, name string) (space.Thing, error) {
-	none := noThingAt("ws has found no artifact at " + name)
+	none := noThingAt("no artifact at " + name)
 	r, ok := ref.Parse(strings.TrimPrefix(strings.TrimSpace(name), "ws:"))
 	if !ok || r.Kind != ref.Dir || r.InCapsule() {
 		return space.Thing{}, none
@@ -208,7 +208,7 @@ func (w *Workspace) FoundArtifact(ctx context.Context, name string) (FoundArtifa
 // has to be one an artifact in that repo is at now: what ws serves is
 // what it found, not whatever a repo has ever held.
 func (w *Workspace) FoundArtifactAt(ctx context.Context, repo, version, file string) ([]byte, string, error) {
-	none := noThingAt(fmt.Sprintf("ws has found no artifact in %s at that version", repo))
+	none := noThingAt(fmt.Sprintf("no artifact in %s at that version", repo))
 	repo, known := w.WS().ResolveAlias(repo)
 	if !known {
 		return nil, "", none

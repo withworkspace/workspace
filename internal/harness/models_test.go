@@ -54,7 +54,7 @@ func TestModels(t *testing.T) {
 		t.Errorf("cursor: %+v, %v", ms, err)
 	}
 	ms, err = (&Codex{lookPath: found}).Models(context.Background())
-	if err != nil || ids(ms) != "gpt-6.1-sol,gpt-6.1-sol[low],gpt-6.1-sol[high]" || !strings.Contains(ms[0].About, "default effort: low") {
+	if err != nil || ids(ms) != "gpt-6.1-sol,gpt-6.1-sol[low],gpt-6.1-sol[high]" || !strings.Contains(ms[0].About, "Default effort: low") {
 		t.Errorf("codex: %+v, %v", ms, err)
 	}
 	// Each alias, then each at each effort, one model (its label) in a picker.
@@ -109,7 +109,7 @@ func TestCursorACPModels(t *testing.T) {
 	}
 	haiku, opus, gpt, gemini := ms[1], ms[2], ms[3], ms[4]
 	if haiku.Effort != "high" || !haiku.Thinking || haiku.Fast || haiku.Vendor != "claude" || haiku.Label != "Claude Haiku 5.5" ||
-		haiku.About != "Over ACP, Cursor runs it only as: high effort, thinking, 300k context." {
+		haiku.About != "Runs only as: high effort, thinking, 300k context." {
 		t.Errorf("haiku = %+v", haiku)
 	}
 	if gpt.Label != "GPT-5.5" || opus.Label != "Claude Opus 5.5" {

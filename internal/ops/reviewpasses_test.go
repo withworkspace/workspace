@@ -82,7 +82,7 @@ func TestReviewPassRead(t *testing.T) {
 	if f[1].Commit != base || f[1].Side != "old" || strings.Join(f[1].Excerpt, "|") != "var old = 1" {
 		t.Errorf("on lines it removes: %+v", f[1])
 	}
-	if f[2].Placed() || !strings.HasPrefix(f[2].Text, "(Said of key.go:400, which isn't in the change.) Too long.") {
+	if f[2].Placed() || !strings.HasPrefix(f[2].Text, "(On key.go:400, not in the change.) Too long.") {
 		t.Errorf("on lines that aren't there: %+v", f[2])
 	}
 	if f[3].Kind != "hardening" {

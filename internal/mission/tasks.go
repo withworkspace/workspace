@@ -164,7 +164,7 @@ func (m *Mission) migrateFlag() {
 }
 
 // ErrNoTask is answering or closing a task the mission hasn't open.
-var ErrNoTask = errors.New("nothing to answer: the mission isn't asking you anything")
+var ErrNoTask = errors.New("nothing to answer: mission is not asking you anything")
 
 // Ask asks you a question on a mission (an answer task, with the answers
 // it suggests), for whoever asks (by): it takes the place of one they have
@@ -240,7 +240,7 @@ func (s Store) CloseStepTasks(slug string, step int) error {
 func (s Store) AnswerTask(slug string, n int, answer, by string, keep bool) (Task, Answer, error) {
 	answer = strings.TrimSpace(answer)
 	if answer == "" {
-		return Task{}, Answer{}, errors.New("the answer is empty")
+		return Task{}, Answer{}, errors.New("answer is empty")
 	}
 	var t Task
 	var a Answer

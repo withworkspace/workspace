@@ -39,5 +39,5 @@ func Since(s string, now time.Time) (time.Time, error) {
 	if t, err := time.ParseInLocation("2006-01-02", s, now.Location()); err == nil {
 		return t, nil
 	}
-	return time.Time{}, fmt.Errorf("%q isn't a time to start from: say today, yesterday, a weekday, week, 7d, 2w or a date like 2026-11-03", s)
+	return time.Time{}, fmt.Errorf("%q is not a start time: use today, yesterday, a weekday, week, 7d, 2w or a date like 2026-11-03", s)
 }

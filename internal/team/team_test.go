@@ -244,10 +244,10 @@ func TestView(t *testing.T) {
 	if first.Name != "Cache tokens per tenant" || first.State != Done || second.State != Done {
 		t.Errorf("pr 12: %q %s %s", first.Name, first.State, second.State)
 	}
-	if want := "Ana opened it. Ben asked for changes."; first.Words != want {
+	if want := "Ana opened. Ben asked for changes."; first.Words != want {
 		t.Errorf("day one says %q, want %q", first.Words, want)
 	}
-	if want := "Ben approved it. Ana landed it."; second.Words != want {
+	if want := "Ben approved. Ana landed."; second.Words != want {
 		t.Errorf("day two says %q, want %q", second.Words, want)
 	}
 	if strings.Join(second.People, " ") != "ana-acme ben" {
@@ -261,7 +261,7 @@ func TestView(t *testing.T) {
 		a.Reviews = []github.PRReview{{Author: "ben-acme", State: "APPROVED", SubmittedAt: stamp(6, 9)}}
 	})
 	day := View(Build([]PR{onlyReview}, nil, nil), cfg, at(6, 0), utc).Days[0].Items[0]
-	if strings.Join(day.People, " ") != "ana-acme ben" || day.Words != "Ben approved it." {
+	if strings.Join(day.People, " ") != "ana-acme ben" || day.Words != "Ben approved." {
 		t.Errorf("a day of only a review: people %v, words %q", day.People, day.Words)
 	}
 	// What one person did in a row is one sentence.
@@ -272,7 +272,7 @@ func TestView(t *testing.T) {
 		a.State, a.MergedAt = "MERGED", stamp(7, 12)
 	})
 	day = View(Build([]PR{busy}, nil, nil), cfg, at(7, 0), utc).Days[0].Items[0]
-	if want := "Ana opened it and made it ready for review. Ben approved it. Ana landed it."; day.Words != want {
+	if want := "Ana opened and marked ready for review. Ben approved. Ana landed."; day.Words != want {
 		t.Errorf("a busy day says %q, want %q", day.Words, want)
 	}
 	// One person's commits to one repo in a day are one strand where they
@@ -295,7 +295,7 @@ func TestView(t *testing.T) {
 			t.Errorf("a commit from before the period is in it: %s", key)
 		}
 	}
-	if it := by["pr:api#20@2026-11-04"]; it.State != InReview || it.Words != "Ben opened it." {
+	if it := by["pr:api#20@2026-11-04"]; it.State != InReview || it.Words != "Ben opened." {
 		t.Errorf("open pr = %+v", it)
 	}
 	if !by["pr:api#21@2026-11-04"].Bot || by["pr:api#20@2026-11-04"].Bot {
@@ -309,7 +309,7 @@ func TestView(t *testing.T) {
 	// A single commit is called by its subject.
 	tl = View(events, cfg, at(2, 0), utc)
 	last := tl.Days[len(tl.Days)-1].Items[0]
-	if last.Name != "Add note on eviction" || last.Words != "Cal landed it straight on main." {
+	if last.Name != "Add note on eviction" || last.Words != "Cal landed straight on main." {
 		t.Errorf("one commit = %q, %q", last.Name, last.Words)
 	}
 }

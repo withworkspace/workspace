@@ -67,7 +67,7 @@ func (s *Server) missionChange(slug string, was any) (op, now any) {
 func (s *Server) artifact(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need an artifact's ref")
+		jsonError(w, http.StatusBadRequest, "missing artifact ref")
 		return
 	}
 	a, err := s.artifactText(r.PathValue("slug"), ref)
@@ -100,7 +100,7 @@ func (s *Server) artifact(w http.ResponseWriter, r *http.Request) {
 func (s *Server) artifactRaw(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need an artifact's ref")
+		jsonError(w, http.StatusBadRequest, "missing artifact ref")
 		return
 	}
 	t, err := s.App.Artifact(r.PathValue("slug"), ref)
@@ -112,18 +112,18 @@ func (s *Server) artifactRaw(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	case t.Media == "":
-		jsonError(w, http.StatusBadRequest, "only images and videos are served as they are")
+		jsonError(w, http.StatusBadRequest, "only images and videos can be shown")
 		return
 	}
 	f, err := os.Open(t.Path)
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "it isn't there to show")
+		jsonError(w, http.StatusNotFound, "file not found")
 		return
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil || info.IsDir() {
-		jsonError(w, http.StatusUnprocessableEntity, "it isn't a file to show")
+		jsonError(w, http.StatusUnprocessableEntity, "not a file")
 		return
 	}
 	w.Header().Set("Content-Type", t.Media)
@@ -143,13 +143,13 @@ func (s *Server) bundleFile(w http.ResponseWriter, r *http.Request) {
 	}
 	f, err := os.Open(path)
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "it isn't there to show")
+		jsonError(w, http.StatusNotFound, "file not found")
 		return
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil || info.IsDir() {
-		jsonError(w, http.StatusUnprocessableEntity, "it isn't a file to show")
+		jsonError(w, http.StatusUnprocessableEntity, "not a file")
 		return
 	}
 	w.Header().Set("Content-Type", media)

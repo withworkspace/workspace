@@ -81,7 +81,7 @@ type Pinned struct {
 
 func (p Pinned) String() string {
 	if p.Already {
-		return p.Name + " is pinned already."
+		return p.Name + " is already pinned."
 	}
 	return "Pinned " + p.Name + "."
 }
@@ -118,7 +118,7 @@ func (w *Workspace) pinName(name string) (string, error) {
 		r, ok = ref.Parse(name) // a file's, by its form: what's known here has no trees
 	}
 	if !ok {
-		return "", &Invalid{Reason: "ws names nothing " + name + ": pin a mission, a conversation, a pull request (demo#12), a page, an artifact, a document or a plugin's thing"}
+		return "", &Invalid{Reason: "nothing named " + name + ": pin a mission, conversation, pull request (demo#12), page, artifact, document or plugin thing"}
 	}
 	r.Line, r.EndLine, r.Commit, r.Anchor = 0, 0, "", ""
 	if r.Kind == ref.Artifact {
@@ -140,7 +140,7 @@ func (w *Workspace) pinName(name string) (string, error) {
 		return "", err
 	}
 	if !there {
-		return "", &Invalid{Reason: fmt.Sprintf("ws has nothing called %s", name)}
+		return "", &Invalid{Reason: fmt.Sprintf("nothing named %s", name)}
 	}
 	return name, nil
 }

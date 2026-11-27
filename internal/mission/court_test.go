@@ -36,42 +36,42 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "briefed and planned, to confirm", state: Briefing, edit: func(s *Snapshot) {
 			s.M.Request, s.Brief = "fe issue 45", "## Goal\nCache tokens per tenant.\n"
 			s.M.Plan, _ = ParsePlan("## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Work: **Cache them.** Cache tokens.\n", nil)
-		}, court: CourtYou, kind: KindToBrief, group: GroupUpNext, verb: VerbConfirm, text: "Its brief and plan are written: confirm them to start it"},
+		}, court: CourtYou, kind: KindToBrief, group: GroupUpNext, verb: VerbConfirm, text: "Brief and plan written: confirm to start"},
 		{name: "parked", state: Parked, court: CourtYou, kind: KindParked, group: GroupUpNext, verb: VerbUnpark},
 		// The plan's at a step of yours, with nothing asking you of it.
 		{name: "at a checkpoint", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan("## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Find it.\n   - who: crew\n2. Is it the cause?\n   - who: you\n", nil)
 			s.M.Stages = []StageRecord{{Text: "Find it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
-		}, court: CourtYou, kind: KindStepReview, group: GroupNeedsYou, verb: VerbReviewStep, text: "Step 2 is yours, to review: Is it the cause?"},
+		}, court: CourtYou, kind: KindStepReview, group: GroupNeedsYou, verb: VerbReviewStep, text: "Step 2 is yours to review: Is it the cause?"},
 		{name: "at a decision", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan("## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Work: find it.\n2. Decide: is it the cause?\n", nil)
 			s.M.Stages = []StageRecord{{Text: "find it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
-		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbAccept, text: "Step 2 is yours: is it the cause? Go on when you're satisfied"},
+		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbAccept, text: "Step 2 is yours: is it the cause? Go on when satisfied"},
 		// The plan's at the planner's step: the planner at work on it, a
 		// revision of it that's yours to confirm, or neither (it asked).
 		{name: "the planner at work", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithPlanner, nil)
 			s.M.Stages = []StageRecord{{Text: "Find it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
 			s.Threads.Briefing = &BriefingTalk{ID: "t1", Answering: true}
-		}, court: CourtAgent, kind: KindBriefing, group: GroupInProgress, verb: VerbTalk, text: "The planner is at work on the plan, in t1", target: "t1"},
+		}, court: CourtAgent, kind: KindBriefing, group: GroupInProgress, verb: VerbTalk, text: "The planner is working on the plan in t1", target: "t1"},
 		{name: "the planner's revision is yours", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithPlanner, nil)
 			s.M.Stages = []StageRecord{{Text: "Find it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
 			s.Threads.Briefing = &BriefingTalk{ID: "t1", Waiting: true, PlanWhy: "It changes Z, which is the user's to confirm."}
-		}, court: CourtYou, kind: KindBriefTalk, group: GroupNeedsYou, verb: VerbTalk, text: "The planner proposes a revision of the plan, in t1: It changes Z, which is the user's to confirm", target: "t1"},
+		}, court: CourtYou, kind: KindBriefTalk, group: GroupNeedsYou, verb: VerbTalk, text: "The planner proposes a plan revision in t1: It changes Z, which is the user's to confirm", target: "t1"},
 		{name: "the planner asked something", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithPlanner, nil)
 			s.M.Stages = []StageRecord{{Text: "Find it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
 			s.Threads.Briefing = &BriefingTalk{ID: "t1", Waiting: true}
-		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbTalk, text: "Step 2 is the planner's: Plan the fix. It hasn't written the steps after it: answer it in t1", target: "t1"},
+		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbTalk, text: "Step 2 is the planner's: Plan the fix. Next steps not written: answer in t1", target: "t1"},
 		// The plan's at a step that waits on someone outside ws.
 		{name: "at an outside step, not happened", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
-		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Nobody's watching for it: mark it done when it's happened"},
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Not watched: mark done once it happens"},
 		// The orchestrator said the mission waits, at a step that waits
 		// already: the step's is the headline, with marking it done.
 		{name: "at an outside step, and the orchestrator said it waits", state: Active, edit: func(s *Snapshot) {
@@ -79,24 +79,24 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
 			s.M.Waiting = &Proposal{Text: "a teammate's merge; the user says when it has happened", By: "orchestrator", At: now}
-		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Nobody's watching for it: mark it done when it's happened"},
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Not watched: mark done once it happens"},
 		{name: "at an outside step, every PR merged", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
 			s.CapsulesLanded = true
-		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbWait, text: "Every pull request has merged"},
+		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbWait, text: "All pull requests merged"},
 		// A Wait says how it ends: who it's on, and whether ws watches for it.
 		{name: "a wait nobody's watching, a day on", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithWait("   - on: the platform team\n"), nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(50 * time.Hour)}, {Text: "**Deploy.** The token service is deployed.", N: 2, Of: 2, Watch: &Watch{Since: *ago(50 * time.Hour)}}}
-		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbWait, text: "Step 2 has waited 2 days on the platform team: Deploy. The token service is deployed. Nobody's watching for it: has it happened?"},
+		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbWait, text: "Step 2 has waited 2 days on the platform team: Deploy. The token service is deployed. Not watched: has it happened?"},
 		{name: "a wait ws watches", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithWait("   - on: npm\n   - check: `npm view pkg@1.0.0 version` passes\n"), nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(50 * time.Hour)}, {Text: "**Deploy.** The token service is deployed.", N: 2, Of: 2,
 				Watch: &Watch{Since: *ago(50 * time.Hour), Looked: ago(2 * time.Minute), Looks: 9, Results: []CheckResult{{Check: "`npm view pkg@1.0.0 version` passes", Result: CheckUnmet}}}}}
 			s.CapsulesLanded = true // watched, it isn't asked of you however long it waits
-		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on npm: Deploy. The token service is deployed. ws is watching for it (`npm view pkg@1.0.0 version`), and passes the step once it's happened; it last looked 2m ago: not yet"},
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on npm: Deploy. The token service is deployed. Watching (`npm view pkg@1.0.0 version`); last checked 2m ago: not yet"},
 		{name: "a wait on you, asked", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithWait("   - on: you\n"), nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
@@ -105,19 +105,19 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "a wait on you, nothing asking", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithWait("   - on: you\n"), nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
-		}, court: CourtYou, kind: KindToDo, group: GroupNeedsYou, verb: VerbAccept, text: "Step 2 is yours, to do: Deploy. The token service is deployed. Mark it done when you have"},
+		}, court: CourtYou, kind: KindToDo, group: GroupNeedsYou, verb: VerbAccept, text: "Step 2 is yours to do: Deploy. The token service is deployed. Mark done when finished"},
 		// Every step passed: at Z, if Z holds.
 		{name: "every step passed, nothing suggested", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Hour)}, {Text: "Merged.", N: 2, Of: 2, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
-		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "Every step of the plan is done"},
+		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "All steps done"},
 		{name: "every step passed and its work merged, nothing suggested", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Hour)}, {Text: "Merged.", N: 2, Of: 2, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
 			s.CapsulesLanded = true
-		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "Every step of the plan is done, and its work has merged"},
+		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "All steps done and work merged"},
 		{name: "an ending suggested", state: Active, edit: func(s *Snapshot) {
 			s.M.Conclude = &Conclusion{Ending: EndAnswered, Text: "Not a bug.", By: "orchestrator", Z: []ZCheck{{Z: "Product told.", Met: true, How: "in the handoff"}}}
 		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "Ready to end, answered (at Z: 1 of 1 met): Not a bug."},
@@ -136,14 +136,14 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "commits to land, approved as they are", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Capsule: "records/adr", Ended: ago(time.Hour)}}
 			s.Direct = []DirectFacts{{Capsule: "records/adr", Branch: "main", Ahead: 1, Approved: true}}
-		}, court: CourtYou, kind: KindLand, group: GroupNeedsYou, verb: VerbLand, text: "records/adr is approved: land its 1 commit on main", target: "records/adr"},
+		}, court: CourtYou, kind: KindLand, group: GroupNeedsYou, verb: VerbLand, text: "records/adr is approved: land 1 commit on main", target: "records/adr"},
 		{name: "commits to land, crew still in the capsule", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Capsule: "records/adr", Activity: ActivityWorking, ActivityAt: ago(time.Minute)}}
 			s.Direct = []DirectFacts{{Capsule: "records/adr", Branch: "main", Ahead: 2}}
 		}, court: CourtAgent, kind: KindWorking, group: GroupInProgress, verb: VerbWatch, target: "c1"},
 		{name: "everything landed, with no pull request", state: Landed, edit: func(s *Snapshot) {
 			s.M.Capsules = []Capsule{{Repo: "records", Name: "adr", Landed: &Landing{At: now, Head: "abc1234"}}}
-		}, court: CourtYou, kind: KindLanded, group: GroupPast, verb: VerbArchive, text: "Everything has landed"},
+		}, court: CourtYou, kind: KindLanded, group: GroupPast, verb: VerbArchive, text: "Everything landed"},
 
 		{name: "crew working", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c2", Capsule: "api/fix", Activity: ActivityWorking, ActivityAt: ago(time.Minute), Dispatch: "Build the cache"}}
@@ -262,7 +262,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "flagged, crew answering it for you", state: Active, edit: func(s *Snapshot) {
 			s.M.Tasks = []Task{{N: 1, Verb: TaskAnswer, Text: "CI is red", By: "orchestrator"}}
 			s.M.Crew = []Crew{{ID: "c3", Role: RoleAnswer, Activity: ActivityWorking}}
-		}, court: CourtAgent, kind: KindWorking, group: GroupInProgress, text: "answer to the question"},
+		}, court: CourtAgent, kind: KindWorking, group: GroupInProgress, text: "is finding the answer"},
 		{name: "back for re-review", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Ended: ago(time.Hour)}}
 			s.ReReview = []ReReview{{Capsule: "api/fix", Review: "r1", Answered: 2, Total: 3}}
@@ -282,7 +282,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "an agent answering a thread", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Ended: ago(time.Hour)}}
 			s.Threads.Answering = []DocReplies{{Doc: "records/tokens:proposal.md", Name: "proposal.md", Waiting: 1, Threads: []string{"t2"}}}
-		}, court: CourtAgent, kind: KindAnswering, group: GroupInProgress, verb: VerbReviewDoc, target: "records/tokens:proposal.md", text: "an agent is answering a comment on proposal.md (t2)"},
+		}, court: CourtAgent, kind: KindAnswering, group: GroupInProgress, verb: VerbReviewDoc, target: "records/tokens:proposal.md", text: "An agent is answering a comment on proposal.md (t2)"},
 		{name: "crew queued", state: Active, edit: func(s *Snapshot) {
 			s.M.Dispatch = &Dispatch{Text: "implement it", Capsule: "api/fix", By: "orchestrator"}
 		}, court: CourtYou, kind: KindQueued, group: GroupNeedsYou, verb: VerbLaunchNext, text: "queued in api/fix: implement it"},
@@ -338,7 +338,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen},
 		{name: "PR's checks running, set to merge by itself", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "pending", AutoMerge: true}}
-		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "it merges by itself once it can"},
+		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "auto-merge on"},
 		{name: "PR's checks failing", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Review: "REVIEW_REQUIRED", Checks: "failure"}}
 		}, court: CourtYou, kind: KindChecksFailing, group: GroupNeedsYou, verb: VerbOpen},
@@ -347,7 +347,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		}, court: CourtYou, kind: KindChangesRequested, group: GroupNeedsYou, verb: VerbOpen},
 		{name: "PR approved and green, but it conflicts", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", Conflict: true}}
-		}, court: CourtYou, kind: KindConflict, group: GroupNeedsYou, verb: VerbOpen, target: "api#88", text: "api#88 conflicts with its base"},
+		}, court: CourtYou, kind: KindConflict, group: GroupNeedsYou, verb: VerbOpen, target: "api#88", text: "api#88 has merge conflicts"},
 		{name: "PR approved and green, GitHub working out whether it merges", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", MergeUnknown: true}}
 		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "nothing for you to do"},
@@ -356,16 +356,16 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		}, court: CourtOutside, kind: KindAwaitingReview, group: GroupWaiting, verb: VerbOpen},
 		{name: "PR approved and green", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success"}}
-		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, verb: VerbMerge, target: "api#88", text: "approved and its checks pass"},
+		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, verb: VerbMerge, target: "api#88", text: "approved, checks pass"},
 		{name: "PR green, no review decision, but its rules block it (an admin could bypass)", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Checks: "success", Blocked: true}}
-		}, court: CourtOutside, kind: KindAwaitingReview, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "waiting for the review its base branch's rules ask for"},
+		}, court: CourtOutside, kind: KindAwaitingReview, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "waiting for a required review"},
 		{name: "PR approved and green, but its rules still block it", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", Blocked: true}}
-		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "still hold it"},
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "approved but held by branch rules"},
 		{name: "PR needing no review", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88"}}
-		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, text: "needs no review, and has no checks"},
+		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, text: "no review or checks needed"},
 		{name: "two PRs: one to merge, one waiting: yours first", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{
 				{Capsule: "web/fix", Ref: "web#3", Review: "REVIEW_REQUIRED"},
@@ -385,7 +385,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "merged at its Open Pull Request step, ws yet to pass it", state: Active, edit: func(s *Snapshot) {
 			atOpenPR(s, &SeenPR{Number: 88, Checks: "success"}, ago(time.Minute))
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Merged: true}}
-		}, court: CourtAgent, kind: KindMovingOn, group: GroupInProgress, verb: VerbNone, text: "api#88 has merged: ws is passing step 2 and moving the plan on"},
+		}, court: CourtAgent, kind: KindMovingOn, group: GroupInProgress, verb: VerbNone, text: "api#88 merged: passing step 2"},
 		{name: "merged, as ws has seen, and the step still stands", state: Active, edit: func(s *Snapshot) {
 			atOpenPR(s, &SeenPR{Number: 88, Merged: true}, ago(time.Minute))
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Merged: true}}
@@ -631,8 +631,8 @@ func TestEndCrew_SaysHow(t *testing.T) {
 		}
 	}
 	want := []string{
-		"c1 was stopped by a daemon restart",
-		"c2's session was closed: it had handed its work back",
+		"c1 stopped when Workspace restarted",
+		"c2's session closed: work handed back",
 		"c3 was stopped",
 		"c4 ended (exit 1)",
 	}

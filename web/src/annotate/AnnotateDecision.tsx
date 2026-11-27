@@ -55,7 +55,7 @@ export function AnnotateDecision({
         </>
       }
     >
-      <RichTextArea refs look="field" value={what} rows={rows(what)} placeholder="The decision, in a sentence" aria-label="The decision" onChange={onWhat} {...keys} />
+      <RichTextArea refs look="field" value={what} rows={rows(what)} placeholder="The decision, in a sentence" aria-label="Decision" onChange={onWhat} {...keys} />
       <RichTextArea marks lists quote code refs look="field" value={why} rows={rows(why)} placeholder="Why" aria-label="Why" onChange={onWhy} {...keys} />
     </AnnotateSuggestion>
   );

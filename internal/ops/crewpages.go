@@ -71,7 +71,7 @@ type TermKey struct {
 var ErrNotOnScreen = crew.ErrNotOnScreen
 
 // errNotHere is crew asked for where the host holds none in this process.
-var errNotHere = errors.New("crew can't be reached from here")
+var errNotHere = errors.New("could not reach crew")
 
 // NoCrew is crew's pages where no crew are held: each says so. A test's
 // fake starts from it.
@@ -134,14 +134,14 @@ func (p crewPages) Session(slug, id string) (CrewSession, error) {
 	switch {
 	case via == harness.TranscriptNone:
 		sess.Final = true
-		sess.Why = c.Harness + " keeps no transcript ws can read, so there's none: its terminal is what there is."
+		sess.Why = c.Harness + " keeps no readable transcript: see the terminal."
 		if c.Harness == "cursor" {
-			sess.Why = "Cursor keeps its chats in a database ws can't read, so there's no transcript: its terminal is what there is."
+			sess.Why = "Cursor keeps no readable transcript: see the terminal."
 		}
 	case c.Conversation == "":
-		sess.Why = id + " recorded no session, so there's no transcript to read."
+		sess.Why = id + " has no session, so no transcript."
 	case !found:
-		sess.Why = id + "'s session file isn't where " + c.Harness + " keeps them yet (it may still be starting, or been cleared)."
+		sess.Why = id + "'s session file not found where " + c.Harness + " keeps them (still starting, or cleared)."
 	default:
 		sess.Path = path
 	}
@@ -163,7 +163,7 @@ func (p crewPages) Answer(slug, id string, a CrewAnswer) (string, error) {
 	}
 	r, ok := runs.Run(key)
 	if !ok {
-		return "", fmt.Errorf("%s isn't running", id)
+		return "", fmt.Errorf("%s is not running", id)
 	}
 	return r.Answer(c, a)
 }
@@ -232,7 +232,7 @@ func (p crewPages) Paste(slug, id, text string) error {
 func (p crewPages) SwitchModel(slug, id, model string) (string, error) {
 	model = strings.TrimSpace(model)
 	if model == "" {
-		return "", errors.New("say which model")
+		return "", errors.New("choose a model")
 	}
 	_, key, err := p.w.crewOf(slug, id)
 	if err != nil {
@@ -244,7 +244,7 @@ func (p crewPages) SwitchModel(slug, id, model string) (string, error) {
 	}
 	r, ok := runs.Run(key)
 	if !ok {
-		return "", fmt.Errorf("%s isn't running", id)
+		return "", fmt.Errorf("%s is not running", id)
 	}
 	said, err := r.SwitchModel(model)
 	if err != nil {
@@ -283,9 +283,9 @@ func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 	case !errors.Is(err, crew.ErrNotRunning):
 		return "", err
 	case c.Ended == nil:
-		return "", fmt.Errorf("%s isn't running in this daemon: talk to it in the terminal it's in", id)
+		return "", fmt.Errorf("%s is running outside Workspace: talk to them in their terminal", id)
 	case c.Conversation == "":
-		return "", fmt.Errorf("%s recorded no session, so it can't be resumed", id)
+		return "", fmt.Errorf("%s has no session to resume", id)
 	}
 	// Ended: resumed, with what was said as its first message.
 	if err := w.Missions.SetResumeWithBy(slug, id, text, by.By()); err != nil {
@@ -405,7 +405,7 @@ func (w *Workspace) SendToCrew(slug, ref string, ids []string) (string, error) {
 // the service's (Options.Reviews, Options.Team: the daemon's, which its
 // pages read from too).
 
-var errNoTeam = fmt.Errorf("%w: there's no Team page here", ErrNotFound)
+var errNoTeam = fmt.Errorf("%w: Team page not available", ErrNotFound)
 
 // SubmitPR posts your review of a pull request, at the head it was written
 // on.
@@ -470,7 +470,7 @@ func (w *Workspace) DiscardPR(repo string, number int, id int64) error {
 // unsent is err as ops says it: one that's no longer waiting isn't found.
 func unsent(err error) error {
 	if errors.Is(err, outbox.ErrNotFound) {
-		return fmt.Errorf("%w: it's no longer waiting to be sent", ErrNotFound)
+		return fmt.Errorf("%w: no longer waiting to be sent", ErrNotFound)
 	}
 	return err
 }

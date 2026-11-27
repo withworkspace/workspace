@@ -559,7 +559,7 @@ func Resolve(s Snapshot) []Headline {
 		if t.Verb == TaskDo && t.Step > 0 {
 			add(Headline{Court: CourtYou, Kind: KindToDo, Label: "→ to do", By: firstNonEmpty(t.By, "ws"), Since: t.At,
 				Text:   t.Text,
-				Action: Action{Verb: VerbAnswer, Label: "mark it done", Options: t.Options, Target: strconv.Itoa(t.N)}})
+				Action: Action{Verb: VerbAnswer, Label: "mark done", Options: t.Options, Target: strconv.Itoa(t.N)}})
 			continue
 		}
 		flag := Headline{Court: CourtYou, Kind: KindFlag, Label: "! asks you", By: firstNonEmpty(t.By, "orchestrator"), Since: t.At,
@@ -577,7 +577,7 @@ func Resolve(s Snapshot) []Headline {
 				// waits (ws didn't pass it then: the capsule had moved
 				// on, or the step couldn't be passed): there's nothing
 				// left to approve, so passing it is what moves it on.
-				flag.Text += fmt.Sprintf(" You've approved %s already, so there's nothing left to approve: %s to go on.", lookNames(flag.Action.Look), strings.ToLower(ChecksPass))
+				flag.Text += fmt.Sprintf(" Already approved %s: %s to go on.", lookNames(flag.Action.Look), strings.ToLower(ChecksPass))
 				flag.Action.Label = strings.ToLower(ChecksPass)
 			}
 		}
@@ -585,7 +585,7 @@ func Resolve(s Snapshot) []Headline {
 	}
 	for _, rr := range s.ReReview {
 		add(Headline{Court: CourtYou, Kind: KindReReview, Label: "↻ re-review", By: rr.Capsule,
-			Text: fmt.Sprintf("%s is ready for your re-review: %s asked for changes; %d of %d comments answered since",
+			Text: fmt.Sprintf("%s is ready for re-review: %s asked for changes; %d of %d comments answered",
 				rr.Capsule, rr.Review, rr.Answered, rr.Total),
 			Action: Action{Verb: VerbReview, Label: "review " + rr.Capsule, Target: rr.Capsule}})
 	}
@@ -595,7 +595,7 @@ func Resolve(s Snapshot) []Headline {
 			comments = fmt.Sprintf("%d comments", r.Waiting)
 		}
 		add(Headline{Court: CourtAgent, Kind: KindAnswering, Label: "… answering", By: r.Name,
-			Text:   fmt.Sprintf("an agent is answering %s on %s (%s)", comments, r.Name, strings.Join(r.Threads, ", ")),
+			Text:   fmt.Sprintf("An agent is answering %s on %s (%s)", comments, r.Name, strings.Join(r.Threads, ", ")),
 			Action: Action{Verb: VerbReviewDoc, Label: "read " + r.Name, Target: r.Doc}})
 	}
 	for _, r := range s.Threads.Replies {
@@ -605,7 +605,7 @@ func Resolve(s Snapshot) []Headline {
 		}
 		add(Headline{Court: CourtYou, Kind: KindReplies, Label: "↩ replies", By: r.Name,
 			Text:   fmt.Sprintf("%s on %s, waiting for you (%s)", replies, r.Name, strings.Join(r.Threads, ", ")),
-			Action: Action{Verb: VerbReviewDoc, Label: "read the replies on " + r.Name, Target: r.Doc}})
+			Action: Action{Verb: VerbReviewDoc, Label: "read replies on " + r.Name, Target: r.Doc}})
 	}
 	// Its briefing conversation, until ws is starting it: confirmed, what
 	// its agent last said isn't waiting on you any more.
@@ -613,16 +613,16 @@ func Resolve(s Snapshot) []Headline {
 		switch {
 		case b.Answering:
 			add(Headline{Court: CourtAgent, Kind: KindBriefing, Label: "● briefing", By: b.ID,
-				Text:   "The briefing agent is at work, in " + b.ID,
+				Text:   "The briefing agent is working in " + b.ID,
 				Action: Action{Verb: VerbTalk, Label: "open " + b.ID, Target: b.ID}})
 		case b.Proposed:
 			add(Headline{Court: CourtYou, Kind: KindBriefTalk, Label: "↩ brief", By: b.ID,
-				Text:   "The brief's proposed, in " + b.ID + ": confirm it, and the mission starts",
-				Action: Action{Verb: VerbTalk, Label: "read the brief", Target: b.ID}})
+				Text:   "Brief proposed in " + b.ID + ": confirming starts the mission",
+				Action: Action{Verb: VerbTalk, Label: "read brief", Target: b.ID}})
 		case b.Waiting:
 			add(Headline{Court: CourtYou, Kind: KindBriefTalk, Label: "↩ briefing", By: b.ID,
-				Text:   "The briefing agent is waiting for you, in " + b.ID,
-				Action: Action{Verb: VerbTalk, Label: "answer it", Target: b.ID}})
+				Text:   "The briefing agent is waiting for you in " + b.ID,
+				Action: Action{Verb: VerbTalk, Label: "answer", Target: b.ID}})
 		}
 	}
 	if b := s.Threads.Briefing; b != nil && m.Plan != nil && s.State != Briefing && s.State != Parked {
@@ -630,12 +630,12 @@ func Resolve(s Snapshot) []Headline {
 		switch {
 		case b.Answering:
 			add(Headline{Court: CourtAgent, Kind: KindBriefing, Label: "● planning", By: "planner",
-				Text:   "The planner is at work on the plan, in " + b.ID,
+				Text:   "The planner is working on the plan in " + b.ID,
 				Action: Action{Verb: VerbTalk, Label: "open " + b.ID, Target: b.ID}})
 		case b.PlanWhy != "":
 			add(Headline{Court: CourtYou, Kind: KindBriefTalk, Label: "↩ plan", By: "planner",
-				Text:   "The planner proposes a revision of the plan, in " + b.ID + ": " + strings.TrimSuffix(b.PlanWhy, "."),
-				Action: Action{Verb: VerbTalk, Label: "read the revision", Target: b.ID}})
+				Text:   "The planner proposes a plan revision in " + b.ID + ": " + strings.TrimSuffix(b.PlanWhy, "."),
+				Action: Action{Verb: VerbTalk, Label: "read revision", Target: b.ID}})
 		}
 	}
 	for _, p := range s.Threads.Proposed {
@@ -651,18 +651,18 @@ func Resolve(s Snapshot) []Headline {
 	if !onIt {
 		for _, r := range s.Threads.Approve {
 			add(Headline{Court: CourtYou, Kind: KindApprove, Label: "✓ approve", By: r.Name,
-				Text:   r.Name + " has no open threads: approve it?",
+				Text:   r.Name + " has no open threads: approve?",
 				Action: Action{Verb: VerbReviewDoc, Label: "approve " + r.Name, Target: r.Doc}})
 		}
 	}
 	if d := m.Dispatch; d != nil {
-		text := "Next crew is queued"
+		text := "Next crew queued"
 		if d.Capsule != "" {
 			text += " in " + d.Capsule
 		}
 		add(Headline{Court: CourtYou, Kind: KindQueued, Label: "→ next crew", By: firstNonEmpty(d.By, "orchestrator"), Since: d.At,
 			Text:   text + ": " + d.Text,
-			Action: Action{Verb: VerbLaunchNext, Label: "launch the queued crew"}})
+			Action: Action{Verb: VerbLaunchNext, Label: "launch queued crew"}})
 	}
 	for _, c := range slices.Backward(m.Crew) {
 
@@ -687,7 +687,7 @@ func Resolve(s Snapshot) []Headline {
 		// Suggested before missions had endings: it only looks finished.
 		add(Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up", By: firstNonEmpty(c.By, "orchestrator"), Since: c.At,
 			Text:   "Looks finished: " + c.Text,
-			Action: Action{Verb: VerbArchive, Label: "archive it"}})
+			Action: Action{Verb: VerbArchive, Label: "archive"}})
 	}
 
 	// ws, checking a step its crew reported done: until it's checked,
@@ -700,7 +700,7 @@ func Resolve(s Snapshot) []Headline {
 
 	// The PR writer, writing a pull request ws opens once it's written.
 	for _, p := range m.WritingPRs {
-		text := "The PR writer is writing " + p.Capsule + "'s pull request: ws opens it once it's written"
+		text := "The PR writer is writing " + p.Capsule + "'s pull request"
 		if p.Step > 0 {
 			text += fmt.Sprintf(", for step %d", p.Step)
 		}
@@ -712,7 +712,7 @@ func Resolve(s Snapshot) []Headline {
 	// begins with says so itself (Mission.Moving).
 	if mv := m.Moving; mv != nil {
 		add(Headline{Court: CourtAgent, Kind: KindMovingOn, Label: "… moving on", By: "ws", Since: mv.Since,
-			Text:   fmt.Sprintf("ws is moving the plan on from step %d", mv.Step),
+			Text:   fmt.Sprintf("Moving on from step %d", mv.Step),
 			Action: Action{Label: "nothing to do"}})
 	}
 
@@ -722,7 +722,7 @@ func Resolve(s Snapshot) []Headline {
 	if r := m.Orchestrating; s.orchestrating() {
 		add(Headline{Court: CourtAgent, Kind: KindDeciding, Label: "◆ deciding", By: "orchestrator", Since: r.Since,
 			Text:   "The orchestrator is looking at " + firstNonEmpty(r.For, "the mission"),
-			Action: Action{Verb: VerbLog, Label: "read the log"}})
+			Action: Action{Verb: VerbLog, Label: "open log"}})
 	} else if s.OrchestratorOff && !checking {
 		if h, ok := s.acceptHeadline(); ok {
 			add(h)
@@ -824,7 +824,7 @@ func workingHeadline(s Snapshot, working []Crew, since time.Time) Headline {
 	}
 	switch {
 	case c.Role == RoleAnswer:
-		h.Text = c.ID + " is finding out the answer to the question for you"
+		h.Text = c.ID + " is finding the answer"
 	case c.Dispatch != "":
 		h.Text = c.ID + " is working: " + firstLine(c.Dispatch, 120)
 	default:
@@ -853,9 +853,9 @@ func startingHeadline(starting []Crew) Headline {
 	h.Text = "Starting " + c.ID
 	switch {
 	case c.Role == RoleBriefing:
-		h.Text += ", to brief it"
+		h.Text += ", to write the brief"
 	case c.Role == RoleAnswer:
-		h.Text += ", to find out the answer to the question for you"
+		h.Text += ", to find the answer"
 	case c.Dispatch != "":
 		h.Text += ": " + firstLine(c.Dispatch, 120)
 	case c.Capsule != "":
@@ -868,10 +868,10 @@ func startingHeadline(starting []Crew) Headline {
 // running (Crew.OwnWork): the agent's court, with what they wait on.
 func ownWorkHeadline(c Crew, work []Work) Headline {
 	h := Headline{Court: CourtAgent, Kind: KindOwnWork, Label: "⧗ background work", By: c.ID, Since: c.Pending.At,
-		Text:   c.ID + " is waiting on its own work: " + WorkWhat(work),
+		Text:   c.ID + " is waiting on background work: " + WorkWhat(work),
 		Action: Action{Verb: VerbWatch, Label: "watch " + c.ID, Target: c.ID}}
 	if len(c.Pending.Running()) == 0 {
-		h.Text = c.ID + "'s work has ended, and its harness is to wake it: " + WorkWhat(work)
+		h.Text = c.ID + "'s background work has ended: " + WorkWhat(work)
 	}
 	return h
 }
@@ -914,14 +914,14 @@ func (s Snapshot) acceptHeadline() (Headline, bool) {
 	if reported == nil {
 		return Headline{}, false
 	}
-	stage := "its part"
-	label := "accept the work"
+	stage := "the work"
+	label := "accept"
 	if !cur.Implicit {
 		stage = fmt.Sprintf("%s %d", cur.Noun(), cur.N)
 		label = fmt.Sprintf("accept %s %d", cur.Noun(), cur.N)
 	}
 	return Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ accept", By: reported.ID, Since: timeOr(reported.StatusAt, reported.Started),
-		Text:   fmt.Sprintf("%s reports %s done: %s. Accept it?", reported.ID, stage, firstLine(reported.Note, 120)),
+		Text:   fmt.Sprintf("%s reports %s done: %s. Accept?", reported.ID, stage, firstLine(reported.Note, 120)),
 		Action: Action{Verb: VerbAccept, Label: label}}, true
 }
 
@@ -934,7 +934,7 @@ func concludeHeadline(c Conclusion) Headline {
 	}
 	return Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up", By: firstNonEmpty(c.By, "orchestrator"), Since: c.At,
 		Text:   text + c.came(),
-		Action: Action{Verb: VerbEnd, Label: "end it, " + c.Ending.Words()}}
+		Action: Action{Verb: VerbEnd, Label: "end as " + c.Ending.Words()}}
 }
 
 // endedHeadline is a mission that ended, as you said.
@@ -948,7 +948,7 @@ func endedHeadline(c Conclusion) Headline {
 	}
 	return Headline{Court: CourtYou, Kind: KindEnded, Label: c.Ending.Words(), By: firstNonEmpty(c.By, "you"), Since: c.At,
 		Text:   text + c.came(),
-		Action: Action{Verb: VerbArchive, Label: "archive it"}}
+		Action: Action{Verb: VerbArchive, Label: "archive"}}
 }
 
 // waitingStep is the plan's current step when it waits on CI or someone
@@ -986,26 +986,26 @@ func (s Snapshot) stepWaitHeadline(st StageState) Headline {
 		since = watch.Since
 	}
 	if st.Step.Watched() {
-		looked := "it hasn't looked yet"
+		looked := "not checked yet"
 		if watch != nil && watch.Looked != nil {
-			looked = fmt.Sprintf("it last looked %s ago: %s", Elapsed(s.now().Sub(*watch.Looked)), watch.Summary())
+			looked = fmt.Sprintf("last checked %s ago: %s", Elapsed(s.now().Sub(*watch.Looked)), watch.Summary())
 		}
 		return Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ watching", By: by, Since: since,
-			Text:   fmt.Sprintf("Step %d %s: %s ws is watching for it (%s), and passes the step once it's happened; %s", st.N, who, what, checkCommands(st.Step.Checks), looked),
+			Text:   fmt.Sprintf("Step %d %s: %s Watching (%s); %s", st.N, who, what, checkCommands(st.Step.Checks), looked),
 			Action: done}
 	}
 	if s.CapsulesLanded {
 		return Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ accept", By: by, Since: since,
-			Text:   fmt.Sprintf("Step %d %s: %s Every pull request has merged, and every capsule landed: mark it done, if that's what it waits for", st.N, who, what),
+			Text:   fmt.Sprintf("Step %d %s: %s All pull requests merged and all capsules landed: mark done if that was the wait", st.N, who, what),
 			Action: done}
 	}
 	if !since.IsZero() && s.now().Sub(since) >= StaleWait {
 		return Headline{Court: CourtYou, Kind: KindAccept, Label: "? happened", By: by, Since: since,
-			Text:   fmt.Sprintf("Step %d has waited %s%s: %s Nobody's watching for it: has it happened? Mark it done if it has", st.N, waitedFor(s.now().Sub(since)), strings.TrimPrefix(who, "waits"), what),
+			Text:   fmt.Sprintf("Step %d has waited %s%s: %s Not watched: has it happened? Mark done if so", st.N, waitedFor(s.now().Sub(since)), strings.TrimPrefix(who, "waits"), what),
 			Action: done}
 	}
 	return Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ waiting", By: by, Since: since,
-		Text:   fmt.Sprintf("Step %d %s: %s Nobody's watching for it: mark it done when it's happened", st.N, who, what),
+		Text:   fmt.Sprintf("Step %d %s: %s Not watched: mark done once it happens", st.N, who, what),
 		Action: done}
 }
 
@@ -1055,9 +1055,9 @@ func (s Snapshot) mergedHeadline(pr PRFacts) (Headline, bool) {
 	if !seen {
 		return Headline{}, false
 	}
-	text := fmt.Sprintf("%s has merged: ws is passing step %d and moving the plan on", pr.Ref, st.N)
+	text := fmt.Sprintf("%s merged: passing step %d", pr.Ref, st.N)
 	if len(st.Instances()) > 1 {
-		text = fmt.Sprintf("%s has merged: ws is taking it in at step %d, which passes once each of its pull requests has merged", pr.Ref, st.N)
+		text = fmt.Sprintf("%s merged: step %d passes once all its pull requests have merged", pr.Ref, st.N)
 	}
 	return Headline{Court: CourtAgent, Kind: KindMovingOn, Label: "… moving on", By: "ws", Text: text,
 		Action: Action{Label: "nothing to do"}}, true
@@ -1096,17 +1096,17 @@ func prHeadline(pr PRFacts) Headline {
 		// no review and no checks would otherwise read as) nor a mission
 		// nobody's on.
 		h.Court, h.Kind, h.Label, h.By = CourtAgent, KindMovingOn, "… moving on", "ws"
-		h.Text = pr.Ref + " is open: ws is asking GitHub how its checks and review stand"
+		h.Text = pr.Ref + " is open: asking GitHub for checks and review status"
 	case pr.Checks == "failure":
 		h.Court, h.Kind, h.Label = CourtYou, KindChecksFailing, "✗ checks"
 		h.Text = "Checks are failing on " + pr.Ref
 	case pr.Review == "CHANGES_REQUESTED":
 		h.Court, h.Kind, h.Label = CourtYou, KindChangesRequested, "✗ changes"
-		h.Text = pr.Ref + ": a reviewer asked for changes"
+		h.Text = pr.Ref + ": changes requested"
 	case pr.Conflict:
 		// Whatever its checks and review say, it can't be merged as it is.
 		h.Court, h.Kind, h.Label = CourtYou, KindConflict, "✗ conflict"
-		h.Text = pr.Ref + " conflicts with its base"
+		h.Text = pr.Ref + " has merge conflicts"
 	case pr.Checks == "pending":
 		h.Court, h.Kind, h.Label = CourtOutside, KindChecksRunning, "◌ checks"
 		h.Text = pr.Ref + "'s checks are running · nothing for you to do"
@@ -1118,27 +1118,27 @@ func prHeadline(pr PRFacts) Headline {
 		// review; that it's blocked still says so. Being able to merge it
 		// anyway, as an admin, doesn't make it yours to.
 		h.Court, h.Kind, h.Label = CourtOutside, KindAwaitingReview, "in review"
-		h.Text = pr.Ref + " is waiting for the review its base branch's rules ask for · nothing for you to do"
+		h.Text = pr.Ref + " is waiting for a required review · nothing for you to do"
 	case pr.Blocked:
 		h.Court, h.Kind, h.Label = CourtOutside, KindWaitingOn, "⧗ held"
-		h.Text = pr.Ref + " is approved, but its base branch's rules still hold it: open it to see what they want"
+		h.Text = pr.Ref + " is approved but held by branch rules: open to see why"
 	case pr.MergeUnknown:
 		// Nothing else holds it up, but it may turn out to conflict: it's
 		// not yours to merge until GitHub has said.
 		h.Court, h.Kind, h.Label = CourtOutside, KindWaitingOn, "⧗ waiting"
-		h.Text = pr.Ref + ": GitHub is working out whether it merges cleanly · nothing for you to do"
+		h.Text = pr.Ref + ": GitHub is checking for conflicts · nothing for you to do"
 	default:
 		h.Court, h.Kind, h.Label = CourtYou, KindMerge, "✓ merge"
 		var why string
 		switch {
 		case pr.Review == "APPROVED" && pr.Checks == "success":
-			why = "it's approved and its checks pass"
+			why = "approved, checks pass"
 		case pr.Review == "APPROVED":
-			why = "it's approved, and has no checks"
+			why = "approved, no checks"
 		case pr.Checks == "success":
-			why = "its checks pass, and it needs no review"
+			why = "checks pass, no review needed"
 		default:
-			why = "it needs no review, and has no checks"
+			why = "no review or checks needed"
 		}
 		h.Text = pr.Ref + " is ready to merge: " + why
 		h.Action = Action{Verb: VerbMerge, Label: "merge " + pr.Ref, Target: pr.Ref, URL: pr.URL}
@@ -1148,7 +1148,7 @@ func prHeadline(pr PRFacts) Headline {
 		h.Action.AutoMerge = "can"
 		if pr.AutoMerge {
 			h.Action.AutoMerge = "on"
-			h.Text = strings.TrimSuffix(h.Text, " · nothing for you to do") + " · it merges by itself once it can"
+			h.Text = strings.TrimSuffix(h.Text, " · nothing for you to do") + " · auto-merge on"
 		}
 	}
 	return h
@@ -1188,12 +1188,12 @@ func landHeadline(d DirectFacts) Headline {
 		Action: Action{Verb: VerbLand, Label: "review and land " + d.Capsule, Target: d.Capsule}}
 	switch {
 	case d.Dirty:
-		h.Text = fmt.Sprintf("%s has %s to land on %s, and changes not committed yet: there's no pull request, so it lands when you say", d.Capsule, commits, d.Branch)
+		h.Text = fmt.Sprintf("%s has %s to land on %s, plus uncommitted changes: no pull request, lands when you say", d.Capsule, commits, d.Branch)
 	case d.Approved:
-		h.Text = fmt.Sprintf("%s is approved: land its %s on %s", d.Capsule, commits, d.Branch)
+		h.Text = fmt.Sprintf("%s is approved: land %s on %s", d.Capsule, commits, d.Branch)
 		h.Action.Label = "land " + d.Capsule
 	default:
-		h.Text = fmt.Sprintf("%s has %s to land on %s: there's no pull request, so review them, and it lands when you say", d.Capsule, commits, d.Branch)
+		h.Text = fmt.Sprintf("%s has %s to land on %s: no pull request, so review, then land", d.Capsule, commits, d.Branch)
 	}
 	return h
 }
@@ -1204,20 +1204,20 @@ func (s Snapshot) restingHeadline() Headline {
 	m := s.M
 	switch {
 	case s.State == Landed:
-		text := "Every PR has merged"
+		text := "All PRs merged"
 		if landed := slices.ContainsFunc(m.Capsules, func(c Capsule) bool { return c.Landed != nil }); landed {
-			text = "Everything has landed"
+			text = "Everything landed"
 		}
-		return Headline{Court: CourtYou, Kind: KindLanded, Label: "landed", Text: text + ": archive it when you're ready",
-			Action: Action{Verb: VerbArchive, Label: "archive it"}}
+		return Headline{Court: CourtYou, Kind: KindLanded, Label: "landed", Text: text + ": archive when ready",
+			Action: Action{Verb: VerbArchive, Label: "archive"}}
 	case s.State == Parked:
-		return Headline{Court: CourtYou, Kind: KindParked, Label: "parked", Text: "Parked: nothing moves until you unpark it",
-			Action: Action{Verb: VerbUnpark, Label: "unpark it"}}
+		return Headline{Court: CourtYou, Kind: KindParked, Label: "parked", Text: "Parked: nothing moves until unparked",
+			Action: Action{Verb: VerbUnpark, Label: "unpark"}}
 	case s.State == Briefing && m.Plan != nil && !IsUnwrittenBrief(s.Brief, m.Title):
 		// Briefed and planned, and not confirmed: briefing it again would
 		// start over what's written.
 		return Headline{Court: CourtYou, Kind: KindToBrief, Label: "to confirm",
-			Text:   "Its brief and plan are written: confirm them to start it",
+			Text:   "Brief and plan written: confirm to start",
 			Action: Action{Verb: VerbConfirm, Label: "confirm and start"}}
 	case s.State == Briefing:
 		text := "Waiting to be briefed"
@@ -1225,29 +1225,29 @@ func (s Snapshot) restingHeadline() Headline {
 			text += ": " + r
 		}
 		return Headline{Court: CourtYou, Kind: KindToBrief, Label: "to brief", Text: text,
-			Action: Action{Verb: VerbBrief, Label: "brief it"}}
+			Action: Action{Verb: VerbBrief, Label: "brief"}}
 	case s.yourStep() != nil:
 		// The plan's at a step of yours, and nothing's asking you of it
 		// (ws's question was answered, or another took its place).
 		st := s.yourStep()
 		if st.Step.Type == StepReview {
-			return stepReviewHeadline(s, st.N, fmt.Sprintf("Step %d is yours, to review: %s", st.N, strings.TrimSuffix(st.Plain(), ".")), "", "ws", time.Time{})
+			return stepReviewHeadline(s, st.N, fmt.Sprintf("Step %d is yours to review: %s", st.N, strings.TrimSuffix(st.Plain(), ".")), "", "ws", time.Time{})
 		}
-		text := fmt.Sprintf("Step %d is yours: %s Go on when you're satisfied", st.N, strings.TrimSuffix(st.Plain(), "."))
+		text := fmt.Sprintf("Step %d is yours: %s Go on when satisfied", st.N, strings.TrimSuffix(st.Plain(), "."))
 		action := Action{Verb: VerbAccept, Label: fmt.Sprintf("go on: pass step %d", st.N)}
 		if st.Step.WaitOnYou() {
 			// Something you do yourself, and nothing's asking you of it.
 			return Headline{Court: CourtYou, Kind: KindToDo, Label: "→ to do",
-				Text:   fmt.Sprintf("Step %d is yours, to do: %s Mark it done when you have", st.N, sentenceOf(st.Plain())),
+				Text:   fmt.Sprintf("Step %d is yours to do: %s Mark done when finished", st.N, sentenceOf(st.Plain())),
 				Action: Action{Verb: VerbAccept, Label: fmt.Sprintf("mark step %d done", st.N)}}
 		}
 		if st.Step.Who == WhoPlanner {
 			// The planner had its turn and didn't write the steps after it
 			// (it asked something, or couldn't): it's yours to say more, or
 			// write them yourself and go on.
-			text = fmt.Sprintf("Step %d is the planner's: %s Write the steps after it, then go on", st.N, strings.TrimSuffix(st.Plain(), "."))
+			text = fmt.Sprintf("Step %d is the planner's: %s Write the next steps, then go on", st.N, strings.TrimSuffix(st.Plain(), "."))
 			if b := s.Threads.Briefing; b != nil {
-				text = fmt.Sprintf("Step %d is the planner's: %s It hasn't written the steps after it: answer it in %s, or write them yourself and go on", st.N, sentenceOf(st.Plain()), b.ID)
+				text = fmt.Sprintf("Step %d is the planner's: %s Next steps not written: answer in %s, or write them and go on", st.N, sentenceOf(st.Plain()), b.ID)
 				action = Action{Verb: VerbTalk, Label: "open " + b.ID, Target: b.ID}
 			}
 		}
@@ -1257,27 +1257,27 @@ func (s Snapshot) restingHeadline() Headline {
 		// ends: ending it is a press, landed where its work has merged.
 		if s.CapsulesLanded {
 			return Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up",
-				Text:   "Every step of the plan is done, and its work has merged",
-				Action: Action{Verb: VerbEnd, Label: "end it, landed"}}
+				Text:   "All steps done and work merged",
+				Action: Action{Verb: VerbEnd, Label: "end as landed"}}
 		}
 		return Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up",
-			Text:   "Every step of the plan is done",
-			Action: Action{Verb: VerbEnd, Label: "end it"}}
+			Text:   "All steps done",
+			Action: Action{Verb: VerbEnd, Label: "end"}}
 	case s.State == Review:
 		// Every capsule has a PR, but GitHub wasn't asked how they stand.
-		return Headline{Court: CourtOutside, Kind: KindAwaitingReview, Label: "in review", Text: "Its PRs are up, waiting for review and merge · nothing for you to do",
+		return Headline{Court: CourtOutside, Kind: KindAwaitingReview, Label: "in review", Text: "PRs up, waiting for review and merge · nothing for you to do",
 			Action: Action{Label: "nothing to do"}}
 	case s.checksUnmet() != nil:
 		return *s.checksUnmet()
 	case !hadWorkCrew(m):
-		text := "Ready: nobody has started it"
+		text := "Ready: not started"
 		if st, ok := s.currentStep(); ok && st.Held() {
 			text = fmt.Sprintf("Ready: step %d waits for your call, as it %s", st.N, st.HeldWhy())
 		}
 		return Headline{Court: CourtYou, Kind: KindReady, Label: "ready", Text: text,
 			Action: Action{Verb: VerbLaunch, Label: "launch crew"}}
 	}
-	text := "Nobody's working on it"
+	text := "Nobody working"
 	if st, ok := s.currentStep(); ok && st.Step.Who == WhoCrew {
 		text = fmt.Sprintf("Nobody's on step %d, crew's: %s", st.N, st.Short())
 	}
@@ -1285,9 +1285,9 @@ func (s Snapshot) restingHeadline() Headline {
 		text += "; the orchestrator said: " + said
 	} else if states, _ := m.StageProgress(s.Brief); len(states) > 0 {
 		if _, ok := CurrentStage(states); !ok {
-			text = "Every stage is accepted, and nobody's working on it"
+			text = "All stages accepted; nobody working"
 			if m.Plan != nil {
-				text = "Every step of the plan is accepted, and nobody's working on it"
+				text = "All steps accepted; nobody working"
 			}
 		}
 	}
@@ -1328,11 +1328,11 @@ func (s Snapshot) Position() string {
 	if !ok {
 		switch {
 		case m.Plan == nil:
-			return "Every stage accepted"
+			return "All stages accepted"
 		case m.Conclude != nil && m.Conclude.Ending != "":
-			return "Every step done: ending it, " + m.Conclude.Ending.Words() + ", is suggested"
+			return "All steps done: suggested ending is " + m.Conclude.Ending.Words() + ", to confirm"
 		}
-		return "Every step done: at Z, if what Z says is true"
+		return "All steps done: at Z, if Z holds"
 	}
 	head := fmt.Sprintf("Stage %d of %d", cur.N, len(states))
 	if cur.Step != nil {
@@ -1344,7 +1344,7 @@ func (s Snapshot) Position() string {
 	case WhoPlanner:
 		head += ", the planner's"
 	case WhoWS:
-		head += ", ws's"
+		head += ", Workspace's"
 	case WhoCI, WhoOutside:
 		head += ", " + waitsOn(*cur.Step, "waiting")
 	}
@@ -1423,9 +1423,9 @@ func (s Snapshot) checksUnmet() *Headline {
 		return nil
 	}
 	return &Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ yours", By: "ws", Since: round.At,
-		Text: fmt.Sprintf("Step %d's checks, round %d: %s. Nobody's on it: pass it as it is, or resume %s with what's left to put right",
+		Text: fmt.Sprintf("Step %d's checks, round %d: %s. Pass as is, or resume %s to fix the rest",
 			st.N, round.N, round.Summary(), round.Crew),
-		Action: Action{Verb: VerbAccept, Label: fmt.Sprintf("pass step %d as it is", st.N)}}
+		Action: Action{Verb: VerbAccept, Label: fmt.Sprintf("pass step %d as is", st.N)}}
 }
 
 // orchestratorSaid is what the orchestrator last said, if its run is the

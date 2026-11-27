@@ -282,7 +282,7 @@ func (s *Service) read(repo string, number int) (*page, error) {
 				return was, err // it can't be said whether it's still open
 			}
 			s.forgetPages(func(r string, n int) bool { return r == repo && n == number })
-			return nil, fmt.Errorf("%w: %s isn't open now (merged or closed)", ErrNotOpen, Key(repo, number))
+			return nil, fmt.Errorf("%w: %s was merged or closed", ErrNotOpen, Key(repo, number))
 		}
 	}
 
@@ -422,7 +422,7 @@ func (s *Service) said(repo string, number int, pg *page) *page {
 
 // errUnsaid answers for what's been said on a page that was kept without
 // it and hasn't been read again yet.
-var errUnsaid = errors.New("what's been said on it hasn't been read yet")
+var errUnsaid = errors.New("comments not loaded yet")
 
 func (s *Service) hadWhole(pg *page) bool {
 	s.mu.Lock()
@@ -579,7 +579,7 @@ func (s *Service) KeptDiff(repo string, number int, scope string) (*Diffed, erro
 	switch scope {
 	case ScopeWhole:
 		if pg.Stack == nil || len(pg.Stack.Layers) == 0 {
-			return nil, fmt.Errorf("%s isn't in a stack", pg.PR.Ref())
+			return nil, fmt.Errorf("%s is not in a stack", pg.PR.Ref())
 		}
 	case ScopeSince:
 		rec, err := Load(s.Root, repo, number)
@@ -587,7 +587,7 @@ func (s *Service) KeptDiff(repo string, number int, scope string) (*Diffed, erro
 			return nil, err
 		}
 		if rv = latest(rec.Reviewed, pg.GitHubReviewed); rv == nil {
-			return nil, fmt.Errorf("you haven't reviewed %s yet", pg.PR.Ref())
+			return nil, fmt.Errorf("you have not reviewed %s yet", pg.PR.Ref())
 		}
 		if since = s.keptSince(pg, rv); since == "" {
 			return nil, fmt.Errorf("nothing has changed in %s since your review", pg.PR.Ref())

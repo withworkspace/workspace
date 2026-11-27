@@ -36,13 +36,13 @@ const excerptMax = 40
 // Ask starts an ask, and has its agent answer.
 func (w *Workspace) Ask(a Asked, by Actor) (*conversation.Conversation, error) {
 	if strings.TrimSpace(a.Body) == "" {
-		return nil, &Invalid{Reason: "say something"}
+		return nil, &Invalid{Reason: "message is empty"}
 	}
 	if strings.TrimSpace(a.Thing) != "" {
 		return w.askThing(a, by)
 	}
 	if strings.TrimSpace(a.Doc) == "" {
-		return nil, &Invalid{Reason: "say what it's about: a document's ref, or a plugin's thing"}
+		return nil, &Invalid{Reason: "choose a document or plugin thing to ask about"}
 	}
 	d, err := w.FindDoc(a.Doc)
 	if err != nil {
@@ -53,7 +53,7 @@ func (w *Workspace) Ask(a Asked, by Actor) (*conversation.Conversation, error) {
 		return nil, err
 	}
 	if _, _, err := Roles(w.Config()).ForConversation(); err != nil {
-		return nil, &Invalid{Reason: "no agent can answer here: " + err.Error()}
+		return nil, &Invalid{Reason: "no agent available: " + err.Error()}
 	}
 	anchor := conversation.Anchor{Doc: d.Ref, Path: d.Rel, Version: doc.Version(text), Section: strings.TrimSpace(a.Section)}
 	if a.Quote != nil && strings.TrimSpace(a.Quote.Exact) != "" {
@@ -78,10 +78,10 @@ func (w *Workspace) askThing(a Asked, by Actor) (*conversation.Conversation, err
 	name := strings.TrimSpace(a.Thing)
 	r, _, ok := w.ThingNamed(name)
 	if !ok {
-		return nil, &Invalid{Reason: name + " isn't one of a plugin's things"}
+		return nil, &Invalid{Reason: name + " is not a plugin thing"}
 	}
 	if _, _, err := Roles(w.Config()).ForConversation(); err != nil {
-		return nil, &Invalid{Reason: "no agent can answer here: " + err.Error()}
+		return nil, &Invalid{Reason: "no agent available: " + err.Error()}
 	}
 	if a.Given.From == "" {
 		a.Given.From = w.pluginTitle(r.Plugin)

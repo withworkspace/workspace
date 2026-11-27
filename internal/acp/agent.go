@@ -174,7 +174,7 @@ func Run(ctx context.Context, o Options) (*Agent, error) {
 func (a *Agent) open(ctx context.Context) error {
 	if a.o.Auth != "" {
 		if err := a.client.Authenticate(ctx, a.o.Auth); err != nil {
-			return fmt.Errorf("signing in (%s): %w", a.o.Auth, err)
+			return fmt.Errorf("could not sign in (%s): %w", a.o.Auth, err)
 		}
 	}
 	var err error
@@ -272,7 +272,7 @@ func (a *Agent) SetModel(ctx context.Context, model string, settings []Setting) 
 func (a *Agent) setOption(ctx context.Context, category, want string) error {
 	opt := a.session.Option(category)
 	if opt == nil {
-		return fmt.Errorf("the agent has no %s to choose", category)
+		return fmt.Errorf("the agent has no %s option", category)
 	}
 	v := opt.Pick(want)
 	if v == "" {
@@ -284,11 +284,11 @@ func (a *Agent) setOption(ctx context.Context, category, want string) error {
 			}
 			names = append(names, cv.Name)
 		}
-		return fmt.Errorf("the agent has no %s %q (it has %s)", category, want, strings.Join(names, ", "))
+		return fmt.Errorf("the agent has no %s %q (choose from %s)", category, want, strings.Join(names, ", "))
 	}
 	cfg, err := a.client.SetConfig(ctx, opt.ID, v)
 	if err != nil {
-		return fmt.Errorf("choosing %s %s: %w", category, v, err)
+		return fmt.Errorf("could not choose %s %s: %w", category, v, err)
 	}
 	a.mu.Lock()
 	if len(cfg) > 0 {

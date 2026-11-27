@@ -175,7 +175,7 @@ func (r *run) keepBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark
 	}
 	v, ok := starlark.AsFloat(value)
 	if !ok || math.IsNaN(v) || math.IsInf(v, 0) {
-		return nil, fmt.Errorf("keep: %s is a %s: it keeps numbers", series, value.Type())
+		return nil, fmt.Errorf("keep: %s is a %s: only numbers are kept", series, value.Type())
 	}
 	if series == "" {
 		return nil, fmt.Errorf("keep: say which series, as keep(\"coverage\", 71.4)")
@@ -228,7 +228,7 @@ func (r *run) keptBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark
 // written whole.
 func (r *run) outputBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if !r.a.Allows(MayOutput) {
-		return nil, fmt.Errorf("output: it may not (may = [\"output\"] says it may)")
+		return nil, fmt.Errorf("output: not allowed without may = [\"output\"]")
 	}
 	var markdown, html string
 	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "markdown?", &markdown, "html?", &html); err != nil {
@@ -242,13 +242,13 @@ func (r *run) outputBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starla
 		o.Format, o.Body = OutputHTML, html
 	}
 	if len(o.Body) > outputMost {
-		return nil, fmt.Errorf("output: it's %d KB, and can be at most %d KB", len(o.Body)>>10, outputMost>>10)
+		return nil, fmt.Errorf("output: %d KB, over the %d KB limit", len(o.Body)>>10, outputMost>>10)
 	}
 	_, err := r.step("output", func() (string, error) {
 		if r.dry != nil {
 			o.At = r.ev.At
 			r.dry.output = &o
-			r.dry.did = append(r.dry.did, "output: its page, as "+o.Format)
+			r.dry.did = append(r.dry.did, "output: page, as "+o.Format)
 			return "", nil
 		}
 		return "", writeOutput(r.e.Root, o)

@@ -33,7 +33,7 @@ var outside = []string{"ws", "workspace", "gh"}
 // afresh.
 func closedUnder(dir string, open, room []string) ([]string, error) {
 	if _, err := os.ReadDir(dir); err != nil {
-		return nil, fmt.Errorf("reading %s, to close it to a sandboxed shell: %w", dir, err)
+		return nil, fmt.Errorf("could not read %s to set up the sandbox: %w", dir, err)
 	}
 	inside := append(append([]string{}, open...), room...)
 	var closed []string

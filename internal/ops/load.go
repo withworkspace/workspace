@@ -98,7 +98,7 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		if rc.GitHub != "" {
 			r, ok := ref.ParseRemote(rc.GitHub)
 			if !ok {
-				return nil, nil, nil, fmt.Errorf("[repos.%s] github = %q: it's owner/name, as on GitHub", name, rc.GitHub)
+				return nil, nil, nil, fmt.Errorf("[repos.%s] github = %q: use owner/name, as on GitHub", name, rc.GitHub)
 			}
 			remotes[name] = r
 		}
@@ -183,17 +183,17 @@ func documentKinds(cfg *config.Config, aliases map[string]string) ([]*workspace.
 		dc := cfg.Documents[name]
 		repo, pattern, ok := strings.Cut(dc.Path, ":")
 		if !ok {
-			return nil, fmt.Errorf("[documents.%s]: path %q doesn't say which repo: it's repo:path", name, dc.Path)
+			return nil, fmt.Errorf("[documents.%s]: path %q has no repo: use repo:path", name, dc.Path)
 		}
 		if canonical, ok := aliases[repo]; ok {
 			repo = canonical
 		}
 		if _, ok := cfg.Repos[repo]; !ok {
-			return nil, fmt.Errorf("[documents.%s]: path %q is in %s, which isn't one of the workspace's repos", name, dc.Path, repo)
+			return nil, fmt.Errorf("[documents.%s]: path %q is in %s, not a workspace repo", name, dc.Path, repo)
 		}
 		for _, p := range dc.Passes {
 			if _, ok := cfg.Pages.Passes[p]; !ok && !isBuiltinPass(p) {
-				return nil, fmt.Errorf("[documents.%s]: passes names %q, which isn't one of the workspace's passes ([pages.passes.%s])", name, p, p)
+				return nil, fmt.Errorf("[documents.%s]: passes names %q, not a workspace pass ([pages.passes.%s])", name, p, p)
 			}
 		}
 		var moves []workspace.Move

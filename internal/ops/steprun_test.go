@@ -55,7 +55,7 @@ func TestStepRun_SkippedByTheOrchestrator(t *testing.T) {
 		t.Error("skipped without saying why")
 	}
 	said, err := w.Skip("cache", "the fix is obvious: round once, at the end", AsOrchestrator)
-	if err != nil || !strings.Contains(said, "skipped step 2, and step 3 is the user's") {
+	if err != nil || !strings.Contains(said, "skipped step 2, and step 3 waits for the user's") {
 		t.Fatalf("skip: %q, %v", said, err)
 	}
 	m, _ := w.Missions.Load("cache")
@@ -79,11 +79,11 @@ func TestStepRun_YourCall(t *testing.T) {
 	w.AcceptStage("cache", AsYou, "found")
 	m, _ := w.Missions.Load("cache")
 	task := m.Asking()
-	if task == nil || task.Step != 2 || task.Verb != mission.TaskApprove || strings.Join(task.Options, "|") != "Go on|Skip it" || !strings.Contains(task.Text, "Step 2 applies only if the fix isn't obvious: which fix? Go on to start it, or skip it.") {
+	if task == nil || task.Step != 2 || task.Verb != mission.TaskApprove || strings.Join(task.Options, "|") != "Go on|Skip it" || !strings.Contains(task.Text, "Step 2 applies only if the fix isn't obvious: which fix? Go on to start, or skip.") {
 		t.Fatalf("the task = %+v", task)
 	}
 	a, err := w.AnswerTask("cache", task.N, AsYou, mission.CheckInGoOn)
-	if err != nil || !strings.Contains(a.Next, "step 2 is the user's, to decide") {
+	if err != nil || !strings.Contains(a.Next, "step 2 waits for the user's decision") {
 		t.Fatalf("go on: %+v, %v", a, err)
 	}
 	m, _ = w.Missions.Load("cache")
@@ -144,7 +144,7 @@ func TestStepRun_InEachRepo(t *testing.T) {
 	// backend's are too.
 	os.WriteFile(filepath.Join(w.WS().RepoDir("frontend"), "one", "updated"), nil, 0o644)
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "updated")
-	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "step 1 is done in frontend, and runs on in backend") {
+	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "step 1 done in frontend, still running in backend") {
 		t.Errorf("frontend done: %q", said)
 	}
 	_, err = w.AcceptStage("cache", AsOrchestrator, "done")
@@ -220,10 +220,10 @@ func TestStepRun_PullRequestInEachRepo(t *testing.T) {
 	w.reachStep(m, mission.StageState{}, cur)
 	m, _ = w.Missions.Load("cache")
 	task := m.Asking()
-	if task == nil || !strings.Contains(task.Text, "Step 1 runs in each repo the work changed") || !strings.Contains(task.Text, "Name the repos it runs in") {
+	if task == nil || !strings.Contains(task.Text, "Step 1 runs in each repo the work changed") || !strings.Contains(task.Text, "Name the repos to run in") {
 		t.Fatalf("the task = %+v", task)
 	}
-	if a, err := w.AnswerTask("cache", task.N, AsYou, "frontend, and something"); err != nil || !strings.Contains(a.Next, "the orchestrator is off") {
+	if a, err := w.AnswerTask("cache", task.N, AsYou, "frontend, and something"); err != nil || !strings.Contains(a.Next, "orchestrator is off ([orchestrator] enabled = false)") {
 		t.Errorf("not repos: %+v, %v", a, err)
 	}
 	m, _ = w.Missions.Load("cache")
@@ -268,7 +268,7 @@ func TestStepRun_CarryingOnInEachRepo(t *testing.T) {
 		w.CrewDone("cache", c)
 	}
 	acc, err := w.AcceptStage("cache", AsOrchestrator, "updated in both")
-	if err != nil || !strings.Contains(acc.Next, "c1 can't be resumed: started c3 in frontend/one") || !strings.Contains(acc.Next, "c2 can't be resumed: started c4 in backend/two") {
+	if err != nil || !strings.Contains(acc.Next, "c1 could not be resumed: started c3 in frontend/one") || !strings.Contains(acc.Next, "c2 could not be resumed: started c4 in backend/two") {
 		t.Fatalf("accept: %+v, %v", acc, err)
 	}
 	m, _ := w.Missions.Load("cache")
@@ -285,7 +285,7 @@ func TestStepRun_QueuedOneAtATime(t *testing.T) {
 	w, _, host := reposFixture(t, plan)
 	w.Config().Orchestrator.Dispatch = "ask"
 	said, err := w.StartStep("cache", []string{"frontend", "backend"}, AsOrchestrator)
-	if err != nil || !strings.Contains(said, "queued in frontend/one for the user to launch; the rest are queued one at a time") {
+	if err != nil || !strings.Contains(said, "queued in frontend/one, ready to launch; the rest queue one at a time") {
 		t.Fatalf("started: %q, %v", said, err)
 	}
 	if _, err := w.LaunchQueued("cache", AsYou); err != nil {
@@ -310,7 +310,7 @@ func TestStepRun_LaunchingIsYourCall(t *testing.T) {
 	refusedWith(t, err, "which-repos")
 	m, _ := w.Missions.Load("cache")
 	task := m.Asking()
-	if task == nil || task.Step != 1 || !strings.Contains(task.Text, "Name the repos it runs in") {
+	if task == nil || task.Step != 1 || !strings.Contains(task.Text, "Name the repos to run in") {
 		t.Fatalf("the task = %+v", task)
 	}
 	if _, err := w.AnswerTask("cache", task.N, AsYou, "backend"); err != nil || len(host.specs) != 1 || host.specs[0].Capsule != "backend/two" {

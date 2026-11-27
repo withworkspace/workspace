@@ -32,24 +32,24 @@ func (w *Workspace) PointSilo(repo, capsule string, out io.Writer) error {
 	if _, err := os.Stat(siloDir); os.IsNotExist(err) {
 		fmt.Fprintf(out, "  Creating silo for %s...\n", ws.FormatRepoName(repo))
 		if err := workspace.GitWorktreeAddDetached(ws.BareDir(repo), siloDir, ws.DefaultBranch); err != nil {
-			return fmt.Errorf("creating silo worktree: %w", err)
+			return fmt.Errorf("could not create silo: %w", err)
 		}
 	}
 	fmt.Fprintf(out, "  Syncing %s -> .silo...\n", capsule)
 	if _, err := workspace.FullSync(capsuleDir, siloDir); err != nil {
-		return fmt.Errorf("syncing: %w", err)
+		return fmt.Errorf("could not sync silo: %w", err)
 	}
 	// Marked before it's recorded: the daemon, which keeps the silo from
 	// then on, sees it has capsule's files, and leaves the hooks to this.
 	if err := workspace.MarkSiloTarget(siloDir, capsule); err != nil {
-		return fmt.Errorf("marking the silo: %w", err)
+		return fmt.Errorf("could not mark silo: %w", err)
 	}
 	if ws.Silo == nil {
 		ws.Silo = make(map[string]string)
 	}
 	ws.Silo[repo] = capsule
 	if err := config.SaveSilo(ws.Root, ws.Silo); err != nil {
-		return fmt.Errorf("saving silo state: %w", err)
+		return fmt.Errorf("could not save silo: %w", err)
 	}
 	// after_create: ws.local.toml's, then ws.toml's, then ws.repo.toml's.
 	hook, hasHook := ws.AfterCreateHooks[repo]

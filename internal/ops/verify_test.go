@@ -104,7 +104,7 @@ func TestVerify_ABundleWithNothingUnmetPassesTheStep(t *testing.T) {
 	}
 	// The Review looks at the bundle, and what ws ran shows with it.
 	task, ok := m.StepTask(3)
-	if !ok || !strings.Contains(task.Text, "Look at b1, on the mission's Verify tab") {
+	if !ok || !strings.Contains(task.Text, "Look at b1 on the Verify tab") {
 		t.Errorf("the review's task: %+v", task)
 	}
 	if v := w.Bundles(m); len(v) != 1 || !v[0].Asked || v[0].Ran == nil || len(v[0].StepChecks) != 3 || !v[0].StepChecks[2].Yours {
@@ -122,7 +122,7 @@ func TestVerify_UnmetGoesBackAndIsVerifiedAgain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(h.Next, "step 2 isn't verified (0 of 3 met") || !strings.Contains(h.Next, "c1 can't be resumed: started c3 in frontend/one to carry on at step 1") {
+	if !strings.Contains(h.Next, "step 2 isn't verified (0 of 3 met") || !strings.Contains(h.Next, "c1 could not be resumed: started c3 in frontend/one to carry on at step 1") {
 		t.Errorf("next = %q", h.Next)
 	}
 	back := host.specs[len(host.specs)-1].Prompt
@@ -177,12 +177,12 @@ func TestVerify_PastMaxRoundsItsYours(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(h.Next, "it's the user's, as that's 1 round unmet") || len(host.specs) != launched {
+	if !strings.Contains(h.Next, "it's the user's, as 1 round unmet") || len(host.specs) != launched {
 		t.Errorf("next = %q, launched %d", h.Next, len(host.specs)-launched)
 	}
 	m, _ := w.Missions.Load("cache")
 	task, ok := m.StepTask(2)
-	if !ok || task.Verb != mission.TaskChecks || !strings.Contains(task.Text, "Step 2's verification, round 1 (b1)") {
+	if !ok || task.Verb != mission.TaskChecks || !strings.Contains(task.Text, "Step 2 verification, round 1 (b1)") {
 		t.Fatalf("task = %+v", task)
 	}
 	// Sent back by you, it goes to the crew who made the work.

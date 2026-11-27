@@ -11,7 +11,7 @@ export default meta;
 const unsent = [
   { id: 4, doing: "your reply on cache.go:3", body: "Fixed in the next commit: the key now carries the tenant.", error: "replying on GitHub: the thread is locked", at: "2026-11-10T12:00:00Z" },
   { id: 5, doing: "resolving the thread on tenant.go:12", error: "resolving on GitHub: Resource not accessible by personal access token", at: "2026-11-10T12:01:00Z" },
-  { id: 6, doing: "your review of api#89", body: "Nearly: the key wants the tenant in it.", error: "not sent: your review of api#88, before it, wasn't taken", at: "2026-11-10T12:02:00Z", draft: true },
+  { id: 6, doing: "your review of api#89", body: "Nearly: the key wants the tenant in it.", error: "not sent: your review of api#88, which came first, failed", at: "2026-11-10T12:02:00Z", draft: true },
 ];
 
 export const Refused: StoryObj<typeof PullRequestUnsent> = { args: { unsent, onResend: () => {}, onDiscard: () => {} } };

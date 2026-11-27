@@ -64,7 +64,7 @@ var Builtin = []PassDef{
 	{
 		Name:    "check",
 		Title:   "Check",
-		About:   "What's open, ambiguous or missing, for someone who'd build from this page.",
+		About:   "Open choices, ambiguity and gaps, for whoever builds from this page.",
 		Looks:   "Read it as someone about to build from it. Find what's open (a choice not made), ambiguous (words that could mean two things) or missing (something they'd need that isn't there). Where the page says something about the code, check it against the code.",
 		Kinds:   []string{"question", "ambiguity", "missing"},
 		Summary: "a line or two on how ready the page is to build from",
@@ -72,7 +72,7 @@ var Builtin = []PassDef{
 	{
 		Name:    "formal",
 		Title:   "Formalise",
-		About:   "What the page requires, as statements that can be checked, and what's too vague to check.",
+		About:   "Requirements as testable statements, and what's too vague to test.",
 		Looks:   "Find what the page requires. A requirement that could be checked as it's written is a `requirement`: say it as a statement someone could test. One that couldn't (\"fast\", \"simple\", \"as it does now\") is `vague`: say what would make it checkable, and where you can, propose words that are.",
 		Kinds:   []string{"requirement", "vague"},
 		Summary: "a line on how much of the page could be checked as it stands",
@@ -80,7 +80,7 @@ var Builtin = []PassDef{
 	{
 		Name:    "cold",
 		Title:   "Cold read",
-		About:   "What an agent would build from this page alone, and everything it had to assume.",
+		About:   "What an agent would build from this page alone, and what it had to assume.",
 		Looks:   "You have the page and nothing else, as someone handed it cold. Each thing you'd have to assume to build it, that the page doesn't settle, is an `assumption`: say what you'd assume, and what else it could be.",
 		Kinds:   []string{"assumption"},
 		Summary: "two or three sentences on what you'd build",
@@ -188,7 +188,7 @@ const Guide = "guide"
 // GuideDef is the guide, as a pass: its agent is given the change and
 // the description, and nothing else.
 func GuideDef(looks, file string, auto bool) PassDef {
-	return PassDef{Name: Guide, Title: "Guide", About: "What the change does, where that differs from what it says it does, and what order to read it in.",
+	return PassDef{Name: Guide, Title: "Guide", About: "What the change does, where it differs from its description, and reading order.",
 		Looks: strings.TrimSpace(looks), File: file, Cold: true, Auto: auto}
 }
 
@@ -197,7 +197,7 @@ var ReviewBuiltin = []PassDef{
 	{
 		Name:    FollowUp,
 		Title:   "Follow-up",
-		About:   "Whether what's been pushed since your review deals with each comment of yours that's still open.",
+		About:   "Whether new pushes address your open comments.",
 		Kinds:   []string{FollowedAddressed, FollowedPartly, FollowedNot},
 		Summary: "a line on where it stands: how many of the comments are dealt with",
 	},

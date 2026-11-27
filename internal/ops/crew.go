@@ -60,7 +60,7 @@ func (w *Workspace) LaunchPicked(slug string, p harness.Pick, by Actor) (Launche
 		for _, a := range roles.CrewPicks() {
 			picks = append(picks, a.String())
 		}
-		return Launched{}, refused("not-allowed", "crew can't be launched on %s: it's not in [crew] allowed (crew may run on %s)", p, strings.Join(picks, ", "))
+		return Launched{}, refused("not-allowed", "could not launch crew on %s: not in [crew] allowed (allowed: %s)", p, strings.Join(picks, ", "))
 	}
 	return w.Launch(slug, Dispatch{Harness: p.Harness, Model: p.Model}, by)
 }
@@ -143,14 +143,14 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 		case !ok:
 			return Launched{}, fmt.Errorf("%w: mission %s has no crew %s", ErrNotFound, m.Slug, d.Resume)
 		case c.Ended == nil:
-			return Launched{}, refused("crew-running", "%s is still running: talk to it on its page", c.ID)
+			return Launched{}, refused("crew-running", "%s is still running: talk to them on their page", c.ID)
 		case c.Conversation == "":
-			return Launched{}, refused("no-conversation", "%s recorded no conversation, so it can't be resumed", c.ID)
+			return Launched{}, refused("no-conversation", "%s has no session to resume", c.ID)
 		}
 		if c.Role == "" { // briefing and answer crew work from the root
 			dir := filepath.Join(w.WS().RepoDir(strings.SplitN(c.Capsule, "/", 2)[0]), capsuleName(c.Capsule))
 			if info, err := os.Stat(dir); c.Capsule == "" || err != nil || !info.IsDir() {
-				return Launched{}, refused("capsule-gone", "%s's capsule %s is gone, so there's nowhere to resume it", c.ID, firstNonEmpty(c.Capsule, "(none)"))
+				return Launched{}, refused("capsule-gone", "could not resume %s: capsule %s is gone", c.ID, firstNonEmpty(c.Capsule, "(none)"))
 			}
 			place = crew.Place{Dir: dir, Capsule: c.Capsule}
 		}
@@ -160,17 +160,17 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 		carryOn = c.Role == "" && c.ResumeWith == "" && midTurn(c) && !c.HandedBack(m)
 	case d.Role == mission.RoleBriefing:
 		if !m.ToBrief() {
-			return Launched{}, refused("briefed", "it's briefed already")
+			return Launched{}, refused("briefed", "already briefed")
 		}
 		for _, c := range m.Crew {
 			if c.Role == mission.RoleBriefing && c.Ended == nil {
-				return Launched{}, refused("briefing", "%s is briefing it already", c.ID)
+				return Launched{}, refused("briefing", "%s is already briefing", c.ID)
 			}
 		}
 		d.Harness = firstNonEmpty(d.Harness, roles.ForBriefing().Harness)
 	case d.Role == mission.RoleAnswer:
 		if _, ok := m.Question(); !ok {
-			return Launched{}, refused("nothing-asked", "nothing to answer: the mission isn't asking a question (a step of the user's is theirs)")
+			return Launched{}, refused("nothing-asked", "nothing to answer: the mission has no open question")
 		}
 		d.Harness = firstNonEmpty(d.Harness, roles.ForCrew().Harness)
 	default:
@@ -256,7 +256,7 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 		}
 		if errors.Is(err, mission.ErrCrewRunning) || errors.Is(err, crew.ErrRunning) {
 			// Another launch of theirs got there first.
-			return Launched{}, refused("crew-running", "%s is still running: talk to it on its page", firstNonEmpty(resume, "the crew"))
+			return Launched{}, refused("crew-running", "%s is still running: talk to them on their page", firstNonEmpty(resume, "the crew"))
 		}
 		return Launched{}, err
 	}
@@ -274,7 +274,7 @@ func (w *Workspace) LaunchQueued(slug string, by Actor) (Launched, error) {
 	}
 	q := m.Dispatch
 	if q == nil {
-		return Launched{}, refused("nothing-queued", "no crew is queued")
+		return Launched{}, refused("nothing-queued", "no crew queued")
 	}
 	l, err := w.Launch(m.Slug, Dispatch{Harness: q.Harness, Capsule: q.Capsule, Text: q.Text, Stage: q.Stage, Model: q.Model, DispatchedBy: firstNonEmpty(q.By, by.By())}, by)
 	if err != nil {
@@ -322,19 +322,19 @@ func (w *Workspace) place(m *mission.Mission, want string, shared bool) (crew.Pl
 	var unknown *crew.UnknownCapsuleError
 	switch {
 	case errors.As(err, &unknown):
-		return p, refused("no-capsule", "mission %s has %s; create it with ws lift <repo> <branch>, which joins it to the mission", m.Slug, unknown)
+		return p, refused("no-capsule", "mission %s has %s: create it with ws lift <repo> <branch>", m.Slug, unknown)
 	case errors.Is(err, crew.ErrNoCapsule):
-		return p, refused("no-capsule", "mission %s has no capsule to work in: create one with ws lift <repo> <branch> (it joins the mission), then dispatch with --capsule <repo>/<branch>", m.Slug)
+		return p, refused("no-capsule", "mission %s has no capsule: create one with ws lift <repo> <branch>, then dispatch with --capsule <repo>/<branch>", m.Slug)
 	case err != nil:
 		return p, err
 	case p.Busy != "" && !shared && want != "":
-		return p, refused("capsule-busy", "%s is still working in %s; wait for it to finish, or create another capsule with ws lift <repo> <branch> (it joins the mission) and dispatch there", p.Busy, p.Capsule)
+		return p, refused("capsule-busy", "%s is still working in %s: wait, or create another capsule with ws lift <repo> <branch> and dispatch there", p.Busy, p.Capsule)
 	case p.Busy != "" && !shared:
 		var names []string
 		for _, c := range caps {
 			names = append(names, c.Name)
 		}
-		return p, refused("capsule-busy", "crew are working in every capsule of %s (%s); wait for them, or create another capsule with ws lift <repo> <branch> and dispatch with --capsule", m.Slug, strings.Join(names, ", "))
+		return p, refused("capsule-busy", "every capsule of %s is busy (%s): wait, or create another with ws lift <repo> <branch> and dispatch with --capsule", m.Slug, strings.Join(names, ", "))
 	}
 	return p, nil
 }
@@ -430,12 +430,12 @@ func (w *Workspace) endHandedBack(m *mission.Mission, capsule string) (ended, mi
 		}
 	}
 	if len(ended) > 0 {
-		text := fmt.Sprintf("ended %s's session in %s: it had handed back its work, and new crew start there (its page resumes it)", strings.Join(ended, ", "), capsule)
+		text := fmt.Sprintf("ended %s's session in %s: work handed back, new crew starting there", strings.Join(ended, ", "), capsule)
 		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
 		execlog.Note(w.Root(), "crew "+m.Slug, "%s", text)
 	}
 	if len(missed) > 0 {
-		text := fmt.Sprintf("couldn't reach %s in %s to end its session, though it had handed back its work: new crew start there all the same", strings.Join(missed, ", "), capsule)
+		text := fmt.Sprintf("could not end %s's session in %s: new crew starting there anyway", strings.Join(missed, ", "), capsule)
 		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: text})
 		execlog.Note(w.Root(), "crew "+m.Slug, "%s", text)
 	}

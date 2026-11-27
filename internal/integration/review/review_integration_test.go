@@ -84,7 +84,7 @@ func TestReview_TheLoop(t *testing.T) {
 	reviews.Submit("backend/cache-lookup", diffed, review.Changes, "", at)
 
 	t.Setenv("WS_ROLE", "orchestrator")
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "accept", "-m", "cache", "looks done"); r.Err == nil || !strings.Contains(r.Err.Error(), "asked for changes in review r1 of backend/cache-lookup (0 of 2 comments answered)") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "accept", "-m", "cache", "looks done"); r.Err == nil || !strings.Contains(r.Err.Error(), "changes asked for in review r1 of backend/cache-lookup (0 of 2 comments answered)") {
 		t.Fatalf("accepted over a review asking for changes: %v", r.Err)
 	}
 	t.Setenv("WS_ROLE", "")

@@ -34,7 +34,7 @@ func (w *Workspace) MoreTime(slug string, n int, d time.Duration, by Actor) (str
 		return "", invalid("%v", err)
 	}
 	if st.Accepted() {
-		return "", refused("passed", "%s %d is passed already", st.Noun(), st.N)
+		return "", refused("passed", "%s %d has already passed", st.Noun(), st.N)
 	}
 	if d <= 0 {
 		d = defaultMoreTime
@@ -65,7 +65,7 @@ func (w *Workspace) MoreTime(slug string, n int, d time.Duration, by Actor) (str
 func (w *Workspace) wrapUp(slug string, n int, by Actor) string {
 	m, err := w.Missions.Load(slug)
 	if err != nil {
-		return "couldn't read the mission: " + err.Error()
+		return "could not read the mission: " + err.Error()
 	}
 	brief, _ := w.Missions.ReadBrief(slug)
 	states, _ := m.StageProgress(brief)
@@ -88,11 +88,11 @@ func (w *Workspace) wrapUp(slug string, n int, by Actor) string {
 	}
 	switch {
 	case len(missed) > 0 && said != "":
-		said += fmt.Sprintf("; couldn't reach %s (tell them on their page)", strings.Join(missed, ", "))
+		said += fmt.Sprintf("; could not reach %s (tell them on their page)", strings.Join(missed, ", "))
 	case len(missed) > 0:
-		said = fmt.Sprintf("couldn't reach %s to wrap up step %d: tell them on their page", strings.Join(missed, ", "), n)
+		said = fmt.Sprintf("could not reach %s to wrap up step %d: tell them on their page", strings.Join(missed, ", "), n)
 	case said == "":
-		said = fmt.Sprintf("nobody's at step %d to wrap up", n)
+		said = fmt.Sprintf("nobody at step %d to wrap up", n)
 	}
 	return said
 }
@@ -150,7 +150,7 @@ func (w *Workspace) checkLimit(m *mission.Mission) string {
 	if len(crew) == 1 {
 		are = " is"
 	}
-	text := fmt.Sprintf("Step %d is out of time%s, and %s still at it. Give it more time, or have them wrap up and report done with what they have.", o.Step.N, limit, strings.Join(crew, ", ")+are)
+	text := fmt.Sprintf("Step %d is out of time%s, and %s still working. Give more time, or have them wrap up and report done.", o.Step.N, limit, strings.Join(crew, ", ")+are)
 	if _, err := w.Missions.AskAtStep(m.Slug, mission.TaskTime, text, o.Step.N, mission.TimeMore, mission.TimeWrapUp); err != nil {
 		return "couldn't ask the user: " + err.Error()
 	}

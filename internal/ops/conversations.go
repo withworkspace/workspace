@@ -175,7 +175,7 @@ func (w *Workspace) Decide(slug, id, what, why string, about []string, by Actor)
 		return "", err
 	}
 	if c.Draft != nil && c.Draft.State != conversation.DraftOpen {
-		return "", fmt.Errorf("what was decided in %s is %s already", id, c.Draft.State)
+		return "", fmt.Errorf("the decision in %s is already %s", id, c.Draft.State)
 	}
 	d, err := w.Missions.Decide(slug, mission.Decision{What: what, Why: why, By: by.By(), From: id, About: about})
 	if err != nil {
@@ -286,7 +286,7 @@ func (w *Workspace) SetTalkStatus(sc doc.Scope, id, status string, by Actor) (*c
 	if status == conversation.Resolved && by.By() == conversation.You {
 		if c, err := store.Load(id); err == nil && len(c.Lifted()) > 0 {
 			if left := w.putAwayCapsules(store, c); len(left) > 0 {
-				return nil, refused("capsules-left", "%s isn't put away: the capsules its agent lifted are put away with it, and %s couldn't be. Put it right there, or burn it yourself (ws burn <repo> <name>), then put the conversation away again",
+				return nil, refused("capsules-left", "%s not resolved: could not put away %s. Fix that or burn the capsule (ws burn <repo> <name>), then resolve again",
 					id, strings.Join(left, "; "))
 			}
 		}
@@ -352,9 +352,9 @@ func (w *Workspace) sendToCrew(m *mission.Mission, ids []string) (string, error)
 	if c, ok := m.CrewByID(av.Crew); ok && c.Role == "" && c.Conversation != "" {
 		if c.Ended == nil {
 			if _, err := w.Say(m.Slug, c.ID, brief, AsYou); err != nil {
-				return "", fmt.Errorf("%s wrote it and is still running, but couldn't be told (%v): tell it in its terminal, or stop it and send again", c.ID, err)
+				return "", fmt.Errorf("could not reach %s (%v): tell them in the terminal, or stop and send again", c.ID, err)
 			}
-			return fmt.Sprintf("Told %s, which wrote %s and is still running.", c.ID, path), store.Send(ids, c.ID, conversation.You, time.Now())
+			return fmt.Sprintf("Sent to %s, who wrote %s.", c.ID, path), store.Send(ids, c.ID, conversation.You, time.Now())
 		}
 		for _, cv := range v.Capsules {
 			if cv.Repo+"/"+cv.Name != c.Capsule || !cv.Exists {
@@ -368,7 +368,7 @@ func (w *Workspace) sendToCrew(m *mission.Mission, ids []string) (string, error)
 				logFailed(mstore.SetResumeWith(m.Slug, c.ID, ""))
 				return "", err
 			}
-			return w.startedFor(m, ids, fmt.Sprintf("Resumed %s, which wrote %s.", l.ID, path), l.ID)
+			return w.startedFor(m, ids, fmt.Sprintf("Resumed %s, who wrote %s.", l.ID, path), l.ID)
 		}
 	}
 
@@ -382,7 +382,7 @@ func (w *Workspace) sendToCrew(m *mission.Mission, ids []string) (string, error)
 			}
 		}
 		if want == "" {
-			return "", fmt.Errorf("%s is in %s, and the mission has no capsule of it to change it in: lift one (ws lift %s <branch>) and send it again", path, av.Parsed.Repo, av.Parsed.Repo)
+			return "", fmt.Errorf("%s is in %s, and the mission has no capsule there: lift one (ws lift %s <branch>) and send again", path, av.Parsed.Repo, av.Parsed.Repo)
 		}
 	}
 	reads, err := w.ReadFirstList(m, []string{doc}, w.Root())
@@ -416,11 +416,11 @@ func threadsToSend(store conversation.Store, ids []string) ([]*conversation.Conv
 		}
 		switch {
 		case c.Status != conversation.Open:
-			return nil, "", fmt.Errorf("%s is resolved: reopen it to send it", id)
+			return nil, "", fmt.Errorf("%s is resolved: reopen to send", id)
 		case c.WithCrew():
 			return nil, "", fmt.Errorf("%s is with %s already", id, c.Sent.Crew)
 		case doc != "" && c.Anchor.Doc != doc:
-			return nil, "", fmt.Errorf("%s is on %s, not %s: send threads on one document at a time", id, c.Anchor.Doc, doc)
+			return nil, "", fmt.Errorf("%s is on %s, not %s: send one document's threads at a time", id, c.Anchor.Doc, doc)
 		}
 		doc = c.Anchor.Doc
 		out = append(out, c)
@@ -445,7 +445,7 @@ func openChangesToSend(store conversation.Store, doc string) ([]string, error) {
 		}
 	}
 	if len(ids) == 0 {
-		return nil, fmt.Errorf("%w: no change asked for on %s is open and not with crew", conversation.ErrNotFound, doc)
+		return nil, fmt.Errorf("%w: no open changes on %s to send", conversation.ErrNotFound, doc)
 	}
 	return ids, nil
 }
@@ -494,7 +494,7 @@ func (w *Workspace) SetTalkModel(sc doc.Scope, id, model string, by Actor) (*con
 func (w *Workspace) rolePick(c *conversation.Conversation) (harness.Pick, error) {
 	r, ok := responders[c.What]
 	if !ok {
-		return harness.Pick{}, fmt.Errorf("%s: ws doesn't answer a conversation that's %q", c.ID, c.What)
+		return harness.Pick{}, fmt.Errorf("%s: no agent answers a %q conversation", c.ID, c.What)
 	}
 	p, _, err := r.role(Roles(w.Config()))
 	return p, err

@@ -37,11 +37,11 @@ func TestDocAdd_ProposedInATalkAndAccepted(t *testing.T) {
 		t.Errorf("adding one in a conversation: %v", r.Err)
 	}
 	testutil.WithStdin(t, "Why it matters.\n")
-	if r := testutil.RunCommand(t, w.Root, nil, "doc", "add", "--propose", "adr", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "start it with a heading") {
+	if r := testutil.RunCommand(t, w.Root, nil, "doc", "add", "--propose", "adr", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "start with a heading") {
 		t.Errorf("one with no title: %v", r.Err)
 	}
 	testutil.WithStdin(t, "# How loud\n")
-	if r := testutil.RunCommand(t, w.Root, nil, "doc", "add", "--propose", "bp", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "it has adr, note") {
+	if r := testutil.RunCommand(t, w.Root, nil, "doc", "add", "--propose", "bp", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "there are adr, note") {
 		t.Errorf("a kind the workspace hasn't: %v", r.Err)
 	}
 	testutil.WithStdin(t, "# How loud\n\nWhy it matters.\n")

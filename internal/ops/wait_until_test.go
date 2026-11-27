@@ -17,7 +17,7 @@ func TestWaitUntilHeard(t *testing.T) {
 		t.Fatalf("passed before it happened: %q", said)
 	}
 	st := stepOf(t, w, 2)
-	if st.Accepted() || st.Watch().Summary() != "not yet" || !strings.Contains(st.Watch().Results[0].Evidence, "hasn't heard of it") {
+	if st.Accepted() || st.Watch().Summary() != "not yet" || !strings.Contains(st.Watch().Results[0].Evidence, "not heard since the step began") {
 		t.Fatalf("after a look: %+v", st.Watch())
 	}
 	last := w.LatestEvent()

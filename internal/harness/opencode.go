@@ -61,7 +61,7 @@ func (o *OpenCode) bin() (string, error) {
 	}
 	path, err := o.lookPath(name)
 	if err != nil {
-		return "", fmt.Errorf("opencode CLI not found (looked for %s; set %s to override)", name, EnvOpenCodeBin)
+		return "", fmt.Errorf("could not find opencode CLI (looked for %s; set %s to override)", name, EnvOpenCodeBin)
 	}
 	return path, nil
 }

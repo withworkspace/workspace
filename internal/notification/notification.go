@@ -162,7 +162,7 @@ func Of(e events.Event) (Notification, bool) {
 		}
 	case events.PRMerged:
 		n.Source = SourcePulls
-		n.Text = "A pull request merged"
+		n.Text = "Pull request merged"
 		if e.PR != "" {
 			n.Refs = append(n.Refs, e.PR)
 			n.Text = e.PR + " merged"

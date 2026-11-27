@@ -235,7 +235,7 @@ func editable(p conversation.Proposal, e ProposalEdits) []editField {
 	case conversation.ProposePlan:
 		return []editField{{"the plan", p.Plan, e.Plan}}
 	case conversation.ProposeDispatch:
-		return []editField{{"what the crew's to do", p.Text, e.Text}}
+		return []editField{{"the task", p.Text, e.Text}}
 	case conversation.ProposeReplan:
 		return []editField{{"what to change", p.Text, e.Text}}
 	case conversation.ProposeComment:

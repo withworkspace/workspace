@@ -187,13 +187,13 @@ func TestCheckFiles(t *testing.T) {
 	}
 	said := strings.Join(c.Warnings, "\n")
 	for _, want := range []string{
-		"its <link> loads style.css?v=2, which isn't among its files",
-		"its <img> loads /logo.png, from the top of the server",
+		"its <link> loads style.css?v=2, which is missing from the artifact's files",
+		"its <img> loads /logo.png, an absolute path",
 		"its <img> loads ../up.png, which is outside the artifact",
 		"js/app.js fetches https://api.example.com/x",
 		"js/app.js calls WebSocket",
 		"theme.css loads https://fonts.example.com/a.css",
-		"about.html's <script> loads gone.js, which isn't among its files",
+		"about.html's <script> loads gone.js, which is missing from the artifact's files",
 	} {
 		if !strings.Contains(said, want) {
 			t.Errorf("warnings don't say %q:\n%s", want, said)

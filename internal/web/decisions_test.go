@@ -43,7 +43,7 @@ func TestDecisionsFromThePage(t *testing.T) {
 	res = decisionWrite(t, s, api, DecideRequest{What: "Key it per user.", Supersedes: "d1"})
 	got = DecideResult{}
 	json.NewDecoder(res.Body).Decode(&got)
-	if res.StatusCode != 200 || got.ID != "d2" || got.Message != "Recorded d2, in place of d1." {
+	if res.StatusCode != 200 || got.ID != "d2" || got.Message != "Recorded d2, replacing d1." {
 		t.Fatalf("replace: %d %+v", res.StatusCode, got)
 	}
 	if res := decisionWrite(t, s, api, DecideRequest{What: "Again.", Supersedes: "d1"}); res.StatusCode != http.StatusConflict {

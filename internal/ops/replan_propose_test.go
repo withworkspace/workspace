@@ -74,7 +74,7 @@ func TestReplanProposal(t *testing.T) {
 	if planner == nil || planner.ID == talk.ID {
 		t.Fatalf("confirming didn't ask the planner, in its own conversation: %+v", planner)
 	}
-	if !strings.Contains(said, "Asked the planner, in "+planner.ID) {
+	if !strings.Contains(said, "Asked the planner to revise the plan, in "+planner.ID) {
 		t.Errorf("confirming said %q", said)
 	}
 	if last := planner.Last(); last.By != conversation.You || last.Body != ask || !planner.NeedsAnswer() {

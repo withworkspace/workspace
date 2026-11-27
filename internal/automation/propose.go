@@ -64,18 +64,18 @@ func (p Proposing) Fields() map[string]any {
 func checkProposing(p Proposing) error {
 	fields := p.Fields()
 	if !strings.Contains(p.Kind, ":") && fields == nil {
-		return fmt.Errorf("what's proposed is a dict, as {\"title\": \"…\"}")
+		return fmt.Errorf("the proposal is a dict, as {\"title\": \"…\"}")
 	}
 	str := func(k string, need bool) error {
 		v, ok := fields[k]
 		if !ok {
 			if need {
-				return fmt.Errorf("a %s has a %s", p.Kind, k)
+				return fmt.Errorf("a %s needs a %s", p.Kind, k)
 			}
 			return nil
 		}
 		if s, ok := v.(string); !ok || (need && strings.TrimSpace(s) == "") {
-			return fmt.Errorf("a %s's %s is words", p.Kind, k)
+			return fmt.Errorf("a %s's %s must be text", p.Kind, k)
 		}
 		return nil
 	}
@@ -86,11 +86,11 @@ func checkProposing(p Proposing) error {
 		}
 		l, ok := v.([]any)
 		if !ok {
-			return fmt.Errorf("a %s's %s is a list of refs", p.Kind, k)
+			return fmt.Errorf("a %s's %s must be a list of refs", p.Kind, k)
 		}
 		for _, x := range l {
 			if _, ok := x.(string); !ok {
-				return fmt.Errorf("a %s's %s is a list of refs", p.Kind, k)
+				return fmt.Errorf("a %s's %s must be a list of refs", p.Kind, k)
 			}
 		}
 		return nil
@@ -102,7 +102,7 @@ func checkProposing(p Proposing) error {
 				found = found || k == want
 			}
 			if !found {
-				return fmt.Errorf("a %s has no %s: it has %s", p.Kind, k, strings.Join(keys, ", "))
+				return fmt.Errorf("a %s has no %s: use %s", p.Kind, k, strings.Join(keys, ", "))
 			}
 		}
 		return nil
@@ -123,7 +123,7 @@ func checkProposing(p Proposing) error {
 	case strings.Contains(p.Kind, ":"):
 		// The plugin's to read, when it drafts it.
 	default:
-		return fmt.Errorf("%q isn't something an automation proposes: it's \"mission\", \"decision\", or a plugin's kind (jira:changes)", p.Kind)
+		return fmt.Errorf("%q is not something an automation can propose: use \"mission\", \"decision\", or a plugin's kind (jira:changes)", p.Kind)
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func proposalCame(ref, state, result string) map[string]any {
 // to accept, its handle at once.
 func (r *run) propose(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if !r.a.Allows(MayPropose) {
-		return nil, fmt.Errorf("propose: it may not (may = [\"propose\"] says it may)")
+		return nil, fmt.Errorf("propose: not allowed without may = [\"propose\"]")
 	}
 	var kind, why string
 	var input starlark.Value
@@ -170,7 +170,7 @@ func (r *run) propose(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	}
 	p := Proposing{Kind: strings.TrimSpace(kind), Why: strings.TrimSpace(why), On: r.ev.Ref() + ": " + r.ev.Says()}
 	if r.ev.Kind == "schedule.due" {
-		p.On = "its schedule: " + r.ev.Says()
+		p.On = "schedule: " + r.ev.Says()
 	}
 	if input != nil && input != starlark.None {
 		v, err := goOf(input)
@@ -186,7 +186,7 @@ func (r *run) propose(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	}
 	do := func() (string, error) {
 		if r.e.Hooks.Propose == nil {
-			return "", fmt.Errorf("propose: there's nowhere to propose it here")
+			return "", fmt.Errorf("propose: not available here")
 		}
 		return r.e.Hooks.Propose(r.a, p, r.conv, ChainOf(r.a.Name, r.ev, r.batch))
 	}
@@ -272,5 +272,5 @@ func goOf(v starlark.Value) (any, error) {
 		}
 		return out, nil
 	}
-	return nil, fmt.Errorf("a %s can't be said as JSON", v.Type())
+	return nil, fmt.Errorf("a %s cannot be written as JSON", v.Type())
 }

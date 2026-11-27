@@ -160,13 +160,13 @@ func (s Store) records() (*store.DB, error) { return store.Open(s.Root) }
 func stampOf(t time.Time) string { return t.UTC().Format(store.Stamp) }
 
 func notFound(id string) error {
-	return fmt.Errorf("%w: the workspace has no artifact %s", ErrNotFound, id)
+	return fmt.Errorf("%w: no artifact %s", ErrNotFound, id)
 }
 
 // awayError is the answer for a change to an artifact that hasn't been
 // brought home.
 func awayError(e Entry) error {
-	return fmt.Errorf("%s is from when artifacts were kept in %s, and hasn't been brought onto this machine yet: ws doctor does it", e.ID, e.Place)
+	return fmt.Errorf("%s is still kept in %s, not yet on this machine: run ws doctor", e.ID, e.Place)
 }
 
 // kept is an artifact's row: what the records hold of it.
@@ -408,10 +408,10 @@ func (s Store) version(ctx context.Context, id string, n int) (Entry, int, error
 		return e, 0, fmt.Errorf("%w: %s has no v%d (%s)", ErrNotFound, id, n, versionsSaid(e.Artifact))
 	}
 	if e.Gone {
-		return e, n, fmt.Errorf("%s's folder has gone from %s: there's no file to read", id, strings.TrimSuffix(e.Where(), path.Base(e.Folder)+"/"))
+		return e, n, fmt.Errorf("%s's folder is missing from %s", id, strings.TrimSuffix(e.Where(), path.Base(e.Folder)+"/"))
 	}
 	if e.Erased {
-		return e, n, fmt.Errorf("%s was discarded, and its files are gone for good: there's no file to read", id)
+		return e, n, fmt.Errorf("%s was discarded and its files deleted", id)
 	}
 	return e, n, nil
 }
@@ -441,12 +441,12 @@ func (s Store) ReadFile(ctx context.Context, id string, n int, p string) ([]byte
 		old := filepath.Join(s.Path(e), VersionFile(n))
 		data, err := os.ReadFile(old)
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, "", e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), s.Path(e))
+			return nil, "", e, n, fmt.Errorf("%s's files are missing (%s)", VersionRef(id, n), s.Path(e))
 		}
 		return data, "", e, n, err
 	}
 	if !repo.Has(ctx, n) {
-		return nil, "", e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), string(repo))
+		return nil, "", e, n, fmt.Errorf("%s's files are missing (%s)", VersionRef(id, n), string(repo))
 	}
 	data, blob, err := repo.Read(ctx, n, p)
 	if errors.Is(err, ErrNoFile) {
@@ -466,13 +466,13 @@ func (s Store) VersionFiles(ctx context.Context, id string, n int) ([]FileInfo, 
 	if !repo.Exists() {
 		info, err := os.Stat(filepath.Join(s.Path(e), VersionFile(n)))
 		if err != nil {
-			return nil, e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), s.Path(e))
+			return nil, e, n, fmt.Errorf("%s's files are missing (%s)", VersionRef(id, n), s.Path(e))
 		}
 		return []FileInfo{{Path: IndexFile, Size: int(info.Size())}}, e, n, nil
 	}
 	list, err := repo.List(ctx, n)
 	if err != nil {
-		return nil, e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), string(repo))
+		return nil, e, n, fmt.Errorf("%s's files are missing (%s)", VersionRef(id, n), string(repo))
 	}
 	return list, e, n, nil
 }
@@ -494,7 +494,7 @@ func (s Store) AllFiles(ctx context.Context, id string, n int) (Files, Entry, in
 	}
 	files, err := repo.All(ctx, n)
 	if err != nil || len(files) == 0 {
-		return nil, e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), string(repo))
+		return nil, e, n, fmt.Errorf("%s's files are missing (%s)", VersionRef(id, n), string(repo))
 	}
 	return files, e, n, nil
 }
@@ -550,13 +550,13 @@ func (s Store) VersionSize(e Entry, n int) (files, size int, ok bool) {
 // versionsSaid lists an artifact's versions: v1, v2 and v3.
 func versionsSaid(a Artifact) string {
 	if len(a.Versions) == 0 {
-		return "it has none"
+		return "no versions"
 	}
 	var vs []string
 	for _, v := range a.Versions {
 		vs = append(vs, "v"+strconv.Itoa(v.N))
 	}
-	return "its versions are " + strings.Join(vs, ", ")
+	return "versions are " + strings.Join(vs, ", ")
 }
 
 // Reread reads again into the records what the artifacts whose records
@@ -787,7 +787,7 @@ func (s Store) Add(ctx context.Context, n New) (Entry, error) {
 			out = k.Entry
 			return nil
 		}
-		return fmt.Errorf("couldn't name a folder for %q in %s", title, s.Dir())
+		return fmt.Errorf("could not name a folder for %q in %s", title, s.Dir())
 	})
 	if err != nil {
 		if made != "" {
@@ -837,7 +837,7 @@ func (s Store) AddVersion(ctx context.Context, id string, r Revision) (Entry, in
 			return notFound(id)
 		}
 		if k.Status == Discarded {
-			return fmt.Errorf("%w: %s was discarded, so it takes no new versions: add a new artifact", ErrDiscarded, id)
+			return fmt.Errorf("%w: %s was discarded: add a new artifact instead", ErrDiscarded, id)
 		}
 		if k.Away() {
 			return awayError(k.Entry)
@@ -889,7 +889,7 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 			return notFound(id)
 		}
 		if k.Status == Discarded {
-			return fmt.Errorf("%w: %s was discarded already, on %s", ErrDiscarded, id, k.Discarded.At.Local().Format("2006-01-02"))
+			return fmt.Errorf("%w: %s was already discarded on %s", ErrDiscarded, id, k.Discarded.At.Local().Format("2006-01-02"))
 		}
 		if k.Away() {
 			return awayError(k.Entry)
@@ -910,7 +910,7 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 		}
 		a, err := Parse(was)
 		if err != nil {
-			return fmt.Errorf("%s's record can't be read (%s): %w", id, filepath.Join(dir, RecordFile), err)
+			return fmt.Errorf("could not read %s's record (%s): %w", id, filepath.Join(dir, RecordFile), err)
 		}
 		a.Status, a.Discarded = Discarded, &d
 		if _, err := writeRecord(dir, a); err != nil {
@@ -924,7 +924,7 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 		}
 		if _, err := os.Lstat(to); err == nil {
 			undo()
-			return fmt.Errorf("there's a folder at %s already: move it aside, and discard %s again", to, id)
+			return fmt.Errorf("a folder already exists at %s: move it, then discard %s again", to, id)
 		}
 		if err := os.Rename(dir, to); err != nil {
 			undo()

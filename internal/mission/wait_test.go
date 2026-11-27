@@ -55,9 +55,9 @@ func TestParsePlanReadsAWait(t *testing.T) {
 // with nobody to judge words.
 func TestParsePlanRefusesAWaitsCheckInWords(t *testing.T) {
 	for written, want := range map[string]string{
-		"1. Wait: The release is out.\n   - on: you\n   - check: the release is published\n": "a Wait's check is a command ws runs",
+		"1. Wait: The release is out.\n   - on: you\n   - check: the release is published\n": "but a Wait's check is a command",
 		"1. Wait: The release is out.\n   - on:\n":                                           "on: is empty",
-		"1. Wait: The release is out.\n   - makes: a release\n":                              "makes: isn't something a Wait step takes: it takes - on:, - in:, - check:, - until:, - only if:",
+		"1. Wait: The release is out.\n   - makes: a release\n":                              "makes: does not apply to a Wait step, which takes - on:, - in:, - check:, - until:, - only if:",
 	} {
 		_, err := ParsePlan("## Z\n- x\n## Stops early\n- None.\n## Steps\n"+written, nil)
 		if err == nil || !strings.Contains(err.Error(), want) {
@@ -97,7 +97,7 @@ func TestWatchSummary(t *testing.T) {
 		{[]CheckResult{{Result: CheckMet}}, "met", true},
 		{[]CheckResult{{Result: CheckUnmet}}, "not yet", false},
 		{[]CheckResult{{Result: CheckMet}, {Result: CheckUnmet}}, "not yet (1 of 2 met)", false},
-		{[]CheckResult{{Result: CheckCantTell}}, "ws couldn't tell", false},
+		{[]CheckResult{{Result: CheckCantTell}}, "could not tell", false},
 	} {
 		w := &Watch{Since: now, Looked: &now, Results: c.results}
 		if got := w.Summary(); got != c.want || w.Met() != c.met {
@@ -140,9 +140,9 @@ func TestParsePlanReadsAWaitsUntil(t *testing.T) {
 		t.Errorf("checks = %+v", c)
 	}
 	for plan, want := range map[string]string{
-		"1. Wait: x\n   - until: pr.mergd pr=api#212\n":  `"pr.mergd" isn't a kind of event`,
-		"1. Wait: x\n   - until: pr.merged colour=red\n": `"colour" isn't a field pr.merged events say`,
-		"1. Work: x\n   - until: pr.merged pr=api#1\n":   "until: isn't something a Work step takes",
+		"1. Wait: x\n   - until: pr.mergd pr=api#212\n":  `"pr.mergd" is not an event kind`,
+		"1. Wait: x\n   - until: pr.merged colour=red\n": `"colour" is not a field of pr.merged events`,
+		"1. Work: x\n   - until: pr.merged pr=api#1\n":   "until: does not apply to a Work step",
 	} {
 		if _, err := parse(plan); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%q: %v, want it to say %q", plan, err, want)

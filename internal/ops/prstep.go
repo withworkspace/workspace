@@ -283,14 +283,14 @@ func (w *Workspace) atPRStep(slug string, st mission.StageState, capsule string,
 		n, _ := w.Missions.CountRound(slug, st.N, repo)
 		what := ref + "'s checks are failing"
 		if has(mission.PREventConflict) {
-			what = ref + " conflicts with its base"
+			what = ref + " has merge conflicts"
 		}
 		switch {
 		case crewAt:
 			said = append(said, what+": crew at work in "+capsule+" have it")
 		case n > w.Config().MaxRounds():
-			text := fmt.Sprintf("%s, again: that's round %d, more than ws lets come round before it's yours (%s). Have it fixed once more, or leave it to you?", what, n, guaranteeMaxRounds(w.Config().MaxRounds()).Key)
-			logFailed(w.Missions.Ask(slug, text, "ws", "Fix it", "Leave it to me"))
+			text := fmt.Sprintf("%s again: round %d, past the limit (%s). Fix again, or leave to you?", what, n, guaranteeMaxRounds(w.Config().MaxRounds()).Key)
+			logFailed(w.Missions.Ask(slug, text, "ws", "Fix again", "Leave to me"))
 			said = append(said, what+": it's the user's, past max_rounds")
 		default:
 			wake = true
@@ -319,7 +319,7 @@ func (w *Workspace) prNeeds(slug, what string) string {
 	if w.Notify(slug, mission.OrchestratorEvent{Trigger: "pr"}) {
 		return "the orchestrator decides what follows, by the process"
 	}
-	logFailed(w.Missions.Ask(slug, what+". The orchestrator isn't running: say what to do, or do it.", "ws"))
+	logFailed(w.Missions.Ask(slug, what+". The orchestrator is off: say what to do, or do it yourself.", "ws"))
 	return "the user's asked"
 }
 
@@ -338,7 +338,7 @@ func (w *Workspace) readyWhenGreen(slug string, st mission.StageState, capsule, 
 			}
 			return said
 		}
-		text := fmt.Sprintf("%s's checks pass, and it's a draft. ws holds %s: review %s, approving it, and ws marks it ready.", ref, GuaranteeReviewBeforeReady.Key, capsule)
+		text := fmt.Sprintf("%s's checks pass, still a draft. With %s on, approve %s in review to mark it ready.", ref, GuaranteeReviewBeforeReady.Key, capsule)
 		logFailed(w.Missions.AskAtStep(slug, mission.TaskApprove, text, st.N))
 		return ref + " is green: the user's asked to review it before it's marked ready"
 	}
@@ -346,7 +346,7 @@ func (w *Workspace) readyWhenGreen(slug string, st mission.StageState, capsule, 
 		*wake = true
 		return ref + " is green, and a draft"
 	}
-	text := fmt.Sprintf("%s's checks pass, and it's a draft: go on, and ws marks it ready for review.", ref)
+	text := fmt.Sprintf("%s's checks pass, still a draft: go on to mark it ready for review.", ref)
 	logFailed(w.Missions.AskAtStep(slug, mission.TaskApprove, text, st.N))
 	return ref + " is green: the user's asked to mark it ready"
 }
@@ -365,7 +365,7 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	}
 	cur, ok := currentStep(w.Missions, m)
 	if !ok || cur.Step.Type != mission.StepOpenPR {
-		return "", refused("no-pr-step", "the mission isn't at an Open Pull Request step: a pull request is marked ready at its step")
+		return "", refused("no-pr-step", "the mission is not at an Open Pull Request step")
 	}
 	capsules := w.stepCapsules(m, cur)
 	if capsule == "" {
@@ -393,9 +393,9 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	seen := seenOf(m, capsule)
 	switch {
 	case !slices.Contains(capsules, capsule) || seen == nil || seen.Merged || seen.Closed:
-		return "", refused("no-pr", "step %d's pull request from %s isn't open", cur.N, firstNonEmpty(capsule, "its capsule"))
+		return "", refused("no-pr", "step %d's pull request from %s is not open", cur.N, firstNonEmpty(capsule, "the capsule"))
 	case !seen.Draft:
-		return "", refused("not-draft", "%s's pull request isn't a draft: it's ready for review already", capsule)
+		return "", refused("not-draft", "%s's pull request is already ready for review", capsule)
 	}
 	repo, name, _ := strings.Cut(capsule, "/")
 	if err := w.holdReview(GuaranteeReviewBeforeReady, m.Slug, repo, name, "marking a draft ready", reviewThen(by, "mark it ready")); err != nil {
@@ -403,7 +403,7 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	}
 	gh := w.GitHub()
 	if gh == nil {
-		return "", refused("no-github", "ws can't reach GitHub here, so it can't mark the pull request ready")
+		return "", refused("no-github", "could not mark the pull request ready: no GitHub access")
 	}
 	if err := gh.MarkReady(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, seen.Number); err != nil {
 		return "", err
@@ -419,7 +419,7 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	}
 	w.opts.PRs.Forget(repo)
 	w.youActed(m.Slug, by)
-	return fmt.Sprintf("marked %s ready for review: ws passes step %d when it merges", ref, cur.N), nil
+	return fmt.Sprintf("marked %s ready for review: step %d passes on merge", ref, cur.N), nil
 }
 
 // readyOnApproval marks the step's draft ready once your review of its

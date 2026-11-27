@@ -169,7 +169,7 @@ func (s *Server) markNotifications(dismiss bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req NotificationsMark
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			jsonError(w, http.StatusBadRequest, "which notifications didn't read: "+err.Error())
+			jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 			return
 		}
 		var err error
@@ -191,7 +191,7 @@ func (s *Server) markNotifications(dismiss bool) http.HandlerFunc {
 func (s *Server) announceNotifications(w http.ResponseWriter, r *http.Request) {
 	var req NotificationsAnnounce
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "what to announce didn't read: "+err.Error())
+		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return
 	}
 	fresh, err := s.App.AnnounceNotifications(req.Ns)

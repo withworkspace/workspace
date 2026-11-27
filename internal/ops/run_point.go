@@ -44,7 +44,7 @@ type Pointer struct {
 func (w *Workspace) Pointers(recipe string) ([]Pointer, error) {
 	rc, ok := w.recipes("", "")[recipe]
 	if !ok {
-		return nil, fmt.Errorf("%w: the workspace has no recipe %s (%s in %s)", ErrNotFound, recipe, tablesOf(recipe), config.FileName)
+		return nil, fmt.Errorf("%w: no recipe %s (%s in %s)", ErrNotFound, recipe, tablesOf(recipe), config.FileName)
 	}
 	points := w.runStore().Points(recipe)
 	var out []Pointer
@@ -146,7 +146,7 @@ func (w *Workspace) PointRun(recipe, need, worktree string, by Actor, wait time.
 		if len(names) == 0 {
 			return Pointed{}, invalid("%s has no needs that can be pointed", recipe)
 		}
-		return Pointed{}, invalid("%s has no need %s that can be pointed (its: %s)", recipe, need, strings.Join(names, ", "))
+		return Pointed{}, invalid("%s has no need %s that can be pointed (has: %s)", recipe, need, strings.Join(names, ", "))
 	}
 	p := ptrs[i]
 	switch worktree = strings.TrimSpace(worktree); worktree {
@@ -174,7 +174,7 @@ func (w *Workspace) PointRun(recipe, need, worktree string, by Actor, wait time.
 	}
 	up, err := w.restartRun(old, wait)
 	if err != nil {
-		return out, fmt.Errorf("%s is pointed at %s, and %s couldn't be started again on it: %w", need, runs.Label(worktree), old.Ref(), err)
+		return out, fmt.Errorf("%s is pointed at %s, but could not restart %s: %w", need, runs.Label(worktree), old.Ref(), err)
 	}
 	out.Restarted = &up
 	return out, nil

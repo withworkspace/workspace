@@ -108,7 +108,7 @@ export function took(ms: number | undefined): string {
 }
 
 // came is what a task came to, in words: "passed in 42s", "failed (exit
-// 2) in 3m 05s", "stopped: its time was up".
+// 2) in 3m 05s", "stopped: timed out".
 export function came(r: RunDetail): string {
   const t = took(r.took);
   switch (r.result) {

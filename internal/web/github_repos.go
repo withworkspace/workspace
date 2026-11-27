@@ -96,7 +96,7 @@ func (s *Server) githubRepos(w http.ResponseWriter, r *http.Request) {
 func (s *Server) addRepo(w http.ResponseWriter, r *http.Request) {
 	var req RepoAdd
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "say which repo: owner and name")
+		jsonError(w, http.StatusBadRequest, "missing repo: owner and name")
 		return
 	}
 	done, err := s.App.AddRepo(r.Context(), ops.AsYou, ops.RepoAdd{Owner: req.Owner, Name: req.Name, As: req.As, Group: req.Group, Team: req.Team})

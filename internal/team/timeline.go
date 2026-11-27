@@ -381,23 +381,23 @@ func describeJoined(it *Item, who func(Event) (key, short string), person func(s
 		}
 		switch e.Kind {
 		case Opened:
-			say(short, "opened it", e.Repo)
+			say(short, "opened", e.Repo)
 		case Ready:
-			say(short, "made it ready for review", e.Repo)
+			say(short, "marked ready for review", e.Repo)
 		case Reviewed:
 			person(key)
 			switch {
 			case e.Verdict == Approved:
-				say(short, "approved it", e.Repo)
+				say(short, "approved", e.Repo)
 			case e.Verdict == Changes:
 				say(short, "asked for changes", e.Repo)
 			case !gave[key+" "+prKey(e.Repo, e.PR)]:
 				say(short, "commented", e.Repo)
 			}
 		case Merged:
-			say(short, "landed it", e.Repo)
+			say(short, "landed", e.Repo)
 		case Closed:
-			say("", "It was closed without merging", e.Repo)
+			say("", "Closed without merging", e.Repo)
 		}
 	}
 	for _, s := range size {
@@ -550,7 +550,7 @@ func describe(it *Item, who func(Event) (key, short string)) {
 			on = last.Branch
 		}
 		if n := len(it.Events); n == 1 {
-			it.Words = fmt.Sprintf("%s landed it straight on %s.", short, on)
+			it.Words = fmt.Sprintf("%s landed straight on %s.", short, on)
 		} else {
 			var subjects []string
 			for i := 0; i < n && len(subjects) < 3; i++ {
@@ -603,9 +603,9 @@ func describe(it *Item, who func(Event) (key, short string)) {
 		key, short := who(e)
 		switch e.Kind {
 		case Opened:
-			say(short, "opened it")
+			say(short, "opened")
 		case Ready:
-			say(short, "made it ready for review")
+			say(short, "marked ready for review")
 		case Reviewed:
 			if reviewed[key] {
 				continue
@@ -614,16 +614,16 @@ func describe(it *Item, who func(Event) (key, short string)) {
 			person(key)
 			switch verdict[key] {
 			case Approved:
-				say(short, "approved it")
+				say(short, "approved")
 			case Changes:
 				say(short, "asked for changes")
 			default:
 				say(short, "commented")
 			}
 		case Merged:
-			say(short, "landed it")
+			say(short, "landed")
 		case Closed:
-			say("", "It was closed without merging")
+			say("", "Closed without merging")
 		}
 	}
 	var said []string

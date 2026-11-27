@@ -89,7 +89,7 @@ func TestAct_Grants(t *testing.T) {
 
 func TestAct_Refused(t *testing.T) {
 	for script, want := range map[string]string{
-		"may = [\"frame-fixture:things\"]\ndef run(e):\n    act(\"mission\", {\"title\": \"x\"})\n": "isn't a plugin's kind",
+		"may = [\"frame-fixture:things\"]\ndef run(e):\n    act(\"mission\", {\"title\": \"x\"})\n": "is not a plugin's kind",
 		"may = [\"notify\"]\ndef run(e):\n    act(\"frame-fixture:things\", [])\n":                  `may = ["frame-fixture:things"]`,
 		"may = [\"frame-fixture:things\"]\ndef run(e):\n    act(\"frame-fixture:things\")\n":        "missing argument for input",
 	} {
@@ -105,7 +105,7 @@ func TestAct_Refused(t *testing.T) {
 			t.Errorf("want %q: %+v", want, runs)
 		}
 	}
-	if _, err := Check("bad", []byte("when = event(\"pr.merged\")\nmay = [\"jira\"]\ndef run(e):\n    pass\n")); err == nil || !strings.Contains(err.Error(), "act on a plugin's kind") {
+	if _, err := Check("bad", []byte("when = event(\"pr.merged\")\nmay = [\"jira\"]\ndef run(e):\n    pass\n")); err == nil || !strings.Contains(err.Error(), "or a plugin's kind of proposal") {
 		t.Errorf("a may that's neither: %v", err)
 	}
 }
@@ -123,7 +123,7 @@ func TestAct_DryRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dr.Ran != 1 || !strings.Contains(strings.Join(dr.Lines[0].Did, "|"), "act frame-fixture:things (proposed: you haven't let it do that without asking)") {
+	if dr.Ran != 1 || !strings.Contains(strings.Join(dr.Lines[0].Did, "|"), "act frame-fixture:things (proposed: not allowed without asking)") {
 		t.Fatalf("%+v", dr.Lines)
 	}
 }

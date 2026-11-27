@@ -174,7 +174,7 @@ func (w *Workspace) WhatsNewPicture(ctx context.Context, name string) (string, e
 	case of == nil:
 		return "", fmt.Errorf("no entry has the picture %q: %w", name, ErrNotFound)
 	case base == "" || !checksUpdates(w.root):
-		return "", refused("not-looking", "pictures of what's new are fetched from the release on GitHub, and this workspace doesn't look there ([updates] check)")
+		return "", refused("not-looking", "pictures come from the GitHub release, and update checks are off ([updates] check)")
 	}
 	path := filepath.Join(w.root, ".ws", "cache", "whatsnew", of.Version, name)
 	if _, err := os.Stat(path); err == nil {
@@ -224,7 +224,7 @@ func localPicture(ix whatsnew.Index, name string) (string, error) {
 		}
 		path := filepath.Join(ix.Dir, name)
 		if _, err := os.Stat(path); err != nil {
-			return "", fmt.Errorf("%s isn't in %s any more: %w", name, ix.Dir, ErrNotFound)
+			return "", fmt.Errorf("%s is no longer in %s: %w", name, ix.Dir, ErrNotFound)
 		}
 		return path, nil
 	}

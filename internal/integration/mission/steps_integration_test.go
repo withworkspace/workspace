@@ -84,7 +84,7 @@ func TestSteps_OpenPullRequestAndDecide(t *testing.T) {
 	t.Setenv("WS_ROLE", "orchestrator")
 	testutil.Run(t, w, gh, "mission", "accept", "-m", "cache", "cached")
 	m = testutil.LoadMission(t, w, "cache")
-	if m.Asking() == nil || m.Asking().Step != 2 || !strings.Contains(m.Asking().Text, "Step 2 opens a pull request from backend/cache-lookup, and ws holds missions.review_before_pr: review it") {
+	if m.Asking() == nil || m.Asking().Step != 2 || !strings.Contains(m.Asking().Text, "Step 2 opens a pull request from backend/cache-lookup once a review approves it (missions.review_before_pr)") {
 		t.Fatalf("at step 2: %+v", m.Asking())
 	}
 	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 0 {
@@ -129,7 +129,7 @@ func TestSteps_OpenPullRequestAndDecide(t *testing.T) {
 		t.Fatal("the merge didn't pass step 2")
 	}
 	m = testutil.LoadMission(t, w, "cache")
-	if m.Asking() == nil || m.Asking().Step != 3 || !strings.Contains(m.Asking().Text, "Step 3 is yours, to decide: does it go to prd now, or with the next release?") || strings.Join(m.Asking().Options, ",") != mission.CheckInNotYet {
+	if m.Asking() == nil || m.Asking().Step != 3 || !strings.Contains(m.Asking().Text, "Step 3 is yours to decide: does it go to prd now, or with the next release?") || strings.Join(m.Asking().Options, ",") != mission.CheckInNotYet {
 		t.Fatalf("at step 3: %+v", m.Asking())
 	}
 	if ctx.PassOnMerge("cache", "backend/cache-lookup") {
@@ -185,7 +185,7 @@ func TestSteps_WorkInARepoLiftsACapsule(t *testing.T) {
 		t.Errorf("warned of what ws lifts itself:\n%s", r.Stderr)
 	}
 	testutil.WithStdin(t, "## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Open Pull Request\n   - in: `fe`\n")
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "plan", "-m", "cache", "--set", "-"); !strings.Contains(r.Stderr, "step 1 is in `fe`, where the mission has no capsule, and no Work step before it makes one") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "plan", "-m", "cache", "--set", "-"); !strings.Contains(r.Stderr, "step 1 is in `fe`, where the mission has no capsule yet") {
 		t.Errorf("an Open Pull Request with nothing to open from:\n%s", r.Stderr)
 	}
 	testutil.WithStdin(t, "## Z\n- Done.\n## Stops early\n- None.\n## Steps\n1. Review: is the cache right?\n2. Work: show the cached value.\n   - in: `fe`\n")
@@ -391,7 +391,7 @@ func TestSteps_OpenPullRequestLookedAfter(t *testing.T) {
 		t.Fatalf("orchestrator runs = %v", *runs)
 	}
 	prompt := testutil.Run(t, w, gh, "mission", "orchestrate", "-m", "cache", "--trigger", "pr", "--print-prompt").Stdout
-	for _, want := range []string{"The mission is at step 2 of 3, an Open Pull Request", "- backend#1's checks pass", "ws mission pr-ready"} {
+	for _, want := range []string{"The mission is at step 2 of 3, an Open Pull Request", "- backend#1: checks passed", "ws mission pr-ready"} {
 		if !strings.Contains(prompt, want) {
 			t.Errorf("the orchestrator's prompt lacks %q", want)
 		}
@@ -462,7 +462,7 @@ func TestSteps_TheOrchestratorsCall(t *testing.T) {
 	if r := testutil.RunCommand(t, w.Root, nil, "mission", "start", "-m", "cache", "--in", "backend"); r.Err == nil || !strings.Contains(r.Err.Error(), "step 2 runs in one place") {
 		t.Errorf("starting it in a repo: %v", r.Err)
 	}
-	if r := testutil.Run(t, w, nil, "mission", "skip", "-m", "cache", "the fix is obvious"); !strings.Contains(r.Stderr, "skipped step 2, and step 3 is queued in backend/cache-lookup") {
+	if r := testutil.Run(t, w, nil, "mission", "skip", "-m", "cache", "the fix is obvious"); !strings.Contains(r.Stderr, "skipped step 2, and step 3 queued in backend/cache-lookup") {
 		t.Errorf("ws mission skip: %s", r.Stderr)
 	}
 	if r := testutil.RunCommand(t, w.Root, nil, "mission", "skip", "-m", "cache", "no need"); r.Err == nil || !strings.Contains(r.Err.Error(), "step 3 has no only if: it runs") {
@@ -502,12 +502,12 @@ func TestSteps_OpenPullRequestWaitsForAMergeWithItsBase(t *testing.T) {
 	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 0 {
 		t.Fatalf("opened one that conflicts: %+v", open)
 	}
-	if !logged(t, store, "didn't open backend/cache-lookup's pull request at step 2: it conflicts with main in cache.go; sent it back to c1 to merge origin/main in first (round 1)") {
+	if !logged(t, store, "did not open backend/cache-lookup's pull request at step 2: conflicts with main in cache.go; sent back to c1 to merge origin/main first (round 1)") {
 		t.Error("not logged")
 	}
 	m := testutil.LoadMission(t, w, "cache")
 	c, _ := m.CrewByID("c1")
-	if !strings.Contains(c.ResumeWith, "it conflicts with main in cache.go. Merge origin/main into your branch (don't rebase, don't force-push)") {
+	if !strings.Contains(c.ResumeWith, "Step 2 opens backend/cache-lookup's pull request, and ws hasn't opened it: conflicts with main in cache.go. Merge origin/main into your branch (don't rebase, don't force-push)") {
 		t.Errorf("c1 is told: %q", c.ResumeWith)
 	}
 	if m.Asking() != nil {
@@ -525,7 +525,7 @@ func TestSteps_OpenPullRequestWaitsForAMergeWithItsBase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if said := ctx.CrewDone("cache", "c1"); !strings.Contains(said, "the PR writer is writing backend/cache-lookup's pull request, which ws opens once it's written") {
+	if said := ctx.CrewDone("cache", "c1"); !strings.Contains(said, "step 2: writing backend/cache-lookup's pull request; the step passes once it merges") {
 		t.Errorf("c1 done again: %q", said)
 	}
 	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 1 {

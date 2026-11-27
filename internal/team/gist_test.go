@@ -369,15 +369,15 @@ func TestJoined(t *testing.T) {
 	if first.State != InReview || first.PRs[0].State != Done || first.PRs[1].State != InReview || first.PRs[2].Number != 30 {
 		t.Errorf("standing = %s, %+v", first.State, first.PRs)
 	}
-	if want := "Ana opened it in 2 repos."; first.Words != want {
+	if want := "Ana opened in 2 repos."; first.Words != want {
 		t.Errorf("day one says %q, want %q", first.Words, want)
 	}
 	second := by[strand+"@2026-11-04"]
-	if want := "Ben approved it in bff. Ana landed it in api."; second.Words != want || strings.Join(second.People, " ") != "ana-acme ben" {
+	if want := "Ben approved in bff. Ana landed in api."; second.Words != want || strings.Join(second.People, " ") != "ana-acme ben" {
 		t.Errorf("day two says %q (%v), want %q", second.Words, second.People, want)
 	}
 	// He commented and then approved: that's approving.
-	if want := "Ana opened it in ui. Ben approved it in ui."; by[strand+"@2026-11-05"].Words != want {
+	if want := "Ana opened in ui. Ben approved in ui."; by[strand+"@2026-11-05"].Words != want {
 		t.Errorf("day three says %q, want %q", by[strand+"@2026-11-05"].Words, want)
 	}
 	// Where its pull requests are called different things, it's called by

@@ -207,7 +207,7 @@ func TestAMissionIsAboutWhatWSNames(t *testing.T) {
 		t.Fatalf("about: %v, %v", m, err)
 	}
 	var inv *Invalid
-	if _, err := w.SetAbout("cache", []string{"UTF-8"}, nil); !errors.As(err, &inv) || !strings.Contains(err.Error(), "ws names nothing UTF-8") {
+	if _, err := w.SetAbout("cache", []string{"UTF-8"}, nil); !errors.As(err, &inv) || !strings.Contains(err.Error(), "nothing called UTF-8") {
 		t.Errorf("about a word: %v", err)
 	}
 	// From the thing, the mission's found: it's about it.

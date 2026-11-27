@@ -196,7 +196,7 @@ func (s Store) write(fn func(tx *store.Tx) error) error {
 // notFound is the answer for a conversation that isn't there.
 func (s Store) notFound(id string) error {
 	if s.Workspace() {
-		return fmt.Errorf("%w: the workspace has no conversation %s", ErrNotFound, id)
+		return fmt.Errorf("%w: no conversation %s", ErrNotFound, id)
 	}
 	return fmt.Errorf("%w: mission %s has no thread %s", ErrNotFound, s.Slug, id)
 }
@@ -578,7 +578,7 @@ func MoveMission(root, old, slug string) error {
 			return err
 		}
 		if n > 0 {
-			return fmt.Errorf("the records have conversations of a mission %s already", slug)
+			return fmt.Errorf("conversations of mission %s already exist", slug)
 		}
 		was, now := For(root, old), For(root, slug)
 		for _, id := range was.idsIn(tx) {

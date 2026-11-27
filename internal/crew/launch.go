@@ -129,7 +129,7 @@ func Start(r Request) (Started, error) {
 	if err != nil {
 		execlog.Start(r.Root, who, args, l.Dir, spec.Env, 0)
 		execlog.Note(r.Root, who, "failed to start: %v", err)
-		if eerr := r.Store.EndCrew(r.Slug, c.ID, "failed to start: "+err.Error()); eerr != nil {
+		if eerr := r.Store.EndCrew(r.Slug, c.ID, "could not start: "+err.Error()); eerr != nil {
 			execlog.Note(r.Root, who, "couldn't record it ended: %v", eerr)
 		}
 		return Started{}, err

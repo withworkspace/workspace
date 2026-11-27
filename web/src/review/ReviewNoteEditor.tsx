@@ -79,7 +79,7 @@ export function ReviewNoteEditor({
         rows={Math.min(12, Math.max(3, text.split("\n").length + 1))}
         tallest={480}
         placeholder="What should change, or what do you want to know?"
-        aria-label={note ? "The comment" : "A comment"}
+        aria-label="Comment"
         send={sendKey}
         onSend={save}
         onEscape={onCancel}

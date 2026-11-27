@@ -100,17 +100,17 @@ command = "true"
 			why = sw.Why
 		}
 	}
-	if !strings.Contains(why, "it hadn't ended after 1m30s, its timeout") {
+	if !strings.Contains(why, "timed out after 1m30s") {
 		t.Errorf("slow was swept for %q", why)
 	}
-	if now, _, err := w.Run("slow.cache.frontend"); err != nil || now.Result() != "stopped" || !strings.Contains(now.Why, "what's kept up is a service") {
+	if now, _, err := w.Run("slow.cache.frontend"); err != nil || now.Result() != "stopped" || !strings.Contains(now.Why, "timed out after 1m30s") {
 		t.Errorf("slow = %s (%q), %v", now.Result(), now.Why, err)
 	}
 
 	for recipe, want := range map[string]string{
-		"server": "is a task, which ends by itself",
+		"server": "is a task: a run can only need a service",
 		"twin":   "twin is both a service and a task in ws.repo.toml",
-		"never":  `[run.task.never] in ws.repo.toml: timeout is how long it may take (10m, 1h30m), not "soon"`,
+		"never":  `[run.task.never] in ws.repo.toml: timeout must be a duration (10m, 1h30m), not "soon"`,
 	} {
 		if _, err := w.StartRun(runAsk(front, recipe)); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: err = %v, want %q", recipe, err, want)

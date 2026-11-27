@@ -28,7 +28,7 @@ func (s *Server) navAt(w http.ResponseWriter, r *http.Request) (dir, rev, path s
 	q := r.URL.Query()
 	rev, path = q.Get("rev"), q.Get("path")
 	if !fullSHA.MatchString(rev) || !validPath(path) {
-		jsonError(w, http.StatusBadRequest, "need rev (a full commit id) and a path")
+		jsonError(w, http.StatusBadRequest, "missing rev (full commit id) or path")
 		return "", "", "", false
 	}
 	return dir, rev, path, true
@@ -91,7 +91,7 @@ func (s *Server) navPlace(w http.ResponseWriter, r *http.Request) (dir, rev, pat
 	line, lerr := strconv.Atoi(r.URL.Query().Get("line"))
 	col, cerr := strconv.Atoi(r.URL.Query().Get("col"))
 	if lerr != nil || cerr != nil || line < 1 || col < 0 {
-		jsonError(w, http.StatusBadRequest, "need a line (from 1) and a col (from 0)")
+		jsonError(w, http.StatusBadRequest, "missing line (from 1) or col (from 0)")
 		return "", "", "", 0, 0, false
 	}
 	return dir, rev, path, line, col, true

@@ -88,10 +88,10 @@ func TestAutomationActions(t *testing.T) {
 		input     map[string]any
 		want      string
 	}{
-		{"Nudge its crew", "", nil, "it's run on a mission"},
-		{"Nudge its crew", m.Slug, nil, "asks for note"},
+		{"Nudge its crew", "", nil, "runs on a mission"},
+		{"Nudge its crew", m.Slug, nil, "needs note"},
 		{"Post the digest", m.Slug, nil, "on nothing in particular"},
-		{"Nudge its crew", "nope-nope", map[string]any{"note": "x"}, "can't say what nope-nope is"},
+		{"Nudge its crew", "nope-nope", map[string]any{"note": "x"}, "could not tell what nope-nope is"},
 		{"Fly", "", nil, `no action called "Fly"`},
 	} {
 		_, err := w.RunAutomationAction("crew", c.title, c.on, c.input)

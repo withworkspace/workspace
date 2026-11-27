@@ -251,17 +251,17 @@ func TestWorkflow_Loops(t *testing.T) {
 		t.Errorf("conversed %q", got.conversed)
 	}
 	runs, _ := Runs(e.Root, "a", 5)
-	if len(runs) != 2 || runs[0].State != Held || runs[0].Error != "it'd loop: a → b → a" {
+	if len(runs) != 2 || runs[0].State != Held || runs[0].Error != "would loop: a → b → a" {
 		t.Errorf("a's runs %+v", runs)
 	}
-	if len(told) != 1 || told[0] != "a: it'd loop: a → b → a" {
+	if len(told) != 1 || told[0] != "a: would loop: a → b → a" {
 		t.Errorf("told %q", told)
 	}
 
 	// Three deep, with neither in it: held all the same.
 	emit(t, e.Root, events.Event{Kind: events.ConversationAnswered, By: "ws", Conversation: "w9", Chain: []string{"x", "y", "z"}})
 	e.RunDue()
-	if runs, _ := Runs(e.Root, "b", 1); runs[0].State != Held || runs[0].Error != "it'd be more than 3 automations deep: x → y → z → b" {
+	if runs, _ := Runs(e.Root, "b", 1); runs[0].State != Held || runs[0].Error != "would be more than 3 automations deep: x → y → z → b" {
 		t.Errorf("b's run %+v", runs[0])
 	}
 	if len(got.conversed) != 2 {
@@ -295,7 +295,7 @@ func TestWorkflow_DryRunHoldsLoops(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dr.Matched != 2 || dr.Ran != 1 || dr.Held != 1 || dr.Lines[0].Held != "it'd loop: a → b → b" {
+	if dr.Matched != 2 || dr.Ran != 1 || dr.Held != 1 || dr.Lines[0].Held != "would loop: a → b → b" {
 		t.Errorf("%+v", dr)
 	}
 }

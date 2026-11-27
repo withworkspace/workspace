@@ -208,7 +208,7 @@ func TestPluginStartsAConversation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m, err := w.Missions.Load("cache-the-sessions"); err != nil || len(m.About) != 0 || !strings.Contains(said, "It isn't recorded as about RAM-12") {
+	if m, err := w.Missions.Load("cache-the-sessions"); err != nil || len(m.About) != 0 || !strings.Contains(said, "Not recorded as about RAM-12") {
 		t.Errorf("about a name ws doesn't read: %v, about %v, said %q", err, m, said)
 	}
 }

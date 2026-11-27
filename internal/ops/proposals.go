@@ -30,7 +30,7 @@ func ConversationStore(root, slug, id string) (conversation.Store, error) {
 	case conversation.IsRef(id) && slug != "":
 		return conversation.For(root, slug), nil
 	}
-	return conversation.Store{}, fmt.Errorf("%q isn't a conversation here", id)
+	return conversation.Store{}, fmt.Errorf("%q is not a conversation here", id)
 }
 
 // LiftForMission lifts a capsule for a mission, joined to it, as ws lift
@@ -89,9 +89,9 @@ func madeQuietly(c Capsule, err error) error {
 	case err != nil:
 		return err
 	case c.AttachErr != nil:
-		return fmt.Errorf("made %s, but it didn't join the mission: %w", c.Path, c.AttachErr)
+		return fmt.Errorf("made %s, but could not add it to the mission: %w", c.Path, c.AttachErr)
 	case c.HookErr != nil:
-		return fmt.Errorf("made %s, but its after_create hook failed: %w", c.Path, c.HookErr)
+		return fmt.Errorf("made %s, but after_create hook failed: %w", c.Path, c.HookErr)
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func (w *Workspace) settleProposalAt(store conversation.Store, id string, n int,
 		return "", store.Slug, fmt.Errorf("%w: %s has no proposal %d", conversation.ErrNotFound, id, n)
 	}
 	if p.State != conversation.ProposalOpen {
-		return "", store.Slug, fmt.Errorf("proposal %d in %s is %s already", n, id, p.State)
+		return "", store.Slug, fmt.Errorf("proposal %d in %s is already %s", n, id, p.State)
 	}
 	said, slug, err := w.settle(store, c, p, accept, edits)
 	w.tellAgent(store, slug, id, n, edits)
@@ -170,7 +170,7 @@ func (w *Workspace) acceptOther(store conversation.Store, c *conversation.Conver
 	}
 	// A kind ws no longer has (an edit to the process, from when it was
 	// read back): it can be declined, not accepted.
-	return "", &Refused{Code: "gone", Reason: fmt.Sprintf("proposal %d in %s is %s, which ws doesn't take any more: decline it", p.N, c.ID, firstNonEmpty(p.Kind, "of no kind"))}
+	return "", &Refused{Code: "gone", Reason: fmt.Sprintf("proposal %d in %s is a kind no longer supported (%s): decline it", p.N, c.ID, firstNonEmpty(p.Kind, "none"))}
 }
 
 // acceptArtifact adds a proposed artifact, or a version of one, as you:
@@ -208,7 +208,7 @@ func (w *Workspace) acceptArtifact(store conversation.Store, c *conversation.Con
 	if !store.Workspace() {
 		rec := mission.Artifact{Ref: added.Entry.ID, Kind: ArtifactKind, Label: added.Entry.Title}
 		if err := w.Missions.AddArtifact(store.Slug, rec); err == nil {
-			said += ", and recorded it on " + store.Slug
+			said += ", recorded on " + store.Slug
 		}
 	}
 	return said + ".", nil
@@ -253,7 +253,7 @@ func (w *Workspace) acceptAmend(store conversation.Store, c *conversation.Conver
 		return "", err
 	}
 	if saved.Conflict != nil {
-		return "", &Refused{Code: "changed", Reason: fmt.Sprintf("%s has changed since this was proposed, in lines it changes too (%d %s): nothing's saved. Ask in %s for it again, from the document as it is now", p.To, saved.Conflict.Clashes, plural(saved.Conflict.Clashes, "place"), c.ID)}
+		return "", &Refused{Code: "changed", Reason: fmt.Sprintf("%s changed since this was proposed, in the same lines (%d %s): nothing saved. Ask in %s again", p.To, saved.Conflict.Clashes, plural(saved.Conflict.Clashes, "place"), c.ID)}
 	}
 	// Where it's saved: a new capsule's, for a repo that takes pull
 	// requests; else where it was.
@@ -293,7 +293,7 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	// Looked at here to say so before anything's worked out, and again
 	// as they're written (WriteFilesIf), with nothing in between.
 	changed := func(file string) error {
-		return fmt.Errorf("the %s has changed since this was proposed: ask in %s for it again, from the %s as it is now", file, c.ID, file)
+		return fmt.Errorf("the %s changed since this was proposed: ask in %s again, from the current %s", file, c.ID, file)
 	}
 	now, _ := ms.ReadBrief(m.Slug)
 	if now != p.Was {
@@ -316,7 +316,7 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 		states, _ := m.StageProgress(now)
 		rev = mission.Revise(m.Plan, plan, states)
 		if prob := rev.Problem(); prob != "" {
-			return "", m.Slug, refused("steps-behind", "%s: ask in %s for it again, changing only what's ahead", prob, c.ID)
+			return "", m.Slug, refused("steps-behind", "%s: ask in %s again, changing only what's ahead", prob, c.ID)
 		}
 	}
 	// The brief as it is comes with a plan, for a mission briefed when it
@@ -338,9 +338,9 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	said := []string{"Wrote the new brief."}
 	if plan != nil {
 		ms.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: fmt.Sprintf("plan written, from %s: %d %s", c.ID, len(plan.Steps), plural(len(plan.Steps), "step"))})
-		said = []string{fmt.Sprintf("Wrote the new brief, and its plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
+		said = []string{fmt.Sprintf("Wrote the new brief and plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
 		if same {
-			said = []string{fmt.Sprintf("Wrote its plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
+			said = []string{fmt.Sprintf("Wrote the plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
 		}
 	}
 	logFailed(ms.UserActed(m.Slug))
@@ -368,15 +368,15 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	// docked, and ready for crew. (Its conversations move with it.)
 	if p.Title != "" && p.Title != m.Title {
 		if err := ms.SetTitle(m.Slug, p.Title); err == nil {
-			said = append(said, "Named it “"+p.Title+"”.")
+			said = append(said, "Named “"+p.Title+"”.")
 		}
 	}
 	if p.Slug != "" && p.Slug != slug {
 		if err := w.RenameMission(slug, p.Slug); err != nil {
-			said = append(said, "Kept its slug ("+err.Error()+").")
+			said = append(said, "Kept slug ("+err.Error()+").")
 		} else {
 			slug = p.Slug
-			said = append(said, "Its slug is "+slug+" now.")
+			said = append(said, "Slug is "+slug+" now.")
 		}
 	}
 	var made, failed []string
@@ -425,7 +425,7 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 		said = append(said, strings.ToUpper(made[0][:1])+strings.Join(made, ", ")[1:]+".")
 	}
 	if len(failed) > 0 {
-		said = append(said, "Couldn't make "+strings.Join(failed, "; ")+": lift or dock it yourself (WS_MISSION="+slug+").")
+		said = append(said, "Not set up: "+strings.Join(failed, "; ")+". Lift or dock yourself (WS_MISSION="+slug+").")
 	}
 	if plan != nil {
 		if m, err := ms.Load(slug); err == nil {
@@ -478,7 +478,7 @@ func (w *Workspace) acceptDispatch(store conversation.Store, c *conversation.Con
 // ended since) leaves the proposal to accept or decline.
 func (w *Workspace) acceptReplan(store conversation.Store, c *conversation.Conversation, p conversation.Proposal) (string, error) {
 	if store.Workspace() {
-		return "", refused("not-a-mission", "a replan is a mission's: this conversation is the workspace's")
+		return "", refused("not-a-mission", "a replan needs a mission: this conversation is the workspace's")
 	}
 	a, err := w.AskPlanner(store.Slug, p.Text, AsYou)
 	if err != nil {
@@ -502,7 +502,7 @@ func (w *Workspace) acceptDecision(store conversation.Store, c *conversation.Con
 		if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, "", conversation.You, time.Now()); err != nil {
 			return "", err
 		}
-		return "Decided: it's kept with " + c.ID + ", and moves to the mission this becomes.", nil
+		return "Decided: kept with " + c.ID + ", until it becomes a mission.", nil
 	}
 	d, err := w.Missions.Decide(slug, mission.Decision{What: p.What, Why: p.Why, By: conversation.You, From: c.ID})
 	if err != nil {
@@ -548,7 +548,7 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 	var notAbout string
 	if len(p.About) > 0 {
 		if _, err := w.SetAbout(m.Slug, p.About, nil); err != nil {
-			notAbout = "It isn't recorded as about " + strings.Join(p.About, ", ") + " (" + err.Error() + "): ws mission about -m " + m.Slug + " <name> says so."
+			notAbout = "Not recorded as about " + strings.Join(p.About, ", ") + " (" + err.Error() + "): run ws mission about -m " + m.Slug + " <name> to add it."
 		}
 	}
 	title := firstNonEmpty(c.Title, "“"+clipLine(c.Turns[0].Body, 80)+"”")
@@ -561,14 +561,14 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 	}
 	var said []string
 	if p.Brief == "" {
-		said = append(said, fmt.Sprintf("Saved as an idea: mission %s, waiting to be briefed (its briefing agent starts from %s).", m.Slug, c.ID))
+		said = append(said, fmt.Sprintf("Saved as an idea: mission %s, to brief (briefing starts from %s).", m.Slug, c.ID))
 	} else {
 		// Its planner plans it from the brief, for you to confirm.
-		planning := "brief it on its page"
+		planning := "brief on the mission page"
 		if b, err := w.Brief(m.Slug, AsYou); err == nil {
 			planning = strings.TrimSuffix(b, ".")
 		}
-		said = append(said, fmt.Sprintf("Created mission %s with its brief: its planner plans it (%s), and confirming the plan starts it.", m.Slug, planning))
+		said = append(said, fmt.Sprintf("Created mission %s with brief: planning (%s). Confirm the plan to start.", m.Slug, planning))
 		var lifted, joined, failed []string
 		for _, cap := range w.proposedCapsules(p) {
 			repo, branch, _ := strings.Cut(cap, "/")
@@ -586,10 +586,10 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 			said = append(said, "Lifted "+strings.Join(lifted, ", ")+".")
 		}
 		if len(joined) > 0 {
-			said = append(said, "Joined "+strings.Join(joined, ", ")+", lifted already.")
+			said = append(said, "Joined "+strings.Join(joined, ", ")+", already lifted.")
 		}
 		if len(failed) > 0 {
-			said = append(said, "Couldn't lift "+strings.Join(failed, "; ")+": lift it with ws lift <repo> <branch> (WS_MISSION="+m.Slug+").")
+			said = append(said, "Could not lift "+strings.Join(failed, "; ")+": run ws lift <repo> <branch> (WS_MISSION="+m.Slug+").")
 		}
 	}
 	// What was decided before it was a mission is the mission's now.
@@ -602,7 +602,7 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 		}
 	}
 	if moved > 0 {
-		said = append(said, fmt.Sprintf("%d %s from %s moved to it.", moved, plural(moved, "decision"), c.ID))
+		said = append(said, fmt.Sprintf("%d %s from %s moved to the mission.", moved, plural(moved, "decision"), c.ID))
 	}
 	if notAbout != "" {
 		said = append(said, notAbout)
@@ -697,7 +697,7 @@ func (w *Workspace) EnsureCloned(repo string) error {
 		// would look cloned next time.
 		os.Remove(ws.RepoDir(repo))
 		if r.Err != nil {
-			return fmt.Errorf("cloning %s: %w", repo, r.Err)
+			return fmt.Errorf("could not clone %s: %w", repo, r.Err)
 		}
 		return fmt.Errorf("could not clone %s", repo)
 	}
@@ -734,7 +734,7 @@ func (w *Workspace) afterNewGoal(slug string, plan *mission.Plan, rev mission.Re
 		return w.passPlannerStep(slug, cur.N, "the user confirmed the new goal and its plan")
 	}
 	if w.Notify(slug, mission.OrchestratorEvent{Trigger: "plan"}) {
-		return "the orchestrator looks at the plan as it is now"
+		return "the orchestrator reviews the updated plan"
 	}
-	return "it goes on along the plan as it is now"
+	return "the mission continues on the updated plan"
 }

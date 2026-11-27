@@ -80,7 +80,7 @@ func ChangedPRs(org, repo string, since time.Time) ([]PRActivity, error) {
 		}
 		stdOut, stdErr, err := ghExec(args...)
 		if err != nil {
-			return nil, fmt.Errorf("changed PRs of %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
+			return nil, fmt.Errorf("could not read changed pull requests of %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		page, next, err := parseChangedPRs(stdOut.Bytes())
 		if err != nil {
@@ -160,10 +160,10 @@ func parseChangedPRs(data []byte) ([]PRActivity, string, error) {
 		} `json:"errors"`
 	}
 	if err := json.Unmarshal(data, &res); err != nil {
-		return nil, "", fmt.Errorf("parsing changed PRs: %w", err)
+		return nil, "", fmt.Errorf("could not read changed pull requests: %w", err)
 	}
 	if len(res.Errors) > 0 {
-		return nil, "", fmt.Errorf("changed PRs: %s", res.Errors[0].Message)
+		return nil, "", fmt.Errorf("could not read changed pull requests: %s", res.Errors[0].Message)
 	}
 	prs := res.Data.Repository.PullRequests
 	var out []PRActivity

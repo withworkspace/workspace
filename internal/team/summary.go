@@ -208,7 +208,7 @@ func ParseSummary(reply string, list []Change) ([]Topic, error) {
 		topics = append(topics, t)
 	}
 	if len(topics) == 0 {
-		return nil, fmt.Errorf("its reply had no topics: %s", clip(reply, 160))
+		return nil, fmt.Errorf("reply had no topics: %s", clip(reply, 160))
 	}
 	return topics, nil
 }

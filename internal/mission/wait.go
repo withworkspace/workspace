@@ -71,7 +71,7 @@ func (w *Watch) Summary() string {
 	}
 	switch {
 	case cant > 0 && unmet == 0:
-		return "ws couldn't tell"
+		return "could not tell"
 	case len(w.Results) > 1:
 		return fmt.Sprintf("not yet (%d of %d met)", len(w.Results)-unmet-cant, len(w.Results))
 	}

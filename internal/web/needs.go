@@ -14,7 +14,7 @@ import (
 func (s *Server) announceNeeds(w http.ResponseWriter, r *http.Request) {
 	var req NeedsAnnounce
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "what to announce didn't read: "+err.Error())
+		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return
 	}
 	fresh, err := ops.Announce(s.Root, req.Keys, req.Holding)

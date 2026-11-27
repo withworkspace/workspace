@@ -61,12 +61,12 @@ func workCrew(m *mission.Mission, st mission.StageState, capsule string) (missio
 func (w *Workspace) startVerifier(m *mission.Mission, st mission.StageState) string {
 	capsule, ok := w.stepCapsule(m, st)
 	if !ok {
-		return fmt.Sprintf("step %d verifies work in a capsule the mission hasn't got, so ws didn't start it: dispatch it with --capsule <repo>/<name>", st.N)
+		return fmt.Sprintf("step %d verifies work in a capsule the mission does not have, so not started: dispatch with --capsule <repo>/<name>", st.N)
 	}
 	repo, name, _ := strings.Cut(capsule, "/")
 	head := gitOut(filepath.Join(w.WS().RepoDir(repo), name), "rev-parse", "HEAD")
 	if err := w.Missions.SetVerifyHead(m.Slug, st.N, head); err != nil {
-		return fmt.Sprintf("couldn't start step %d: %v", st.N, err)
+		return fmt.Sprintf("could not start step %d: %v", st.N, err)
 	}
 	return w.startFresh(m, st, capsule, "")
 }
@@ -123,13 +123,13 @@ func (w *Workspace) settleVerify(m *mission.Mission, st mission.StageState, crew
 	for i, c := range st.Step.Checks {
 		switch {
 		case c.Run() && dir == "":
-			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
+			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "no capsule to run in"}
 		case c.Run():
 			results[i] = run.command(i, c, capsule, dir, crew.Env(w.Root(), m.Slug, ""))
 		case bundle == nil:
-			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "its verifier reported done without handing over a bundle"}
+			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "verifier reported done without a bundle"}
 		default:
-			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: by, Evidence: "the bundle says nothing of it"}
+			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: by, Evidence: "not in the bundle"}
 			for _, bc := range bundle.Checks {
 				if bc.N == i+1 {
 					results[i].Result, results[i].Evidence = bc.Verdict, bc.Found()
@@ -166,7 +166,7 @@ func (w *Workspace) afterVerify(slug string, n int, round mission.CheckRound, bu
 	if !ok || cur.N != n {
 		return ""
 	}
-	shown := "its verifier's bundle"
+	shown := "the verifier's bundle"
 	if bundle != "" {
 		shown = bundle
 	}
@@ -174,7 +174,7 @@ func (w *Workspace) afterVerify(slug string, n int, round mission.CheckRound, bu
 		if err := w.acceptAllowed(m); err != nil {
 			return fmt.Sprintf("step %d is verified, and passes once the user's review is settled: %v", n, err)
 		}
-		why := fmt.Sprintf("%s shows it (%s)", shown, round.Summary())
+		why := fmt.Sprintf("verified by %s (%s)", shown, round.Summary())
 		if said := w.passStep(slug, n, "ws", why, mission.StepVerify); said != "" {
 			return said
 		}
@@ -192,13 +192,13 @@ func (w *Workspace) afterVerify(slug string, n int, round mission.CheckRound, bu
 	worker, ok := workCrew(m, cur, round.Capsule)
 	switch {
 	case !ok:
-		return w.askAboutVerify(slug, n, round, shown, "no crew made the work in "+round.Capsule+" to send it back to")
+		return w.askAboutVerify(slug, n, round, shown, "no crew in "+round.Capsule+" to send the work back to")
 	case round.N >= w.Config().MaxRounds():
-		return w.askAboutVerify(slug, n, round, shown, fmt.Sprintf("that's %d %s unmet, as many as ws lets come round (%s)", round.N, plural(round.N, "round"), guaranteeMaxRounds(w.Config().MaxRounds()).Key))
+		return w.askAboutVerify(slug, n, round, shown, fmt.Sprintf("%d %s unmet, the most allowed (%s)", round.N, plural(round.N, "round"), guaranteeMaxRounds(w.Config().MaxRounds()).Key))
 	}
 	said, err := w.sendBackVerify(m, cur, round, worker, AsWS)
 	if err != nil {
-		return w.askAboutVerify(slug, n, round, shown, fmt.Sprintf("ws couldn't send it back to %s (%v)", worker.ID, err))
+		return w.askAboutVerify(slug, n, round, shown, fmt.Sprintf("could not send the work back to %s (%v)", worker.ID, err))
 	}
 	return fmt.Sprintf("step %d isn't verified (%s): %s", n, round.Summary(), said)
 }
@@ -206,7 +206,7 @@ func (w *Workspace) afterVerify(slug string, n int, round mission.CheckRound, bu
 // askAboutVerify makes a Verify step yours, its work not verified: pass
 // it as it is, send the work back with what's unmet, or say what to do.
 func (w *Workspace) askAboutVerify(slug string, n int, round mission.CheckRound, shown, why string) string {
-	text := fmt.Sprintf("Step %d's verification, round %d (%s): %s. %s. Pass it as it is, send the work back with what's unmet, or say what to do.", n, round.N, shown, round.Summary(), upperFirst(why))
+	text := fmt.Sprintf("Step %d verification, round %d (%s): %s. %s. Pass as is, send back with what's unmet, or say what to do.", n, round.N, shown, round.Summary(), upperFirst(why))
 	if _, err := w.Missions.AskAtStep(slug, mission.TaskChecks, text, n, mission.ChecksPass, mission.ChecksSendBack); err != nil {
 		return "couldn't ask the user: " + err.Error()
 	}

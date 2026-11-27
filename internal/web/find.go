@@ -76,7 +76,7 @@ func findPulls(l *pulls.List) []find.Pull {
 func (s *Server) find(w http.ResponseWriter, r *http.Request) {
 	ix := s.findIndex()
 	if ix == nil {
-		jsonError(w, http.StatusNotFound, "there's nothing to look through here")
+		jsonError(w, http.StatusNotFound, "nothing to search here")
 		return
 	}
 	q := r.URL.Query()

@@ -28,7 +28,7 @@ func TestPickPlace(t *testing.T) {
 		{busy: map[string]string{"fe/a": "c1"}, capsule: "fe/b"},
 		{busy: map[string]string{"fe/a": "c1", "fe/b": "c2"}, capsule: "fe/a", busyCrew: "c1"},
 		{busy: map[string]string{"fe/b": "c2"}, want: "fe/b", capsule: "fe/b", busyCrew: "c2"},
-		{want: "be/x", errString: "no capsule be/x (it has: fe/a, fe/b)"},
+		{want: "be/x", errString: "no capsule be/x (mission has: fe/a, fe/b)"},
 	}
 	for i, c := range cases {
 		p, err := PickPlace(caps, c.busy, c.want)
@@ -179,7 +179,7 @@ func TestStart_FailedLaunchIsRecorded(t *testing.T) {
 		t.Fatal("no error")
 	}
 	got, _ := store.Load(m.Slug)
-	if len(got.Crew) != 1 || got.Crew[0].Exit != "failed to start: no server" {
+	if len(got.Crew) != 1 || got.Crew[0].Exit != "could not start: no server" {
 		t.Errorf("crew = %+v", got.Crew)
 	}
 }

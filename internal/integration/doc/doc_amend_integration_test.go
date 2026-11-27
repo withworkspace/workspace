@@ -59,7 +59,7 @@ func TestDocAmend_ProposedInATalkAndAccepted(t *testing.T) {
 	if r := testutil.RunCommand(t, w.Root, nil, "doc", "amend", ref, "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "propose") {
 		t.Errorf("amending it in a conversation: %v", r.Err)
 	}
-	if r := testutil.RunCommand(t, w.Root, nil, "doc", "amend", "--propose", "records:docs/plan.md"); r.Err == nil || !strings.Contains(r.Err.Error(), "isn't a document of one of the workspace's kinds") {
+	if r := testutil.RunCommand(t, w.Root, nil, "doc", "amend", "--propose", "records:docs/plan.md"); r.Err == nil || !strings.Contains(r.Err.Error(), "is not one of the workspace's document kinds") {
 		t.Errorf("a file of no kind: %v", r.Err)
 	}
 
@@ -154,7 +154,7 @@ func TestDocAmend_MergedWithWhatChangedSince(t *testing.T) {
 	proposeAmend(was, was+"\n## Since\n\nNo regrets.\n")
 	testutil.CommitIn(t, src, "adr/0007-one-binary.md", strings.Replace(was, "one file", "one static file", 1), "docs: be exact")
 	r := testutil.Run(t, w, nil, "conversation", "accept", "w1", "1")
-	if !strings.Contains(r.Stderr, "Amended "+ref+": landed on main") || !strings.Contains(r.Stderr, "merged with what changed on main meanwhile") {
+	if !strings.Contains(r.Stderr, "Amended "+ref+": landed on main") || !strings.Contains(r.Stderr, "merged with changes on main meanwhile") {
 		t.Errorf("accepting: %s", r.Stderr)
 	}
 	merged := "# One binary\n\nIt ships as one static file.\n\n## Why\n\nFewer parts.\n\n## Since\n\nNo regrets.\n"
@@ -167,7 +167,7 @@ func TestDocAmend_MergedWithWhatChangedSince(t *testing.T) {
 	testutil.CommitIn(t, src, "adr/0007-one-binary.md", strings.Replace(merged, "Fewer parts.", "Less to go wrong.", 1), "docs: say it better")
 	before := testutil.Subjects(t, src, "main")
 	r = testutil.RunCommand(t, w.Root, nil, "conversation", "accept", "w1", "2")
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "has changed since this was proposed, in lines it changes too (1 place)") || !strings.Contains(r.Err.Error(), "Ask in w1 for it again") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "changed since this was proposed, in the same lines (1 place)") || !strings.Contains(r.Err.Error(), "Ask in w1 again") {
 		t.Errorf("accepting a clash: %v", r.Err)
 	}
 	if got := testutil.Subjects(t, src, "main"); got != before {

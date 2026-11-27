@@ -154,7 +154,7 @@ func TestThreads_AgentAnswers(t *testing.T) {
 	threads.Say("t1", conversation.Turn{By: conversation.You, At: time.Now(), Body: "Still there?"})
 	testutil.RunCommand(t, w.Root, nil, "thread", "answer", "-m", "cache", "t1")
 	c, _ = threads.Load("t1")
-	if last := c.Last(); last.By != conversation.WS || !strings.Contains(last.Body, "The agent couldn't answer") || !strings.Contains(last.Body, "not signed in") {
+	if last := c.Last(); last.By != conversation.WS || !strings.Contains(last.Body, "Agent could not answer") || !strings.Contains(last.Body, "not signed in") {
 		t.Errorf("a failed answer: %+v", last)
 	}
 	if !c.WaitingOnYou() {
@@ -184,7 +184,7 @@ func TestThreads_SuggestAndAccept(t *testing.T) {
 	// The agent suggests, as the agent, on stdin; text that isn't there once is refused.
 	t.Setenv(mission.EnvCrew, "agent")
 	testutil.WithStdin(t, "<<<<<<<\nShip on Monday.\n=======\nx\n>>>>>>>\n")
-	if r := testutil.RunCommand(t, w.Root, nil, "thread", "suggest", "t1"); r.Err == nil || !strings.Contains(r.Err.Error(), "isn't there") {
+	if r := testutil.RunCommand(t, w.Root, nil, "thread", "suggest", "t1"); r.Err == nil || !strings.Contains(r.Err.Error(), "is not in the document exactly once") {
 		t.Errorf("text that isn't there: %v", r.Err)
 	}
 	testutil.WithStdin(t, "<<<<<<<\nShip on Friday.\n=======\nShip on Tuesday.\n>>>>>>>\n")
@@ -249,7 +249,7 @@ func TestThreads_SuggestAndAccept(t *testing.T) {
 	testutil.Run(t, w, nil, "thread", "suggest", "t3", "--from", "Keep it very small.", "--to", "Keep it lean.")
 	os.WriteFile(doc, []byte("# Cache\n\nShip on Tuesday.\nKeep it smaller.\n"), 0o644)
 	testutil.GitCmd(t, capsule, "commit", "-q", "-am", "crew edited it")
-	if r := testutil.RunCommand(t, w.Root, nil, "thread", "accept", "t3"); r.Err == nil || !strings.Contains(r.Err.Error(), "changed since") {
+	if r := testutil.RunCommand(t, w.Root, nil, "thread", "accept", "t3"); r.Err == nil || !strings.Contains(r.Err.Error(), "document changed: the replaced text appears 0 times") {
 		t.Errorf("text that's gone: %v", r.Err)
 	}
 
@@ -286,7 +286,7 @@ func TestThreads_StageWaitsOnChanges(t *testing.T) {
 	threads.OpenThread(conversation.NewThread{Kind: conversation.Change, By: conversation.You, Body: "Per tenant.", Anchor: anchor}, time.Now())
 	threads.OpenThread(conversation.NewThread{Kind: conversation.Ask, By: conversation.You, Body: "Why?", Anchor: anchor}, time.Now())
 
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "accept", "looks done"); r.Err == nil || !strings.Contains(r.Err.Error(), "asked for changes to "+ref+" that are still open (t1)") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "accept", "looks done"); r.Err == nil || !strings.Contains(r.Err.Error(), "changes asked for on "+ref+" still open (t1)") {
 		t.Errorf("accepting with a change open: %v", r.Err)
 	}
 	headlines := func() string {
@@ -305,7 +305,7 @@ func TestThreads_StageWaitsOnChanges(t *testing.T) {
 		t.Errorf("approve with a question open:\n%s", h)
 	}
 	testutil.Run(t, w, nil, "thread", "resolve", "t2")
-	if h := headlines(); !strings.Contains(h, "approve|docs/proposal.md has no open threads: approve it?|review-doc|"+ref) {
+	if h := headlines(); !strings.Contains(h, "approve|docs/proposal.md has no open threads: approve?|review-doc|"+ref) {
 		t.Errorf("no approve headline:\n%s", h)
 	}
 
@@ -379,7 +379,7 @@ func TestThreads_SendToCrew(t *testing.T) {
 	open("b.md", conversation.Change) // t2
 	open("b.md", conversation.Ask)    // t3
 
-	if r := testutil.RunCommand(t, w.Root, nil, "thread", "send", "t1", "t2"); r.Err == nil || !strings.Contains(r.Err.Error(), "one document at a time") {
+	if r := testutil.RunCommand(t, w.Root, nil, "thread", "send", "t1", "t2"); r.Err == nil || !strings.Contains(r.Err.Error(), "one document's threads at a time") {
 		t.Errorf("sending threads on two documents: %v", r.Err)
 	}
 
@@ -414,7 +414,7 @@ func TestThreads_SendToCrew(t *testing.T) {
 	// c2's: c2 is resumed, and told.
 	os.Remove(out)
 	r = testutil.Run(t, w, nil, "thread", "send", "t2")
-	if !strings.Contains(r.Stderr, "Resumed c2, which wrote docs/b.md.") {
+	if !strings.Contains(r.Stderr, "Resumed c2, who wrote docs/b.md.") {
 		t.Errorf("send said: %s", r.Stderr)
 	}
 	if got := waitFile(t, out); !strings.HasPrefix(got, "The user wants docs/b.md (backend/cache-lookup:docs/b.md) changed, in thread t2.") {
@@ -557,7 +557,7 @@ func TestTalk_Proposals(t *testing.T) {
 	testutil.Run(t, w, nil, "mission", "new", "--propose", "Rate limits, later")
 	// What it's about is a name ws reads: one it doesn't is said to the
 	// agent, and nothing's proposed.
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "new", "--propose", "Encode it", "--about", "UTF-8"); r.Err == nil || !strings.Contains(r.Err.Error(), "ws names nothing UTF-8") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "new", "--propose", "Encode it", "--about", "UTF-8"); r.Err == nil || !strings.Contains(r.Err.Error(), "nothing called UTF-8") {
 		t.Errorf("proposing a mission about a word: %v", r.Err)
 	}
 	t.Setenv(conversation.EnvConversation, "")
@@ -575,7 +575,7 @@ func TestTalk_Proposals(t *testing.T) {
 		t.Errorf("accepting a decision: %s", r.Stderr)
 	}
 	r := testutil.Run(t, w, nil, "conversation", "accept", "w1", "2")
-	if !strings.Contains(r.Stderr, "Created mission token-cache with its brief: its planner plans it (Briefing in t1), and confirming the plan starts it.") || !strings.Contains(r.Stderr, "Lifted backend/token-bench, backend/token-cache.") || !strings.Contains(r.Stderr, "1 decision from w1 moved to it.") {
+	if !strings.Contains(r.Stderr, "Created mission token-cache with brief: planning (Briefing in t1). Confirm the plan to start.") || !strings.Contains(r.Stderr, "Lifted backend/token-bench, backend/token-cache.") || !strings.Contains(r.Stderr, "1 decision from w1 moved to the mission.") {
 		t.Errorf("accepting a mission: %s", r.Stderr)
 	}
 	if strings.Join(lifted, " ") != "token-cache:backend/token-bench token-cache:backend/token-cache" {
@@ -602,7 +602,7 @@ func TestTalk_Proposals(t *testing.T) {
 		t.Errorf("its decisions: %+v", all)
 	}
 	// An idea waits to be briefed, from the conversation.
-	if r := testutil.Run(t, w, nil, "conversation", "accept", "w1", "3"); !strings.Contains(r.Stderr, "Saved as an idea: mission rate-limits-later, waiting to be briefed") {
+	if r := testutil.Run(t, w, nil, "conversation", "accept", "w1", "3"); !strings.Contains(r.Stderr, "Saved as an idea: mission rate-limits-later, to brief") {
 		t.Errorf("accepting an idea: %s", r.Stderr)
 	}
 	if m, _ := store.Load("rate-limits-later"); m == nil || !m.ToBrief() || m.Conversation != "w1" {
@@ -667,7 +667,7 @@ func TestTalk_MissionProposals(t *testing.T) {
 
 	// The brief edited again (5) takes the place of the edit before it (1):
 	// that one's nothing to confirm now.
-	if r := testutil.RunCommand(t, w.Root, nil, "conversation", "accept", "-m", "cache", "t1", "1"); r.Err == nil || !strings.Contains(r.Err.Error(), "proposal 1 in t1 is superseded already") {
+	if r := testutil.RunCommand(t, w.Root, nil, "conversation", "accept", "-m", "cache", "t1", "1"); r.Err == nil || !strings.Contains(r.Err.Error(), "proposal 1 in t1 is already superseded") {
 		t.Errorf("an edit to the brief superseded by a later one: %v", r.Err)
 	}
 	if r := testutil.Run(t, w, nil, "conversation", "accept", "-m", "cache", "t1", "5"); !strings.Contains(r.Stderr, "Wrote the new brief.") {
@@ -743,7 +743,7 @@ func TestTalk_Briefing(t *testing.T) {
 		h := md.Headlines[0]
 		return string(h.Court) + "|" + h.Kind + "|" + h.Text + "|" + h.Action.Verb + "|" + h.Action.Target
 	}
-	if h := headline(); h != "you|brief-talk|The briefing agent is waiting for you, in t1|talk|t1" {
+	if h := headline(); h != "you|brief-talk|The briefing agent is waiting for you in t1|talk|t1" {
 		t.Errorf("waiting on you: %s", h)
 	}
 
@@ -755,7 +755,7 @@ func TestTalk_Briefing(t *testing.T) {
 	t.Setenv(conversation.EnvConversation, "")
 	t.Setenv(mission.EnvCrew, "")
 	t.Setenv(mission.EnvMission, "")
-	if h := headline(); h != "you|brief-talk|The brief's proposed, in t1: confirm it, and the mission starts|talk|t1" {
+	if h := headline(); h != "you|brief-talk|Brief proposed in t1: confirming starts the mission|talk|t1" {
 		t.Errorf("a brief to confirm: %s", h)
 	}
 
@@ -765,7 +765,7 @@ func TestTalk_Briefing(t *testing.T) {
 		return nil
 	}))
 	r := testutil.Run(t, w, nil, "conversation", "accept", "-m", m.Slug, "t1", "1")
-	for _, want := range []string{"Wrote the new brief.", "Named it “Fix the flaky test”.", "Its slug is flaky-test now.", "Lifted backend/flaky-test, docked backend#12.", "It's ready for crew."} {
+	for _, want := range []string{"Wrote the new brief.", "Named “Fix the flaky test”.", "Slug is flaky-test now.", "Lifted backend/flaky-test, docked backend#12.", "Ready for crew."} {
 		if !strings.Contains(r.Stderr, want) {
 			t.Errorf("accepting it said %q, lacking %q", r.Stderr, want)
 		}
@@ -801,7 +801,7 @@ func TestCrewTranscript(t *testing.T) {
 		t.Fatalf("claude crew: %+v, %v", tr, err)
 	}
 	// c1 is Cursor's (orchestrateFixture).
-	if tr, _ := testutil.WebCrewTranscript(w.Root)("cache", "c1"); tr.Available || !strings.Contains(tr.Why, "Cursor keeps its chats in a database") {
+	if tr, _ := testutil.WebCrewTranscript(w.Root)("cache", "c1"); tr.Available || !strings.Contains(tr.Why, "Cursor keeps no readable transcript") {
 		t.Errorf("cursor crew: %+v", tr)
 	}
 	if _, err := testutil.WebCrewTranscript(w.Root)("cache", "c9"); err == nil {

@@ -262,7 +262,7 @@ func findingKind(heading string) string {
 // OpenPass starts a pass over a page: its first run.
 func (s Store) OpenPass(page, name string, at time.Time) (*Conversation, error) {
 	if !s.Workspace() {
-		return nil, errors.New("a page's passes are the workspace's")
+		return nil, errors.New("page passes are workspace-only")
 	}
 	if !cellGoal.MatchString(name) || name == "" {
 		return nil, fmt.Errorf("a pass is named by a word, not %q", name)
@@ -299,13 +299,13 @@ func (s Store) OpenReviewPass(pr, name string, at time.Time) (*Conversation, err
 // mission's capsule. Its first run.
 func (s Store) OpenPassOver(over Anchor, name string, at time.Time) (*Conversation, error) {
 	if !s.Workspace() {
-		return nil, errors.New("a review's passes are the workspace's")
+		return nil, errors.New("review passes are workspace-only")
 	}
 	if !cellGoal.MatchString(name) || name == "" {
 		return nil, fmt.Errorf("a pass is named by a word, not %q", name)
 	}
 	if over.Reviewed() == "" {
-		return nil, errors.New("a review's pass is over a pull request, or a mission's capsule")
+		return nil, errors.New("a review pass is over a pull request or a mission's capsule")
 	}
 	return s.open(&Conversation{Kind: Pass, Goal: name, Anchor: Anchor{PR: over.PR, Mission: over.Mission, Capsule: over.Capsule}, By: You, At: at, Status: Open}, Turn{By: You, At: at, Body: "Run it."})
 }
@@ -360,11 +360,11 @@ func (s Store) SettleFinding(id, key, state, why string, at time.Time) (*Convers
 		return nil, fmt.Errorf("a finding is open, done or dismissed, not %q", state)
 	}
 	if why != "" && (state != FindingDismissed || !slices.Contains(DismissReasons, why)) {
-		return nil, fmt.Errorf("a finding is dismissed as %s, and only dismissed: not %q", strings.Join(DismissReasons, ", "), why)
+		return nil, fmt.Errorf("a dismissal reason is one of %s, and only for dismissed findings: not %q", strings.Join(DismissReasons, ", "), why)
 	}
 	return s.update(id, func(tx *store.Tx, c *Conversation) error {
 		if c.Kind != Pass {
-			return fmt.Errorf("%w: %s isn't a pass", ErrNotFound, id)
+			return fmt.Errorf("%w: %s is not a pass", ErrNotFound, id)
 		}
 		return s.add(tx, c, line{Settle: &findingSettled{Key: key, State: state, Why: why, At: at}})
 	})

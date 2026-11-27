@@ -31,7 +31,7 @@ type Proposer interface {
 var Proposers = func(root string) (Proposer, error) {
 	c, err := plugin.Dial(root)
 	if err != nil {
-		return nil, fmt.Errorf("the plugins can't be reached (is the workspace's daemon running?): %w", err)
+		return nil, fmt.Errorf("could not reach plugins (is Workspace running?): %w", err)
 	}
 	return c, nil
 }
@@ -57,7 +57,7 @@ func (w *Workspace) acceptPluginBy(store conversation.Store, c *conversation.Con
 	picked = slices.Compact(picked)
 	for _, n := range picked {
 		if !slices.Contains(open, n) {
-			return "", &Refused{Code: "item", Reason: fmt.Sprintf("item %d of proposal %d isn't open to accept", n, p.N)}
+			return "", &Refused{Code: "item", Reason: fmt.Sprintf("item %d of proposal %d is not open", n, p.N)}
 		}
 	}
 	if len(picked) == 0 {
@@ -86,8 +86,8 @@ func (w *Workspace) acceptPluginBy(store conversation.Store, c *conversation.Con
 		it, ok := answered[n]
 		switch {
 		case !ok:
-			out = append(out, conversation.ItemOutcome{N: n, Problem: p.Plugin + " said nothing of it"})
-			problems = append(problems, fmt.Sprintf("item %d: %s said nothing of it", n, p.Plugin))
+			out = append(out, conversation.ItemOutcome{N: n, Problem: p.Plugin + " gave no answer"})
+			problems = append(problems, fmt.Sprintf("item %d: no answer from %s", n, p.Plugin))
 		case it.Problem != "":
 			out = append(out, conversation.ItemOutcome{N: n, Problem: it.Problem})
 			problems = append(problems, fmt.Sprintf("item %d: %s", n, it.Problem))

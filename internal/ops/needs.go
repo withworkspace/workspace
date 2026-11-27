@@ -115,7 +115,7 @@ func pullNeed(a pulls.Asked) Need {
 	if a.Stack != nil {
 		n.Title = a.Stack.Title
 		if a.More > 0 {
-			n.Text = fmt.Sprintf("%s, from %s, %s, and %d more of its stack do.", p.Ref(), p.Author, p.Words, a.More)
+			n.Text = fmt.Sprintf("%s, from %s, %s, plus %d more in the stack.", p.Ref(), p.Author, p.Words, a.More)
 		}
 	}
 	return n
@@ -172,10 +172,10 @@ func talkNeed(c *conversation.Conversation, in string) (Need, bool) {
 		Of: NeedConversation, Ref: c.ID, In: in,
 		Kind:  NeedYourTurn,
 		Title: firstNonEmpty(c.Title, firstNonEmpty(talkOpening(c), "Conversation")),
-		Text:  "The agent replied: your turn.",
+		Text:  "Agent replied: your turn.",
 	}
 	if name, ok := strings.CutPrefix(c.Via, "automation:"); ok && len(c.Turns) == 1 {
-		n.Text = "The automation " + name + " proposes something: yours to accept or decline."
+		n.Text = "Automation " + name + " proposed something to accept or decline."
 	}
 	if len(c.Turns) > 0 {
 		n.Since = c.Turns[len(c.Turns)-1].At

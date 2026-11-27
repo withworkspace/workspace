@@ -83,7 +83,7 @@ func (r *checkRound) metBefore(i int, c mission.Check, before mission.CheckRound
 	}
 	r.log("step %d, check %d of %d: `%s` was met in round %d%s, and the files are the same now: not run again", r.st.N, n, of, c.Command, before.N, at)
 	return mission.CheckResult{Check: c.Text, Result: mission.CheckMet, By: "ws", Run: was.Run,
-		Evidence: fmt.Sprintf("met in round %d%s, and the capsule's files are the same now, all committed: not run again", before.N, at)}
+		Evidence: fmt.Sprintf("met in round %d%s, and files unchanged since: not run again", before.N, at)}
 }
 
 // checkEnded is how a check that's a command ended, in a line: "passed in

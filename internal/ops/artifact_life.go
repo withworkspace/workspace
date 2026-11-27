@@ -81,7 +81,7 @@ func youOnly(by Actor, what string) error {
 func artifactRef(ref string) (string, int, error) {
 	id, v, ok := artifact.ParseRef(ref)
 	if !ok {
-		return "", 0, invalid("%q isn't an artifact: they're named a1, a2, … (ws artifact list)", ref)
+		return "", 0, invalid("%q is not an artifact: artifacts are named a1, a2, … (ws artifact list)", ref)
 	}
 	return id, v, nil
 }
@@ -104,10 +104,10 @@ func (w *Workspace) homeOf(e artifact.Entry, cfg artifact.Config, p ArtifactProm
 	asked := strings.TrimSpace(p.Home)
 	switch {
 	case p.Here && asked != "":
-		return nil, false, invalid("it lives in %s, or on this machine only: not both", asked)
+		return nil, false, invalid("choose %s or this machine only, not both", asked)
 	case e.Home != nil:
 		if p.Here {
-			return nil, false, invalid("%s lives in %s, where promoting it puts the version chosen: it isn't kept on this machine only", e.ID, e.Home.Where())
+			return nil, false, invalid("%s already lives in %s: cannot keep on this machine only", e.ID, e.Home.Where())
 		}
 		if asked != "" {
 			repo, folder, err := w.homeNamed(asked)
@@ -115,7 +115,7 @@ func (w *Workspace) homeOf(e artifact.Entry, cfg artifact.Config, p ArtifactProm
 				return nil, false, err
 			}
 			if repo != e.Home.Repo || folder != e.Home.Folder {
-				return nil, false, invalid("%s lives in %s already, where promoting it puts the version chosen: ws doesn't move it", e.ID, e.Home.Where())
+				return nil, false, invalid("%s already lives in %s and cannot be moved", e.ID, e.Home.Where())
 			}
 		}
 		h = &homeFor{repo: e.Home.Repo, folder: e.Home.Folder}
@@ -133,7 +133,7 @@ func (w *Workspace) homeOf(e artifact.Entry, cfg artifact.Config, p ArtifactProm
 		return nil, false, nil
 	}
 	if !w.WS().Direct(h.repo) {
-		return nil, false, invalid("%s takes pull requests, so a promoted artifact would wait there in review: one lives in a repo with no pull requests (landing = \"direct\"), or on this machine (ws artifact promote --here). ws doctor says the same", h.repo)
+		return nil, false, invalid("%s takes pull requests, so a promoted artifact would wait in review: use a repo with landing = \"direct\", or keep on this machine (ws artifact promote --here)", h.repo)
 	}
 	return h, false, nil
 }
@@ -144,15 +144,15 @@ func (w *Workspace) homeNamed(s string) (repo, folder string, err error) {
 	name, rest, ok := strings.Cut(s, ":")
 	rest = strings.Trim(rest, "/")
 	if !ok || name == "" || rest == "" {
-		return "", "", invalid("%q isn't a folder in a repo: it's repo:folder/, as records:artifacts/horizon-glow/", s)
+		return "", "", invalid("%q is not a folder in a repo: use repo:folder/, as records:artifacts/horizon-glow/", s)
 	}
 	parts := strings.Split(rest, "/")
 	if slices.Contains(parts, "..") || slices.Contains(parts, ".") || slices.Contains(parts, "") || parts[0] == ".git" {
-		return "", "", invalid("%q leads out of %s, or nowhere in it", s, name)
+		return "", "", invalid("%q is not a folder inside %s", s, name)
 	}
 	repo, known := w.WS().ResolveAlias(name)
 	if !known {
-		return "", "", invalid("%s isn't one of the workspace's repos", name)
+		return "", "", invalid("%s is not a repo in this workspace", name)
 	}
 	return repo, path.Clean(rest), nil
 }
@@ -218,7 +218,7 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 	}
 	into, start := strings.TrimSpace(p.Into), strings.TrimSpace(p.Start)
 	if into != "" && start != "" {
-		return ArtifactDone{}, invalid("it goes into a mission or a document, or a mission's started from it: not both")
+		return ArtifactDone{}, invalid("promote into a mission or document, or start a new mission: not both")
 	}
 	store, cfg := w.Artifacts(), w.ArtifactsConfig()
 	ctx := context.Background()
@@ -228,9 +228,9 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 	}
 	switch {
 	case e.Status == artifact.Discarded:
-		return ArtifactDone{}, &Refused{Code: "discarded", Reason: fmt.Sprintf("%s was discarded: restore it first (ws artifact restore %s)", id, id)}
+		return ArtifactDone{}, &Refused{Code: "discarded", Reason: fmt.Sprintf("%s was discarded: restore first (ws artifact restore %s)", id, id)}
 	case e.Gone || e.Away():
-		return ArtifactDone{}, invalid("%s's folder isn't on this machine: there's nothing to keep", id)
+		return ArtifactDone{}, invalid("%s's folder is not on this machine: nothing to keep", id)
 	}
 	if v == 0 {
 		latest, _ := e.Latest()
@@ -255,10 +255,10 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 		}
 		d, err := w.FindDoc(into)
 		if err != nil {
-			return ArtifactDone{}, invalid("%q is neither a mission nor a document: --into takes a mission's slug, or a document's ref (repo:path)", into)
+			return ArtifactDone{}, invalid("%q is not a mission or a document: --into takes a mission slug or a document ref (repo:path)", into)
 		}
 		if home == nil {
-			return ArtifactDone{}, invalid("a document cites an artifact by its folder in a repo, so the link works for everyone, and %s would stay on this machine: say where it's to live (--home repo:folder/), or name a repo for them ([artifacts] path in ws.toml)", id)
+			return ArtifactDone{}, invalid("documents cite artifacts by their folder in a repo, and %s would stay on this machine: choose a folder (--home repo:folder/), or set [artifacts] path in ws.toml", id)
 		}
 		went = d.Ref
 	case start != "":
@@ -278,12 +278,12 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 	if err == nil {
 		out.Entry, err = store.Promote(ctx, id, promo, lives, here)
 		if err != nil && lives != nil {
-			err = fmt.Errorf("v%d is in %s (%s), but %s's record on this machine couldn't say so: %w", v, lives.Where(), out.Landed, id, err)
+			err = fmt.Errorf("v%d is in %s (%s), but could not update %s's record on this machine: %w", v, lives.Where(), out.Landed, id, err)
 		}
 	}
 	if err != nil {
 		if start != "" {
-			return ArtifactDone{}, fmt.Errorf("%w (mission %s was started from it, and waits to be briefed)", wrapArtifact(err), went)
+			return ArtifactDone{}, fmt.Errorf("%w (mission %s was started, and waits to be briefed)", wrapArtifact(err), went)
 		}
 		return ArtifactDone{}, wrapArtifact(err)
 	}
@@ -302,7 +302,7 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 		}
 		rec := mission.Artifact{Ref: id, Kind: ArtifactKind, Label: out.Entry.Title}
 		if err := w.Missions.AddArtifact(m.Slug, rec); err != nil {
-			return out, fmt.Errorf("promoted %s, but couldn't record it on %s: %w", id, m.Slug, err)
+			return out, fmt.Errorf("promoted %s, but could not record on %s: %w", id, m.Slug, err)
 		}
 		out.Recorded = m.Slug
 	}
@@ -387,12 +387,12 @@ func (w *Workspace) putHome(store artifact.Store, cfg artifact.Config, e artifac
 			folder = path.Join(cfg.Dir, name)
 		case h.first:
 			if _, err := os.Lstat(filepath.Join(capsule, filepath.FromSlash(folder))); err == nil {
-				return "", "", "", false, invalid("there's something at %s:%s/ already: name another folder for %s to live in", h.repo, folder, e.ID)
+				return "", "", "", false, invalid("%s:%s/ already exists: choose another folder for %s", h.repo, folder, e.ID)
 			}
 		}
 		dir := filepath.Join(capsule, filepath.FromSlash(folder))
 		if err := artifact.WriteHome(dir, &e.Artifact, p, files); err != nil {
-			return "", "", "", false, fmt.Errorf("writing %s into %s: %w", artifact.VersionRef(e.ID, p.Version), h.repo, err)
+			return "", "", "", false, fmt.Errorf("could not write %s into %s: %w", artifact.VersionRef(e.ID, p.Version), h.repo, err)
 		}
 		// What says the folder is an artifact, to every ws that has the
 		// repo: it's found there, as a plugin's thing in a repo is.
@@ -430,7 +430,7 @@ func (w *Workspace) DiscardArtifact(ref, reason string, by Actor) (ArtifactDone,
 		return ArtifactDone{}, err
 	}
 	if v != 0 {
-		return ArtifactDone{}, invalid("an artifact is discarded whole, with its versions: discard %s", id)
+		return ArtifactDone{}, invalid("artifacts are discarded with all versions: discard %s", id)
 	}
 	store, cfg := w.Artifacts(), w.ArtifactsConfig()
 	ctx := context.Background()
@@ -446,7 +446,7 @@ func (w *Workspace) DiscardArtifact(ref, reason string, by Actor) (ArtifactDone,
 				return "", "", "", false, errNotThere // taken away already
 			}
 			if out, err := git.Combined(capsule, "rm", "-r", "-q", "--", h.Folder); err != nil {
-				return "", "", "", false, fmt.Errorf("taking %s away: %v: %s", h.Folder, err, clipString(out, 300))
+				return "", "", "", false, fmt.Errorf("could not remove %s: %v: %s", h.Folder, err, clipString(out, 300))
 			}
 			return h.Folder, homeFields(cfg, e, h.Folder, h.Version).Subject(cfg.Messages.Discard), artifact.DiscardBody(d.By, d.Reason, &e.Artifact), false, nil
 		})
@@ -460,7 +460,7 @@ func (w *Workspace) DiscardArtifact(ref, reason string, by Actor) (ArtifactDone,
 	}
 	out.Entry, err = store.Discard(ctx, id, d)
 	if err != nil && out.Landed != "" {
-		err = fmt.Errorf("its folder was taken out of %s (%s), but it couldn't be discarded on this machine: %w", e.Home.Repo, out.Landed, err)
+		err = fmt.Errorf("folder removed from %s (%s), but could not discard on this machine: %w", e.Home.Repo, out.Landed, err)
 	}
 	return out, wrapArtifact(err)
 }
@@ -481,7 +481,7 @@ func (w *Workspace) RestoreArtifact(ref string, by Actor) (ArtifactDone, error) 
 		return ArtifactDone{}, err
 	}
 	if v != 0 {
-		return ArtifactDone{}, invalid("an artifact is restored whole, with its versions: restore %s", id)
+		return ArtifactDone{}, invalid("artifacts are restored with all versions: restore %s", id)
 	}
 	store, cfg := w.Artifacts(), w.ArtifactsConfig()
 	ctx := context.Background()
@@ -510,7 +510,7 @@ func (w *Workspace) RestoreArtifact(ref string, by Actor) (ArtifactDone, error) 
 		return err
 	}
 	if err := back(); err != nil {
-		return out, fmt.Errorf("restored %s on this machine, but it couldn't be put back in %s: %w. Promote it again to put it there", id, h.Where(), err)
+		return out, fmt.Errorf("restored %s on this machine, but could not put back in %s: %w. Promote again to put it there", id, h.Where(), err)
 	}
 	return out, nil
 }
@@ -548,7 +548,7 @@ func (w *Workspace) discardExpired(by Actor) ([]artifact.Entry, error) {
 		}
 		d, err := store.Discard(ctx, e.ID, artifact.Discard{At: now, By: by.By(), Reason: "expired"})
 		if err != nil {
-			return out, fmt.Errorf("discarding %s: %w", e.ID, wrapArtifact(err))
+			return out, fmt.Errorf("could not discard %s: %w", e.ID, wrapArtifact(err))
 		}
 		out = append(out, d)
 	}

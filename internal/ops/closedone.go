@@ -42,7 +42,7 @@ func (w *Workspace) CloseDone(now time.Time) []string {
 				ids = append(ids, c.ID)
 			}
 		}
-		if said := w.closeCrew(m, ids, "it had reported done and finished its turn (saying anything to it resumes it)"); said != "" {
+		if said := w.closeCrew(m, ids, "reported done, turn finished (send a message to resume)"); said != "" {
 			out = append(out, m.Slug+": "+said)
 		}
 	}

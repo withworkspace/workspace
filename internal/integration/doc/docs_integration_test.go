@@ -161,7 +161,7 @@ func TestDocs_SavingOnADefaultBranchMergesWithWhatLandedSince(t *testing.T) {
 	// Someone lands a change to another part of it: both stand.
 	testutil.CommitIn(t, src, "docs/plan.md", strings.Replace(a.Text, "on Friday", "on Tuesday", 1), "docs: ship on Tuesday")
 	s, err := save(web.DocSave{Ref: ref, Base: base, Text: strings.Replace(a.Text, "per user", "per tenant", 1)})
-	if err != nil || s.Conflict != nil || !s.Merged || !strings.Contains(s.Message, "merged with what changed on main") {
+	if err != nil || s.Conflict != nil || !s.Merged || !strings.Contains(s.Message, "merged with changes on main") {
 		t.Fatalf("a merge: %+v, %v", s, err)
 	}
 	if got := testutil.GitOut(t, src, "show", "main:docs/plan.md"); got != "# Plan\n\nKey it per tenant.\n\n## Rollout\n\nShip on Tuesday.\n" {
@@ -198,7 +198,7 @@ func TestDocs_SavingWhatFailsTheCheckSavesNothing(t *testing.T) {
 
 	s, err := testutil.SaveFileDoc(w.Root)(web.DocSave{Ref: ref, Base: doc.Version([]byte(a.Text)), Text: a.Text + "\nTODO: say when.\n"})
 
-	if err == nil || !strings.Contains(err.Error(), "it wasn't saved") || !strings.Contains(err.Error(), "doesn't pass") {
+	if err == nil || !strings.Contains(err.Error(), "not saved") || !strings.Contains(err.Error(), "fails records's check") {
 		t.Fatalf("saving: %+v, %v", s, err)
 	}
 	if got := testutil.Subjects(t, w.Sources["records"], "main"); got != "docs: add the plan | initial" {
@@ -305,7 +305,7 @@ func TestDocs_AKindThatCantBeOneIsRefused(t *testing.T) {
 
 	_, err := cli.LoadOps(w.Root)
 
-	if err == nil || !strings.Contains(err.Error(), "[documents.note]") || !strings.Contains(err.Error(), "isn't one of the workspace's repos") {
+	if err == nil || !strings.Contains(err.Error(), "[documents.note]") || !strings.Contains(err.Error(), "not a workspace repo") {
 		t.Errorf("loading the workspace: %v", err)
 	}
 }

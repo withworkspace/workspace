@@ -70,10 +70,10 @@ func TestAction_Applies(t *testing.T) {
 		{"pr", map[string]string{"state": "open", "author": "me"}, true, false, ""},
 		{"pr", map[string]string{"State": "open", "Author": "brendan-ash"}, true, false, ""},
 		{"pull", map[string]string{"state": "open", "author": "me"}, true, false, ""},
-		{"pr", map[string]string{"state": "merged", "author": "me"}, false, false, `it's for those whose author is "me", not me or brendan*, state is "merged", not open`},
+		{"pr", map[string]string{"state": "merged", "author": "me"}, false, false, `only for those whose author is "me", not me or brendan*, state is "merged", not open`},
 		{"pr", map[string]string{"author": "me"}, false, false, `state is ""`},
-		{"mission", map[string]string{"state": "open"}, false, false, "it's run on a pr, not a mission"},
-		{"", nil, false, true, "it's run on a pr"},
+		{"mission", map[string]string{"state": "open"}, false, false, "runs on a pr, not a mission"},
+		{"", nil, false, true, "runs on a pr"},
 	} {
 		if got := on.Applies(c.kind, c.fields); got != c.on {
 			t.Errorf("%s %v: applies %v", c.kind, c.fields, got)
@@ -93,7 +93,7 @@ func TestAction_Input(t *testing.T) {
 	for in, want := range map[string]map[string]any{
 		"missing note":         {"how": "ping"},
 		"one of comment, ping": {"note": "x", "how": "shout"},
-		"asks for no":          {"note": "x", "how": "ping", "size": "L"},
+		"does not take":        {"note": "x", "how": "ping", "size": "L"},
 		"yes or no":            {"note": "x", "how": "ping", "loud": "maybe"},
 	} {
 		_, err := x.ReadInput(want)
@@ -111,11 +111,11 @@ func TestAction_Input(t *testing.T) {
 
 func TestAction_Refused(t *testing.T) {
 	for script, want := range map[string]string{
-		`when = action("A", status = "open")`:                    "is for those of a kind",
+		`when = action("A", status = "open")`:                    "needs a kind",
 		`when = [action("A"), action("A", on = "pr")]`:           `two actions called "A"`,
 		`when = action("A", on = "pr", input = {"x": "date"})`:   `x is "date"`,
-		`when = action(on = "pr")`:                               "says what it's called",
-		`when = action("A", on = "pr", input = {"x": ["only"]})`: "two or more words",
+		`when = action(on = "pr")`:                               "needs a title",
+		`when = action("A", on = "pr", input = {"x": ["only"]})`: "two or more choices",
 		`when = action("A", on = "pr", status = 3)`:              "status is a value, or a list",
 	} {
 		if _, err := Check("refused", []byte(script)); err == nil || !strings.Contains(err.Error(), want) {

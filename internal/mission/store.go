@@ -520,7 +520,7 @@ const maxProvisionalTitle = 80
 func (s Store) CreateBriefing(request string) (*Mission, error) {
 	request = strings.TrimSpace(request)
 	if request == "" {
-		return nil, errors.New("say what the mission is")
+		return nil, errors.New("describe the mission")
 	}
 	title, _, _ := strings.Cut(request, "\n")
 	if len(title) > maxProvisionalTitle {
@@ -589,7 +589,7 @@ func (s Store) SetTitle(slug, title string) error {
 		return errors.New("title is empty")
 	}
 	if n := utf8.RuneCountInString(title); n > MaxTitle {
-		return fmt.Errorf("title is %d characters; keep it to %d or fewer: a terse, plain-English name", n, MaxTitle)
+		return fmt.Errorf("title is %d characters: keep to %d or fewer", n, MaxTitle)
 	}
 	_, err := s.Update(slug, func(m *Mission) error {
 		m.Title = title
@@ -599,7 +599,7 @@ func (s Store) SetTitle(slug, title string) error {
 }
 
 // ErrConfirmed is confirming a mission's brief twice.
-var ErrConfirmed = errors.New("its brief is confirmed already: it's under way")
+var ErrConfirmed = errors.New("brief already confirmed: mission under way")
 
 // Confirm records the mission's brief (and plan) confirmed, by by: the
 // go-ahead. It's no longer to brief.
@@ -627,7 +627,7 @@ func (s Store) Rename(old, slug string) error {
 		return nil
 	}
 	if !validSlug(slug) || len(slug) > maxSlugLen {
-		return fmt.Errorf("%q isn't a valid slug (lowercase letters, digits and dashes, up to %d)", slug, maxSlugLen)
+		return fmt.Errorf("%q is not a valid slug (lowercase letters, digits and dashes, up to %d)", slug, maxSlugLen)
 	}
 	if _, err := s.Load(old); err != nil {
 		return err

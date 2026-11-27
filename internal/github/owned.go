@@ -50,7 +50,7 @@ func Owners() ([]Owner, error) {
 	}
 	stdOut, stdErr, err := ghExec("api", "user/orgs", "--paginate", "-q", ".[].login")
 	if err != nil {
-		return nil, fmt.Errorf("gh api user/orgs: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
+		return nil, fmt.Errorf("could not list your GitHub orgs: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	out := []Owner{{Login: me, You: true}}
 	var orgs []string
@@ -93,7 +93,7 @@ func ReposOf(owner string) ([]OwnedRepo, error) {
 			if err == nil {
 				err = perr
 			}
-			return out, fmt.Errorf("%s's repos: %s", owner, ghError(stdOut.Bytes(), stdErr.String(), err))
+			return out, fmt.Errorf("could not list %s's repos: %s", owner, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		out = append(out, got...)
 		if next == "" {
@@ -131,13 +131,13 @@ func parseOwned(data []byte, owner string) ([]OwnedRepo, string, error) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(data, &res); err != nil {
-		return nil, "", fmt.Errorf("reading repos: %w", err)
+		return nil, "", fmt.Errorf("could not read repos: %w", err)
 	}
 	if res.Data == nil {
-		return nil, "", fmt.Errorf("reading repos: no data")
+		return nil, "", fmt.Errorf("could not read repos: no data")
 	}
 	if res.Data.RepositoryOwner == nil {
-		return nil, "", fmt.Errorf("there's no %s on GitHub", owner)
+		return nil, "", fmt.Errorf("no %s on GitHub", owner)
 	}
 	repos := res.Data.RepositoryOwner.Repositories
 	var out []OwnedRepo

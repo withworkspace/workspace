@@ -33,7 +33,7 @@ func (s *Server) around(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	name := q.Get("ref")
 	if name == "" {
-		jsonError(w, http.StatusBadRequest, "ref is needed: the thing to say what's around")
+		jsonError(w, http.StatusBadRequest, "missing ref")
 		return
 	}
 	keys, _, _ := ops.KeysOf(q.Get("scope"), name)

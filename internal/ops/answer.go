@@ -97,11 +97,11 @@ type reply struct {
 // responders are how each kind of conversation is answered, by what it is.
 var responders = func() map[string]responder {
 	thread := responder{
-		role: harness.Roles.ForConversation, none: "No agent can answer threads here: ", turns: 3,
+		role: harness.Roles.ForConversation, none: "No agent available for threads: ", turns: 3,
 		ready: threadReady, first: threadFirst, next: threadNext, read: threadRead,
 	}
 	talk := responder{
-		role: harness.Roles.ForConversation, none: "No agent can answer here: ",
+		role: harness.Roles.ForConversation, none: "No agent available: ",
 		turns: 3 + conversation.BlockRoom, // an outline is a turn for its plan and one for each block
 		first: func(a *answering) string { return prompt.TalkFirst(a.here, a.c) },
 		next:  func(a *answering) string { return prompt.TalkNext(a.here, a.c) },
@@ -271,7 +271,7 @@ func (a *answering) converse(r responder, h harness.Converser) (harness.Report, 
 
 // couldnt is the turn ws says when the agent couldn't answer.
 func (a *answering) couldnt(err error, rep harness.Report) conversation.Turn {
-	return conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "The agent couldn't answer: " + err.Error(), Calls: turnCalls(rep.Calls), Block: a.block}
+	return conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "Agent could not answer: " + err.Error(), Calls: turnCalls(rep.Calls), Block: a.block}
 }
 
 // Threads.
@@ -303,7 +303,7 @@ func threadNext(a *answering) string {
 func threadRead(a *answering, rep harness.Report, err error) reply {
 	t := conversation.Turn{By: conversation.Agent, At: a.w.now(), Body: rep.Output}
 	if err != nil {
-		t = conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "The agent couldn't answer: " + err.Error()}
+		t = conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "Agent could not answer: " + err.Error()}
 	}
 	if text, derr := a.w.DocNow(a.here.Mission, a.c.Anchor.Doc); derr == nil {
 		t.Version, _ = a.store.KeepVersion(text)
@@ -353,7 +353,7 @@ func prReady(a *answering) (bool, error) {
 		}
 	}
 	if err := a.w.dockForAnswer(a.c); err != nil {
-		_, serr := a.store.Say(a.c.ID, conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "Couldn't check " + a.c.Anchor.PR + " out here for the agent to read: " + err.Error()})
+		_, serr := a.store.Say(a.c.ID, conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "Could not check out " + a.c.Anchor.PR + " here: " + err.Error()})
 		return true, serr
 	}
 	return false, nil
@@ -414,7 +414,7 @@ func cellSkip(a *answering) (bool, error) {
 	if strings.Contains(string(text), "ws:cell "+conversation.BlockID(c.ID, a.block)+" ") {
 		return false, nil
 	}
-	_, err := a.store.Say(c.ID, conversation.Turn{By: conversation.Agent, At: a.w.now(), Body: "Left out: it was taken out of the page.", Block: a.block, Skipped: true, Answer: true})
+	_, err := a.store.Say(c.ID, conversation.Turn{By: conversation.Agent, At: a.w.now(), Body: "Skipped: removed from page.", Block: a.block, Skipped: true, Answer: true})
 	return true, err
 }
 
@@ -476,9 +476,9 @@ func cellRead(a *answering, rep harness.Report, err error) reply {
 		sources = cellSources(root, of, rep.Calls)
 		if body == "" && err == nil {
 			// Nothing for the page: what it had to say is why.
-			err = errors.New("it wrote nothing for the cell")
+			err = errors.New("nothing written for the cell")
 			if notes != "" {
-				err = errors.New("it wrote nothing for the cell. It said: " + notes)
+				err = errors.New("nothing written for the cell. Agent said: " + notes)
 			}
 		}
 	}
@@ -557,7 +557,7 @@ var readTool = regexp.MustCompile(`(?i)^(read|view|read_file|readfile)`)
 func passReady(a *answering) (bool, error) {
 	ps, ok := a.w.passOf(a.c)
 	if !ok {
-		_, err := a.store.Say(a.c.ID, conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "There's no pass named " + a.c.Goal + " here any more."})
+		_, err := a.store.Say(a.c.ID, conversation.Turn{By: conversation.WS, At: a.w.now(), Body: "Pass " + a.c.Goal + " no longer exists."})
 		return true, err
 	}
 	a.pass = ps
@@ -593,7 +593,7 @@ func passRead(a *answering, rep harness.Report, err error) reply {
 	body, findings := conversation.ParseFindings(rep.Output)
 	findings = prompt.PassKinds(a.pass.Def, findings)
 	if body == "" {
-		body = "Nothing to say of the page as a whole."
+		body = "No comments on the page as a whole."
 		if len(findings) == 0 && err == nil {
 			body = rep.Output
 		}
@@ -797,7 +797,7 @@ func RunHeadless(life context.Context, root, who string, f spend.For, env []stri
 	case rep.Failed != "":
 		return rep, errors.New(rep.Failed)
 	case strings.TrimSpace(rep.Output) == "":
-		return rep, errors.New("it said nothing")
+		return rep, errors.New("no reply")
 	}
 	rep.Output = strings.TrimSpace(rep.Output)
 	return rep, nil

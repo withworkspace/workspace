@@ -202,7 +202,7 @@ func TestBundle_ApprovingPassesTheReview(t *testing.T) {
 	w, _, _ := reviewedBundle(t)
 	m, _ := w.Missions.Load("cache")
 	task, ok := m.StepTask(2)
-	if !ok || !strings.Contains(task.Text, "Look at b1, on the mission's Verify tab: approving it passes the step") || !strings.Contains(task.Text, "The work it shows is in frontend/one, to review beside it.") {
+	if !ok || !strings.Contains(task.Text, "Look at b1 on the Verify tab: approving it passes the step") || !strings.Contains(task.Text, "Work is in frontend/one, to review alongside.") {
 		t.Fatalf("the review task: %+v", task)
 	}
 	states, _ := m.StageProgress("")
@@ -262,11 +262,11 @@ func TestBundle_ApprovingPassesTheReview(t *testing.T) {
 func TestBundle_SentBack(t *testing.T) {
 	w, dir, host := reviewedBundle(t)
 	_, err := w.SendBackBundle("cache", "b1", nil, AsYou)
-	if err == nil || !strings.Contains(err.Error(), "say what's not right") {
+	if err == nil || !strings.Contains(err.Error(), "say what is wrong") {
 		t.Errorf("sent back with nothing said: %v", err)
 	}
 	_, err = w.SendBackBundle("cache", "b1", []mission.BundleNote{{Check: 7, Text: "no"}}, AsYou)
-	if err == nil || !strings.Contains(err.Error(), "b1 has no check 7: it has 1, 2") {
+	if err == nil || !strings.Contains(err.Error(), "b1 has no check 7 (checks: 1, 2)") {
 		t.Errorf("a check it hasn't: %v", err)
 	}
 	_, err = w.SendBackBundle("cache", "b1", []mission.BundleNote{{Check: 1, Text: "no"}}, AsOrchestrator)
@@ -359,7 +359,7 @@ func checkedBundle(t *testing.T) (*Workspace, mission.Task) {
 // Review step looks at does.
 func TestBundle_ShowsChecksThatAreYours(t *testing.T) {
 	w, task := checkedBundle(t)
-	if !strings.Contains(task.Text, "Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.") {
+	if !strings.Contains(task.Text, "Review b1 on the Verify tab: approving it passes the step, saying what's wrong sends back to c1. Or pass as is, send back to c1 with what's unmet, or say what to do.") {
 		t.Errorf("the task doesn't name the bundle: %q", task.Text)
 	}
 	m, _ := w.Missions.Load("cache")
@@ -498,7 +498,7 @@ func approvedEarly(t *testing.T, moved bool) *Workspace {
 func TestBundle_ApprovedBeforeItsChecksAreYours(t *testing.T) {
 	w := approvedEarly(t, false)
 	st := stepRecord(t, w, 1)
-	if !st.Accepted() || st.Record.AcceptedBy != "you" || !strings.Contains(st.Record.Why, "you approved b1, its checks as they were (round 1: ") {
+	if !st.Accepted() || st.Record.AcceptedBy != "you" || !strings.Contains(st.Record.Why, "you approved b1 (round 1: ") {
 		t.Errorf("step 1 = %+v", st.Record)
 	}
 	m, _ := w.Missions.Load("cache")
@@ -512,7 +512,7 @@ func TestBundle_ApprovedBeforeItsChecksAreYours(t *testing.T) {
 	}
 	m, _ = w.Missions.Load("cache")
 	task, open := m.StepTask(3)
-	if !open || !strings.Contains(task.Text, "You've approved b1 already, on the mission's Verify tab, so there's nothing left to approve: go on to pass the step") || strings.Contains(task.Text, "passes the step") {
+	if !open || !strings.Contains(task.Text, "You approved b1 on the Verify tab: go on to pass the step") || strings.Contains(task.Text, "passes the step") {
 		t.Errorf("step 3's task = %+v", task)
 	}
 	for _, h := range mission.Resolve(mission.Snapshot{M: m, State: mission.Active, OrchestratorOff: true}) {
@@ -544,7 +544,7 @@ func TestBundle_ApprovedBeforeItsCapsuleMovedOn(t *testing.T) {
 			flag = &h
 		}
 	}
-	if flag == nil || flag.Action.Label != "pass it" || !strings.HasSuffix(flag.Text, "You've approved b1 already, so there's nothing left to approve: pass it to go on.") {
+	if flag == nil || flag.Action.Label != "pass it" || !strings.HasSuffix(flag.Text, "Already approved b1: pass it to go on.") {
 		t.Fatalf("the flag = %+v", flag)
 	}
 	if looks := flag.Action.Look; len(looks) != 1 || looks[0].Bundle != "b1" || !looks[0].Approved {

@@ -320,11 +320,11 @@ func classify(gp github.PR, me string, asked bool) (state, words, how string, mi
 	case mine != nil && mine.State == "approved":
 		words = "you approved"
 		if mine.Behind {
-			words = "you approved, and they've pushed since"
+			words = "you approved, new commits since"
 		}
 		return Approved, words, how, mine
 	case mine != nil && mine.State == "dismissed":
-		return BackWithYou, "your review was dismissed: they've pushed since", how, mine
+		return BackWithYou, "your review was dismissed: new commits since", how, mine
 	case mine != nil && (mine.State == "changes_requested" || mine.State == "commented"):
 		said := "you asked for changes"
 		if mine.State == "commented" {
@@ -332,9 +332,9 @@ func classify(gp github.PR, me string, asked bool) (state, words, how string, mi
 		}
 		switch {
 		case mine.Behind:
-			return BackWithYou, said + ", and they've pushed since", how, mine
+			return BackWithYou, said + ", new commits since", how, mine
 		case since(my.SubmittedAt, gp.UpdatedAt) > activityGrace:
-			return BackWithYou, said + ", and they've replied since", how, mine
+			return BackWithYou, said + ", new replies since", how, mine
 		}
 		return WaitingOnThem, said, how, mine
 	case gp.Bot:
@@ -349,21 +349,21 @@ func classifyMine(gp github.PR) (state, words string) {
 	case gp.ReviewDecision == "CHANGES_REQUESTED":
 		return Returned, "changes requested"
 	case gp.StatusRollup == "failure":
-		return Returned, "its checks are failing"
+		return Returned, "checks failing"
 	case gp.Mergeable == "CONFLICTING":
 		// Approved and green or not, it can't be merged as it is.
-		return Returned, "it conflicts with " + firstNonEmpty(gp.BaseRefName, "its base")
+		return Returned, "conflicts with " + firstNonEmpty(gp.BaseRefName, "base")
 	case gp.IsDraft:
 		return WaitingReview, "draft"
 	case gp.StatusRollup == "pending":
-		return WaitingReview, "its checks are running"
+		return WaitingReview, "checks running"
 	case gp.MergeState == "BLOCKED" && gp.ReviewDecision != "APPROVED":
 		// Its base branch's rules want a review (GitHub's review decision
 		// can be empty while a ruleset does). That you could merge it
 		// anyway, as an admin, doesn't make it ready.
 		return WaitingReview, "waiting for review"
 	case gp.MergeState == "BLOCKED":
-		return WaitingReview, "approved, but its base branch's rules still hold it"
+		return WaitingReview, "approved, but blocked by branch rules"
 	case gp.ReviewDecision == "APPROVED":
 		return ifMerges(gp, "approved")
 	case gp.ReviewDecision == "" && len(gp.Requested) == 0:
@@ -379,7 +379,7 @@ func classifyMine(gp github.PR) (state, words string) {
 // shouldn't show for a moment and go.
 func ifMerges(gp github.PR, words string) (state, why string) {
 	if gp.Mergeable == "UNKNOWN" {
-		return WaitingReview, "GitHub is working out whether it merges cleanly"
+		return WaitingReview, "checking for merge conflicts"
 	}
 	return Ready, words
 }

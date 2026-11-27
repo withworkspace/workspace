@@ -45,7 +45,7 @@ type External struct {
 }
 
 // ErrNoName is the answer for a place there's no name at.
-var ErrNoName = errors.New("there's no name there")
+var ErrNoName = errors.New("no name here")
 
 // Definition is where the name at a line and column (UTF-16 units, as a
 // browser counts) of a file at a commit leads.

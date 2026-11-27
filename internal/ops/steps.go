@@ -33,7 +33,7 @@ func (w *Workspace) startStep(m *mission.Mission, st mission.StageState) string 
 			if seen := seenOf(m, capsule); seen != nil && seen.Draft && !seen.Merged && !seen.Closed {
 				s, err := w.MarkReady(m.Slug, capsule, AsYou)
 				if err != nil {
-					s = "couldn't mark it ready: " + err.Error()
+					s = "could not mark ready: " + err.Error()
 				}
 				said = append(said, s)
 			}
@@ -59,11 +59,11 @@ func (w *Workspace) askAtStep(m *mission.Mission, done string, st mission.StageS
 	switch st.Step.Type {
 	case mission.StepDecide:
 		verb = mission.TaskAnswer
-		text = fmt.Sprintf("%sStep %d is yours, to decide: %s", done, st.N, what)
+		text = fmt.Sprintf("%sStep %d is yours to decide: %s", done, st.N, what)
 		if st.Step.From != "" {
-			text += fmt.Sprintf(" The options: %s.", strings.TrimSuffix(st.Step.From, "."))
+			text += fmt.Sprintf(" Options: %s.", strings.TrimSuffix(st.Step.From, "."))
 		}
-		text += " Your answer is recorded as a decision, and passes the step."
+		text += " Your answer passes the step."
 		options = []string{mission.CheckInNotYet}
 	case mission.StepLand:
 		verb = mission.TaskLand
@@ -71,20 +71,20 @@ func (w *Workspace) askAtStep(m *mission.Mission, done string, st mission.StageS
 		if !ok {
 			capsule = "the mission's capsule"
 		}
-		text = fmt.Sprintf("%sStep %d is yours: land %s (ws land, or Land on its capsule). ws passes the step once it's landed; go on if it's landed some other way.", done, st.N, capsule)
+		text = fmt.Sprintf("%sStep %d is yours: land %s (Land on the capsule, or ws land). Passes once landed; go on if landed some other way.", done, st.N, capsule)
 	default:
-		text = fmt.Sprintf("%sStep %d is yours, to review: %s%s %s", done, st.N, what, w.reviewHere(m, st.N), w.reviewWhat(m, st.N))
+		text = fmt.Sprintf("%sStep %d is yours to review: %s%s %s", done, st.N, what, w.reviewHere(m, st.N), w.reviewWhat(m, st.N))
 	}
 	if _, err := w.Missions.AskAtStep(m.Slug, verb, text, st.N, options...); err != nil {
-		return "couldn't ask the user: " + err.Error()
+		return "could not ask the user: " + err.Error()
 	}
 	switch st.Step.Type {
 	case mission.StepDecide:
-		return fmt.Sprintf("step %d is the user's, to decide: they're asked, and their answer passes it", st.N)
+		return fmt.Sprintf("step %d waits for the user's decision", st.N)
 	case mission.StepLand:
-		return fmt.Sprintf("step %d is the user's, to land: they're asked, and its landing passes it", st.N)
+		return fmt.Sprintf("step %d waits for the user to land", st.N)
 	}
-	return fmt.Sprintf("step %d is the user's, to review: they're asked, and their review approving what it looks at, or going on, passes it", st.N)
+	return fmt.Sprintf("step %d waits for the user's review", st.N)
 }
 
 // reviewWhat says what Review step n looks at, and how it's passed: your
@@ -112,19 +112,19 @@ func (w *Workspace) reviewWhat(m *mission.Mission, n int) string {
 	}
 	if len(bundles) > 0 {
 		// A bundle is what's to approve: the work it shows is beside it.
-		text := fmt.Sprintf("Look at %s, on the mission's Verify tab: approving %s passes the step, and saying what's not right sends it back to the crew who made it. Or go on.", strings.Join(bundles, ", "), itOrThem(len(bundles)))
+		text := fmt.Sprintf("Look at %s on the Verify tab: approving %s passes the step; what's not right goes back to the crew. Or go on.", strings.Join(bundles, ", "), itOrThem(len(bundles)))
 		if len(approved) > 0 {
-			text += fmt.Sprintf(" You've approved %s already.", strings.Join(approved, ", "))
+			text += fmt.Sprintf(" %s already approved.", strings.Join(approved, ", "))
 		}
 		if len(caps) > 0 {
-			text += " The work it shows is in " + strings.Join(caps, ", ") + ", to review beside it."
+			text += " Work is in " + strings.Join(caps, ", ") + ", to review alongside."
 		}
 		return text
 	}
 	if len(approved) > 0 {
-		text := fmt.Sprintf("You've approved %s already, on the mission's Verify tab, so there's nothing left to approve: go on to pass the step, or say what's to change, and it goes back to the crew who made it.", strings.Join(approved, ", "))
+		text := fmt.Sprintf("You approved %s on the Verify tab: go on to pass the step, or say what to change and it goes back to the crew.", strings.Join(approved, ", "))
 		if len(caps) > 0 {
-			text += " The work it shows is in " + strings.Join(caps, ", ") + ", to review beside it."
+			text += " Work is in " + strings.Join(caps, ", ") + ", to review alongside."
 		}
 		return text
 	}
@@ -133,7 +133,7 @@ func (w *Workspace) reviewWhat(m *mission.Mission, n int) string {
 		if len(reads) > 0 {
 			found = strings.Join(reads, ", ")
 		}
-		return "Read what the crew found (" + found + "), and go on when you're satisfied; say what's to change, and it goes back to them."
+		return "Read what the crew found (" + found + "), then go on, or say what to change and it goes back to them."
 	}
 	var what []string
 	if len(caps) > 0 {
@@ -146,9 +146,9 @@ func (w *Workspace) reviewWhat(m *mission.Mission, n int) string {
 	if len(caps)+len(docs) > 1 {
 		all = " all"
 	}
-	text := fmt.Sprintf("%s: approving it%s passes the step, and asking for changes sends it back to the crew who made it. Or go on.", upperFirst(strings.Join(what, ", and ")), all)
+	text := fmt.Sprintf("%s: approving%s passes the step; asking for changes sends it back to the crew. Or go on.", upperFirst(strings.Join(what, ", and ")), all)
 	if len(reads) > 0 {
-		text += " The crew's notes on it, to read: " + strings.Join(reads, ", ") + "."
+		text += " Crew notes: " + strings.Join(reads, ", ") + "."
 	}
 	return text
 }
@@ -170,7 +170,7 @@ func (w *Workspace) openPRStep(m *mission.Mission, st mission.StageState, done s
 			}
 			capsule, ok := w.capsuleIn(m, st, in.Repo, false)
 			if !ok {
-				asks = append(asks, fmt.Sprintf("the mission has no capsule in %s to open one from: lift one, or start the step without it", in.Repo))
+				asks = append(asks, fmt.Sprintf("no capsule in %s: lift one, or start the step without it", in.Repo))
 				continue
 			}
 			logFailed(w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false))
@@ -182,7 +182,7 @@ func (w *Workspace) openPRStep(m *mission.Mission, st mission.StageState, done s
 			}
 		}
 		if len(asks) > 0 {
-			said = append(said, w.askAboutPR(m, st, fmt.Sprintf("%sStep %d opens a pull request in each of %s, and some it couldn't: %s. Put it right and go on, and ws tries again.", done, st.N, strings.Join(instanceRepos(st), ", "), strings.Join(asks, "; "))))
+			said = append(said, w.askAboutPR(m, st, fmt.Sprintf("%sStep %d opens a pull request in each of %s. Could not open some: %s. Fix and go on to try again.", done, st.N, strings.Join(instanceRepos(st), ", "), strings.Join(asks, "; "))))
 		}
 		return strings.Join(said, "; ")
 	}
@@ -192,7 +192,7 @@ func (w *Workspace) openPRStep(m *mission.Mission, st mission.StageState, done s
 		if st.Step.Capsule != "" {
 			where = "`" + st.Step.Capsule + "`"
 		}
-		return w.askAboutPR(m, st, fmt.Sprintf("%sStep %d opens a pull request from %s, and the mission has no capsule there to open it from: lift one, or say which (edit the plan), then go on.", done, st.N, where))
+		return w.askAboutPR(m, st, fmt.Sprintf("%sStep %d opens a pull request from %s, but the mission has no capsule there: lift one, or name one in the plan, then go on.", done, st.N, where))
 	}
 	said, ask := w.openPRIn(m, st, capsule, false)
 	if ask != "" {
@@ -210,19 +210,19 @@ func (w *Workspace) openPRIn(m *mission.Mission, st mission.StageState, capsule 
 	var r *Refused
 	switch {
 	case err == nil && opened.Writing:
-		return fmt.Sprintf("step %d is ws's: the PR writer is writing %s's pull request, which ws opens once it's written, and passes the step once it merges", st.N, capsule), ""
+		return fmt.Sprintf("step %d: writing %s's pull request; the step passes once it merges", st.N, capsule), ""
 	case errors.As(err, &r) && r.Code == "pr-writing":
-		return fmt.Sprintf("step %d is ws's: the PR writer is writing %s's pull request already, and ws opens it once it's written", st.N, capsule), ""
+		return fmt.Sprintf("step %d: already writing %s's pull request", st.N, capsule), ""
 	case err == nil:
-		return fmt.Sprintf("step %d is ws's: it opened %s#%d from %s, and passes the step once it merges", st.N, opened.Repo, opened.PR.Number, capsule), ""
+		return fmt.Sprintf("step %d: opened %s#%d from %s; the step passes once it merges", st.N, opened.Repo, opened.PR.Number, capsule), ""
 	case errors.As(err, &r) && r.Code == "pr-open":
-		return fmt.Sprintf("step %d is ws's: %s's pull request is open already, and ws passes the step once it merges", st.N, capsule), ""
+		return fmt.Sprintf("step %d: %s's pull request already open; the step passes once it merges", st.N, capsule), ""
 	case errors.As(err, &r) && r.Code == "guarantee":
-		return "", fmt.Sprintf("opens a pull request from %s, and ws holds %s: review it, approving it as it is, and ws opens it", capsule, GuaranteeReviewBeforePR.Key)
+		return "", fmt.Sprintf("opens a pull request from %s once a review approves it (%s)", capsule, GuaranteeReviewBeforePR.Key)
 	case errors.As(err, &r) && r.Code == "conflicts":
 		return w.mergeFirst(m, st, capsule)
 	}
-	return "", fmt.Sprintf("is ws's, to open a pull request from %s, and it couldn't: %s. Put it right and go on, and ws tries again, or open it yourself (Open pull request on the capsule)", capsule, strings.TrimSuffix(oneLine(err.Error()), "."))
+	return "", fmt.Sprintf("could not open a pull request from %s: %s. Fix and go on to try again, or use Open pull request on the capsule", capsule, strings.TrimSuffix(oneLine(err.Error()), "."))
 }
 
 // mergeFirst is ws at an Open Pull Request step whose capsule doesn't
@@ -235,25 +235,25 @@ func (w *Workspace) mergeFirst(m *mission.Mission, st mission.StageState, capsul
 	repo, name, _ := strings.Cut(capsule, "/")
 	base := w.WS().DefaultBranch
 	files, _ := workspace.GitMergeConflicts(filepath.Join(w.WS().RepoDir(repo), name), "origin/"+base)
-	why := "it conflicts with " + base
+	why := "conflicts with " + base
 	if len(files) > 0 {
 		why += " in " + strings.Join(files, ", ")
 	}
 	crewID := lastCrewIn(m, capsule)
 	n, _ := w.Missions.CountRound(m.Slug, st.N, repo)
 	if crewID == "" || n > w.Config().MaxRounds() {
-		return "", fmt.Sprintf("opens a pull request from %s, which doesn't merge cleanly (%s): merge origin/%s into it, then go on, and ws opens it", capsule, why, base)
+		return "", fmt.Sprintf("opens a pull request from %s, which does not merge cleanly (%s): merge origin/%s into the capsule, then go on", capsule, why, base)
 	}
 	text := fmt.Sprintf("Step %d opens %s's pull request, and ws hasn't opened it: %s. Merge origin/%s into your branch (don't rebase, don't force-push), "+
 		"resolve the conflicts so what both sides meant still works, run the tests, commit, and report done with a handoff (ws mission done): ws then opens the pull request.",
 		st.N, capsule, why, base)
 	s, err := w.carryOn(m, st, crewID, text, AsWS)
 	if err != nil {
-		return "", fmt.Sprintf("opens a pull request from %s, which doesn't merge cleanly (%s), and ws couldn't send it back to %s (%v): merge origin/%s into it, then go on", capsule, why, crewID, err, base)
+		return "", fmt.Sprintf("opens a pull request from %s, which does not merge cleanly (%s), and could not send back to %s (%v): merge origin/%s into the capsule, then go on", capsule, why, crewID, err, base)
 	}
 	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Repo: repo, Capsule: name,
-		Text: fmt.Sprintf("didn't open %s's pull request at step %d: %s; sent it back to %s to merge origin/%s in first (round %d)", capsule, st.N, why, crewID, base, n)})
-	return fmt.Sprintf("step %d is ws's: %s doesn't merge cleanly (%s), so its pull request waits: %s", st.N, capsule, why, s), ""
+		Text: fmt.Sprintf("did not open %s's pull request at step %d: %s; sent back to %s to merge origin/%s first (round %d)", capsule, st.N, why, crewID, base, n)})
+	return fmt.Sprintf("step %d: %s does not merge cleanly (%s), pull request waits: %s", st.N, capsule, why, s), ""
 }
 
 // lastCrewIn is the crew who last worked in a capsule (not briefing or
@@ -270,9 +270,9 @@ func lastCrewIn(m *mission.Mission, capsule string) string {
 // askAboutPR asks you at an Open Pull Request step ws couldn't open yet.
 func (w *Workspace) askAboutPR(m *mission.Mission, st mission.StageState, text string) string {
 	if _, err := w.Missions.AskAtStep(m.Slug, mission.TaskApprove, text, st.N); err != nil {
-		return "couldn't ask the user: " + err.Error()
+		return "could not ask the user: " + err.Error()
 	}
-	return fmt.Sprintf("step %d is ws's, to open a pull request, and it waits for the user first", st.N)
+	return fmt.Sprintf("step %d waits for the user before opening a pull request", st.N)
 }
 
 // prDraft is ws's own words for a pull request, where the PR writer
@@ -374,7 +374,7 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	began := w.stepBegan(m, cur.N)
 	if _, ok := cur.Instance(capsule); ok {
 		// One of its runs: the step passes once every one has merged.
-		said := w.instanceDone(slug, cur, capsule, "ws", "its pull requests merged")
+		said := w.instanceDone(slug, cur, capsule, "ws", "pull requests merged")
 		if !strings.HasPrefix(said, "passed") {
 			return said != ""
 		}
@@ -385,7 +385,7 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	// so is what the orchestrator asked at the step (whether to merge it,
 	// what to do about a check).
 	logFailed(w.Missions.Ask(slug, "", "ws"))
-	w.settleAsked(m, cur.N, began, "its pull request merged")
+	w.settleAsked(m, cur.N, began, "pull request merged")
 	return true
 }
 
@@ -398,7 +398,7 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 func (w *Workspace) settleAsked(m *mission.Mission, n int, began time.Time, how string) {
 	for _, t := range m.Tasks {
 		if t.Question() && t.By == AsOrchestrator.By() && !t.At.Before(began) {
-			w.Missions.CloseTask(m.Slug, t.N, "ws", fmt.Sprintf("step %d passed, %s: what the orchestrator asked at it is settled", n, how)) //nolint:errcheck // answered meanwhile, it's closed already
+			w.Missions.CloseTask(m.Slug, t.N, "ws", fmt.Sprintf("step %d passed, %s: orchestrator's question settled", n, how)) //nolint:errcheck // answered meanwhile, it's closed already
 		}
 	}
 }
@@ -442,7 +442,7 @@ func (w *Workspace) passOnLand(slug, repo, name string) {
 func (w *Workspace) passStep(slug string, n int, by, why string, types ...string) string {
 	said, err := w.tryPassStep(slug, n, by, why, types...)
 	if err != nil {
-		return fmt.Sprintf("couldn't pass step %d: %v", n, err)
+		return fmt.Sprintf("could not pass step %d: %v", n, err)
 	}
 	return said
 }

@@ -149,7 +149,7 @@ func (w *Workspace) pluginMission(slug string) (protocol.MissionDetail, error) {
 	}
 	d, err := w.Mission(slug)
 	if errors.Is(err, ErrNotFound) {
-		return protocol.MissionDetail{}, plugin.NotFound("there's no mission " + slug)
+		return protocol.MissionDetail{}, plugin.NotFound("no mission " + slug)
 	}
 	if err != nil {
 		return protocol.MissionDetail{}, err

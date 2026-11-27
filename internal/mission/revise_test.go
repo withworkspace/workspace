@@ -79,7 +79,7 @@ func TestRevise_ThePlannersStep(t *testing.T) {
 	if r.Problem() != "" || len(r.Yours) != 0 || r.Fixed != 3 {
 		t.Fatalf("held %q, yours %q, fixed %d", r.Held, r.Yours, r.Fixed)
 	}
-	want := "step 4 is step 5 now (Review the fix); step 5 is step 6 now (Open a pull request); step 4 added (Fix it, with the test passing, crew, in `api/fix`)"
+	want := "step 4 moved to step 5 (Review the fix); step 5 moved to step 6 (Open a pull request); step 4 added (Fix it, with the test passing, crew, in `api/fix`)"
 	if r.Summary() != want {
 		t.Errorf("summary = %q", r.Summary())
 	}
@@ -99,7 +99,7 @@ func TestRevise_Yours(t *testing.T) {
 	if len(r.Yours) != 1 || r.Yours[0] != "removes the checkpoint at step 4 (Review the fix)" {
 		t.Errorf("removed: %q", r.Yours)
 	}
-	if r.Why() != "It removes the checkpoint at step 4 (Review the fix), which is the user's to confirm." {
+	if r.Why() != "It removes the checkpoint at step 4 (Review the fix), so needs confirming." {
 		t.Errorf("why = %q", r.Why())
 	}
 
@@ -130,7 +130,7 @@ func TestRevise_StepsBehind(t *testing.T) {
 	was := mustPlan(t, fixPlan)
 	reworded := mustPlan(t, strings.Replace(fixPlan, "Reproduce it as a failing test.", "Reproduce it.", 1))
 	r := Revise(was, reworded, progress(was, 1, false))
-	if r.Problem() != "a revision changes only what's ahead, and the steps behind the mission stay as they were: step 1 (Reproduce it as a failing test) is passed, and it isn't as it was" {
+	if r.Problem() != "only steps ahead can change: step 1 (Reproduce it as a failing test) is passed and was changed" {
 		t.Errorf("reworded a passed step: %q", r.Problem())
 	}
 	// Not begun, the step the mission's at may change.
@@ -138,11 +138,11 @@ func TestRevise_StepsBehind(t *testing.T) {
 		t.Errorf("step 1 not begun: %q", r.Problem())
 	}
 	// Begun, it may not.
-	if r := Revise(was, reworded, progress(was, 0, true)); !strings.Contains(r.Problem(), "step 1 (Reproduce it as a failing test) is the one the mission is at, and it isn't as it was") {
+	if r := Revise(was, reworded, progress(was, 0, true)); !strings.Contains(r.Problem(), "step 1 (Reproduce it as a failing test) is current and was changed") {
 		t.Errorf("step 1 begun: %q", r.Problem())
 	}
 	short := mustPlan(t, "## Z\n- Merged.\n## Stops early\n- None.\n## Steps\n1. Reproduce it as a failing test.\n   - who: crew, in `api/fix`\n   - makes: the failing test, and the cause\n")
-	if r := Revise(was, short, progress(was, 2, false)); !strings.Contains(r.Problem(), "step 2 (Is this the cause?) is passed, and it's gone") {
+	if r := Revise(was, short, progress(was, 2, false)); !strings.Contains(r.Problem(), "step 2 (Is this the cause?) is passed and was removed") {
 		t.Errorf("dropped a passed step: %q", r.Problem())
 	}
 	// Who's on a passed step is part of it.
@@ -177,7 +177,7 @@ func TestRevise_ACommandAddedIsYours(t *testing.T) {
 	}
 	more := mustPlan(t, head+"2. Plan\n3. Work: fix it.\n   - check: `rm -rf build && make` passes\n")
 	r := Revise(was, more, progress(was, 1, false))
-	if len(r.Yours) != 1 || !strings.Contains(r.Yours[0], "adds a command ws runs at step 3 (`rm -rf build && make`)") {
+	if len(r.Yours) != 1 || !strings.Contains(r.Yours[0], "adds a check command at step 3 (`rm -rf build && make`)") {
 		t.Errorf("a new command: %v", r.Yours)
 	}
 	// A step's checks are part of it: one behind can't have them changed.

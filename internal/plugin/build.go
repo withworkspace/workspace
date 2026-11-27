@@ -71,7 +71,7 @@ func BuildIfMissing(dir string, out io.Writer) error {
 		return nil
 	}
 	if len(m.Build) == 0 {
-		return fmt.Errorf("%s isn't there, and %s doesn't say how it's built (build)", m.Command[0], ManifestName)
+		return fmt.Errorf("%s not found, and %s has no build command (build)", m.Command[0], ManifestName)
 	}
 	return Build(dir, out)
 }
