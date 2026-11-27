@@ -132,6 +132,10 @@ type Action struct {
 	Target  string   // crew id, capsule (repo/name) or PR (repo#N)
 	URL     string   // a PR's page
 	Options []string // a flag's suggested answers
+	// AutoMerge is, for a PR held by what's only to be waited for (its
+	// checks, a review, its base's rules), whether it could be set to
+	// merge by itself once it's ready ("can") or is ("on").
+	AutoMerge string
 	// Look is what a Review step's review looks at: bundles to approve,
 	// capsules to review, documents to read. On a flag that's a step's
 	// checks, yours to say, it's the bundles that show them.
@@ -240,6 +244,8 @@ type PRFacts struct {
 	// since. No review and no checks, of such a one, is nothing known, not
 	// a pull request that needs neither.
 	Unasked bool
+	// AutoMerge: it's set to merge by itself once it's ready.
+	AutoMerge bool
 }
 
 // DirectFacts is a capsule of a repo with no pull requests that has commits
@@ -1137,7 +1143,35 @@ func prHeadline(pr PRFacts) Headline {
 		h.Text = pr.Ref + " is ready to merge: " + why
 		h.Action = Action{Verb: VerbMerge, Label: "merge " + pr.Ref, Target: pr.Ref, URL: pr.URL}
 	}
+	if _, wait := mergeWait(h); wait && !pr.Unasked {
+		// Only waiting holds it: it can be left to merge by itself.
+		h.Action.AutoMerge = "can"
+		if pr.AutoMerge {
+			h.Action.AutoMerge = "on"
+			h.Text = strings.TrimSuffix(h.Text, " · nothing for you to do") + " · it merges by itself once it can"
+		}
+	}
 	return h
+}
+
+// MergeHeld says what holds a pull request back from merging now, as its
+// headline would ("" when nothing does: it's yours to merge), and whether
+// it's only to be waited for (its checks running, a review, its base's
+// rules, GitHub working out whether it merges cleanly), so that it could
+// be left to merge by itself once it can. A conflict, failing checks or
+// changes asked for are work, not waiting.
+func MergeHeld(pr PRFacts) (held string, wait bool) {
+	return mergeWait(prHeadline(pr))
+}
+
+func mergeWait(h Headline) (held string, wait bool) {
+	switch h.Kind {
+	case KindMerge:
+		return "", false
+	case KindChecksRunning, KindAwaitingReview, KindWaitingOn:
+		return h.Text, true
+	}
+	return h.Text, false
 }
 
 // landHeadline is a capsule with commits to land: yours to review, and

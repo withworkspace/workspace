@@ -1541,6 +1541,14 @@
           "icon": "pr",
           "url": "u"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "api#88"
+          }
+        ],
         "by": "api#88"
       }
     ]
@@ -1559,6 +1567,40 @@
           "label": "Open api#88",
           "icon": "pr"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "api#88"
+          }
+        ],
+        "by": "api#88"
+      }
+    ]
+  },
+  {
+    "name": "PR's checks running, set to merge by itself",
+    "cards": [
+      {
+        "kind": "checks-running",
+        "court": "outside",
+        "tone": "outside",
+        "title": "api#88's checks are running · it merges by itself once it can",
+        "primary": {
+          "do": "url",
+          "label": "Open api#88",
+          "icon": "pr",
+          "url": "u"
+        },
+        "more": [
+          {
+            "do": "merge-off",
+            "label": "Don't merge by itself",
+            "target": "api#88",
+            "quiet": true
+          }
+        ],
         "by": "api#88"
       }
     ]
@@ -1632,6 +1674,14 @@
           "icon": "pr",
           "url": "u"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "api#88"
+          }
+        ],
         "by": "api#88"
       }
     ]
@@ -1650,6 +1700,14 @@
           "label": "Open api#88",
           "icon": "pr"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "api#88"
+          }
+        ],
         "by": "api#88"
       }
     ]
@@ -1664,11 +1722,74 @@
         "title": "api#88 is ready to merge",
         "detail": "It's approved and its checks pass",
         "primary": {
+          "do": "merge",
+          "label": "Merge api#88",
+          "icon": "merge",
+          "target": "api#88"
+        },
+        "more": [
+          {
+            "do": "url",
+            "label": "Open on GitHub",
+            "icon": "pr",
+            "url": "u",
+            "quiet": true
+          }
+        ],
+        "by": "api#88"
+      }
+    ]
+  },
+  {
+    "name": "PR green, no review decision, but its rules block it (an admin could bypass)",
+    "cards": [
+      {
+        "kind": "awaiting-review",
+        "court": "outside",
+        "tone": "outside",
+        "title": "api#88 is waiting for the review its base branch's rules ask for",
+        "nothing": true,
+        "primary": {
           "do": "url",
-          "label": "Open api#88 to merge it",
+          "label": "Open api#88",
           "icon": "pr",
           "url": "u"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "api#88"
+          }
+        ],
+        "by": "api#88"
+      }
+    ]
+  },
+  {
+    "name": "PR approved and green, but its rules still block it",
+    "cards": [
+      {
+        "kind": "waiting-on",
+        "court": "outside",
+        "tone": "outside",
+        "title": "api#88 is approved, but its base branch's rules still hold it",
+        "detail": "Open it to see what they want",
+        "primary": {
+          "do": "url",
+          "label": "Open api#88",
+          "icon": "pr",
+          "url": "u"
+        },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "api#88"
+          }
+        ],
         "by": "api#88"
       }
     ]
@@ -1683,10 +1804,19 @@
         "title": "api#88 is ready to merge",
         "detail": "It needs no review, and has no checks",
         "primary": {
-          "do": "url",
-          "label": "Open api#88 to merge it",
-          "icon": "pr"
+          "do": "merge",
+          "label": "Merge api#88",
+          "icon": "merge",
+          "target": "api#88"
         },
+        "more": [
+          {
+            "do": "url",
+            "label": "Open on GitHub",
+            "icon": "pr",
+            "quiet": true
+          }
+        ],
         "by": "api#88"
       }
     ]
@@ -1701,10 +1831,19 @@
         "title": "api#88 is ready to merge",
         "detail": "It's approved and its checks pass",
         "primary": {
-          "do": "url",
-          "label": "Open api#88 to merge it",
-          "icon": "pr"
+          "do": "merge",
+          "label": "Merge api#88",
+          "icon": "merge",
+          "target": "api#88"
         },
+        "more": [
+          {
+            "do": "url",
+            "label": "Open on GitHub",
+            "icon": "pr",
+            "quiet": true
+          }
+        ],
         "by": "api#88"
       },
       {
@@ -1718,6 +1857,14 @@
           "label": "Open web#3",
           "icon": "pr"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "web#3"
+          }
+        ],
         "by": "web#3"
       }
     ]
@@ -1754,6 +1901,14 @@
           "label": "Open c#2",
           "icon": "pr"
         },
+        "more": [
+          {
+            "do": "merge-ready",
+            "label": "Merge when ready",
+            "icon": "merge",
+            "target": "c#2"
+          }
+        ],
         "by": "c#2"
       }
     ]

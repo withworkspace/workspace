@@ -39,3 +39,29 @@
   top: 9px;
   right: 8px;
 }
+
+/* A row with something to do from it (merging) shows it in place of its
+   size, checks and age while it's pointed at, focused, or picked by the
+   keys (as the row's own highlight is). */
+.end {
+  display: contents;
+}
+
+.act {
+  position: absolute;
+  top: 13px;
+  right: 40px;
+  visibility: hidden;
+}
+
+.withAct:hover > .link .end,
+.withAct:focus-within > .link .end,
+:global(.keyboarding) .withAct.picked > .link .end {
+  visibility: hidden;
+}
+
+.withAct:hover > .act,
+.withAct:focus-within > .act,
+:global(.keyboarding) .withAct.picked > .act {
+  visibility: visible;
+}

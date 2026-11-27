@@ -651,6 +651,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/prs/{repo}/{number}/discussion", s.prDiscussion)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/discussion", s.prComment)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/decline", s.prDecline)
+	mux.HandleFunc("POST /api/prs/{repo}/{number}/merge", s.prMerge)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/unsent/{id}/resend", s.prUnsent)
 	mux.HandleFunc("DELETE /api/prs/{repo}/{number}/unsent/{id}", s.prUnsent)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/ask", s.prAsk)

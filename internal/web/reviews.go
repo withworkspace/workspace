@@ -416,6 +416,30 @@ func (s *Server) prDecline(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, struct{}{})
 }
 
+// prMerge merges the PR, or has it merge by itself once it can, or no
+// longer: yours, never round its base's rules, and a stack whole from
+// its top (ops.MergePR).
+func (s *Server) prMerge(w http.ResponseWriter, r *http.Request) {
+	repo, number, ok := s.prOf(w, r)
+	if !ok {
+		return
+	}
+	var req MergeRequest
+	if r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			jsonError(w, http.StatusBadRequest, "bad request: "+err.Error())
+			return
+		}
+	}
+	out, err := s.App.MergePR(repo, number, ops.MergeAsk{When: req.When, Head: req.Head}, ops.AsYou)
+	if err != nil {
+		writeError(w, err, http.StatusUnprocessableEntity)
+		return
+	}
+	s.topics[topicWorkspace].nudge()
+	writeJSON(w, http.StatusOK, MergeResult{Message: out.String(), Status: out.Status})
+}
+
 // prAsk starts an ask about the PR (and lines of it, if given), docking
 // it first so the agent can read it: the review's ask bar. It answers the
 // ask, as POST /api/asks does, to be followed and said to again as any

@@ -336,6 +336,9 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "PR's checks running", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Review: "APPROVED", Checks: "pending"}}
 		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen},
+		{name: "PR's checks running, set to merge by itself", state: Review, edit: func(s *Snapshot) {
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "pending", AutoMerge: true}}
+		}, court: CourtOutside, kind: KindChecksRunning, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "it merges by itself once it can"},
 		{name: "PR's checks failing", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Review: "REVIEW_REQUIRED", Checks: "failure"}}
 		}, court: CourtYou, kind: KindChecksFailing, group: GroupNeedsYou, verb: VerbOpen},
@@ -780,5 +783,52 @@ func TestResolve_PRsAtACrewStep(t *testing.T) {
 	s.M.Plan, s.M.Stages = nil, nil
 	if hs := Resolve(s); hs[0].Kind != KindConflict {
 		t.Errorf("no plan: the first headline %s, want conflict", hs[0].Kind)
+	}
+}
+
+// A pull request is yours to merge when its headline says so; what only
+// time passes (checks, a review, the base's rules) can be left to merge
+// by itself; what needs work can't.
+func TestMergeHeld(t *testing.T) {
+	for _, c := range []struct {
+		name       string
+		pr         PRFacts
+		held, wait bool
+	}{
+		{"approved and green", PRFacts{Ref: "api#1", Review: "APPROVED", Checks: "success"}, false, false},
+		{"needs no review", PRFacts{Ref: "api#1"}, false, false},
+		{"checks running", PRFacts{Ref: "api#1", Review: "APPROVED", Checks: "pending"}, true, true},
+		{"waiting for review", PRFacts{Ref: "api#1", Review: "REVIEW_REQUIRED", Checks: "success"}, true, true},
+		{"held by its rules (an admin could bypass)", PRFacts{Ref: "api#1", Checks: "success", Blocked: true}, true, true},
+		{"GitHub working it out", PRFacts{Ref: "api#1", Review: "APPROVED", MergeUnknown: true}, true, true},
+		{"conflicts", PRFacts{Ref: "api#1", Review: "APPROVED", Conflict: true}, true, false},
+		{"checks failing", PRFacts{Ref: "api#1", Checks: "failure"}, true, false},
+		{"changes asked for", PRFacts{Ref: "api#1", Review: "CHANGES_REQUESTED"}, true, false},
+	} {
+		held, wait := MergeHeld(c.pr)
+		if (held != "") != c.held || wait != c.wait {
+			t.Errorf("%s: held %q, wait %v; want held %v, wait %v", c.name, held, wait, c.held, c.wait)
+		}
+	}
+}
+
+// The card of a pull request ready to merge merges it, here; one only
+// waiting offers to merge by itself once it can, or to stop.
+func TestMergeCards(t *testing.T) {
+	ready := prHeadline(PRFacts{Ref: "api#1", URL: "u", Review: "APPROVED", Checks: "success"})
+	if ready.Action.Verb != VerbMerge || ready.Action.AutoMerge != "" {
+		t.Fatalf("ready: %+v", ready.Action)
+	}
+	waiting := prHeadline(PRFacts{Ref: "api#1", URL: "u", Review: "APPROVED", Checks: "pending"})
+	if waiting.Action.AutoMerge != "can" {
+		t.Fatalf("waiting: %+v", waiting.Action)
+	}
+	on := prHeadline(PRFacts{Ref: "api#1", URL: "u", Review: "APPROVED", Checks: "pending", AutoMerge: true})
+	if on.Action.AutoMerge != "on" {
+		t.Fatalf("set to merge: %+v", on.Action)
+	}
+	failing := prHeadline(PRFacts{Ref: "api#1", URL: "u", Checks: "failure"})
+	if failing.Action.AutoMerge != "" {
+		t.Fatalf("failing: %+v", failing.Action)
 	}
 }
