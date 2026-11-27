@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import { type ReactNode, useEffect, useState } from "react";
 import css from "./Copyable.module.css";
 import { cx } from "./cx";
@@ -15,16 +16,17 @@ export function Copyable({
   children,
   className,
   title,
-  keys,
+  keys: given,
   icon = "after",
 }: {
   text: string;
   children?: ReactNode;
   className?: string;
   title?: string;
-  keys?: string; // the key that copies it, said after its title and hinted at (ui/keyHint.ts)
+  keys?: KeyLike; // the key that copies it, said after its title and hinted at (ui/keyHint.ts)
   icon?: "after" | "over" | "inline";
 }) {
+  const keys = useSaid(given);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;

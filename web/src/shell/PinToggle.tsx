@@ -1,3 +1,4 @@
+import type { KeyLike } from "../keymap/keymap";
 import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
@@ -13,7 +14,7 @@ type PinToggleProps = {
   end?: boolean;
   // The key that does the same, where there's one (. on a page, ⌘. in
   // Find): said in its title and hinted at (ui/keyHint.ts).
-  keys?: string;
+  keys?: KeyLike;
   onToggle: () => void;
 };
 

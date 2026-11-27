@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import type { MouseEvent, ReactNode } from "react";
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
@@ -10,7 +11,7 @@ type FootItemProps = {
   title?: string;
   // The key that does what pressing it does, said after its title and
   // hinted at (ui/keyHint.ts); more is said after that.
-  keys?: string;
+  keys?: KeyLike;
   more?: string;
   label?: string;
   // What it opens is open (the sidebar's toggle). Leave it unsaid for a
@@ -43,7 +44,8 @@ export function FootItem({
   children,
 }: FootItemProps) {
   const cls = cx(css.item, on && css.on, shrink && css.shrink, className);
-  const keyed = keyProps(keys, title, onPress && (() => onPress()));
+  const said = useSaid(keys);
+  const keyed = keyProps(said, title, onPress && (() => onPress()));
   const says = [keyed.title, more].filter(Boolean).join(". ") || undefined;
   if (to !== undefined) {
     return (

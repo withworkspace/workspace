@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import { createContext, type ReactNode, useContext } from "react";
 import { ToggleButton, ToggleButtonGroup } from "react-aria-components";
 import { cx } from "./cx";
@@ -60,9 +61,10 @@ export function Segmented<T extends string>({
 // A title says more about it, in a tooltip. keys is the key that picks
 // it (or goes on to the next, as one key often does for all of them),
 // said and hinted as a Button's is.
-export function Segment({ value, disabled: own, title, keys, className, children }: { value: string; disabled?: boolean; title?: string; keys?: string; className?: string; children: ReactNode }) {
+export function Segment({ value, disabled: own, title, keys: given, className, children }: { value: string; disabled?: boolean; title?: string; keys?: KeyLike; className?: string; children: ReactNode }) {
   const all = useContext(Disabled);
   const disabled = own || all;
+  const keys = useSaid(given);
   const titled = titleWithKeys(title, keys);
   const segment = (
     <ToggleButton

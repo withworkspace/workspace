@@ -55,6 +55,10 @@ export interface Prefs {
   // Being told a thing has a key when you press it with the pointer
   // (ui/keyHint.ts). Off unless you turn it on.
   keyHints: boolean;
+  // The keys you've set for ws's commands (keymap/keymap.ts), by
+  // command: what's said here is what does it, in place of its own. One
+  // not said has its own.
+  keymap: Record<string, string[]>;
 }
 
 const defaults: Prefs = {
@@ -73,6 +77,7 @@ const defaults: Prefs = {
   dismissed: [],
   sendKey: "mod+enter",
   keyHints: false,
+  keymap: {},
 };
 
 // Where each was kept before they were one entry, and how it was written

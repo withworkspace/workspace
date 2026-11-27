@@ -1,37 +1,42 @@
 import { useEffect, useMemo, useRef } from "react";
 
+// KeyMap is the old way of binding keys (useKeys), going.
 export type KeyMap = Record<string, (e: KeyboardEvent) => void>;
 
-// keyName is how a key press is named in a KeyMap: "j", "J", "Enter",
-// "Escape", "mod+d" (⌘ on macOS, ctrl elsewhere), "shift+ArrowDown". Shift
-// is named only for keys whose name it doesn't change already.
-export function keyName(e: KeyboardEvent): string {
+// keyName is how a key press is named in a keymap: "j", "J", "Enter",
+// "Escape", "mod+d" (⌘ on macOS, ctrl elsewhere), "mod+shift+f",
+// "shift+ArrowDown", "alt+1", "Space". Shift is named only where it doesn't change
+// the key's name already (J is shift and j): with ⌘ or ⌥ held, a letter
+// is named small and shift said, as browsers differ on which they give
+// (and ⌥ on macOS makes a letter another one: ⌥A is å).
+export function keyName(e: Pick<KeyboardEvent, "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "key" | "code">): string {
   const mod = e.metaKey || e.ctrlKey ? "mod+" : "";
-  const shift = e.shiftKey && e.key.length > 1 ? "shift+" : "";
-  return mod + shift + e.key;
+  if (e.altKey) return `${mod}alt+${e.shiftKey ? "shift+" : ""}${ofCode(e.code) ?? lower(e.key)}`;
+  if (mod && /^[a-z]$/i.test(e.key)) return `${mod}${e.shiftKey ? "shift+" : ""}${e.key.toLowerCase()}`;
+  // The space bar is Space: a space is what's between one key and the next.
+  const k = e.key === " " ? "Space" : e.key;
+  const shift = e.shiftKey && k.length > 1 ? "shift+" : "";
+  return mod + shift + k;
 }
+
+// ofCode is the key where it is on the keyboard, for a letter or a digit
+// (KeyA is a, Digit1 is 1), whatever ⌥ makes it.
+function ofCode(code: string | undefined): string | undefined {
+  const m = code && /^(?:Key([A-Z])|Digit([0-9]))$/.exec(code);
+  return m ? (m[1] ?? m[2]).toLowerCase() : undefined;
+}
+const lower = (k: string) => (k.length === 1 ? k.toLowerCase() : k);
 
 // How long after g its letter still counts, in milliseconds: g then m
 // goes to the missions.
 export const leaderWithin = 900;
 
-// The keys of ws's own that work in a plugin's frame as they do outside
-// it. The frame is another document, so a key pressed there never reaches
-// this one: the plugin's page is told these (the frame protocol's
-// welcome), and passes each on as it's pressed. With ⌘ or Ctrl held, k
-// (Find), p (Find, for files) and j (the page's conversation), always; bare, when nothing's being typed
-// in, ? (these keys), C (a new conversation, beside) and g, and the
-// letter after g. They're ws's global keys (useGlobalKeys in App.tsx):
-// one added there that should work in a plugin's page is added here. z
-// (a peek at what the pointer's on) isn't: what the pointer's on in a
-// plugin's page is the plugin's to know.
-export const frameKeys = { chords: ["k", "p", "j"], bare: ["?", "C", "g"], leaders: ["g"], within: leaderWithin };
 
 // typing says a key's typed into a field: a text box, an editor, or what
 // says it's one with data-field (a Select's button and its list, where
 // typing a name picks one).
-function typing(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
+export function typing(target: EventTarget | null): boolean {
+  if (typeof HTMLElement === "undefined" || !(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.closest("[data-field]") !== null;
 }
 

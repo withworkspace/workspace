@@ -1,5 +1,5 @@
 import { V1 } from "@withworkspace/ui-lib/protocol";
-import { frameKeys } from "../../keys";
+import { frameKeys } from "../../keymap/frame";
 import type { Host, Session } from "../frame";
 import { apiBase, frameBase, viewBase } from "../paths";
 
@@ -75,10 +75,11 @@ export function v1(port: MessagePort, host: Host): Session {
     plugin: { name: host.plugin, at: viewBase(host.plugin), base: frameBase(host.plugin), api: apiBase(host.plugin) },
     path: host.path(),
     theme: host.theme(),
-    // Which keys are ws's is ws's to say (keys.ts, beside the shortcuts
-    // themselves): the page passes on what it's told to, so a new shortcut
-    // reaches every plugin with no new release of the package.
-    keys: frameKeys,
+    // Which keys are ws's is ws's to say (keymap/frame.ts, from the
+    // commands themselves, with your keys): the page passes on what it's
+    // told to, so a new shortcut reaches every plugin with no new release
+    // of the package.
+    keys: frameKeys(),
     // ws finds its names in the app's words, when it's asked (ws:refs).
     refs: true,
     // The UIs of its own ws has for the app to ask for (ws:ui-open).

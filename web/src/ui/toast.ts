@@ -1,3 +1,4 @@
+import { type KeyLike, saidOf } from "../keymap/keymap";
 import { UNSTABLE_ToastQueue as ToastQueue } from "react-aria-components";
 
 // What's said in passing, in the window's corner, for a few seconds: what
@@ -71,8 +72,8 @@ export const saying = (): ToastItem[] => toasts.visibleToasts.filter((t) => !toa
 
 // toast says something, for a few seconds (longer when there's something
 // to press: Undo, Open), or as long as ms says.
-export function toast(text: string, opts: { tone?: ToastItem["tone"]; action?: ToastItem["action"]; keys?: string; ms?: number } = {}) {
+export function toast(text: string, opts: { tone?: ToastItem["tone"]; action?: ToastItem["action"]; keys?: KeyLike; ms?: number } = {}) {
   const staying = toasts.visibleToasts.filter((t) => !toasts.leaving(t.key));
   for (const t of staying.slice(most - 1)) toasts.close(t.key);
-  toasts.add({ text, tone: opts.tone ?? "info", action: opts.action, keys: opts.keys }, { timeout: opts.ms ?? (opts.action ? 6000 : 3500) });
+  toasts.add({ text, tone: opts.tone ?? "info", action: opts.action, keys: saidOf(opts.keys) }, { timeout: opts.ms ?? (opts.action ? 6000 : 3500) });
 }

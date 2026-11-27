@@ -1,5 +1,6 @@
 import { useLocation } from "react-router";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { everywhereKeys } from "./keys";
 import { toast } from "../ui/toast";
 import { usePlugins, useWorkspaceIfRead } from "../workspace/store";
 import { pageRefAt, pinNameOf } from "./pinNames";
@@ -13,8 +14,8 @@ export function FocusKeys() {
   const focus = useFocus();
   const { pathname, search } = useLocation();
   const known = useSidebarKnown(workspace, plugins);
-  useKeys({
-    ".": () => {
+  useCommands(everywhereKeys, {
+    pin: () => {
       const r = focus?.supported ? pageRefAt(pathname, search, known) : undefined;
       const name = r && pinNameOf(r);
       if (!name || !focus) return;

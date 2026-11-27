@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import type { CSSProperties, ReactNode, Ref } from "react";
 import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react-aria-components";
 import { keysOf } from "../keys";
@@ -31,7 +32,7 @@ type ButtonProps = ButtonLook &
     unavailable?: string;
     title?: string;
     // The key that does what pressing it does: see below.
-    keys?: string;
+    keys?: KeyLike;
     "aria-busy"?: boolean;
     children?: ReactNode;
     ref?: Ref<HTMLButtonElement>;
@@ -65,7 +66,7 @@ type ButtonProps = ButtonLook &
 // well, it's disabled.
 export function Button({ variant, size, square, className, disabled, unavailable, title, keys, "aria-busy": busy, "aria-label": label, type, onClick, onPress, ...rest }: ButtonProps) {
   const why = disabled ? undefined : unavailable || undefined;
-  const key = keys ?? keysOf(onClick) ?? keysOf(onPress);
+  const key = useSaid(keys) ?? keysOf(onClick) ?? keysOf(onPress);
   const titled = titleWithKeys(title, key);
   const says = why ?? (disabled ? undefined : titled);
   const button = (

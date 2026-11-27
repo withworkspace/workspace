@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useLocation, useMatch, useNavigate } from "react-router";
 import { NotSignedIn, setSettings } from "./api";
-import { useKeys } from "./keys";
+import { useCommands } from "./keymap/useCommands";
+import { everywhereKeys } from "./shell/keys";
 import { RefsProvider } from "./refs/known";
 import { prHref } from "./reviews/Reviews";
 import { repoOfPage } from "./shell/find";
@@ -11,7 +12,6 @@ import { Arrange } from "./shell/Arrange/Arrange";
 import { arrange, type Arrangement, type Arranged, placesOf, sameArrangement, saving } from "./shell/places";
 import { FocusKeys } from "./shell/FocusKeys";
 import { FocusSection } from "./shell/FocusSection";
-import { helpKeys } from "./shell/helpKeys";
 import { Pages } from "./shell/Pages";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
@@ -127,14 +127,14 @@ export function App() {
   // Its toggle's there while there's something to peek at here, or while
   // it's there (docked, it stays with nothing here).
   const besideToggles = beside.all.length > 0 || beside.shown;
-  useKeys({ "\\": () => besideToggles && changeChrome(toggleBeside) });
+  useCommands(everywhereKeys, { beside: () => besideToggles && changeChrome(toggleBeside) });
   // z peeks at what the pointer's on, there (chrome/usePeekKey.ts).
   usePeekKey();
   // C begins a conversation there, about nothing: the place to say the
   // first thing, with the keys. It's a conversation once that's said
   // (panes/NewTalkPane.tsx). Again, it's the same one, with the keys.
   const openBeside = useChromeStore((c) => c.open);
-  useKeys({ C: () => openBeside(newTalkAt, { keys: true }) });
+  useCommands(everywhereKeys, { converse: () => openBeside(newTalkAt, { keys: true }) });
   // Below, under the page: what's running (belowViews.tsx), opened from
   // its toggle in the foot, Runs, which says how many run and when one's
   // just started. It has no key yet.
@@ -298,7 +298,7 @@ export function App() {
       }
       overlays={
         <>
-          {help && <KeysHelp keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
+          {help && <KeysHelp onClose={() => setHelp(false)} />}
           {palette !== undefined && workspace && (
             <Palette
              
