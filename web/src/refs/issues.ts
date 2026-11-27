@@ -9,8 +9,11 @@ import { prOf } from "./prs";
 export type IssueIs = { is: "pr"; pr: PR } | { is: "issue" | "unknown" | "asking" };
 
 // issueIs asks: a number that isn't an open pull request is a 404.
-export const issueIs = (repo: string, number: number): Promise<IssueIs> =>
-  prOf(repo, number).then(
+export const issueIs = (repo: string, number: number): Promise<IssueIs> => isFrom(prOf(repo, number));
+
+// isFrom is what the pull request's card was answered, as what the issue is.
+export const isFrom = (asked: Promise<PR>): Promise<IssueIs> =>
+  asked.then(
     (pr): IssueIs => ({ is: "pr", pr }),
     (e): IssueIs => ({ is: e instanceof ApiError && e.status === 404 ? "issue" : "unknown" }),
   );
