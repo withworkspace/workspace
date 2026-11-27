@@ -102,6 +102,12 @@ export function scope<D extends Record<string, CommandDef>>(id: string, title: s
   return Object.assign(out, { [scopeKey]: s }) as Commands<D>;
 }
 
+// forgetScope takes a scope away: one made for what's gone (a plugin
+// that's been removed).
+export function forgetScope(id: string) {
+  scopes.delete(id);
+}
+
 // scopeOf is the scope commands are of.
 export const scopeOf = (c: Commands): Scope => c[scopeKey];
 

@@ -8,6 +8,7 @@ import { DocumentPane } from "../panes/DocumentPane";
 import { EmptyPane } from "../panes/EmptyPane";
 import { MissionPane } from "../panes/MissionPane";
 import { NewTalkPane } from "../panes/NewTalkPane";
+import { PluginPane } from "../panes/PluginPane";
 import { PullRequestPane } from "../panes/PullRequestPane";
 import { TalkPane } from "../panes/TalkPane";
 import { talkStatus } from "../talk/words";
@@ -145,6 +146,8 @@ export function Beside({ sheet }: BesideProps) {
       {at.kind === "document" && <DocumentPane key={front} to={front} docRef={at.ref} />}
       {at.kind === "pr" && <PullRequestPane key={front} to={front} repo={at.repo} number={at.number} />}
       {at.kind === "comments" && <CommentsPane key={front} of={at.of} />}
+      {/* Keyed by the plugin, not the address: the app going somewhere in itself is the same frame, told where. */}
+      {at.kind === "plugin" && <PluginPane key={`plugin:${at.name}`} to={front} name={at.name} at={at.at} />}
     </Dock>
   );
 }
@@ -164,6 +167,7 @@ function tabOf(listed: Pick<Workspace, "conversations" | "missions">, at: PaneAt
   }
   if (at.kind === "document") return { name: read ?? titleOf("", at.ref.slice(at.ref.indexOf(":") + 1)), lead: <Icon name="file" size={13} /> };
   if (at.kind === "comments") return { name: "Comments", lead: <Icon name="message" size={13} /> };
+  if (at.kind === "plugin") return { name: read || at.name, lead: <Icon name="box" size={13} /> };
   if (at.kind === "pr") return { name: read ?? `${at.repo}#${at.number}`, lead: <Icon name="pr" size={13} /> };
   const t = at.slug ? undefined : listed.conversations.find((c) => c.id === at.id);
   return { name: t?.title || t?.opening || read || "Conversation", lead: t ? <Status s={talkStatus(t)} iconOnly size={13} /> : <Icon name="sparkle" size={13} /> };

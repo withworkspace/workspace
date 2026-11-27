@@ -4,7 +4,7 @@ import "../keymap/all";
 import { allScopes, type Command, type Scope } from "../keymap/commands";
 import { holdKeys } from "../keymap/dispatch";
 import { clashesOf, isOwn, keysOf, resetKeys, setKeys, useKeymap } from "../keymap/keymap";
-import { setPref } from "../prefs";
+import { setPref, usePref } from "../prefs";
 import { everywhereKeys } from "../shell/keys";
 import { keysSaid } from "../ui/Keys";
 import { SettingsShortcuts, type SettingsShortcutsGroup } from "./SettingsShortcuts";
@@ -22,6 +22,9 @@ const said = (k: string) => keysSaid(k).join(" ");
 
 export function Shortcuts() {
   const map = useKeymap();
+  // Plugins' scopes are made again with your plugin key (PluginActionKeys):
+  // drawn again with them.
+  usePref("pluginKey");
   const [filter, setFilter] = useState("");
   const [setting, setSetting] = useState<{ c: Command; keys: string[] }>();
   const release = useRef<() => void>(undefined);

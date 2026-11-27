@@ -1,3 +1,4 @@
+import type { HereSaid } from "./shell/here";
 import type { Pinned, ThingAction } from "./refs/refs";
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "./markdown/links";
@@ -399,13 +400,16 @@ export interface ActionAnswer {
   ask?: ActionAsk;
   say?: string;
   open?: string;
+  // beside: what it opens goes beside the page, not in its place.
+  where?: string;
 }
 
 // runPluginAction runs a plugin's action: one of its own, or, with a
 // thing's kind and name, one done to that thing. answers are what's been
 // answered to what it asked so far, in order: it's run again with each
-// answer until it asks nothing more.
-export const runPluginAction = (plugin: string, id: string, on: { kind?: string; ref?: string; answers: string[] }) =>
+// answer until it asks nothing more. here is what was open when it was
+// asked for (shell/here.ts, hereSaid), told to one of the plugin's own.
+export const runPluginAction = (plugin: string, id: string, on: { kind?: string; ref?: string; answers: string[]; here?: HereSaid }) =>
   send<ActionAnswer>("POST", `/api/plugins/${encodeURIComponent(plugin)}/actions/${encodeURIComponent(id)}`, on);
 
 // startMissionAbout starts a mission about something ws names (a plugin's

@@ -4,6 +4,7 @@ import { KeyHintsRow } from "./KeyHintsRow";
 import { KeyRow } from "./KeyRow";
 import { NotifyRow } from "./NotifyRow";
 import { PlacesRow } from "./PlacesRow";
+import { PluginKeyRow } from "./PluginKeyRow";
 import type { Row } from "./sections";
 import { SendKeyRow } from "./SendKeyRow";
 import { ThemeRow } from "./ThemeRow";
@@ -26,6 +27,8 @@ export function RowOf({ row, found }: { row: Row; found?: boolean }) {
       return <SendKeyRow />;
     case "keyHints":
       return <KeyHintsRow />;
+    case "pluginKey":
+      return <PluginKeyRow />;
     case "notify":
       return <NotifyRow />;
     case "daemon":

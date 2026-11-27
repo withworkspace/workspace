@@ -11,6 +11,7 @@ import { useFaviconBadge, useFeedNotifications, useNotifications } from "./shell
 import { Arrange } from "./shell/Arrange/Arrange";
 import { arrange, type Arrangement, type Arranged, placesOf, sameArrangement, saving } from "./shell/places";
 import { FocusKeys } from "./shell/FocusKeys";
+import { PluginActionKeys } from "./plugins/PluginActionKeys";
 import { FocusSection } from "./shell/FocusSection";
 import { Pages } from "./shell/Pages";
 import { noteVisit, visitAt } from "./shell/recent";
@@ -318,6 +319,7 @@ export function App() {
           <ActConfirmer />
           <WhatsNew version={workspace?.version} />
           <FocusKeys />
+          <PluginActionKeys />
         </>
       }
     >

@@ -36,7 +36,7 @@ export function valueSaid(s: Setting, v: unknown = s.value): string {
 
 // A Row is a line of a section: a setting, or one of the page's own. The
 // sidebar's two keys ([ui] sidebar and menu) are one row, as they're one
-// arrangement; theme, depth, sendKey, keyHints and notify are kept in the
+// arrangement; theme, depth, sendKey, keyHints, pluginKey and notify are kept in the
 // browser, not in a file; daemon is the daemon's switch.
 export type Row =
   | { kind: "setting"; s: Setting; crumb?: string } // crumb: whose it is, said where the row is out of its block (Find)
@@ -45,6 +45,7 @@ export type Row =
   | { kind: "depth" }
   | { kind: "sendKey" }
   | { kind: "keyHints" }
+  | { kind: "pluginKey" }
   | { kind: "notify" }
   | { kind: "daemon" };
 
@@ -59,6 +60,10 @@ export const words = {
   sendKey: {
     label: "Send with",
     about: "Key that sends a reply, message to crew, or comment. Forms with several fields keep their own key.",
+  },
+  pluginKey: {
+    label: "Plugin key",
+    about: "Plugins suggest shortcuts for what they do, which go after this key: with a comma set, a plugin's n is a comma, then n. Until it's set, a plugin's actions have no keys but those you give them under Shortcuts.",
   },
   keyHints: {
     label: "Key hints",
@@ -190,7 +195,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
     }
   }
   appearance.blocks.push({ id: "ui", rows: ui });
-  keyboard.blocks.push({ id: "send", rows: [{ kind: "sendKey" }, { kind: "keyHints" }] });
+  keyboard.blocks.push({ id: "send", rows: [{ kind: "sendKey" }, { kind: "keyHints" }, { kind: "pluginKey" }] });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   if (feed) notifications.blocks.push(feed);
   notifications.blocks.push(...fromEach);

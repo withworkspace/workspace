@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { SettingsKeyPick } from "./SettingsKeyPick";
 import { SettingsShortcut } from "./SettingsShortcut";
 import { SettingsShortcuts, type SettingsShortcutsGroup } from "./SettingsShortcuts";
 
@@ -49,6 +50,16 @@ export const Setting: StoryObj = {
     <div style={{ maxWidth: 720 }}>
       <SettingsShortcut title="Refresh" keys={["r"]} yours={false} setting={[]} {...off} />
       <SettingsShortcut title="Go to Team" keys={["g t"]} yours={false} setting={["g"]} {...off} />
+    </div>
+  ),
+};
+
+export const PluginKey: StoryObj = {
+  render: () => (
+    <div style={{ display: "grid", gap: 16 }}>
+      <SettingsKeyPick value="" picking={false} onPick={() => {}} onClear={() => {}} onCancel={() => {}} />
+      <SettingsKeyPick value="," picking={false} onPick={() => {}} onClear={() => {}} onCancel={() => {}} />
+      <SettingsKeyPick value="," picking onPick={() => {}} onClear={() => {}} onCancel={() => {}} />
     </div>
   ),
 };

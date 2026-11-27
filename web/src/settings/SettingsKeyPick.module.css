@@ -1,0 +1,22 @@
+/* One key, chosen by pressing it (SettingsKeyPick.tsx). */
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.none {
+  color: var(--dim);
+}
+
+/* Waiting for the key. */
+.picking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 2px 10px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  color: var(--dim);
+}

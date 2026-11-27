@@ -64,12 +64,19 @@ export interface ThingBlock {
 
 // ThingAction is something a plugin does when asked: to one of its
 // things (a kind's actions), or of its own (the plugin's). hint is more
-// words it's found by.
+// words it's found by. A plugin's own may say more: keys it suggests
+// (bound under your plugin key, if you've one), a path in its app it only
+// opens (opens), where what it opens goes (beside the page, or as the
+// page), and the kinds of what's open it's for (on: mission, jira:issue).
 export interface ThingAction {
   id: string;
   title: string;
   icon?: string;
   hint?: string;
+  keys?: string[];
+  opens?: string;
+  where?: string;
+  on?: string[];
 }
 
 // ThingViews are how a kind of plugin's thing is drawn, as its plugin

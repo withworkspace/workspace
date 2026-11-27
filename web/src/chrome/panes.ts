@@ -13,7 +13,10 @@ export type PaneAt =
   | { kind: "document"; ref: string }
   | { kind: "pr"; repo: string; number: number }
   // A review's comments, listed to go to: of is the review's address.
-  | { kind: "comments"; of: string };
+  | { kind: "comments"; of: string }
+  // A plugin's app, at a path in it (and its query): what one of its
+  // actions opened beside the page (where: beside).
+  | { kind: "plugin"; name: string; at: string };
 
 // The address a conversation has beside the page: its own page's.
 export const talkAt = (id: string, slug = "") => (slug ? `/missions/${encodeURIComponent(slug)}/conversations/${encodeURIComponent(id)}` : `/conversations/${encodeURIComponent(id)}`);
@@ -54,6 +57,8 @@ export function paneAt(to: string): PaneAt | undefined {
   const path = to.split(/[?#]/)[0];
   if (path === newTalkAt) return { kind: "new" };
   if (path.startsWith("/comments/")) return { kind: "comments", of: path.slice("/comments".length) };
+  const x = /^\/x\/([a-z][a-z0-9-]*)(\/[^?#]*)?$/.exec(path);
+  if (x) return { kind: "plugin", name: x[1], at: (x[2] || "/") + (to.includes("?") ? `?${to.split("#")[0].split("?")[1]}` : "") };
   let m = /^\/missions\/([^/]+)\/conversations\/([^/]+)\/?$/.exec(path);
   if (m) return { kind: "conversation", slug: piece(m[1]), id: piece(m[2]) };
   m = /^\/conversations\/([^/]+)\/?$/.exec(path);
