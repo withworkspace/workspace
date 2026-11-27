@@ -151,8 +151,8 @@ github.com/tree-sitter/tree-sitter-rust v0.23.2 h1:6AtoooCW5GqNrRpfnvl0iUhxTAZEo
 github.com/tree-sitter/tree-sitter-rust v0.23.2/go.mod h1:hfeGWic9BAfgTrc7Xf6FaOAguCFJRo3RBbs7QJ6D7MI=
 github.com/tree-sitter/tree-sitter-typescript v0.23.2 h1:/Odvphn18PniVixb9e97X0DbNVsU6Qocv9mfkyzdXwU=
 github.com/tree-sitter/tree-sitter-typescript v0.23.2/go.mod h1:zjzMXT/Ulffel2xfOcAkQQkiAkmgnbtPGlFQw/5X4xA=
-github.com/withworkspace/plugin v0.15.0 h1:p9UTrOkOx3IjyZg6Lh23aygqK4CesDDAc07+n8TDH80=
-github.com/withworkspace/plugin v0.15.0/go.mod h1:b9Py4Y07nd+owiJqNaIsJlF5uQxj087kBOzhUxUqzAA=
+github.com/withworkspace/plugin v0.15.1-0.20261127104716-187c19134bed h1:E5vmoqtpSNEQ9qbw9UMHR4HSRbeBkj6pl1kDcHMOE7o=
+github.com/withworkspace/plugin v0.15.1-0.20261127104716-187c19134bed/go.mod h1:b9Py4Y07nd+owiJqNaIsJlF5uQxj087kBOzhUxUqzAA=
 github.com/xo/terminfo v1.3.0 h1:KstyePbNW6UaLq9y12+544VK4aTP3Eku/sym3a9+UgQ=
 github.com/xo/terminfo v1.3.0/go.mod h1:lGzkSo8Fe7IRh/w+Gqz7n5mDog4FVXCj3gy/DYTBqio=
 go.starlark.net v0.0.0-20261021141710-4f4267fb140d h1:wmJ4xTYwnBup3nwA+3OtmpaCwd90YXVyyCHZQoiD0+0=
