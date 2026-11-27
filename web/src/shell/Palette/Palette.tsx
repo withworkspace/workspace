@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { type ActionAsk, newPage, runPluginAction, startMissionAbout } from "../../api";
 import { type FrameHere, useChromeStore } from "../../chrome/store";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
+import { findKeys } from "./keys";
 import { thingsNamed } from "../../refs/known";
 import { isOutside, type Known, namedOf, type PageRef, type ThingAction } from "../../refs/refs";
 import { forgetThing } from "../../refs/useThing";
@@ -515,7 +516,7 @@ export function Palette({
 
   // Escape, from where it's not typed into: a step back out of what Find's
   // in the middle of, and Find closed from where it finds.
-  useKeys({ Escape: mode ? back : onClose }, { modal: true });
+  useCommands(findKeys, { back: mode ? back : onClose }, { modal: true });
 
   const pulls = found.groups.find((g) => g.kind === "pulls");
   const pullsAge = pulls?.at ? Date.now() - new Date(pulls.at).getTime() : 0;
@@ -561,7 +562,7 @@ export function Palette({
         tags={
           <>
             {doing && (
-              <FindTag doing onClick={back} title="Back" keys="esc">
+              <FindTag doing onClick={back} title="Back" keys={findKeys.back}>
                 {doing}
               </FindTag>
             )}

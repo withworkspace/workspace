@@ -1,6 +1,7 @@
 import type { ReactNode, Ref } from "react";
 import { Dialog as AriaDialog, Modal as AriaModal, ModalOverlay } from "react-aria-components";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { quietKeys } from "./partKeys";
 import { cx } from "./cx";
 import css from "./Modal.module.css";
 
@@ -37,7 +38,7 @@ export function Modal({
   ref?: Ref<HTMLElement>;
   children: ReactNode;
 }) {
-  useKeys({}, { modal: true });
+  useCommands(quietKeys, {}, { modal: true });
   return (
     <ModalOverlay
       isOpen

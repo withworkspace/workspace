@@ -11,6 +11,7 @@ import { NewTalkPane } from "../panes/NewTalkPane";
 import { PullRequestPane } from "../panes/PullRequestPane";
 import { TalkPane } from "../panes/TalkPane";
 import { talkStatus } from "../talk/words";
+import { everywhereKeys } from "../shell/keys";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";
@@ -114,7 +115,7 @@ export function Beside({ sheet }: BesideProps) {
         // (FootBeside). A sheet covers the page, so it has its own way out.
         tools={
           sheet && (
-            <Button variant="ghost" size="small" square title="Close Beside" keys={"\\"} onClick={() => change(toggleBeside)}>
+            <Button variant="ghost" size="small" square title="Close Beside" keys={everywhereKeys.beside} onClick={() => change(toggleBeside)}>
               <Icon name="x" size={13} />
             </Button>
           )

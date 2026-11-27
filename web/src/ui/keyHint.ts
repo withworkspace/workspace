@@ -6,8 +6,9 @@ import { saying, toast } from "./toast";
 // the pointer has a key: the next time, it's quicker. It's said only
 // where you've asked for it (Settings › Keyboard: off, unless turned
 // on), by the library's parts that know their key: a Button, a
-// ToggleButton, a Segment. They know it from keys="v", or from being
-// given what useShortcut made (keys.ts), which says its own.
+// ToggleButton, a Segment. They know it from keys= (a command, or a key
+// written out), or from being
+// given what useCommand made (keymap/useCommands.ts), which says its own.
 //
 // A key never comes through a part: it calls what it's bound to. So a
 // part pressed is a part pressed, and the only thing to leave out is one

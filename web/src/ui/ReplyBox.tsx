@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { quietKeys } from "./partKeys";
 import { Button } from "./Button";
 import { RichTextArea } from "./RichTextArea";
 import { sendKeys, useSendKey } from "./sendKey";
@@ -12,7 +13,7 @@ import css from "./ReplyBox.module.css";
 export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "Reply" }: { onSend: (body: string) => void; onCancel: () => void; placeholder?: string; send?: string }) {
   const [text, setText] = useState("");
   const key = useSendKey();
-  useKeys({}, { modal: true });
+  useCommands(quietKeys, {}, { modal: true });
   return (
     <div className={css.box} onClick={(e) => e.stopPropagation()}>
       <RichTextArea

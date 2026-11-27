@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useKeys, useShortcut } from "../keys";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { viewerKeys } from "./partKeys";
 import css from "./Viewer.module.css";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
@@ -303,21 +304,18 @@ function Stage({ viewing }: { viewing: Viewing }) {
   // What the tools do, each with its key: the key's bound here, and the
   // button given what comes back says it.
   const modal = { modal: true };
-  const closeIt = useShortcut("Escape", close, modal);
-  const zoomIn = useShortcut(["+", "="], () => zoomAt(to.current.s * step, ...middle()), modal);
-  const zoomOut = useShortcut("-", () => zoomAt(to.current.s / step, ...middle()), modal);
-  const fitIt = useShortcut("0", toFit, modal);
-  const ownSize = useShortcut("1", toActual, modal);
-  useKeys(
+  const closeIt = useCommand(viewerKeys.close, close, modal);
+  const zoomIn = useCommand(viewerKeys.zoomIn, () => zoomAt(to.current.s * step, ...middle()), modal);
+  const zoomOut = useCommand(viewerKeys.zoomOut, () => zoomAt(to.current.s / step, ...middle()), modal);
+  const fitIt = useCommand(viewerKeys.fit, toFit, modal);
+  const ownSize = useCommand(viewerKeys.actual, toActual, modal);
+  useCommands(
+    viewerKeys,
     {
-      ArrowLeft: () => nudge(80, 0),
-      ArrowRight: () => nudge(-80, 0),
-      ArrowUp: () => nudge(0, 80),
-      ArrowDown: () => nudge(0, -80),
-      h: () => nudge(80, 0),
-      l: () => nudge(-80, 0),
-      k: () => nudge(0, 80),
-      j: () => nudge(0, -80),
+      left: () => nudge(80, 0),
+      right: () => nudge(-80, 0),
+      up: () => nudge(0, 80),
+      down: () => nudge(0, -80),
     },
     { modal: true },
   );
@@ -383,7 +381,19 @@ function Stage({ viewing }: { viewing: Viewing }) {
         </Button>
       </div>
       <div className={css.hint} aria-hidden>
-        Drag to move · scroll to zoom · <Keys k="0" /> fit · <Keys k="esc" /> close
+        Drag to move · scroll to zoom
+        {fitIt.keys && (
+          <>
+            {" · "}
+            <Keys k={fitIt.keys} /> fit
+          </>
+        )}
+        {closeIt.keys && (
+          <>
+            {" · "}
+            <Keys k={closeIt.keys} /> close
+          </>
+        )}
       </div>
     </div>
   );

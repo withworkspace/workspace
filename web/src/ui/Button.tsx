@@ -52,9 +52,10 @@ type ButtonProps = ButtonLook &
 // the title: the tooltip says it after ("Review its changes (v)"), and
 // pressed with the pointer, the button hints that there was a key
 // (ui/keyHint.ts), where you've asked for hints. It knows the key from
-// what it's given to press, when that's what useShortcut made (keys.ts:
-// the key's bound and said in one place), or from keys="v", for a key
-// bound elsewhere (as Keys reads one: "esc", "mod+⏎").
+// what it's given to press, when that's what useCommand made (keymap:
+// the key's bound and said in one place), or from keys: a command (whose
+// key is whichever it is now), or a key written out, for one bound
+// elsewhere (as Keys reads one: "esc", "mod+⏎").
 //
 // A button that can't be used now is one of two things. disabled: it's
 // out of reach, to the pointer and the keys, and says nothing (while
