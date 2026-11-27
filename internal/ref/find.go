@@ -59,8 +59,11 @@ const (
 	notAfterRepo  = `\w/#:@~-`
 	notBeforePR   = `\w./@#-`
 	notAfterPR    = `\w#`
-	notBeforeWord = `\w/.#-`
-	notAfterWord  = `\w/#-`
+	// A commit's sha isn't one followed by more of a word, a path, or a
+	// name's dot (demo@4f2a9c1.com is an email's).
+	notAfterCommit = `\w#@/~-`
+	notBeforeWord  = `\w/.#-`
+	notAfterWord   = `\w/#-`
 )
 
 const (
@@ -70,8 +73,8 @@ const (
 )
 
 type patterns struct {
-	ground, inCapsule, onDisk, bareRepo, prs, missions *regexp.Regexp
-	ids, artifacts                                     *regexp.Regexp
+	ground, inCapsule, onDisk, bareRepo, prs, commits, missions *regexp.Regexp
+	ids, artifacts                                              *regexp.Regexp
 	// things are the Known's Things' names, in their order: nil for one
 	// whose tail isn't known, none of whose names are found in words.
 	things []*regexp.Regexp
@@ -127,6 +130,7 @@ func (k *Known) patterns() *patterns {
 			p.onDisk = regexp.MustCompile(root + `repos/(` + alt(repos) + `)/(` + seg + `)/(` + filePath + `)` + lineRange)
 			p.bareRepo = regexp.MustCompile(`(` + alt(repos) + `)`)
 			p.prs = regexp.MustCompile(`(` + alt(names) + `)#([1-9]\d{0,6})`)
+			p.commits = regexp.MustCompile(`(` + alt(names) + `)@([0-9a-f]{7,40})`)
 		}
 		var slugs []string
 		for _, s := range k.Missions {
@@ -347,6 +351,18 @@ func (k *Known) Find(text string) []Found {
 			}
 			n, _ := strconv.Atoi(group(text, m, 2))
 			add(m[0], m[1], Ref{Kind: PR, Repo: k.repoOf(group(text, m, 1)), Number: n})
+			return true
+		})
+		// A commit, by its sha: demo@4f2a9c1. Not a version (demo@v1.2),
+		// nor what goes on past the sha.
+		scan(p.commits, text, func(m []int) bool {
+			if before(text, m[0], notBeforePR) || after(text, m[1], notAfterCommit) {
+				return false
+			}
+			if after(text, m[1], ".") && after(text, m[1]+1, `\w`) {
+				return false
+			}
+			add(m[0], m[1], Ref{Kind: Commit, Repo: k.repoOf(group(text, m, 1)), Commit: group(text, m, 2)})
 			return true
 		})
 	}

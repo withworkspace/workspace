@@ -9,7 +9,8 @@
 //   demo/token-cache:internal/cache.go   a file in a capsule (and :12-20)
 //   demo/internal/                       a folder (its slash is optional)
 //   demo                                 a repo, by its name
-//   demo#12                              a pull request
+//   demo#12                              a pull request (and an issue's name)
+//   demo@4f2a9c1                         a commit, by its sha, short or full
 //   fix-token-refresh                    a mission, by its slug
 //   p3, w4                               another page, a conversation
 //   a3, a3.v2                            an artifact, a version of one
@@ -31,6 +32,12 @@ export type PageRef =
   | { kind: "dir"; repo: string; worktree: string; path: string; commit?: string }
   | { kind: "repo"; repo: string }
   | { kind: "pr"; repo: string; number: number }
+  // An issue on GitHub, named demo#12 as a pull request is (GitHub numbers
+  // both alike): demo#12 written is read as the pull request, and an issue
+  // is one only as its address names it (/issues/12).
+  | { kind: "issue"; repo: string; number: number }
+  // A commit, by its sha as it was written, short or full.
+  | { kind: "commit"; repo: string; commit: string }
   | { kind: "mission"; slug: string }
   | { kind: "page"; id: string }
   | { kind: "talk"; id: string }
@@ -246,6 +253,7 @@ interface Patterns {
   onDisk?: RegExp;
   bareRepo?: RegExp;
   prs?: RegExp;
+  commits?: RegExp;
   missions?: RegExp;
   repoAtEnd?: RegExp;
   // Each kind of plugin's thing that's found in words, with what finds
@@ -274,6 +282,9 @@ function patternsOf(known: Known): Patterns {
     p.onDisk = new RegExp(`${before}${root}repos/(${alt(repos)})/(${seg})/(${filePath})${lineRange}`, "g");
     p.bareRepo = new RegExp(`(?<![\\w./@#:~-])(${alt(repos)})(?![\\w/#:@~-]|\\.\\w)`, "g");
     p.prs = new RegExp(`(?<![\\w./@#-])(${names})#([1-9]\\d{0,6})(?![\\w#])`, "g");
+    // Not a version (demo@v1.2), nor what goes on past the sha: more of a
+    // word, a path, or a name's dot (demo@4f2a9c1.com is an email's).
+    p.commits = new RegExp(`(?<![\\w./@#-])(${names})@([0-9a-f]{7,40})(?![\\w#@/~-]|\\.\\w)`, "g");
     p.repoAtEnd = new RegExp(`(?<![\\w./@#:~-])(${names})\\s+$`);
   }
   const slugs = known.missions.filter((s) => s.length >= 3);
@@ -363,6 +374,7 @@ export function findRefs(text: string, known: Known): Found[] {
     // A repo by its name alone (not an alias: those are short, and words).
     for (const m of text.matchAll(pat.bareRepo!)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "repo", repo: m[1] });
     for (const m of text.matchAll(pat.prs!)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "pr", repo: repoOf(m[1]), number: Number(m[2]) });
+    for (const m of text.matchAll(pat.commits!)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "commit", repo: repoOf(m[1]), commit: m[2] });
   }
   if (pat.missions) {
     for (const m of text.matchAll(pat.missions)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "mission", slug: m[1] });
@@ -470,7 +482,10 @@ export function refName(r: PageRef): string {
     case "repo":
       return r.repo;
     case "pr":
+    case "issue":
       return `${r.repo}#${r.number}`;
+    case "commit":
+      return `${r.repo}@${r.commit}`;
     case "mission":
       return r.slug;
     case "page":
@@ -529,6 +544,10 @@ export function refAddress(r: PageRef, w: Where): string {
       return gh;
     case "pr":
       return `${gh}/pull/${r.number}`;
+    case "issue":
+      return `${gh}/issues/${r.number}`;
+    case "commit":
+      return `${gh}/commit/${r.commit}`;
     case "file":
     case "dir": {
       let rev = w.defaultBranch;
@@ -554,6 +573,10 @@ export function wsAddress(r: PageRef): string {
 }
 
 const prName = /^([\w.-]+)#([1-9]\d{0,8})$/;
+// A commit, by its sha as isCommit has one: demo@4f2a9c1.
+const commitName = /^([\w.-]+)@([0-9a-f]{7,40})$/;
+// A number in an address (/pull/12, /issues/12), as a name has one.
+const addressNumber = /^[1-9]\d{0,8}$/;
 // An artifact, or a version of one, as internal/artifact names them.
 const artifactName = /^(a[1-9]\d{0,6})(?:\.v([1-9]\d{0,4}))?$/;
 const artifactRef = (id: string, version?: string): PageRef => (version ? { kind: "artifact", id, version: Number(version) } : { kind: "artifact", id });
@@ -589,6 +612,8 @@ function nameOf(s: string): PageRef | undefined {
   if (!s || /\s/.test(s)) return undefined;
   const pr = prName.exec(s);
   if (pr) return { kind: "pr", repo: pr[1], number: Number(pr[2]) };
+  const commit = commitName.exec(s);
+  if (commit) return { kind: "commit", repo: commit[1], commit: commit[2] };
   const id = /^([pw])([1-9]\d{0,4})$/.exec(s);
   if (id) return id[1] === "p" ? { kind: "page", id: s } : { kind: "talk", id: s };
   const art = artifactName.exec(s);
@@ -653,10 +678,12 @@ export function parseAddress(addr: string, known: Known): PageRef | undefined {
     });
   const what = segs.shift() ?? "";
   if (what === "") return segs.length === 0 ? { kind: "repo", repo } : undefined;
-  if (what === "pull") {
-    const n = Number(segs[0]);
-    return Number.isInteger(n) && n > 0 ? { kind: "pr", repo, number: n } : undefined;
+  if (what === "pull" || what === "issues") {
+    if (!addressNumber.test(segs[0] ?? "")) return undefined;
+    return { kind: what === "pull" ? "pr" : "issue", repo, number: Number(segs[0]) };
   }
+  // The sha as written, short or full: a branch's name isn't one.
+  if (what === "commit") return segs.length === 1 && isCommit(segs[0]) ? { kind: "commit", repo, commit: segs[0] } : undefined;
   if (what !== "blob" && what !== "tree") return undefined;
   const branches = known.branches?.get(repo);
   const lines = frag ? linesFrag.exec(frag) : null;
@@ -749,7 +776,8 @@ export function groundPaths(text: string, known: Known): Map<string, Set<string>
 
 // refHref is where a ref goes: a file in Files at its lines (a space's
 // document, as a whole or at a heading, in Documents: known says which
-// repos are spaces), a pull request's review, a mission, a page, a
+// repos are spaces), a pull request's review, an issue or a commit on
+// GitHub, a mission, a page, a
 // conversation, an artifact (at a version). A plugin's thing goes to where
 // its kind opens one in the plugin's app; one whose kind opens nowhere
 // goes to its address outside ws (isOutside), or to the plugin.
@@ -773,6 +801,11 @@ export function refHref(ref: PageRef, known?: Known): string {
       return `/files/${encodeURIComponent(ref.repo)}`;
     case "pr":
       return `/reviews/${encodeURIComponent(ref.repo)}/${ref.number}`;
+    // ws has no page of an issue's or a commit's: they're GitHub's, where
+    // the repo is there (an issue that's a pull request is sent on to it).
+    case "issue":
+    case "commit":
+      return known && onGitHub(known, ref.repo) ? refAddress(ref, { org: known.org, remotes: known.remotes, defaultBranch: known.defaultBranch ?? "" }) : `/files/${encodeURIComponent(ref.repo)}`;
     case "mission":
       return `/missions/${encodeURIComponent(ref.slug)}`;
     case "page":

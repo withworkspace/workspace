@@ -49,6 +49,10 @@ const views: Views = {
     return { shape: "pill", icon: "box", text: repo?.label || undefined, accent: repo?.color || undefined };
   },
   pr: () => ({ shape: "words", icon: "pr" }),
+  // An issue (which GitHub may say is a pull request: its card asks), and
+  // a commit, by its sha.
+  issue: () => ({ shape: "words", icon: "circle-dot" }),
+  commit: () => ({ shape: "words", icon: "commit" }),
   mission: (r, env) => {
     const m = env.workspace.missions.find((x) => x.slug === r.slug);
     if (!m) return { shape: "words", icon: "flag" };

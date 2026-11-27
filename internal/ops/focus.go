@@ -120,7 +120,10 @@ func (w *Workspace) pinName(name string) (string, error) {
 	if !ok {
 		return "", &Invalid{Reason: "nothing named " + name + ": pin a mission, conversation, pull request (demo#12), page, artifact, document or plugin thing"}
 	}
-	r.Line, r.EndLine, r.Commit, r.Anchor = 0, 0, "", ""
+	r.Line, r.EndLine, r.Anchor = 0, 0, ""
+	if r.Kind != ref.Commit { // a commit's sha is what it is, not what its lines are of
+		r.Commit = ""
+	}
 	if r.Kind == ref.Artifact {
 		r.Version = 0
 	}

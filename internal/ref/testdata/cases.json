@@ -360,6 +360,27 @@
     {
      "text": "the d team",
      "found": []
+    },
+    {
+     "text": "d@4f2a9c1 and api@4f2a9c1",
+     "found": [
+      [
+       "d@4f2a9c1",
+       {
+        "kind": "commit",
+        "repo": "demo",
+        "commit": "4f2a9c1"
+       }
+      ],
+      [
+       "api@4f2a9c1",
+       {
+        "kind": "commit",
+        "repo": "api",
+        "commit": "4f2a9c1"
+       }
+      ]
+     ]
     }
    ]
   },
@@ -792,6 +813,114 @@
      "found": []
     }
    ]
+  },
+  {
+   "about": "commits, by their shas; and an issue, named as a pull request is",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "Fixed in demo@4f2a9c1, and in api@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a.",
+     "found": [
+      [
+       "demo@4f2a9c1",
+       {
+        "kind": "commit",
+        "repo": "demo",
+        "commit": "4f2a9c1"
+       }
+      ],
+      [
+       "api@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a",
+       {
+        "kind": "commit",
+        "repo": "api",
+        "commit": "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "(demo@4f2a9c1) landed; see demo@4f2a9c1: it's demo#12.",
+     "found": [
+      [
+       "demo@4f2a9c1",
+       {
+        "kind": "commit",
+        "repo": "demo",
+        "commit": "4f2a9c1"
+       }
+      ],
+      [
+       "demo@4f2a9c1",
+       {
+        "kind": "commit",
+        "repo": "demo",
+        "commit": "4f2a9c1"
+       }
+      ],
+      [
+       "demo#12",
+       {
+        "kind": "pr",
+        "repo": "demo",
+        "number": 12
+       }
+      ]
+     ]
+    },
+    {
+     "text": "An issue's name is a pull request's: demo#12 is read as the pull request.",
+     "found": [
+      [
+       "demo#12",
+       {
+        "kind": "pr",
+        "repo": "demo",
+        "number": 12
+       }
+      ]
+     ]
+    },
+    {
+     "text": "demo@v1.2, demo@main, demo@release-4f2a9c1, demo@abc123, demo@4F2A9C1, demo@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a0",
+     "found": []
+    },
+    {
+     "text": "demo@4f2a9c1x, demo@4f2a9c1-dirty, demo@4f2a9c1/a.go, demo@4f2a9c1.com, demo@4f2a9c1@x, demo@4f2a9c1#3",
+     "found": []
+    },
+    {
+     "text": "nope@4f2a9c1, x.demo@4f2a9c1, me-demo@4f2a9c1, @demo@4f2a9c1, demo/@4f2a9c1, sha 4f2a9c1",
+     "found": []
+    }
+   ]
   }
  ],
  "names": [
@@ -885,6 +1014,35 @@
     "url": "https://acme.atlassian.net/browse/RAM-123"
    },
    "name": "RAM-123"
+  },
+  {
+   "ref": {
+    "kind": "issue",
+    "repo": "demo",
+    "number": 12
+   },
+   "name": "demo#12",
+   "reads": {
+    "kind": "pr",
+    "repo": "demo",
+    "number": 12
+   }
+  },
+  {
+   "ref": {
+    "kind": "commit",
+    "repo": "demo",
+    "commit": "4f2a9c1"
+   },
+   "name": "demo@4f2a9c1"
+  },
+  {
+   "ref": {
+    "kind": "commit",
+    "repo": "demo",
+    "commit": "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+   },
+   "name": "demo@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
   }
  ],
  "addresses": [
@@ -1098,6 +1256,72 @@
     "defaultBranch": "main"
    },
    "address": "https://github.com/acme/demo"
+  },
+  {
+   "ref": {
+    "kind": "issue",
+    "repo": "demo",
+    "number": 12
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/issues/12"
+  },
+  {
+   "ref": {
+    "kind": "commit",
+    "repo": "demo",
+    "commit": "4f2a9c1"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/commit/4f2a9c1"
+  },
+  {
+   "ref": {
+    "kind": "commit",
+    "repo": "demo",
+    "commit": "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/commit/4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+  },
+  {
+   "ref": {
+    "kind": "issue",
+    "repo": "cr-demo",
+    "number": 3
+   },
+   "where": {
+    "org": "acme",
+    "remotes": {
+     "cr-demo": "cr-team/demo"
+    },
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/cr-team/demo/issues/3"
+  },
+  {
+   "ref": {
+    "kind": "commit",
+    "repo": "cr-demo",
+    "commit": "4f2a9c1"
+   },
+   "where": {
+    "org": "acme",
+    "remotes": {
+     "cr-demo": "cr-team/demo"
+    },
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/cr-team/demo/commit/4f2a9c1"
   }
  ],
  "read": {
@@ -1413,6 +1637,118 @@
    {
     "address": "https://github.com/other/demo/pull/4",
     "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/issues/12",
+    "ref": {
+     "kind": "issue",
+     "repo": "demo",
+     "number": 12
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/issues/12#issuecomment-4242",
+    "ref": {
+     "kind": "issue",
+     "repo": "demo",
+     "number": 12
+    }
+   },
+   {
+    "address": "https://github.com/cr-team/demo/issues/3",
+    "ref": {
+     "kind": "issue",
+     "repo": "cr-demo",
+     "number": 3
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/issues",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/issues/new",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/issues/0",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/issues/012",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/issues/1e2",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/pull/1e2",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/other/demo/issues/12",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/4f2a9c1",
+    "ref": {
+     "kind": "commit",
+     "repo": "demo",
+     "commit": "4f2a9c1"
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a",
+    "ref": {
+     "kind": "commit",
+     "repo": "demo",
+     "commit": "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a#diff-2873f79a",
+    "ref": {
+     "kind": "commit",
+     "repo": "demo",
+     "commit": "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+    }
+   },
+   {
+    "address": "https://github.com/cr-team/demo/commit/4f2a9c1",
+    "ref": {
+     "kind": "commit",
+     "repo": "cr-demo",
+     "commit": "4f2a9c1"
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/main",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/v1.2",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/abc123",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/commit/4f2a9c1/a.go",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/other/demo/commit/4f2a9c1",
+    "ref": null
+   },
+   {
+    "address": "ws:demo@4f2a9c1",
+    "ref": {
+     "kind": "commit",
+     "repo": "demo",
+     "commit": "4f2a9c1"
+    }
    }
   ]
  },
@@ -1537,6 +1873,56 @@
     "path": "/github.com/acme/demo"
    },
    "written": "https://github.com/acme/demo"
+  },
+  {
+   "about": "an issue's name is a pull request's, and is read as one",
+   "name": "demo#12",
+   "ref": {
+    "kind": "pr",
+    "repo": "demo",
+    "number": 12
+   },
+   "written": "demo#12"
+  },
+  {
+   "about": "a commit, by a short sha",
+   "name": "demo@4f2a9c1",
+   "ref": {
+    "kind": "commit",
+    "repo": "demo",
+    "commit": "4f2a9c1"
+   },
+   "written": "demo@4f2a9c1"
+  },
+  {
+   "about": "a commit, by its full sha",
+   "name": "records@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a",
+   "ref": {
+    "kind": "commit",
+    "repo": "records",
+    "commit": "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+   },
+   "written": "records@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+  },
+  {
+   "about": "a version isn't a commit",
+   "name": "demo@v1.2",
+   "ref": null
+  },
+  {
+   "about": "a branch isn't a commit",
+   "name": "demo@main",
+   "ref": null
+  },
+  {
+   "about": "a sha too short to be one",
+   "name": "demo@abc123",
+   "ref": null
+  },
+  {
+   "about": "a sha too long to be one",
+   "name": "demo@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a0",
+   "ref": null
   }
  ]
 }
