@@ -20,7 +20,9 @@ interface KnownJSON {
 }
 const cases = JSON.parse(readFileSync(new URL("../../../internal/ref/testdata/cases.json", import.meta.url), "utf8")) as {
   finds: { about: string; known: KnownJSON; cases: { text: string; found: [string, PageRef][] }[] }[];
-  names: { ref: PageRef; name: string }[];
+  // reads is what a name is read back as, where it's another kind's too
+  // (an issue's is a pull request's).
+  names: { ref: PageRef; name: string; reads?: PageRef }[];
   addresses: { ref: PageRef; where: Where; address: string }[];
   read: { known: KnownJSON; cases: { address: string; ref: PageRef | null }[] };
   parse: { about: string; name: string; ref: PageRef | null; written?: string }[];
@@ -55,7 +57,7 @@ describe("refs, as internal/ref has them", () => {
       expect(refName(c.ref)).toBe(c.name);
       // A repo's name alone is read as a mission's, and a plugin's
       // thing's isn't read by its form: which names are things is known.
-      if (c.ref.kind !== "repo" && c.ref.kind !== "thing") expect(parseName(c.name)).toEqual(c.ref);
+      if (c.ref.kind !== "repo" && c.ref.kind !== "thing") expect(parseName(c.name)).toEqual(c.reads ?? c.ref);
     }
   });
 
@@ -88,6 +90,11 @@ describe("refs in words", () => {
     expect(refHref({ kind: "file", repo: "api", worktree: "token-cache", path: "a.go" })).toBe("/files/api/token-cache?path=a.go");
     expect(refHref({ kind: "pr", repo: "demo", number: 12 })).toBe("/reviews/demo/12");
     expect(refHref({ kind: "mission", slug: "cache" })).toBe("/missions/cache");
+    const onGitHub: Known = { ...known, org: "acme" };
+    expect(refHref({ kind: "issue", repo: "demo", number: 7 }, onGitHub)).toBe("https://github.com/acme/demo/issues/7");
+    expect(refHref({ kind: "commit", repo: "demo", commit: "4f2a9c1" }, onGitHub)).toBe("https://github.com/acme/demo/commit/4f2a9c1");
+    // A repo that isn't on GitHub: its files.
+    expect(refHref({ kind: "commit", repo: "demo", commit: "4f2a9c1" }, known)).toBe("/files/demo");
     expect(reposNamed("see demo/main.go and the api", ["demo", "api"])).toEqual(["demo"]);
     expect(reposNamed("in the api `src/x.ts`", ["demo", "api"])).toEqual(["api"]);
   });

@@ -4485,7 +4485,7 @@ export type RecipeRender = "inline" | "tab";
 /**
  * Kind is what a ref names.
  */
-export type RefKind = "artifact" | "dir" | "file" | "mission" | "page" | "pr" | "repo" | "talk" | "thing";
+export type RefKind = "artifact" | "commit" | "dir" | "file" | "issue" | "mission" | "page" | "pr" | "repo" | "talk" | "thing";
 
 // From web/refpaths.go
 /**
@@ -4532,13 +4532,13 @@ export interface RefRef {
     path?: string;
     line?: number;
     endLine?: number;
-    number?: number; // a pull request's
+    number?: number; // a pull request's or an issue's
     slug?: string; // a mission's
     id?: string; // a page's, a conversation's or an artifact's; a thing's name
     version?: number; // an artifact's version (a3.v2), 0 for the artifact
     /**
      * Commit is the commit its lines are of, when it's pinned to one: what
-     * they meant when it was written.
+     * they meant when it was written. A commit's sha, for a commit.
      */
     commit?: string;
     /**

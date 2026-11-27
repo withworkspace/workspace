@@ -1,10 +1,12 @@
 import type { Repo, Workspace } from "../api";
 import { useWorkspace } from "../workspace/store";
 import { useRefs } from "./known";
-import type { Known, PageRef } from "./refs";
+import { type Known, type PageRef, refHref } from "./refs";
 import { RefArtifactCard } from "./RefArtifactCard";
+import { RefCommitCard } from "./RefCommitCard";
 import { RefDirCard } from "./RefDirCard";
 import { RefFileCard } from "./RefFileCard";
+import { RefIssueCard } from "./RefIssueCard";
 import { RefMissionCard } from "./RefMissionCard";
 import { RefPageCard } from "./RefPageCard";
 import { RefPRCard } from "./RefPRCard";
@@ -13,7 +15,8 @@ import { RefTalkCard } from "./RefTalkCard";
 import { ThingCard } from "./ThingCard";
 
 // refBody is what a card says of a ref, by its kind: a file's lines, a
-// pull request's title and where it stands, a mission's headline, another
+// pull request's title and where it stands, an issue (or the pull request
+// GitHub says it is), a commit, a mission's headline, another
 // page, a conversation, an artifact's version and its note, a plugin's
 // thing as its plugin says it is. Each has somewhere to go. pane: it's
 // shown in Find's pane.
@@ -27,6 +30,10 @@ export function refBody(r: PageRef, workspace: Workspace, known?: Known, repos?:
       return <RefRepoCard r={r} label={repos?.get(r.repo)?.label} />;
     case "pr":
       return <RefPRCard r={r} />;
+    case "issue":
+      return <RefIssueCard r={r} href={refHref(r, known)} />;
+    case "commit":
+      return <RefCommitCard r={r} href={refHref(r, known)} />;
     case "mission":
       return <RefMissionCard r={r} mission={workspace.missions.find((x) => x.slug === r.slug)} />;
     case "page":

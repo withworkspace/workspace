@@ -5,7 +5,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import type { PageRef } from "./refs";
 import css from "./RefName.module.css";
 
-const kinds: Partial<Record<PageRef["kind"], string>> = { mission: css.mission, page: css.page, talk: css.talk, pr: css.pr, thing: css.thing };
+const kinds: Partial<Record<PageRef["kind"], string>> = { mission: css.mission, page: css.page, talk: css.talk, pr: css.pr, issue: css.pr, thing: css.thing };
 
 type RefNameProps = {
   kind: PageRef["kind"];

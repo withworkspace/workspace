@@ -1,7 +1,8 @@
 // Package ref is ws's one grammar for naming things in words: a file, some lines of it, a folder, a
-// repo, a capsule's file, a pull request, a mission, a page, a conversation, an artifact or a version of
-// one, and a plugin's thing (a Jira issue), named as the plugin registered. What a name is written as,
-// what it's read back as, and its address (on GitHub, or ws: for what only ws has).
+// repo, a capsule's file, a pull request, an issue, a commit, a mission, a page, a conversation, an
+// artifact or a version of one, and a plugin's thing (a Jira issue), named as the plugin registered.
+// What a name is written as, what it's read back as, and its address (on GitHub, or ws: for what only
+// ws has).
 //
 // The web UI has the same grammar in TypeScript (web/src/refs/refs.ts).
 // Both are tested against one file of cases (testdata/cases.json), so they
@@ -27,10 +28,19 @@ const Ground = ".ground"
 type Kind string
 
 const (
-	File    Kind = "file"
-	Dir     Kind = "dir"
-	Repo    Kind = "repo"
-	PR      Kind = "pr"
+	File Kind = "file"
+	Dir  Kind = "dir"
+	Repo Kind = "repo"
+	PR   Kind = "pr"
+	// Issue is an issue on GitHub, of one of the workspace's repos. It's
+	// named demo#12 as a pull request is: GitHub numbers both alike, and
+	// sends an issue's address to the pull request's when it's one, so
+	// demo#12 written is read as a pull request, and an issue is one
+	// only as its address names it (/issues/12).
+	Issue Kind = "issue"
+	// Commit is a commit of one of the workspace's repos, by its sha
+	// (Ref.Commit), short or full: demo@4f2a9c1.
+	Commit  Kind = "commit"
 	Mission Kind = "mission"
 	Page    Kind = "page"
 	Talk    Kind = "talk"
@@ -51,12 +61,12 @@ type Ref struct {
 	Path     string `json:"path,omitempty"`
 	Line     int    `json:"line,omitempty"`
 	EndLine  int    `json:"endLine,omitempty"`
-	Number   int    `json:"number,omitempty"`  // a pull request's
+	Number   int    `json:"number,omitempty"`  // a pull request's or an issue's
 	Slug     string `json:"slug,omitempty"`    // a mission's
 	ID       string `json:"id,omitempty"`      // a page's, a conversation's or an artifact's; a thing's name
 	Version  int    `json:"version,omitempty"` // an artifact's version (a3.v2), 0 for the artifact
 	// Commit is the commit its lines are of, when it's pinned to one: what
-	// they meant when it was written.
+	// they meant when it was written. A commit's sha, for a commit.
 	Commit string `json:"commit,omitempty"`
 	// Anchor is a heading in a file, as an address names one (#decision).
 	Anchor string `json:"anchor,omitempty"`
@@ -75,7 +85,8 @@ func (r Ref) InCapsule() bool {
 }
 
 // Name is how it's written: demo/main.go:12-20, demo/token-cache:a.go,
-// demo/internal/, demo, demo#12, a mission's slug, p3, w4, a3, a3.v2.
+// demo/internal/, demo, demo#12 (a pull request, or an issue),
+// demo@4f2a9c1, a mission's slug, p3, w4, a3, a3.v2.
 func (r Ref) Name() string {
 	switch r.Kind {
 	case File, Dir:
@@ -89,8 +100,10 @@ func (r Ref) Name() string {
 		return where + r.Path + lineSuffix(r.Line, r.EndLine)
 	case Repo:
 		return r.Repo
-	case PR:
+	case PR, Issue:
 		return r.Repo + "#" + strconv.Itoa(r.Number)
+	case Commit:
+		return r.Repo + "@" + r.Commit
 	case Mission:
 		return r.Slug
 	case Page, Talk, Thing:
@@ -118,7 +131,11 @@ func lineSuffix(line, end int) string {
 
 var (
 	prName = regexp.MustCompile(`^([\w.-]+)#([1-9]\d{0,8})$`)
-	idName = regexp.MustCompile(`^([pw])([1-9]\d{0,4})$`)
+	// A commit, by its sha as IsCommit has one: demo@4f2a9c1.
+	commitName = regexp.MustCompile(`^([\w.-]+)@([0-9a-f]{7,40})$`)
+	// A number in an address (/pull/12, /issues/12), as a name has one.
+	addressNumber = regexp.MustCompile(`^[1-9]\d{0,8}$`)
+	idName        = regexp.MustCompile(`^([pw])([1-9]\d{0,4})$`)
 	// An artifact, or a version of one, as internal/artifact names them.
 	artifactName = regexp.MustCompile(`^(a[1-9]\d{0,6})(?:\.v([1-9]\d{0,4}))?$`)
 	slugName     = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
@@ -182,6 +199,9 @@ func parse(s string) (Ref, bool) {
 	}
 	if repo, n, ok := ParsePR(s); ok {
 		return Ref{Kind: PR, Repo: repo, Number: n}, true
+	}
+	if m := commitName.FindStringSubmatch(s); m != nil {
+		return Ref{Kind: Commit, Repo: m[1], Commit: m[2]}, true
 	}
 	if m := idName.FindStringSubmatch(s); m != nil {
 		if m[1] == "p" {
@@ -266,6 +286,10 @@ func (r Ref) Address(w Where) string {
 		return gh
 	case PR:
 		return gh + "/pull/" + strconv.Itoa(r.Number)
+	case Issue:
+		return gh + "/issues/" + strconv.Itoa(r.Number)
+	case Commit:
+		return gh + "/commit/" + r.Commit
 	case File, Dir:
 		rev := w.DefaultBranch
 		if r.InCapsule() {
@@ -399,11 +423,19 @@ func ParseAddress(addr string, k *Known) (Ref, bool) {
 		if len(g.Segs) == 0 {
 			return Ref{Kind: Repo, Repo: g.Repo}, true
 		}
-	case "pull":
-		if len(g.Segs) >= 1 {
-			if n, err := strconv.Atoi(g.Segs[0]); err == nil && n > 0 {
-				return Ref{Kind: PR, Repo: g.Repo, Number: n}, true
+	case "pull", "issues":
+		if len(g.Segs) >= 1 && addressNumber.MatchString(g.Segs[0]) {
+			n, _ := strconv.Atoi(g.Segs[0])
+			kind := PR
+			if g.What == "issues" {
+				kind = Issue
 			}
+			return Ref{Kind: kind, Repo: g.Repo, Number: n}, true
+		}
+	case "commit":
+		// The sha as written, short or full: a branch's name isn't one.
+		if len(g.Segs) == 1 && IsCommit(g.Segs[0]) {
+			return Ref{Kind: Commit, Repo: g.Repo, Commit: g.Segs[0]}, true
 		}
 	case "blob", "tree":
 		kind := File

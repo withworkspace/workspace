@@ -8,7 +8,9 @@ import { RefCardHead } from "./RefCardHead";
 import { RefChip } from "./RefChip";
 import { RefExcerpt, RefExcerptLine } from "./RefExcerpt";
 import { RefFloat } from "./RefFloat";
+import { RefCommitCard } from "./RefCommitCard";
 import { RefGo } from "./RefGo";
+import { RefIssueCard } from "./RefIssueCard";
 import { RefLabel } from "./RefLabel";
 import { RefName } from "./RefName";
 import type { ThingRecord } from "./thing";
@@ -21,7 +23,8 @@ import { Text } from "../ui/Text";
 // with what's said after them, in markdown and in words that say
 // data-refs (and nowhere, where they're plain links); a ref's card over
 // the page, for a file (lines named, more after them), a repo, a pull
-// request; a file's lines in Find's pane; and a plugin's thing, as its
+// request, an issue (as GitHub says it is) and a commit; a file's lines in
+// Find's pane; and a plugin's thing, as its
 // plugin has it drawn on a card and in Find's pane.
 
 const meta: Meta = { title: "Refs/Refs" };
@@ -34,7 +37,12 @@ const names = (
     The rate limit is <RefName kind="mission" shape="words" to="/missions/rate-limit" dataRef="rate-limit">rate-limit</RefName>
     <RefLabel tone="progress">In progress</RefLabel>, its design in <RefName kind="file" shape="words" to="/files/api" dataRef="api:limits.go">api:limits.go</RefName>, asked
     for in <RefName kind="talk" shape="words" to="/conversations/w1" dataRef="w1">w1</RefName>
-    <RefLabel tone="quiet">Limits per key</RefLabel> and reviewed in <RefName kind="pr" shape="words" to="/reviews/api/41" dataRef="api#41">api#41</RefName>. It lives in{" "}
+    <RefLabel tone="quiet">Limits per key</RefLabel> and reviewed in <RefName kind="pr" shape="words" to="/reviews/api/41" dataRef="api#41">api#41</RefName>, for the issue{" "}
+    <RefName kind="issue" shape="words" href="https://github.com/sorrel/api/issues/38" dataRef="api#38">api#38</RefName>, since{" "}
+    <RefName kind="commit" shape="words" href="https://github.com/sorrel/api/commit/4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a" title="api@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a" dataRef="api@4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a">
+      api@4f2a9c1
+    </RefName>
+    . It lives in{" "}
     <RefName kind="repo" shape="pill" icon="box" accent="#6a8fd8" to="/files/api" title="api" dataRef="api">
       api
     </RefName>
@@ -132,6 +140,37 @@ export const Card: StoryObj = {
           ))}
         </RefExcerpt>
         <RefGo href="https://example.com">Open it outside</RefGo>
+      </Open>
+    </div>
+  ),
+};
+
+// An issue's card, as GitHub says the number is: an issue (or a pull
+// request that isn't open), where GitHub couldn't be asked, and still
+// asking; one that's an
+// open pull request is drawn as a pull request's card (Card). A commit's
+// card, by a short sha and a full one; and both where the repo isn't on
+// GitHub, whose link goes to its files.
+export const IssueAndCommit: StoryObj = {
+  render: () => (
+    <div className="page" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+      <Open words="An issue" hint>
+        <RefIssueCard r={{ kind: "issue", repo: "api", number: 38 }} href="https://github.com/sorrel/api/issues/38" is={{ is: "issue" }} />
+      </Open>
+      <Open words="An issue, GitHub couldn't be asked">
+        <RefIssueCard r={{ kind: "issue", repo: "api", number: 38 }} href="https://github.com/sorrel/api/issues/38" is={{ is: "unknown" }} />
+      </Open>
+      <Open words="An issue, asking GitHub">
+        <RefIssueCard r={{ kind: "issue", repo: "api", number: 38 }} href="https://github.com/sorrel/api/issues/38" is={{ is: "asking" }} />
+      </Open>
+      <Open words="A commit, by a short sha">
+        <RefCommitCard r={{ kind: "commit", repo: "api", commit: "4f2a9c1" }} href="https://github.com/sorrel/api/commit/4f2a9c1" />
+      </Open>
+      <Open words="A commit, by its full sha">
+        <RefCommitCard r={{ kind: "commit", repo: "api", commit: "4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a" }} href="https://github.com/sorrel/api/commit/4f2a9c1e8b7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a" />
+      </Open>
+      <Open words="A commit, of a repo not on GitHub">
+        <RefCommitCard r={{ kind: "commit", repo: "records", commit: "4f2a9c1" }} href="/files/records" />
       </Open>
     </div>
   ),

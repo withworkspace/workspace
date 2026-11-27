@@ -43,9 +43,13 @@ type cases struct {
 			Found []json.RawMessage `json:"found"`
 		} `json:"cases"`
 	} `json:"finds"`
+	// Names is how each kind is written, and read back: as the same ref,
+	// or as Reads, where a name is another kind's too (an issue's is a
+	// pull request's).
 	Names []struct {
-		Ref  Ref    `json:"ref"`
-		Name string `json:"name"`
+		Ref   Ref    `json:"ref"`
+		Name  string `json:"name"`
+		Reads *Ref   `json:"reads"`
 	} `json:"names"`
 	Addresses []struct {
 		Ref     Ref    `json:"ref"`
@@ -156,8 +160,12 @@ func TestNames(t *testing.T) {
 		if c.Ref.Kind == Repo || c.Ref.Kind == Thing {
 			continue
 		}
-		if got, ok := Parse(c.Name); !ok || !reflect.DeepEqual(got, c.Ref) {
-			t.Errorf("Parse(%q) = %+v, %v; want %+v", c.Name, got, ok, c.Ref)
+		want := c.Ref
+		if c.Reads != nil {
+			want = *c.Reads
+		}
+		if got, ok := Parse(c.Name); !ok || !reflect.DeepEqual(got, want) {
+			t.Errorf("Parse(%q) = %+v, %v; want %+v", c.Name, got, ok, want)
 		}
 	}
 }
