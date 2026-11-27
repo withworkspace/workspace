@@ -37,6 +37,11 @@ func NoDaemon() {
 			ctx.OpenWrittenPR(slug, capsule)
 		}
 	}
+	verifySpawner = func(root, slug, crewID string) {
+		if ctx, err := LoadOps(root); err == nil {
+			ctx.VerifyAgain(slug, crewID)
+		}
+	}
 }
 
 // OpenOps is the workspace's operations as the daemon has them.
