@@ -1,13 +1,17 @@
 import { type ReactNode, type Ref, useRef } from "react";
+import type { RefHost } from "../editor/refs";
 import css from "./Composer.module.css";
 import { cx } from "./cx";
-import { useAutosize } from "./useAutosize";
 import { Keys } from "./Keys";
-import { type SendKey, sendKeys, sent, useSendKey } from "./sendKey";
-import { TextArea } from "./TextArea";
+import { type Features, RichTextArea } from "./RichTextArea";
+import { type SendKey, sendKeys, useSendKey } from "./sendKey";
+
+// What a composer offers to write, unless it says: marks, lists, a
+// quote, code (ui/RichTextArea.tsx).
+const offered: Features = { marks: true, lists: true, quote: true, code: true };
 
 type ComposerProps = {
-  // What's typed, which is the page's to keep (a draft, say).
+  // What's written, as markdown, which is the page's to keep (a draft, say).
   value: string;
   onChange: (value: string) => void;
   // Sending it, by its key. other is whether it was the second of two
@@ -19,6 +23,10 @@ type ComposerProps = {
   send?: SendKey;
   placeholder?: string;
   "aria-label": string;
+  // What can be written: all of it unless it says (offered).
+  offers?: Features;
+  // Names drawn as what they are (editor/refs.ts).
+  refs?: RefHost;
   // How many lines it starts at, and how tall it grows before it scrolls.
   rows?: number;
   tallest?: number;
@@ -36,11 +44,11 @@ type ComposerProps = {
   over?: ReactNode;
   // Escape: the box gives up the keys (the default), it's left for the
   // page to hear, or it's the page's to do, and no one else hears it.
-  escape?: "blur" | "leave" | ((box: HTMLTextAreaElement) => void);
+  escape?: "blur" | "leave" | ((box: HTMLElement) => void);
   // It's being sent.
   busy?: boolean;
   // The box, for whoever gives it the keys.
-  field?: Ref<HTMLTextAreaElement>;
+  field?: Ref<HTMLElement>;
   onBlur?: () => void;
   // The page's own class, to place it.
   className?: string;
@@ -49,7 +57,8 @@ type ComposerProps = {
 // Composer is where something's written and sent: a reply, a message to
 // crew, what should change. It's one box around the words and what's
 // pressed, which has the ring while the words have the keys, and grows
-// as they're written. The words are the page's (value, onChange); the
+// as they're written. The words are a RichTextArea: markdown, drawn as it
+// reads. The words are the page's (value, onChange); the
 // key that sends them is here, the one you've chosen, and what it shows
 // of itself: in a bar the keys are beside the button while the box has
 // the keys, and a button beside the words says its own (SendKeys).
@@ -59,6 +68,8 @@ export function Composer({
   onSend,
   send: given,
   placeholder,
+  offers = offered,
+  refs,
   rows = 1,
   tallest,
   layout = "bar",
@@ -73,10 +84,10 @@ export function Composer({
   className,
   ...rest
 }: ComposerProps) {
-  const box = useRef<HTMLTextAreaElement>(null);
-  useAutosize(box, value, tallest);
-  // The box is this part's, to fit, and the page's, to give the keys.
-  const both = (el: HTMLTextAreaElement | null) => {
+  const box = useRef<HTMLElement>(null);
+  // The words are this part's, to give up the keys, and the page's, to
+  // give them.
+  const both = (el: HTMLElement | null) => {
     box.current = el;
     if (typeof field === "function") field(el);
     else if (field) field.current = el;
@@ -87,31 +98,32 @@ export function Composer({
   return (
     <div className={cx(css.composer, layout === "beside" && css.beside, layout === "corner" && css.corner, className)} data-composer="">
       {over && <div className={css.over}>{over}</div>}
-      <TextArea
-        ref={both}
+      <RichTextArea
+        {...offers}
+        refs={refs}
+        field={both}
         className={css.field}
         rows={rows}
+        tallest={tallest}
         value={value}
+        onChange={onChange}
+        send={send}
+        onSend={onSend}
         placeholder={placeholder}
         aria-label={rest["aria-label"]}
-        aria-busy={busy || undefined}
-        onChange={(e) => onChange(e.target.value)}
+        busy={busy}
         onBlur={onBlur}
-        onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing) return;
-          const how = sent(e, send);
-          if (how) {
-            e.preventDefault();
-            onSend(how);
-          } else if (e.key === "Escape" && escape !== "leave") {
-            e.preventDefault();
-            if (escape === "blur") e.currentTarget.blur();
-            else {
-              e.stopPropagation();
-              escape(e.currentTarget);
-            }
-          }
-        }}
+        onEscape={
+          escape === "leave"
+            ? undefined
+            : (e) => {
+                if (escape === "blur") box.current?.blur();
+                else {
+                  e.stopPropagation();
+                  if (box.current) escape(box.current);
+                }
+              }
+        }
       />
       {layout === "bar" && (
         <div className={css.bar}>

@@ -70,7 +70,7 @@ export function CrewPage() {
   const shown = params.get("view") === "terminal" && !structured ? "terminal" : "conversation";
   const setView = (v: "terminal" | "conversation") => setParams(v === "terminal" ? { view: "terminal" } : {}, { replace: true });
   // The box to write to crew, which r gives the keys.
-  const tell = useRef<HTMLTextAreaElement>(null);
+  const tell = useRef<HTMLElement>(null);
   useKeys({
     t: () => !structured && setView(shown === "terminal" ? "conversation" : "terminal"),
     r: () => {

@@ -49,7 +49,7 @@ export function CellPanel({
   onRetry: () => Promise<void>;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
+  const box = useRef<HTMLElement>(null);
   const sendKey = useSendKey();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);

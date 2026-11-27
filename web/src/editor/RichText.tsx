@@ -46,7 +46,6 @@ export default function RichText(props: RichTextAreaProps & { handoff: Handoff }
       ...composeKeys(f, {
         send: () => p.current.sendKey,
         onSend: (how) => p.current.onSend?.(how),
-        onEscape: props.onEscape ? () => p.current.onEscape?.() : undefined,
       }),
       ...(props.refs ? [refsPlugin(() => p.current.refs)] : []),
       placeholder(() => p.current.placeholder ?? "", css.empty),
@@ -70,6 +69,14 @@ export default function RichText(props: RichTextAreaProps & { handoff: Handoff }
         const { from, to, empty, $from } = view.state.selection;
         if (empty || !/^(https?:\/\/|mailto:)\S+$/.test(text) || $from.parent.type.spec.code) return false;
         return setLink(from, to, text)(view.state, view.dispatch);
+      },
+      // Escape is the page's unless the box hears it: then it's handed the
+      // press, to keep from the page if it will.
+      handleKeyDown: (_view, e) => {
+        if (e.key !== "Escape" || e.isComposing || !p.current.onEscape) return false;
+        e.preventDefault();
+        p.current.onEscape(e);
+        return true;
       },
       handleDOMEvents: {
         focus: () => {

@@ -19,7 +19,7 @@ type AskPaneProps = {
 // so it's there only while the page is.
 export function AskPane({ to, thing }: AskPaneProps) {
   const gives = useGives(to);
-  const field = useRef<HTMLTextAreaElement>(null);
+  const field = useRef<HTMLElement>(null);
   const asked = useKeysAsked(to);
   useEffect(() => {
     if (asked && useChromeStore.getState().takeKeys(to)) field.current?.focus();

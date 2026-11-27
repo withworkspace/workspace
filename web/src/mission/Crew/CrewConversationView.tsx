@@ -39,7 +39,7 @@ type CrewConversationViewProps = {
   onNewer?: () => void;
   onTerminal?: () => void;
   // The box to write to crew, for whoever gives it the keys.
-  field?: Ref<HTMLTextAreaElement>;
+  field?: Ref<HTMLElement>;
 };
 
 // CrewConversationView says which part each thing of crew's transcript is

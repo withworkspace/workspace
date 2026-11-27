@@ -20,8 +20,9 @@ export interface RichTextAreaProps extends Features {
   // sending. With no onSend, Enter is only ever a new line.
   send?: SendKey;
   onSend?: (how: { other: boolean }) => void;
-  // Escape, if the box hears it: otherwise it's the page's.
-  onEscape?: () => void;
+  // Escape, if the box hears it: otherwise it's the page's. The press is
+  // given, for a box that keeps it from the page (stopPropagation).
+  onEscape?: (e: { stopPropagation(): void }) => void;
   placeholder?: string;
   "aria-label": string;
   // How many lines it starts at, and how tall (in pixels) it grows before
@@ -112,7 +113,7 @@ function Plain({ value, onChange, send: given, onSend, onEscape, placeholder, ro
             onSend(how);
           } else if (e.key === "Escape" && onEscape) {
             e.preventDefault();
-            onEscape();
+            onEscape(e);
           }
         }}
       />

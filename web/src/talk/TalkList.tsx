@@ -47,7 +47,7 @@ export function TalkList({
   const [index, setIndex] = useState(0);
   const [text, setText] = useDraft(`new:${slug}`);
   const [starting, setStarting] = useState(false);
-  const box = useRef<HTMLTextAreaElement>(null);
+  const box = useRef<HTMLElement>(null);
   // From "New mission": straight into words.
   useEffect(() => {
     if (fresh) box.current?.focus();

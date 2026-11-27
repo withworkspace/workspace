@@ -75,7 +75,6 @@ export interface KeysOn {
   // The key that sends, as it is when pressed (it's yours to change).
   send: () => SendKey;
   onSend?: (how: { other: boolean }) => void;
-  onEscape?: () => void;
 }
 
 // enter is Enter, with shift and mod held or not: it sends as you've
@@ -93,7 +92,8 @@ export function enter(on: KeysOn, shift: boolean, mod: boolean): Command {
 }
 
 // composeKeys is a box's keys: Enter (enter), undo, the marks and lists it
-// offers, Tab in a list or a block of code, and Escape if it hears it.
+// offers, and Tab in a list or a block of code. (Escape is the box's
+// own, RichText.tsx: it's handed the press.)
 export function composeKeys(f: Features, on: KeysOn): Plugin[] {
   const key = (shift: boolean, mod: boolean) => enter(on, shift, mod);
   const bound: Record<string, Command> = {
@@ -112,13 +112,6 @@ export function composeKeys(f: Features, on: KeysOn): Plugin[] {
     Tab: chainCommands(sinkListItem(N.list_item), indentCode),
     "Shift-Tab": liftListItem(N.list_item),
   };
-  if (on.onEscape) {
-    const escape = on.onEscape;
-    bound.Escape = () => {
-      escape();
-      return true;
-    };
-  }
   if (f.marks) {
     bound["Mod-b"] = toggleMark(M.strong);
     bound["Mod-i"] = toggleMark(M.em);

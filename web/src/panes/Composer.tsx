@@ -14,7 +14,7 @@ type ComposerProps = {
   // What you're holding on the page, which goes with what you say.
   holding?: { label: string; title?: string };
   // The box, for whoever gives it the keys.
-  field?: Ref<HTMLTextAreaElement>;
+  field?: Ref<HTMLElement>;
   // What's written, where the pane keeps it (a draft that outlasts the
   // pane): given with onText. Without, it's the box's own, and goes with
   // it.
