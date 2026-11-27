@@ -1,0 +1,38 @@
+# How ws's own repo is run. Recipes mirror the justfile, with ports from ws.
+
+[run.service.web-dev]
+display_name = "Web UI (dev)"
+description = "The web UI's Vite dev server with hot reload. Proxies to a running workspace's web UI when WS_ROOT is set; otherwise it serves the page alone."
+command = "cd web && { [ -d node_modules ] || pnpm install --frozen-lockfile --silent; } && pnpm exec vite --port {port}"
+ready = "/"
+
+[run.service.stories]
+display_name = "Storybook"
+description = "Parts of the web UI drawn alone, every state side by side. Use it to look at a component change."
+kind = "tool"
+command = "cd web && { [ -d node_modules ] || pnpm install --frozen-lockfile --silent; } && pnpm exec storybook dev --port {port} --no-open --no-version-updates --disable-telemetry"
+ready = "/"
+
+[run.task.test]
+display_name = "Tests"
+description = "Go's tests, then the web UI's"
+command = "just test"
+timeout = "15m"
+
+[run.task.lint]
+display_name = "Lint"
+description = "golangci-lint on all of ws"
+command = "just lint"
+timeout = "15m"
+
+[run.task.check]
+display_name = "Check"
+description = "gofmt, vet, build, and that the generated wire types and what's-new are current"
+command = "just check"
+timeout = "10m"
+
+[run.task.typecheck-web]
+display_name = "Typecheck (web)"
+description = "tsc over the web UI"
+command = "cd web && { [ -d node_modules ] || pnpm install --frozen-lockfile --silent; } && pnpm typecheck"
+timeout = "10m"
