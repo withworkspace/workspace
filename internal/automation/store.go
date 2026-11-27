@@ -204,7 +204,7 @@ var ErrNotFound = errors.New("there's no automation by that name")
 
 // forget lets go of what's kept of name.
 func forget(tx *store.Tx, name string) error {
-	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`} {
+	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`, `DELETE FROM automation_tasks WHERE name = ? AND state = 'queued'`, `DELETE FROM automation_series WHERE name = ?`, `DELETE FROM automation_outputs WHERE name = ?`} {
 		if _, err := tx.Exec(q, name); err != nil {
 			return err
 		}
@@ -288,9 +288,12 @@ type waitingStep struct {
 // waitFor is a wait() as kept: what it waits for, after which event, till
 // when.
 type waitFor struct {
-	Match string    `json:"match"`
-	After int64     `json:"after"`
-	Due   time.Time `json:"due"`
+	// Match is a wait()'s event; Items a wait_all's or wait_any's (Any).
+	Match string     `json:"match,omitempty"`
+	Items []waitItem `json:"items,omitempty"`
+	Any   bool       `json:"any,omitempty"`
+	After int64      `json:"after"`
+	Due   time.Time  `json:"due"`
 }
 
 // waitingSteps are name's runs parked at a wait().

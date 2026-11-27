@@ -49,10 +49,12 @@ import (
 const (
 	MayNotify   = "notify"
 	MayConverse = "converse"
+	// MayRun is starting a repo's task (run_task): this machine's time.
+	MayRun = "run"
 )
 
 // Mays is every may there is.
-var Mays = []string{MayNotify, MayConverse}
+var Mays = []string{MayNotify, MayConverse, MayRun, MayOutput}
 
 // Automation is one automation, as its file says it.
 type Automation struct {
@@ -423,7 +425,7 @@ func scriptError(err error) error {
 }
 
 // builtinNames are every builtin a run's given (run.builtins).
-var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait"}
+var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait", "wait_all", "wait_any", "run_task", "repos", "keep", "kept", "output", "chart", "things"}
 
 // checkBuiltins are what a file's top level is read with: event, and
 // every other builtin's name, so run can use them, refusing to be called

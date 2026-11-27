@@ -154,6 +154,9 @@ type Event struct {
 	// An automation doesn't run on what it's in the chain of, or on what's
 	// MaxChain deep (internal/automation).
 	Chain []string `json:"chain,omitempty"`
+	// RunN is which run of a task a run's event is of (its #n), 0 for a
+	// service's.
+	RunN int `json:"runN,omitempty"`
 	// Automation is the automation a schedule.due is for.
 	Automation string `json:"automation,omitempty"`
 	// What it's about, as ws names them.

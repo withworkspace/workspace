@@ -403,6 +403,32 @@ func ListThings(root, name, kind string) ([]string, error) {
 	return out, err
 }
 
+// Things are the things of a kind ws keeps of a plugin's, as kept: those
+// it told ws of, and those ws found in a space; with the field each is
+// titled by, for its kind (Title).
+func Things(root, name, kind string) ([]Record, string, error) {
+	db, err := store.Open(root)
+	if err != nil {
+		return nil, "", err
+	}
+	var out []Record
+	var titled string
+	err = db.Read(context.Background(), func(tx *store.Tx) error {
+		kept, err := refsIn(tx)
+		if err != nil {
+			return err
+		}
+		for _, k := range kept {
+			if k.Plugin == name && k.Kind == kind {
+				titled = k.Typed(protocol.FieldTitle)
+			}
+		}
+		out, err = thingsOf(tx, name, kind)
+		return err
+	})
+	return out, titled, err
+}
+
 // ThingOf is one of a plugin's things as ws keeps it, if the plugin's
 // told ws of it or ws found it in a space: what ws draws it from without
 // asking.

@@ -1,0 +1,36 @@
+/* What an automation shows (AutomationOutputView.tsx): which version, and
+   the way to others, over its markdown or its framed page. */
+
+.output {
+  display: grid;
+  gap: 8px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: var(--text-sm);
+}
+
+.versions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.body {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.frame {
+  width: 100%;
+  height: 70vh;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}

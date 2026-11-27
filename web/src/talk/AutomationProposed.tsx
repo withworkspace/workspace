@@ -3,6 +3,7 @@ import { AutomationFacts } from "../automations/AutomationFacts";
 import { AutomationFlow } from "../automations/AutomationFlow";
 import { AutomationScript } from "../automations/AutomationScript";
 import { DryRunShown } from "../automations/DryRunShown";
+import { Markdown } from "../markdown/Markdown";
 import css from "./AutomationProposed.module.css";
 
 // AutomationProposed is a proposed automation, on its card: the user's
@@ -43,6 +44,18 @@ export function AutomationProposed({ a, script }: { a: ProposedAutomation; scrip
       </AutomationFacts>
       {a.outline && <AutomationFlow outline={a.outline} steps={a.dryRun.steps} failures={a.dryRun.failures} dry />}
       <DryRunShown dr={a.dryRun} />
+      {a.dryRun.output && (
+        <details className={css.preview} open>
+          <summary>What its page would say now</summary>
+          {a.dryRun.output.format === "html" ? (
+            <p className={css.html}>An HTML page: it's shown once it's on.</p>
+          ) : (
+            <div className={css.previewBody}>
+              <Markdown text={a.dryRun.output.body} />
+            </div>
+          )}
+        </details>
+      )}
       <AutomationScript source={script} />
     </div>
   );

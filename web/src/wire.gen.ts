@@ -636,6 +636,11 @@ export interface AutomationDryRun {
      */
     steps?: AutomationStepCount[];
     failures?: Record<string, number>;
+    /**
+     * Output is what it'd show now (output()): its last run's, the card's
+     * preview of it.
+     */
+    output?: AutomationOutput;
 }
 
 // From web/automations.go
@@ -701,6 +706,32 @@ export interface AutomationOutlineStep {
 export interface AutomationOutlineWhen {
     match: string;
     pace?: string;
+}
+
+// From automation/output.go
+/**
+ * Output is a version of what an automation shows.
+ */
+export interface AutomationOutput {
+    name: string;
+    version: number;
+    at: string;
+    event: number;
+    format: string;
+    body: string;
+}
+
+// From web/automations.go
+/**
+ * AutomationOutputInfo is what GET /api/automations/{name}/output serves:
+ * a version of what it shows (?version=, the latest without), and every
+ * version kept, the latest first, without their bodies. An HTML one's
+ * body isn't sent: it's shown from its frame
+ * (/frame/automations/{name}/output/{version}).
+ */
+export interface AutomationOutputInfo {
+    output?: AutomationOutput;
+    versions: AutomationOutput[];
 }
 
 // From web/automations.go
@@ -3023,6 +3054,13 @@ export interface OpsAutomationItem {
     broken?: string;
     tally: AutomationTally;
     last?: OpsAutomationRun;
+    /**
+     * Output is the version of its output that's shown (0 for none), and
+     * Scheduled whether it runs by the clock (every()), which can be run
+     * now.
+     */
+    output?: number;
+    scheduled?: boolean;
 }
 
 // From ops/automations.go

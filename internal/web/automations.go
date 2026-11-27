@@ -24,6 +24,7 @@ type Automating interface {
 	SetAutomationOn(name string, on bool) error
 	RemoveAutomation(name string) error
 	RunAutomationNow(name string) (events.Event, error)
+	AutomationOutput(name string, version int) (automation.Output, []automation.Output, error)
 	DryRunAutomation(name string, show func(ref string) (map[string]any, error)) (automation.DryRun, error)
 	// AutomationsStamp names where they stand, cheaply: it moves with each
 	// write to what's kept of them.
@@ -47,6 +48,16 @@ type AutomationPage struct {
 	Outline  *automation.Outline    `json:"outline,omitempty"`
 	Steps    []automation.StepCount `json:"steps"`
 	Failures map[string]int         `json:"failures,omitempty"`
+}
+
+// AutomationOutputInfo is what GET /api/automations/{name}/output serves:
+// a version of what it shows (?version=, the latest without), and every
+// version kept, the latest first, without their bodies. An HTML one's
+// body isn't sent: it's shown from its frame
+// (/frame/automations/{name}/output/{version}).
+type AutomationOutputInfo struct {
+	Output   *automation.Output  `json:"output,omitempty"`
+	Versions []automation.Output `json:"versions"`
 }
 
 // AutomationOn is what POST /api/automations/{name}/on takes: on or off.
@@ -140,6 +151,38 @@ func (s *Server) automationRunNow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"event": ev.Ref()})
+}
+
+// automationOutput is GET /api/automations/{name}/output.
+func (s *Server) automationOutput(w http.ResponseWriter, r *http.Request) {
+	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
+	shown, all, err := s.App.AutomationOutput(r.PathValue("name"), version)
+	if err != nil {
+		writeError(w, automationErr(err), http.StatusInternalServerError)
+		return
+	}
+	info := AutomationOutputInfo{Versions: all}
+	if shown.Version > 0 {
+		if shown.Format == automation.OutputHTML {
+			shown.Body = ""
+		}
+		info.Output = &shown
+	}
+	writeJSON(w, http.StatusOK, info)
+}
+
+// automationOutputFrame is GET /frame/automations/{name}/output/{version}:
+// an HTML output, as a frame's page, under the frame's policy (nothing
+// from the network, nothing of the app's).
+func (s *Server) automationOutputFrame(w http.ResponseWriter, r *http.Request) {
+	frameHeaders(w, "")
+	version, err := strconv.Atoi(r.PathValue("version"))
+	shown, _, oerr := s.App.AutomationOutput(r.PathValue("name"), version)
+	if err != nil || version < 1 || oerr != nil || shown.Format != automation.OutputHTML {
+		framePage(w, http.StatusNotFound, "It can't be shown", "There's no such page of an automation's: /frame/automations/coverage/output/3 is coverage's third.")
+		return
+	}
+	s.serveFrameFile(w, r, r.URL.Path, "index.html", []byte(shown.Body), "", "")
 }
 
 // automationErr is a "there's none by that name" as a 404, saying so.

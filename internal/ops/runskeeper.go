@@ -2,6 +2,7 @@ package ops
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/events"
@@ -116,7 +117,7 @@ func (w *Workspace) keepRunChanges(changes []runs.Change) {
 // runEvent is a run's change as an event.
 func runEvent(c runs.Change) events.Event {
 	r := c.Run
-	e := events.Event{At: c.At, Repo: r.Repo, Run: r.Ref(), Title: r.Name, Status: c.Status, Mission: r.Owner.Mission}
+	e := events.Event{At: c.At, Repo: r.Repo, Run: r.Ref(), RunN: r.N, Title: r.Name, Status: c.Status, Mission: r.Owner.Mission}
 	switch c.Kind {
 	case runs.Started:
 		e.Kind = events.RunStarted
@@ -125,7 +126,12 @@ func runEvent(c runs.Change) events.Event {
 	default:
 		e.Kind = events.RunEnded
 	}
+	if len(r.Chain) > 0 {
+		e.Chain = append([]string{}, r.Chain...)
+	}
 	switch {
+	case strings.HasPrefix(r.By, "workflow:"):
+		e.By = r.By // an automation's
 	case r.By == "" || r.By == "you":
 		e.By = events.ByYou
 	default:

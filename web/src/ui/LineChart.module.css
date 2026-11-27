@@ -1,0 +1,101 @@
+/* Numbers over time (LineChart.tsx): a line a series, its latest at its
+   end, three values beside and the first and last day under it. */
+
+.chart {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.title {
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.tick {
+  fill: var(--dim);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.dot {
+  fill: currentColor;
+}
+
+.last {
+  fill: currentColor;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.none {
+  padding: 16px 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--fg);
+}
+
+.key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+/* Each series its colour, in order. */
+.s0 {
+  color: var(--accent);
+}
+.s1 {
+  color: var(--green);
+}
+.s2 {
+  color: var(--amber);
+}
+.s3 {
+  color: var(--hl-keyword);
+}
+.s4 {
+  color: var(--hl-string);
+}
+.s5 {
+  color: var(--red);
+}
