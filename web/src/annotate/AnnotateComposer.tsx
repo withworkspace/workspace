@@ -5,6 +5,7 @@ import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
+import { type KeyPress, RichTextArea } from "../ui/RichTextArea";
 import { Segment, Segmented } from "../ui/Segmented";
 import { TextArea } from "../ui/TextArea";
 import { humanError } from "../ui/strings";
@@ -18,8 +19,11 @@ const kinds: Record<ThreadKind, string> = { ask: css.ask, change: css.change, no
 // AnnotateComposer is a new comment being written on what's highlighted:
 // its kind (ask, change or note), what it's on (quote, or the whole
 // diagram), and what's said. edit, when it's there, is what the words
-// should read instead: a suggested edit (canSuggest offers one). The
-// keys in the boxes are the holder's (onKeys, onEditKeys).
+// should read instead: a suggested edit (canSuggest offers one). What's
+// said is markdown, drawn as it reads (RichTextArea); what it should read
+// is the document's own words, as they are. The key you've chosen posts
+// what's said (onPost), Escape is onCancel, and the holder has the other
+// keys first (onKeys: Tab for the kind) and the edit's (onEditKeys).
 export function AnnotateComposer({
   kind,
   onKind,
@@ -44,8 +48,8 @@ export function AnnotateComposer({
   quote?: string;
   text: string;
   onText: (text: string) => void;
-  onKeys?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
-  textRef?: Ref<HTMLTextAreaElement>;
+  onKeys?: (e: KeyPress) => boolean;
+  textRef?: Ref<HTMLElement>;
   edit?: string;
   onEdit?: (edit: string) => void;
   onEditKeys?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -69,7 +73,24 @@ export function AnnotateComposer({
         ))}
       </Segmented>
       <blockquote className={css.on}>{quote || "The whole diagram"}</blockquote>
-      <TextArea ref={textRef} value={text} rows={2} placeholder={kindHints[kind]} aria-label={kindHints[kind]} onChange={(e) => onText(e.target.value)} onKeyDown={onKeys} />
+      <RichTextArea
+        marks
+        lists
+        quote
+        code
+        look="field"
+        className={css.said}
+        field={textRef}
+        value={text}
+        onChange={onText}
+        rows={2}
+        tallest={260}
+        placeholder={kindHints[kind]}
+        aria-label={kindHints[kind]}
+        onSend={onPost}
+        onEscape={onCancel}
+        onKeyDown={onKeys}
+      />
       {edit !== undefined && (
         <>
           <Text as="div" dim>Should read:</Text>
