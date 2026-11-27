@@ -1,3 +1,4 @@
+import { annotateKeys } from "./keys";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import css from "./AnnotatePreviewBar.module.css";
@@ -8,8 +9,8 @@ import css from "./AnnotatePreviewBar.module.css";
 export function AnnotatePreviewBar({ count, marked }: { count: number; marked: string }) {
   return (
     <Callout tone="info" icon="eye" title={count === 1 ? "Suggested edit" : `${count} suggested edits`} className={css.bar}>
-      <Keys k="a" /> accepts the selected edit ({marked}), <Keys k="d" /> declines. Click another to select
-      it. <Keys k="v" /> or <Keys k="esc" /> to go back.
+      <Keys k={annotateKeys.accept} /> accepts the selected edit ({marked}), <Keys k={annotateKeys.decline} /> declines. Click another to select
+      it. <Keys k={annotateKeys.tracked} /> or <Keys k={annotateKeys.back} /> to go back.
     </Callout>
   );
 }

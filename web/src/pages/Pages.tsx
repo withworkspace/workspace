@@ -23,13 +23,6 @@ import { Text } from "../ui/Text";
 // calls this), and an agent fills it in while you write on. They're
 // listed in Documents (documents/), where each will live.
 
-export const pageKeys: [string, string][] = [
-  [">> then ⏎", "Ask an agent to fill in here"],
-  [">? then ⏎", "Ask a question, answered beside the page"],
-  ["mod+⏎", "In a cell: change or see sources. Elsewhere: change the text"],
-  ["esc", "Close a cell's panel"],
-];
-
 // The page itself (the editor, and so ProseMirror) loads with the first
 // page you open.
 const Inner = lazy(() => import("./Page"));

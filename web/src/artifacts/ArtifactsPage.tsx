@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import type { ArtifactInfo } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { artifactsKeys } from "./keys";
 import { Rows } from "../ui/Rows";
 import { useTitle } from "../ui/useTitle";
 import { useWorkspace } from "../workspace/store";
@@ -39,7 +40,7 @@ export function ArtifactsPage() {
     document.getElementById(`artifact-${list[n]?.id}`)?.scrollIntoView({ block: "nearest" });
   };
   const open = () => list[index] && navigate(artifactHref(list[index].id));
-  useKeys({ j: () => move(index + 1), ArrowDown: () => move(index + 1), k: () => move(index - 1), ArrowUp: () => move(index - 1), Enter: open, o: open });
+  useCommands(artifactsKeys, { next: () => move(index + 1), prev: () => move(index - 1), open });
 
   return (
     <div className="page narrow">

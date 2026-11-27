@@ -1,3 +1,5 @@
+import { docKeys } from "../keys";
+import { keyOf, useKeymap } from "../../keymap/keymap";
 import type { ReactNode, Ref } from "react";
 import { Link } from "react-router";
 import { Button, buttonClass } from "../../ui/Button";
@@ -38,6 +40,7 @@ type ReaderMetaProps = {
 // where it's read from, where it's edited and changed, its ref, and what's
 // done with it (its contents, ask, edit, open in Files).
 export function ReaderMeta({ kind, repo, worktree, ground, page, flights, docRef, pin, contents, onAsk, onEdit, editUnavailable, filesTo }: ReaderMetaProps) {
+  const map = useKeymap();
   return (
     <div className={css.meta}>
       <span className={css.kind} title={kind?.hint}>
@@ -63,18 +66,18 @@ export function ReaderMeta({ kind, repo, worktree, ground, page, flights, docRef
       <span className={css.actions}>
         {pin}
         {contents && (
-          <Button size="small" ref={contents.ref} data-contents-toggle aria-expanded={contents.open} onClick={contents.onToggle} title="Contents" keys="t">
-            <Icon name="list" size={12} /> Contents <Keys k="t" />
+          <Button size="small" ref={contents.ref} data-contents-toggle aria-expanded={contents.open} onClick={contents.onToggle} title="Contents" keys={docKeys.contents}>
+            <Icon name="list" size={12} /> Contents <Keys k={docKeys.contents} />
           </Button>
         )}
-        <Button size="small" className={css.ask} onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask about document or selection" keys="a">
-          <Icon name="sparkle" size={12} /> Ask <Keys k="a" />
+        <Button size="small" className={css.ask} onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask about document or selection" keys={docKeys.ask}>
+          <Icon name="sparkle" size={12} /> Ask <Keys k={docKeys.ask} />
         </Button>
-        <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit as page" keys="e">
-          <Icon name="pencil" size={12} /> Edit <Keys k="e" />
+        <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit as page" keys={docKeys.edit}>
+          <Icon name="pencil" size={12} /> Edit <Keys k={docKeys.edit} />
         </Button>
-        <Link to={filesTo} className={buttonClass({ size: "small" })} {...keyProps("o", "Open in Files")}>
-          <Icon name="file" size={12} /> Files <Keys k="o" />
+        <Link to={filesTo} className={buttonClass({ size: "small" })} {...keyProps(keyOf(docKeys.files, map), "Open in Files")}>
+          <Icon name="file" size={12} /> Files <Keys k={docKeys.files} />
         </Link>
       </span>
     </div>

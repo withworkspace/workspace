@@ -1,3 +1,4 @@
+import { annotateKeys } from "./keys";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import css from "./AnnotateMarginHint.module.css";
@@ -9,7 +10,7 @@ export function AnnotateMarginHint() {
     <div className={css.hint}>
       <Icon name="message" size={14} className={css.icon} />
       <span>
-        Select text to comment, or move with <Keys k="j" /> <Keys k="k" /> and press <Keys k="c" />. Ask a
+        Select text to comment, or move with <Keys k={annotateKeys.next} /> <Keys k={annotateKeys.prev} /> and press <Keys k={annotateKeys.comment} />. Ask a
         question, request a change, or leave a note: an agent replies in the thread.
       </span>
     </div>

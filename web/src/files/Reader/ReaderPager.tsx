@@ -1,3 +1,5 @@
+import { docKeys } from "../keys";
+import { keyOf, useKeymap } from "../../keymap/keymap";
 import { Link } from "react-router";
 import { Icon } from "../../ui/Icon";
 import { hintOnClick } from "../../ui/keyHint";
@@ -9,13 +11,14 @@ import css from "./ReaderPager.module.css";
 // those kept with it (17 of 28 in its folder), at its foot: [ and ] go
 // there.
 export function ReaderPager({ sib, to }: { sib: Siblings; to: (path: string) => string }) {
+  const map = useKeymap();
   const where = sib.shelf.name;
   return (
     <nav className={css.pager} aria-label={`In ${where}`}>
       {sib.prev?.path ? (
-        <Link to={to(sib.prev.path)} rel="prev" onClick={hintOnClick("[")}>
+        <Link to={to(sib.prev.path)} rel="prev" onClick={hintOnClick(keyOf(docKeys.prevDoc, map))}>
           <small>
-            <Icon name="arrow-left" size={12} /> Previous in {where} <Keys k="[" />
+            <Icon name="arrow-left" size={12} /> Previous in {where} <Keys k={docKeys.prevDoc} />
           </small>
           <b>{sib.prev.title}</b>
         </Link>
@@ -28,9 +31,9 @@ export function ReaderPager({ sib, to }: { sib: Siblings; to: (path: string) => 
         in {where}
       </span>
       {sib.next?.path ? (
-        <Link className={css.next} to={to(sib.next.path)} rel="next" onClick={hintOnClick("]")}>
+        <Link className={css.next} to={to(sib.next.path)} rel="next" onClick={hintOnClick(keyOf(docKeys.nextDoc, map))}>
           <small>
-            <Keys k="]" /> Next in {where} <Icon name="arrow-right" size={12} />
+            <Keys k={docKeys.nextDoc} /> Next in {where} <Icon name="arrow-right" size={12} />
           </small>
           <b>{sib.next.title}</b>
         </Link>

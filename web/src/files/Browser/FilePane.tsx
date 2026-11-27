@@ -1,3 +1,5 @@
+import { filesKeys } from "../keys";
+import { keyOf } from "../../keymap/keymap";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { type FileView, getFile, rawURL, type TreeFile } from "../../api";
@@ -121,21 +123,21 @@ export function FilePane({
           <>
             {md && text && (
               <Segmented value={preview ? "rendered" : "text"} onChange={(v) => setPreview(() => v === "rendered")} aria-label="Markdown">
-                <Segment value="rendered" title="Rendered" keys="m">
+                <Segment value="rendered" title="Rendered" keys={filesKeys.markdown}>
                   Rendered
                 </Segment>
-                <Segment value="text" title="As text" keys="m">
+                <Segment value="text" title="As text" keys={filesKeys.markdown}>
                   Text
                 </Segment>
               </Segmented>
             )}
             {docTo && text && !file.deleted && (
-              <Link to={docTo} className={buttonClass({ size: "small" })} {...keyProps("⏎", "Edit as a page")}>
-                <Icon name="pencil" size={12} /> Edit as a page <Keys k="⏎" />
+              <Link to={docTo} className={buttonClass({ size: "small" })} {...keyProps(keyOf(filesKeys.enter), "Edit as a page")}>
+                <Icon name="pencil" size={12} /> Edit as a page <Keys k={filesKeys.enter} />
               </Link>
             )}
             {reviewTo && entry?.status && entry.status !== "added" && (
-              <Link to={reviewTo} className={buttonClass({ size: "small" })} {...keyProps("v", "Review changes")}>
+              <Link to={reviewTo} className={buttonClass({ size: "small" })} {...keyProps(keyOf(filesKeys.review), "Review changes")}>
                 <Icon name="eye" size={12} /> Changes
               </Link>
             )}

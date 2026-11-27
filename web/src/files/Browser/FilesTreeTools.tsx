@@ -1,3 +1,5 @@
+import { filesKeys } from "../keys";
+import { everywhereKeys } from "../../shell/keys";
 import { Button } from "../../ui/Button";
 import { Count } from "../../ui/Count";
 import { Icon } from "../../ui/Icon";
@@ -33,19 +35,19 @@ export function FilesTreeTools({ all, changed, counted, changedOnly, canChange, 
         </Text>
       ) : (
         <Segmented fill className={css.show} value={changedOnly ? "changed" : "all"} onChange={(v) => onShow(v === "changed")} aria-label="Show">
-          <Segment value="changed" title="Changed files only" keys="c" disabled={!canChange}>
+          <Segment value="changed" title="Changed files only" keys={filesKeys.changed} disabled={!canChange}>
             Changed <Count>{changed}</Count>
           </Segment>
-          <Segment value="all" title="All files" keys="c">
+          <Segment value="all" title="All files" keys={filesKeys.changed}>
             All <Count>{all}</Count>
           </Segment>
         </Segmented>
       )}
-      <Button variant="ghost" size="small" square onClick={onFind} title="Find a file" keys="t" aria-label="Find a file">
+      <Button variant="ghost" size="small" square onClick={onFind} title="Find a file" keys={filesKeys.find} aria-label="Find a file">
         <Icon name="search" size={14} />
       </Button>
       {onSearch && (
-        <Button variant="ghost" size="small" square onClick={onSearch} title="Search in files" keys="mod+shift+F" aria-label="Search in files">
+        <Button variant="ghost" size="small" square onClick={onSearch} title="Search in files" keys={everywhereKeys.findCode} aria-label="Search in files">
           <Icon name="code" size={14} />
         </Button>
       )}

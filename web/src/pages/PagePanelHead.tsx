@@ -1,3 +1,4 @@
+import { pageKeys } from "./keys";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import css from "./PagePanelHead.module.css";
@@ -10,7 +11,7 @@ export function PagePanelHead({ prompt, onClose }: { prompt?: string; onClose: (
         »
       </span>
       <span className={css.prompt}>{prompt}</span>
-      <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
+      <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys={pageKeys.closeCell}>
         <Icon name="x" size={13} />
       </Button>
     </div>

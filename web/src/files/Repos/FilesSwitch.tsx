@@ -1,3 +1,5 @@
+import { switchKeys } from "../keys";
+import { keyOf } from "../../keymap/keymap";
 import type { ReactNode, Ref } from "react";
 import { cx } from "../../ui/cx";
 import { DirtyDot } from "../../ui/DirtyDot";
@@ -26,7 +28,7 @@ type FilesSwitchProps = {
 export function FilesSwitch({ repo, color, name, ground, dirty, open, onToggle, menu, ref }: FilesSwitchProps) {
   return (
     <div className={css.switch} ref={ref}>
-      <button className={css.title} aria-haspopup="listbox" aria-expanded={open} {...keyProps("w", `Switch to ground or a capsule`, onToggle)}>
+      <button className={css.title} aria-haspopup="listbox" aria-expanded={open} {...keyProps(keyOf(switchKeys.open), `Switch to ground or a capsule`, onToggle)}>
         <RepoDot color={color} />
         <span className={cx(css.repo, css.cut)}>{repo}</span>
         <span className={css.sep}>/</span>

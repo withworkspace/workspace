@@ -1,3 +1,5 @@
+import { docKeys } from "../keys";
+import { keyOf, useKeymap } from "../../keymap/keymap";
 import { Fragment, type RefObject } from "react";
 import { Link } from "react-router";
 import { Crumbs, CrumbSep } from "../../ui/Crumbs";
@@ -13,6 +15,7 @@ import css from "./ReaderCrumbs.module.css";
 // up is the folder u opens now (the one it's kept in; with one open, the
 // one above): its crumb says the key.
 export function ReaderCrumbs({ from, on, title, open, up, toggle, nav }: { from: { to: string; label: string }; on: Shelf[]; title: string; open?: string; up?: string; toggle: (id: string) => void; nav?: RefObject<HTMLElement | null> }) {
+  const map = useKeymap();
   return (
     <Crumbs className={css.path} ref={nav}>
       <Link to={from.to} className={css.crumb}>
@@ -27,7 +30,7 @@ export function ReaderCrumbs({ from, on, title, open, up, toggle, nav }: { from:
             data-folder-crumb={s.id}
             aria-haspopup="dialog"
             aria-expanded={open === s.id}
-            {...keyProps(s.id === up ? "u" : undefined, `Browse ${s.name}`, () => toggle(s.id))}
+            {...keyProps(s.id === up ? keyOf(docKeys.up, map) : undefined, `Browse ${s.name}`, () => toggle(s.id))}
           >
             {s.label}
             <Icon name="chevron-down" size={11} />

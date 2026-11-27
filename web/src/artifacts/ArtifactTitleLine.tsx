@@ -1,3 +1,4 @@
+import { type KeyLike, saidOf } from "../keymap/keymap";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Copyable } from "../ui/Copyable";
@@ -7,7 +8,7 @@ import css from "./ArtifactTitleLine.module.css";
 
 type ArtifactTitleLineProps = {
   // The way back: where to, and what it's called.
-  back: { to: string; label: string };
+  back: { to: string; label: string; keys?: KeyLike };
   title: ReactNode;
   // What's beside the title: where it stands, then at the line's end an
   // ArtifactTitleRef and the page's Pin.
@@ -19,7 +20,7 @@ type ArtifactTitleLineProps = {
 export function ArtifactTitleLine({ back, title, children }: ArtifactTitleLineProps) {
   return (
     <div className={css.line}>
-      <Link to={back.to} aria-label={back.label} {...keyProps("esc", back.label)}>
+      <Link to={back.to} aria-label={back.label} {...keyProps(saidOf(back.keys ?? "esc"), back.label)}>
         <Icon name="arrow-left" size={14} />
       </Link>
       <h1>{title}</h1>

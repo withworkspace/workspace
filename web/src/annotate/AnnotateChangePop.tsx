@@ -1,3 +1,4 @@
+import { annotateKeys } from "./keys";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import css from "./AnnotateChangePop.module.css";
@@ -13,7 +14,7 @@ export function AnnotateChangePop({ top, old, added, onClose }: { top: number; o
       <div className={css.head}>
         <Text dim>{text ? "When you last commented, this read:" : "Added since you last commented."}</Text>
         <span className={css.spacer} />
-        <Button variant="ghost" size="small" square onClick={onClose} title="Close" keys="esc" aria-label="Close">
+        <Button variant="ghost" size="small" square onClick={onClose} title="Close" keys={annotateKeys.back} aria-label="Close">
           <Icon name="x" size={12} />
         </Button>
       </div>

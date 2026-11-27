@@ -1,3 +1,4 @@
+import { docKeys } from "../keys";
 import { useRef } from "react";
 import { Button } from "../../ui/Button";
 import { cx } from "../../ui/cx";
@@ -37,7 +38,7 @@ export function ReaderContents({ title, sections, at, anchor, go, copy, close }:
         )}
       </nav>
       <div className={css.foot}>
-        <Keys k="t" /> or <Keys k="esc" /> to close
+        <Keys k={docKeys.contents} /> or <Keys k="esc" /> to close
       </div>
     </div>
   );

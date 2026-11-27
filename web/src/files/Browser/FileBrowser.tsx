@@ -1,7 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { type FileTree, getTree, pageOpenTo, type TreeFile } from "../../api";
-import { useKeys, useOwnCodeSearch } from "../../keys";
+import { useOwnCodeSearch } from "../../keys";
+import type { Command } from "../../keymap/commands";
+import { useCommands } from "../../keymap/useCommands";
+import { filesKeys } from "../keys";
 import { useHighlighter } from "../../review/highlight";
 import { Button } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
@@ -70,11 +73,14 @@ export interface BrowserProps {
   // capsule's): it takes ⌘⇧F from Find.
   search?: { repo: string; worktree: string };
   onEscape: () => void;
+  // escape is what esc says it does, onEscape: closing the file (the
+  // Files page's), unless it's given another (filesKeys.backToMission).
+  escape?: Command;
   // empty is what's said of it with no files.
   empty: string;
 }
 
-export function FileBrowser({ api, label, head, aside, tabs, other, before, updated, reviewTo, docOf, search, onEscape, empty }: BrowserProps) {
+export function FileBrowser({ api, label, head, aside, tabs, other, before, updated, reviewTo, docOf, search, onEscape, escape = filesKeys.close, empty }: BrowserProps) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const path = params.get("path") ?? "";
@@ -212,48 +218,43 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
     if (!rendersAt(location.hash)) setPreview(false);
   }, [location.hash, path]);
   // Another tab picked: the tree's keys aren't the page's.
-  const treeKeys = {
-    t: () => setFinder(true),
-    "mod+p": () => setFinder(true),
-    j: press("ArrowDown"),
-    ArrowDown: press("ArrowDown"),
-    k: press("ArrowUp"),
-    ArrowUp: press("ArrowUp"),
-    Enter: enter,
-    o: press("Enter"),
-    l: press("ArrowRight"),
-    ArrowRight: press("ArrowRight"),
-    h: press("ArrowLeft"),
-    ArrowLeft: press("ArrowLeft"),
-    c: () => setChangedOnly(!changedOnly),
-    "[": () => stepChanged(-1),
-    "]": () => stepChanged(1),
-    m: () => setPreview((p) => !p),
-    v: () => reviewTo && navigate(reviewTo),
-    y: () => path && navigator.clipboard?.writeText(path).then(() => toast(`Copied ${path}`)),
-    p: () => {
-      if (narrow) return;
-      const next = (shown === 1 ? most : shown - 1) as Panes;
-      setPanes(next);
-      toast(paneWords[next].label, { ms: 1200 });
-    },
-    r: () => {
+  // On another tab (other), the tree's keys aren't the page's.
+  const onTree = !other;
+  useCommands(filesKeys, {
+    find: onTree && (() => setFinder(true)),
+    next: onTree && press("ArrowDown"),
+    prev: onTree && press("ArrowUp"),
+    enter: onTree && enter,
+    open: onTree && press("Enter"),
+    openFolder: onTree && press("ArrowRight"),
+    closeFolder: onTree && press("ArrowLeft"),
+    changed: onTree && (() => setChangedOnly(!changedOnly)),
+    prevChanged: onTree && (() => stepChanged(-1)),
+    nextChanged: onTree && (() => stepChanged(1)),
+    markdown: onTree && (() => setPreview((p) => !p)),
+    review: onTree && (() => reviewTo && navigate(reviewTo)),
+    copyPath: onTree && (() => path && navigator.clipboard?.writeText(path).then(() => toast(`Copied ${path}`))),
+    // On another tab, p shows or folds away the repos beside it.
+    panes: other
+      ? () => {
+          if (narrow || !before) return;
+          const next: Panes = shown === 3 ? 2 : 3;
+          setPanes(next);
+          toast(otherWords[next]!.label, { ms: 1200 });
+        }
+      : () => {
+          if (narrow) return;
+          const next = (shown === 1 ? most : shown - 1) as Panes;
+          setPanes(next);
+          toast(paneWords[next].label, { ms: 1200 });
+        },
+    reload: onTree && (() => {
       loadTree();
       setReload((n) => n + 1);
-    },
-    Escape: onEscape,
-  };
-  // On another tab, p shows or folds away the repos beside it.
-  const otherKeys = {
-    Escape: onEscape,
-    p: () => {
-      if (narrow || !before) return;
-      const next: Panes = shown === 3 ? 2 : 3;
-      setPanes(next);
-      toast(otherWords[next]!.label, { ms: 1200 });
-    },
-  };
-  useKeys(other ? otherKeys : treeKeys);
+    }),
+    close: escape === filesKeys.close && onEscape,
+    backToMission: escape === filesKeys.backToMission && onEscape,
+  });
 
   // A folder asked for (a document's link to one): its README, as GitHub
   // shows a folder, or the folder itself, open in the tree.
@@ -283,7 +284,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
       <FilesExplorer before={before}>
         {top}
         <div className="page narrow">
-          <ErrorCard title="Could not load files" error={error} retry={loadTree} keys="r" />
+          <ErrorCard title="Could not load files" error={error} retry={loadTree} keys={filesKeys.reload} />
         </div>
       </FilesExplorer>
     );

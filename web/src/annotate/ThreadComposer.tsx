@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { threadKinds, type ThreadKind } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { annotateKeys } from "./keys";
 import { sendKeys, useSendKey } from "../ui/sendKey";
 import { clip } from "../ui/strings";
 import { AnnotateComposer } from "./AnnotateComposer";
@@ -20,7 +21,7 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
   const sendKey = useSendKey();
   // While writing, the page's keys are off: these are the composer's. (Its
   // slot is see-through, not hidden, until it's placed: focus needs that.)
-  useKeys({}, { modal: true });
+  useCommands(annotateKeys, {}, { modal: true });
   useEffect(() => {
     area.current?.focus({ preventScroll: true });
   }, []);

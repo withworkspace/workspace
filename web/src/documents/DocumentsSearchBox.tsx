@@ -1,3 +1,5 @@
+import { documentsKeys, spaceKeys } from "./keys";
+import { useSaid } from "../keymap/keymap";
 import type { RefObject } from "react";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
@@ -20,11 +22,13 @@ type DocumentsSearchBoxProps = {
 // DocumentsSearchBox is where a search of the documents is typed: what
 // it finds as words, or the key that comes to it (/) while it's empty.
 export function DocumentsSearchBox({ inputRef, q, setQ, placeholder, label, onKey, found, space }: DocumentsSearchBoxProps) {
+  const said = useSaid(space ? spaceKeys.search : documentsKeys.search);
+  const key = said && <Keys k={said} />;
   return (
     <label className={cx(css.box, space && css.space)}>
       <Icon name="search" size={14} className={textClass("dim")} />
       <Input ref={inputRef} value={q} placeholder={placeholder} aria-label={label} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} />
-      {found === undefined ? !q && <Keys k="/" /> : q.trim() ? <Text dim className={css.count}>{found}</Text> : <Keys k="/" />}
+      {found === undefined ? !q && key : q.trim() ? <Text dim className={css.count}>{found}</Text> : key}
     </label>
   );
 }

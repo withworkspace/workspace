@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { docTo, getSpace, getSpaceActivity, pageAddress, type SpaceDoc, type SpaceKind } from "../api";
-import { useKeys, useShortcut } from "../keys";
+import { keyOf, useKeymap } from "../keymap/keymap";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { spaceKeys } from "./keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
 import { Banner } from "../ui/Banner";
@@ -137,17 +139,15 @@ export function SpacePage() {
   };
   const open = () => order[index] && navigate(order[index].to);
   const back = () => (q ? setQ("") : navigate("/documents"));
-  useKeys({
-    j: () => move(index + 1),
-    ArrowDown: () => move(index + 1),
-    k: () => move(index - 1),
-    ArrowUp: () => move(index - 1),
-    Enter: open,
-    o: open,
-    "/": () => search.current?.focus(),
-    Escape: back,
+  useCommands(spaceKeys, {
+    next: () => move(index + 1),
+    prev: () => move(index - 1),
+    open,
+    search: () => search.current?.focus(),
+    back,
   });
-  const newHere = useShortcut("n", () => setAsKind(true));
+  const newHere = useCommand(spaceKeys.newHere, () => setAsKind(true));
+  const newKey = keyOf(spaceKeys.newHere, useKeymap());
   const searchKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const go: Record<string, () => void> = {
       ArrowDown: () => move(index + 1),
@@ -295,7 +295,7 @@ export function SpacePage() {
             disabled={starting || !space.cloned}
             title={library.length ? `New page from one of ${space.label}'s document kinds` : `New page in a ${space.label} folder`}
           >
-          <Icon name="plus" /> New <Keys k="n" />
+          <Icon name="plus" /> New {newKey && <Keys k={newKey} />}
         </Button>
       }
     />
