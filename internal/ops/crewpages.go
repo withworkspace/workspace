@@ -12,7 +12,6 @@ import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/harness"
-	"github.com/withworkspace/workspace/internal/images"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/pulls"
@@ -227,8 +226,6 @@ func (p crewPages) Paste(slug, id, text string) error {
 	if !ok {
 		return errNotHere
 	}
-	// Pictures you pasted are files they read: they're told which.
-	text += images.Note(images.In(images.Dir(p.w.Root()), text))
 	return runs.Paste(slug+"/"+id, text)
 }
 

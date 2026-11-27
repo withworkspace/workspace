@@ -249,7 +249,7 @@ func RunACP(ctx context.Context, r ACPRun, out, errOut io.Writer) error {
 		mu.Unlock()
 		blocks := []acp.ContentBlock{acp.Text(prompt)}
 		if carried == 0 {
-			blocks = append(blocks, imageBlocks(ag.Client().Info, r.Images)...)
+			blocks = append(blocks, ImageBlocks(ag.Client().Info, r.Images)...)
 		}
 		turn, err := ag.Prompt(ctx, blocks...)
 		if ctx.Err() != nil {
@@ -911,10 +911,10 @@ func firstNonEmptyString(s ...string) string {
 	return ""
 }
 
-// imageBlocks are the pictures as ACP's image blocks, where the agent
+// ImageBlocks are the pictures as ACP's image blocks, where the agent
 // said it takes them (promptCapabilities.image): none where it didn't, or
 // for a picture that can't be read now (the prompt names each as a file).
-func imageBlocks(info acp.AgentInfo, imgs []Image) []acp.ContentBlock {
+func ImageBlocks(info acp.AgentInfo, imgs []Image) []acp.ContentBlock {
 	if !info.AgentCapabilities.PromptCapabilities.Image {
 		return nil
 	}

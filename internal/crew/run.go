@@ -112,6 +112,7 @@ func (r TermRun) Spec() Spec { return r.S }
 // Say pastes text in and submits it, as you'd type it in its terminal (the
 // end of its turn is then yours).
 func (r TermRun) Say(text string) (string, error) {
+	text, _ = withPictures(r.Root, text)
 	r.T.Paste(text)
 	time.Sleep(settle)
 	r.T.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
@@ -264,7 +265,9 @@ func (r AgentRun) Spec() Spec { return r.S }
 
 func (r AgentRun) Say(text string) (string, error) {
 	busy := r.Agent.State().Working
-	if err := r.Agent.Send(acp.Text(text)); err != nil {
+	text, pics := withPictures(r.Root, text)
+	blocks := append([]acp.ContentBlock{acp.Text(text)}, harness.ImageBlocks(r.Agent.Client().Info, pics)...)
+	if err := r.Agent.Send(blocks...); err != nil {
 		return "", err
 	}
 	execlog.Note(r.Root, "crew "+r.S.Key(), "sent (%d chars):\n%s", len(text), text)
