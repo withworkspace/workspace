@@ -72,7 +72,7 @@ func TestEditLocalKeepsTheFile(t *testing.T) {
 			strings.Replace(handWritten, "\n# Agents I use here.\n[crew]\n  harness = \"claude\"   # Claude Code for now\n  model = \"opus\"\n", "\n# Agents I use here.\n", 1)},
 		{"an array over lines replaced whole", func(l *LocalConfig) { l.Boarded["api"] = []string{"feat"} },
 			strings.Replace(handWritten, "  api = [\n    \"feat\",\n    \"fix\",\n  ]\n", "  api = [\"feat\"]\n", 1)},
-		{"a table in the middle emptied: one blank line left between its neighbours", func(l *LocalConfig) { l.Conversation = AgentConfig{} },
+		{"a table in the middle emptied: one blank line left between its neighbours", func(l *LocalConfig) { l.Conversation = ConversationConfig{} },
 			strings.Replace(handWritten, "[conversation]\n  # Codex, to try it.\n  harness = \"codex\"\n\n", "[conversation]\n  # Codex, to try it.\n\n", 1)},
 		{"a table that loses a key as it gains one stays put", func(l *LocalConfig) { l.Crew.Model = ""; l.Crew.In = "web" },
 			strings.Replace(handWritten, "  model = \"opus\"\n", "  in = \"web\"\n", 1)},

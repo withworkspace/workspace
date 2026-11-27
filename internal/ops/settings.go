@@ -426,6 +426,8 @@ func settingDefs(root string) []struct {
 					func(c *config.Config) *string { return &c.Orchestrator.Dispatch },
 					func(l *config.LocalConfig) *string { return &l.Orchestrator.Dispatch }),
 				maxDispatchesSetting())
+		case "conversation":
+			defs = append(defs, turnMinutesSetting())
 		case "team":
 			defs = append(defs,
 				boolSetting("team", "narrative", "Gists", "Whether an agent writes a gist of each change, and what's worth knowing of it. Off, the page is the facts alone.", true,
@@ -886,6 +888,34 @@ func maxRoundsSetting() settingDef {
 				return errors.New("a whole number from 1 to 20")
 			}
 			l.Missions.MaxRounds = int(f)
+			return nil
+		},
+	}
+}
+
+func turnMinutesSetting() settingDef {
+	get := func(n int) any {
+		if n == 0 {
+			return nil
+		}
+		return n
+	}
+	return settingDef{
+		section: "conversation", key: "turn_minutes", label: "Turn limit (minutes)", kind: "number",
+		about: "How long a turn that runs things (tests, builds, resolving conflicts) can take before it stops.",
+		team:  func(c *config.Config) any { return get(c.Conversation.TurnMinutes) },
+		yours: func(l *config.LocalConfig) any { return get(l.Conversation.TurnMinutes) },
+		def:   func(config.Config) any { return config.DefaultConversationTurnMinutes },
+		set: func(l *config.LocalConfig, v any) error {
+			if v == nil {
+				l.Conversation.TurnMinutes = 0
+				return nil
+			}
+			f, ok := v.(float64)
+			if !ok || f != float64(int(f)) || f < 5 || f > config.MaxConversationTurnMinutes {
+				return fmt.Errorf("a whole number from 5 to %d", config.MaxConversationTurnMinutes)
+			}
+			l.Conversation.TurnMinutes = int(f)
 			return nil
 		},
 	}

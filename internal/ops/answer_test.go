@@ -321,3 +321,12 @@ func TestAnswerConversation(t *testing.T) {
 		t.Errorf("no agent: %+v", turn)
 	}
 }
+
+// A run marked as answering is taken for stuck only after the longest a
+// turn can be given, so a long turn isn't answered over while it runs.
+func TestAnswerForOutlastsTurns(t *testing.T) {
+	longest := config.ConversationConfig{TurnMinutes: config.MaxConversationTurnMinutes}.TurnFor()
+	if conversation.AnswerFor <= longest || conversation.AnswerFor <= TurnFor {
+		t.Errorf("answering counts as underway for %v, but a turn may take %v", conversation.AnswerFor, longest)
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -1797,5 +1798,28 @@ command = "sleep 300"
 	slices.Sort(got)
 	if !slices.Equal(got, want) {
 		t.Errorf("unread:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// [conversation] turn_minutes is how long a turn that runs things may
+// take: 60 unset, ws.local.toml's over ws.toml's, never past the most.
+func TestConversationTurnFor(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, FileName), []byte("[workspace]\norg = \"acme\"\n"), 0o644)
+	cfg, _, err := Load(root)
+	if err != nil || cfg.Conversation.TurnFor() != time.Hour {
+		t.Fatalf("unset: %v, %v", cfg.Conversation.TurnFor(), err)
+	}
+	os.WriteFile(filepath.Join(root, FileName), []byte("[workspace]\norg = \"acme\"\n[conversation]\nharness = \"claude\"\nturn_minutes = 30\n"), 0o644)
+	if cfg, _, _ = Load(root); cfg.Conversation.TurnFor() != 30*time.Minute || cfg.Conversation.Harness != "claude" {
+		t.Errorf("team's: %v %+v", cfg.Conversation.TurnFor(), cfg.Conversation)
+	}
+	os.WriteFile(filepath.Join(root, LocalFileName), []byte("[conversation]\nturn_minutes = 90\n"), 0o644)
+	if cfg, _, _ = Load(root); cfg.Conversation.TurnFor() != 90*time.Minute || cfg.Conversation.Harness != "claude" || len(cfg.Unknown) != 0 {
+		t.Errorf("yours: %v %+v %v", cfg.Conversation.TurnFor(), cfg.Conversation, cfg.Unknown)
+	}
+	os.WriteFile(filepath.Join(root, LocalFileName), []byte("[conversation]\nturn_minutes = 100000\n"), 0o644)
+	if cfg, _, _ = Load(root); cfg.Conversation.TurnFor() != MaxConversationTurnMinutes*time.Minute {
+		t.Errorf("past the most: %v", cfg.Conversation.TurnFor())
 	}
 }

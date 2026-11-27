@@ -24,8 +24,9 @@ type Config struct {
 	Crew         CrewConfig             `toml:"crew"`
 	Briefing     AgentConfig            `toml:"briefing"`
 	Orchestrator OrchestratorConfig     `toml:"orchestrator"`
-	// Conversation is the agent that answers threads on documents.
-	Conversation AgentConfig `toml:"conversation"`
+	// Conversation is the agent that answers conversations, document
+	// threads, cells and passes, and how long a turn of it may take.
+	Conversation ConversationConfig `toml:"conversation"`
 	// Judge is the agent that judges a Work step's checks in words, with
 	// fresh context: unset, the planner's (briefing's) agent, on its small
 	// model.
@@ -89,7 +90,7 @@ type LocalConfig struct {
 	Crew         CrewConfig             `toml:"crew,omitempty"`
 	Briefing     AgentConfig            `toml:"briefing,omitempty"`
 	Orchestrator OrchestratorConfig     `toml:"orchestrator,omitempty"`
-	Conversation AgentConfig            `toml:"conversation,omitempty"`
+	Conversation ConversationConfig     `toml:"conversation,omitempty"`
 	Judge        AgentConfig            `toml:"judge,omitempty"`
 	PRWriter     PRWriterConfig         `toml:"pr_writer,omitempty"`
 	Automations  AutomationsConfig      `toml:"automations,omitempty"`
@@ -585,6 +586,43 @@ func (c *AgentConfig) merge(local AgentConfig) {
 	}
 	if local.Model != "" {
 		c.Model = local.Model
+	}
+}
+
+// ConversationConfig is [conversation]: the agent answering
+// conversations, and how long one of its turns that runs things may take.
+type ConversationConfig struct {
+	AgentConfig
+	// TurnMinutes is how long a turn whose shell runs things (tests, a
+	// build, a conflict resolved) may take, in minutes, before ws stops it
+	// and says it couldn't answer. 0 is the default
+	// (DefaultConversationTurnMinutes); at most MaxConversationTurnMinutes.
+	TurnMinutes int `toml:"turn_minutes,omitempty"`
+}
+
+// DefaultConversationTurnMinutes is how long a conversation's turn that
+// runs things may take, unless configured.
+const DefaultConversationTurnMinutes = 60
+
+// MaxConversationTurnMinutes is the most a conversation's turn may be
+// given: past it, a run marked as answering is taken for stuck.
+const MaxConversationTurnMinutes = 240
+
+// TurnFor is how long a conversation's turn that runs things may take.
+func (c ConversationConfig) TurnFor() time.Duration {
+	n := c.TurnMinutes
+	if n <= 0 {
+		n = DefaultConversationTurnMinutes
+	}
+	n = min(n, MaxConversationTurnMinutes)
+	return time.Duration(n) * time.Minute
+}
+
+// merge overrides c with whatever local sets.
+func (c *ConversationConfig) merge(local ConversationConfig) {
+	c.AgentConfig.merge(local.AgentConfig)
+	if local.TurnMinutes != 0 {
+		c.TurnMinutes = local.TurnMinutes
 	}
 }
 

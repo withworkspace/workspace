@@ -40,7 +40,7 @@ const info = (extra: SettingsGroup[] = []): SettingsInfo => ({
         ],
       }),
     ]),
-    role("conversation", "Conversations"),
+    role("conversation", "Conversations", [setting("conversation", "turn_minutes", "number", { label: "Turn limit (minutes)", default: 60 })]),
     role("team", "Team", [setting("team", "narrative", "bool", { label: "Gists" })]),
     {
       id: "missions",
@@ -73,10 +73,11 @@ describe("sectionsOf", () => {
     ]);
   });
 
-  it("puts every role's agent and model in the one table, and what else crew's table sets beside it", () => {
+  it("puts every role's agent and model in the one table, and what else crew's and conversations' tables set beside it", () => {
     expect(rowsOf("agents")).toEqual([
       ["roles", ["[crew] harness", "[crew] model", "[briefing] harness", "[briefing] model", "[orchestrator] harness", "[orchestrator] model", "[conversation] harness", "[conversation] model", "[team] harness", "[team] model"]],
       ["crew", ["[crew] allowed"]],
+      ["conversation", ["[conversation] turn_minutes"]],
     ]);
     const roles = sectionsOf(info()).find((s) => s.id === "agents")!.blocks[0].roles;
     expect(roles?.map((g) => g.id)).toEqual(["crew", "briefing", "orchestrator", "conversation", "team"]);

@@ -34,11 +34,9 @@ import (
 
 // TurnFor is how long one turn of a conversation's agent may take; one
 // whose shell is sandboxed runs things as well as reading (a test suite, a
-// build), and may take TurnForRunning.
-const (
-	TurnFor        = 5 * time.Minute
-	TurnForRunning = 20 * time.Minute
-)
+// build, a conflict resolved), and may take [conversation] turn_minutes
+// (config.ConversationConfig.TurnFor).
+const TurnFor = 5 * time.Minute
 
 // answering is a conversation being answered: where it is, by which agent,
 // and, turn by turn, the conversation as it stands and what the turn is
@@ -748,7 +746,7 @@ func (w *Workspace) runConverse(store conversation.Store, id string, h harness.C
 	who := "conversation " + firstNonEmpty(store.Slug, "workspace") + "/" + id
 	limit := TurnFor
 	if r.Sandbox {
-		limit = TurnForRunning
+		limit = w.Config().Conversation.TurnFor()
 	}
 	return RunHeadless(w.life(), w.Root(), who, spend.For{Mission: store.Slug, Kind: spend.Talk, Subject: id}, env, store.RunPath(id), limit, h, r)
 }

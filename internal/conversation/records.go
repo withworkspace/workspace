@@ -521,7 +521,7 @@ func (s Store) next(tx *store.Tx) (int, error) {
 // answeringNow is whether a run marked as answering (by its process, since
 // a time) is live and recent.
 func answeringNow(pid int, since string) bool {
-	if pid <= 0 || time.Since(timeOf(since)) > answerFor {
+	if pid <= 0 || time.Since(timeOf(since)) > AnswerFor {
 		return false
 	}
 	return syscall.Kill(pid, 0) == nil

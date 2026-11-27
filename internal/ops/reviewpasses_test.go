@@ -199,7 +199,7 @@ func TestCapsulePass(t *testing.T) {
 
 	var asked []string
 	w := New(&config.Config{
-		Conversation: config.AgentConfig{Harness: "claude"},
+		Conversation: config.ConversationConfig{AgentConfig: config.AgentConfig{Harness: "claude"}},
 		Reviews: config.ReviewsConfig{Passes: map[string]config.ReviewPassConfig{
 			"check": {Looks: "Find what's wrong."},
 			"quick": {Looks: "Anything odd.", Cold: true},
