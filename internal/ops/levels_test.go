@@ -98,3 +98,49 @@ func TestSetStepLevel(t *testing.T) {
 		t.Error("a Review step was given a level")
 	}
 }
+
+// Settings has a row for each level, under crew: unset, each says what it
+// falls back to; set, it's written to ws.local.toml as [crew.levels].
+func TestLevelSettings(t *testing.T) {
+	w, _ := fixture(t, "")
+	root := w.Root()
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte("[workspace]\norg = \"acme\"\n\n[crew]\nharness = \"claude\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WS_DECK_HARNESS", "")
+	level := func(info SettingsInfo, key string) (Setting, bool) {
+		for _, g := range info.Groups {
+			for _, s := range g.Settings {
+				if s.Section == "crew.levels" && s.Key == key {
+					return s, true
+				}
+			}
+		}
+		return Setting{}, false
+	}
+	info, err := w.Settings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]any{"rote": "haiku", "normal": nil, "hard": nil} {
+		s, ok := level(info, key)
+		if !ok || s.Kind != "level" || s.Source != "default" || s.Value != want || s.Harness != "claude" {
+			t.Errorf("%s = %+v (ok %v), want default %v", key, s, ok, want)
+		}
+	}
+
+	info, err = w.SetSettings([]SettingChange{{Section: "crew.levels", Key: "hard", Value: "opus"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := level(info, "hard"); s.Source != "yours" || s.Value != "opus" {
+		t.Errorf("hard, set = %+v", s)
+	}
+	data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml"))
+	if !strings.Contains(string(data), "[crew.levels]") || !strings.Contains(string(data), `hard = "opus"`) {
+		t.Errorf("ws.local.toml:\n%s", data)
+	}
+	if _, err := w.SetSettings([]SettingChange{{Section: "crew.levels", Key: "rote", Value: "two words"}}); err == nil {
+		t.Error("a model with a space was taken")
+	}
+}

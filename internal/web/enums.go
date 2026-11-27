@@ -117,8 +117,10 @@ const (
 )
 
 // SettingKind is what kind of value a setting takes, which says how the
-// Settings page edits it: picks, a list of harness:model; color, #rrggbb;
-// places, the sidebar's, by id; tint, a whole number from 0 to 100.
+// Settings page edits it: picks, a list of harness:model; level, a model
+// for a level of crew's Work steps (on crew's harness, or harness:model);
+// color, #rrggbb; places, the sidebar's, by id; tint, a whole number from
+// 0 to 100.
 type SettingKind string
 
 const (
@@ -129,6 +131,7 @@ const (
 	KindNumber  SettingKind = "number"
 	KindText    SettingKind = "text"
 	KindPicks   SettingKind = "picks"
+	KindLevel   SettingKind = "level"
 	KindColor   SettingKind = "color"
 	KindPlaces  SettingKind = "places"
 	KindTint    SettingKind = "tint"

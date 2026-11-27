@@ -5350,7 +5350,7 @@ export interface SettingChoice {
 }
 
 // From web/enums.go
-export type SettingKind = "bool" | "choice" | "color" | "harness" | "model" | "number" | "picks" | "places" | "text" | "tint";
+export type SettingKind = "bool" | "choice" | "color" | "harness" | "level" | "model" | "number" | "picks" | "places" | "text" | "tint";
 
 // From web/enums.go
 export type SettingSource = "default" | "team" | "yours";

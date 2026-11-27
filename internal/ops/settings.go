@@ -411,6 +411,7 @@ func settingDefs(root string) []struct {
 		switch r.id {
 		case "crew":
 			defs = append(defs, allowedSetting())
+			defs = append(defs, levelSettings()...)
 		case "briefing":
 			defs = append(defs, choiceSetting("briefing", "in", "Where", "Where a mission's briefing happens.", "web",
 				[]SettingChoice{{Value: "web", Label: "In a conversation in the web UI"}, {Value: "terminal", Label: "By a briefing agent in a terminal"}},
@@ -835,6 +836,60 @@ func allowedSetting() settingDef {
 			return nil
 		},
 	}
+}
+
+// levelSettings are [crew.levels]: what crew run on at each level of a
+// plan's Work step, a row each. Unset, each says what it falls back to
+// (rote, crew's harness's small model; normal and hard, crew's own).
+func levelSettings() []settingDef {
+	rows := []struct{ level, label, about string }{
+		{"rote", "Rote steps", "Mechanical Work steps with a command check: a rename, a version bump, snapshots made again. Unmet, ws starts them again a level up. Unset, crew's agent's small model."},
+		{"normal", "Normal steps", "Work steps the plan gives no level. Unset, crew's own model."},
+		{"hard", "Hard steps", "Work steps that need the most thought: finding a cause, a design call, a change across repos. Unset, crew's own model."},
+	}
+	field := func(l *config.CrewLevels, level string) *string {
+		switch level {
+		case "rote":
+			return &l.Rote
+		case "normal":
+			return &l.Normal
+		}
+		return &l.Hard
+	}
+	out := make([]settingDef, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, settingDef{
+			section: "crew.levels", key: r.level, label: r.label, kind: "level", about: r.about,
+			team:  func(c *config.Config) any { return strOrNil(*field(&c.Crew.Levels, r.level)) },
+			yours: func(l *config.LocalConfig) any { return strOrNil(*field(&l.Crew.Levels, r.level)) },
+			def: func(c config.Config) any {
+				*field(&c.Crew.Levels, r.level) = ""
+				p := Roles(&c).ForLevel(r.level)
+				if p.Harness != Roles(&c).ForCrew().Harness {
+					return p.String()
+				}
+				return strOrNil(p.Model)
+			},
+			set: func(l *config.LocalConfig, v any) error {
+				f := field(&l.Crew.Levels, r.level)
+				if v == nil {
+					*f = ""
+					return nil
+				}
+				s, err := settingText(v, 200)
+				if err != nil {
+					return err
+				}
+				if strings.ContainsAny(s, " \t") {
+					return errors.New("a model (haiku), or harness:model (claude:haiku)")
+				}
+				*f = s
+				return nil
+			},
+			harness: func(c *config.Config) string { return Roles(c).ForCrew().Harness },
+		})
+	}
+	return out
 }
 
 func maxDispatchesSetting() settingDef {

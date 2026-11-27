@@ -24,6 +24,8 @@ export function Control(p: ControlProps) {
     case "bool":
       return <Switch on={s.value === true} onChange={(on) => void set(on)} aria-label={s.label} />;
     case "model":
+    case "level":
+      // A level's model is on crew's harness, picked as a role's is.
       return <ModelInput {...p} />;
     case "picks":
       return <Picks {...p} />;
