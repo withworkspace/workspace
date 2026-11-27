@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/testgit"
 )
@@ -43,6 +44,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("this test binary was run as ws, by", os.Args[1:])
 		os.Exit(2)
 	}
+	mission.ClearCrewEnv()
 	cleanup := testgit.NoSigning()
 	code := m.Run()
 	cleanup()

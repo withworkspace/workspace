@@ -15,6 +15,7 @@
 package mission
 
 import (
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -29,6 +30,16 @@ const (
 	// RoleOrchestrator.
 	EnvRole = "WS_ROLE"
 )
+
+// ClearCrewEnv unsets what ws sets for crew (WS_MISSION, WS_CREW, WS_ROLE,
+// WS_RUN), for a test binary: tests run by crew would otherwise act as
+// that crew, on that mission, and read the workspace it runs in. Every
+// TestMain of a package whose code reads them calls it.
+func ClearCrewEnv() {
+	for _, k := range []string{EnvMission, EnvCrew, EnvRole, EnvRun} {
+		os.Unsetenv(k)
+	}
+}
 
 // RoleOrchestrator is WS_ROLE for the orchestrator, which decides what
 // happens next on a mission.
