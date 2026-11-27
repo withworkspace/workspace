@@ -48,6 +48,8 @@ type Roles struct {
 	Judge Pick
 	// PRWriter is who writes the pull requests ws opens, from [pr_writer].
 	PRWriter Pick
+	// Automation is who answers an automation's ask, from [automations].
+	Automation Pick
 	// CrewAllowed are the other picks crew may be launched on from a
 	// mission's page ([crew] allowed); a pick with no model takes the
 	// one ForCrew gives its harness, if any.
@@ -241,6 +243,23 @@ func (r Roles) ForPRWriter() (Pick, Converser, error) {
 		name = p.Harness
 	}
 	return pickOn(name, r.PRWriter.Model, orchestratorModel)
+}
+
+// ForAutomation picks who answers an automation's ask: one turn, no
+// tools, fresh context. [automations] harness, else conversations'
+// (ForConversation). The model is [automations] model, else the
+// harness's small one (smallModel): an ask is a short question with its
+// facts given, as a judge's is, and each spends from a daily budget.
+func (r Roles) ForAutomation() (Pick, Converser, error) {
+	name := r.Automation.Harness
+	if name == "" {
+		p, _, err := r.ForConversation()
+		if err != nil {
+			return Pick{}, nil, err
+		}
+		name = p.Harness
+	}
+	return pickOn(name, r.Automation.Model, smallModel)
 }
 
 // pickOn is the named harness, on model, else on the one dflt gives it.

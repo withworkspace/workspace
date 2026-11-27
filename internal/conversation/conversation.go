@@ -683,7 +683,12 @@ func (c *Conversation) WaitingOnYou() bool {
 	if c.Sent != nil && c.Sent.Finished {
 		return true
 	}
-	if len(c.Turns) <= 1 || last.By == You || last.Asks {
+	if last.By == You || last.Asks {
+		return false
+	}
+	// One that's only begun isn't, but for one ws began with something
+	// for you to accept (an automation's proposal).
+	if len(c.Turns) <= 1 && (last.By != WS || len(c.Open()) == 0) {
 		return false
 	}
 	// What the agent's latest reply proposed, all settled since (a

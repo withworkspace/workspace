@@ -12,6 +12,10 @@ export function stepLook(kind: string): { icon: IconName; words: string } {
       return { icon: "bell", words: "Notify you" };
     case "converse":
       return { icon: "message", words: "Start a conversation" };
+    case "ask":
+      return { icon: "sparkle", words: "Ask an agent" };
+    case "propose":
+      return { icon: "inbox", words: "Propose" };
     case "wait":
       return { icon: "clock", words: "Wait for" };
     case "read":
@@ -67,10 +71,18 @@ export function countWords(kind: string, c: AutomationStepCount | undefined, dry
           ? dry
             ? "would run"
             : "asked for"
-          : kind === "read"
-            ? "read"
-            : "done";
-  const said = dry && (kind === "notify" || kind === "converse" || kind === "run") ? (n: number) => `${verb} ${n}×` : (n: number) => `${n} ${verb}`;
+          : kind === "ask"
+            ? dry
+              ? "would ask"
+              : "answered"
+            : kind === "propose"
+              ? dry
+                ? "would propose"
+                : "proposed"
+              : kind === "read"
+                ? "read"
+                : "done";
+  const said = dry && ["notify", "converse", "run", "ask", "propose"].includes(kind) ? (n: number) => `${verb} ${n}×` : (n: number) => `${n} ${verb}`;
   return [
     done ? said(done) : "",
     c.met ? `${c.met} met` : "",

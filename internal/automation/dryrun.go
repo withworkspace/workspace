@@ -168,8 +168,15 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 				h := did.tasks[id]
 				return Task{ID: id, Repo: h.repo, Recipe: h.recipe, State: TaskEnded, Status: "unknown: a dry run runs nothing"}, true
 			}
+			if w.waitsOnYou() {
+				// What you'd say to what it proposed isn't for a dry run to
+				// guess.
+				line.Waited = append(line.Waited, "would wait for you to accept or decline what it proposed")
+				out.Waiting++
+				break
+			}
 			notOurs := func(later events.Event) bool { return later.By == events.ByWorkflow(a.Name) }
-			result, done := waitCame(w, list, e.now(), notOurs, dryTask)
+			result, done := waitCame(w, list, e.now(), notOurs, lookups{task: dryTask})
 			if !done {
 				line.Waited = append(line.Waited, "would be waiting still, for "+waitSaid(w, did.tasks))
 				out.Waiting++
@@ -290,10 +297,15 @@ func waitSaid(w waitFor, tasks map[int64]taskHandle) string {
 	}
 	var parts []string
 	for _, it := range w.Items {
-		if it.Task != 0 {
+		switch {
+		case it.Task != 0:
 			h := tasks[it.Task]
 			parts = append(parts, h.recipe+" on "+h.repo)
-		} else {
+		case it.Proposal != "":
+			parts = append(parts, "your answer to "+it.Proposal)
+		case it.Ask != 0:
+			parts = append(parts, "an agent's answer")
+		default:
 			parts = append(parts, it.Match)
 		}
 	}

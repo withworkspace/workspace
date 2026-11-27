@@ -43,8 +43,10 @@ func (w *Workspace) tellAgent(store conversation.Store, slug, id string, n int, 
 			return // told already, settling it at once from two places
 		}
 	}
+	// What ws proposed (an automation's propose) has no agent to tell: the
+	// turn's there for the next one you talk to, as any quiet turn is.
 	t := conversation.Turn{By: conversation.You, At: w.now(), Body: settledText(*p, store.Slug, id, e),
-		Origin: origin, Quiet: !conversation.Wakes(p.Kind, p.State)}
+		Origin: origin, Quiet: !conversation.Wakes(p.Kind, p.State) || p.By == conversation.WS}
 	// Waking it takes the conversation up again, if it was put away, as
 	// saying something would; a quiet turn leaves it as it is.
 	say := store.TakeUp

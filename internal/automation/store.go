@@ -296,6 +296,16 @@ type waitFor struct {
 	Due   time.Time  `json:"due"`
 }
 
+// waitsOnYou is whether w waits on what you say to a proposal.
+func (w waitFor) waitsOnYou() bool {
+	for _, it := range w.Items {
+		if it.Proposal != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // waitingSteps are name's runs parked at a wait().
 func waitingSteps(root, name string) ([]waitingStep, error) {
 	var out []waitingStep
@@ -431,10 +441,11 @@ func keepStep(root, name string, event int64, step int, builtin, state, result, 
 	})
 }
 
-// conversationsOf are the conversations name's runs started (converse),
-// by id: what's said in them is its own doing, and not run on.
+// conversationsOf are the conversations name's runs started (converse,
+// or propose's: w12#1), by id: what's said in them is its own doing, and
+// not run on.
 func conversationsOf(tx *store.Tx, name string) (map[string]bool, error) {
-	rows, err := tx.Query(`SELECT result FROM automation_steps WHERE name = ? AND builtin = 'converse' AND state = 'done'`, name)
+	rows, err := tx.Query(`SELECT result FROM automation_steps WHERE name = ? AND builtin IN ('converse', 'propose') AND state = 'done'`, name)
 	if err != nil {
 		return nil, err
 	}
@@ -445,6 +456,7 @@ func conversationsOf(tx *store.Tx, name string) (map[string]bool, error) {
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
+		id, _, _ = strings.Cut(id, "#")
 		out[id] = true
 	}
 	return out, rows.Err()

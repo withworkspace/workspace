@@ -9,10 +9,11 @@ import css from "./AutomationRunItem.module.css";
 // AutomationRunItem is one run of an automation on its page: how it went,
 // the event it ran on (its ref, what it says) and when, its per key, what
 // it did (each notification, conversation started, wait) and why it
-// failed; and the lines it logged.
+// failed; and the lines it logged. An ask says what the agent answered,
+// a proposal the conversation it's in.
 export function AutomationRunItem({ r }: { r: AutomationRun }) {
   const look = runLook(r.state);
-  const did = (r.did ?? []).filter((d) => d.what === "notify" || d.what === "converse" || d.what === "wait");
+  const did = (r.did ?? []).filter((d) => ["notify", "converse", "wait", "ask", "propose"].includes(d.what));
   return (
     <li className={css.run}>
       <StatusIcon icon={look.icon} tone={look.tone} size={13} title={look.words} className={css.mark} />
@@ -59,6 +60,24 @@ function Did({ d }: { d: AutomationDid }) {
       <li>
         Started{" "}
         {d.conversation ? <Link to={`/conversations/${encodeURIComponent(d.conversation)}`}>conversation {d.conversation}</Link> : "a conversation"}
+        {half}
+      </li>
+    );
+  }
+  if (d.what === "propose") {
+    return (
+      <li>
+        Proposed{" "}
+        {d.conversation ? <Link to={`/conversations/${encodeURIComponent(d.conversation)}`}>{d.text || `in ${d.conversation}`}</Link> : "something"}
+        <Text dim> for you to accept</Text>
+        {half}
+      </li>
+    );
+  }
+  if (d.what === "ask") {
+    return (
+      <li>
+        {d.waiting ? "Asked an agent: waiting for its answer" : `Asked an agent: ${d.text || "answered"}`}
         {half}
       </li>
     );

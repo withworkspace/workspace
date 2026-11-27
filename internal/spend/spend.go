@@ -59,8 +59,9 @@ const (
 	Check       = "check"       // the judge, on a step's checks
 	PR          = "pr"          // the PR writer
 	Talk        = "conversation"
-	Team        = "team" // a gist or an account on the Team page
-	Eval        = "eval" // the judge, on an eval's fixture
+	Team        = "team"       // a gist or an account on the Team page
+	Eval        = "eval"       // the judge, on an eval's fixture
+	Automation  = "automation" // an automation's ask: its subject is the automation
 )
 
 // For is who it was spent for: what's kept with it, so it can be added up
@@ -236,4 +237,21 @@ func OfMission(root, mission string) ([]Line, error) {
 		return rows.Err()
 	})
 	return out, err
+}
+
+// Tokens is how many tokens were spent for kind and subject (an
+// automation's asks) on the days from since's (UTC): what came in, went
+// out and was written to the cache. What was read from the cache isn't
+// counted: it's a tenth the price, and every turn reads its fixed prompt.
+func Tokens(root, kind, subject string, since time.Time) (int64, error) {
+	db, err := store.Open(root)
+	if err != nil {
+		return 0, err
+	}
+	var n int64
+	err = db.Read(context.Background(), func(tx *store.Tx) error {
+		return tx.QueryRow(`SELECT coalesce(sum(input + output + cache_write), 0) FROM spend WHERE kind = ? AND subject = ? AND day >= ?`,
+			kind, subject, since.UTC().Format("2006-01-02")).Scan(&n)
+	})
+	return n, err
 }

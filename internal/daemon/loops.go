@@ -646,6 +646,7 @@ func (d *daemon) automationsLoop(logf func(string, ...any), stop <-chan struct{}
 	hooks := d.w.AutomationHooks()
 	hooks.Show = d.showView()
 	e := &automation.Engine{Root: d.w.Root(), Hooks: hooks}
+	defer e.Quiet() // an ask being answered ends with the daemon's life, and is asked again
 	var told <-chan struct{}
 	if db, err := d.w.Records(); err == nil {
 		ch, unwatch := db.Watch()
@@ -655,6 +656,8 @@ func (d *daemon) automationsLoop(logf func(string, ...any), stop <-chan struct{}
 	t := time.NewTicker(automationsEvery)
 	defer t.Stop()
 	for {
+		// Read each pass, so a changed [automations] ask_budget counts at once.
+		e.AskBudget = d.w.Config().Automations.AskBudget
 		for _, said := range e.RunDue() {
 			logf("automations: %s", said)
 		}

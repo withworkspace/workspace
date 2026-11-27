@@ -59,9 +59,13 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 		RunTask: func(a *automation.Automation, repo, recipe string, chain []string) (string, int, error) {
 			return w.runAutomationTask(a.Name, repo, recipe, chain)
 		},
-		Report: w.runReports,
-		Repos:  w.automationRepos,
-		Things: w.automationThings,
+		Ask:      w.automationAsk,
+		Spent:    w.automationSpent,
+		Propose:  w.automationPropose,
+		Proposal: w.automationProposalState,
+		Report:   w.runReports,
+		Repos:    w.automationRepos,
+		Things:   w.automationThings,
 		RefsIn: func(text string) [][2]string {
 			known := w.namesKnown()
 			if known == nil {
@@ -359,7 +363,11 @@ func automationRuns(root, name string, limit int) ([]AutomationRun, error) {
 			ar.Log = strings.Split(r.Log, "\n")
 		}
 		for _, st := range steps[r.Event] {
-			ar.Did = append(ar.Did, didOf(st))
+			d := didOf(st)
+			if d.What == "propose" && !d.Started {
+				d.Text = firstNonEmpty(proposalSays(root, st.Result), d.Text)
+			}
+			ar.Did = append(ar.Did, d)
 		}
 		out = append(out, ar)
 	}
@@ -374,20 +382,95 @@ func didOf(st automation.Step) AutomationDid {
 		d.Text = st.Result
 	case "converse":
 		d.Conversation = st.Result
+	case "propose":
+		d.Text = st.Result
+		d.Conversation, _, _ = strings.Cut(st.Result, "#")
+	case "ask":
+		if d.Waiting {
+			d.Text = "for an agent's answer"
+			break
+		}
+		d.Text = answeredWith(st.Result)
 	case "wait":
 		if d.Waiting {
 			var w struct {
-				Match string    `json:"match"`
-				Due   time.Time `json:"due"`
+				Match string `json:"match"`
+				Items []struct {
+					Match    string `json:"match"`
+					Task     int64  `json:"task"`
+					Proposal string `json:"proposal"`
+				} `json:"items"`
+				Due time.Time `json:"due"`
 			}
 			if json.Unmarshal([]byte(st.Result), &w) == nil {
-				d.Text = "for " + w.Match + ", till " + w.Due.Local().Format("Jan 2 15:04")
+				what := w.Match
+				if what == "" {
+					var each []string
+					for _, it := range w.Items {
+						switch {
+						case it.Proposal != "":
+							each = append(each, "your answer to "+it.Proposal)
+						case it.Task != 0:
+							each = append(each, "a task")
+						default:
+							each = append(each, it.Match)
+						}
+					}
+					what = strings.Join(each, ", ")
+				}
+				d.Text = "for " + what + ", till " + w.Due.Local().Format("Jan 2 15:04")
 			}
 			break
 		}
 		d.Text = waitedFor(json.RawMessage(st.Result))
 	}
 	return d
+}
+
+// answeredWith is what an ask came to, in words: its answer, short, or
+// why there's none.
+func answeredWith(result string) string {
+	var o struct {
+		Answer json.RawMessage `json:"answer"`
+		Why    string          `json:"why"`
+	}
+	if strings.TrimSpace(result) == "null" {
+		return "no answer came in time"
+	}
+	if json.Unmarshal([]byte(result), &o) != nil {
+		return ""
+	}
+	if s := strings.TrimSpace(string(o.Answer)); s == "" || s == "null" {
+		return "no answer: " + o.Why
+	}
+	var words string
+	if json.Unmarshal(o.Answer, &words) == nil {
+		return clipLine(words, 300)
+	}
+	var fields map[string]any
+	if json.Unmarshal(o.Answer, &fields) == nil {
+		var said []string
+		for _, k := range slices.Sorted(maps.Keys(fields)) {
+			said = append(said, fmt.Sprintf("%s: %v", k, fields[k]))
+		}
+		return clipLine(strings.Join(said, " · "), 300)
+	}
+	return clipLine(string(o.Answer), 300)
+}
+
+// proposalSays is what a proposal an automation made is, in a line ("a
+// mission: Build Queues"), by its ref (w12#1): "" where it's gone.
+func proposalSays(root, ref string) string {
+	id, nth, _ := strings.Cut(ref, "#")
+	n, err := strconv.Atoi(nth)
+	if err != nil {
+		return ""
+	}
+	c, err := conversation.ForWorkspace(root).Load(id)
+	if err != nil || n < 1 || n > len(c.Proposals) {
+		return ""
+	}
+	return c.Proposals[n-1].Says()
 }
 
 // waitedFor is what a wait came to, in words: an event (e12: what it
@@ -417,6 +500,18 @@ func waitedFor(raw json.RawMessage) string {
 	}
 	if json.Unmarshal(raw, &task) == nil && task.Task != 0 {
 		return task.Repo + "'s " + task.Recipe + ": " + task.Status
+	}
+	var prop struct {
+		Proposal string `json:"proposal"`
+		State    string `json:"state"`
+		Result   string `json:"result"`
+	}
+	if json.Unmarshal(raw, &prop) == nil && prop.Proposal != "" {
+		said := "you " + prop.State + " " + prop.Proposal
+		if prop.Result != "" {
+			said += " (" + prop.Result + ")"
+		}
+		return said
 	}
 	var ev events.Event
 	if json.Unmarshal(raw, &ev) == nil {
