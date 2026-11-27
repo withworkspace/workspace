@@ -93,7 +93,7 @@ func TestAction_Input(t *testing.T) {
 	for in, want := range map[string]map[string]any{
 		"missing note":         {"how": "ping"},
 		"one of comment, ping": {"note": "x", "how": "shout"},
-		"does not take":          {"note": "x", "how": "ping", "size": "L"},
+		"does not take":        {"note": "x", "how": "ping", "size": "L"},
 		"yes or no":            {"note": "x", "how": "ping", "loud": "maybe"},
 	} {
 		_, err := x.ReadInput(want)
