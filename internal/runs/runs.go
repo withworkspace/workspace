@@ -875,11 +875,20 @@ func NameFor(command string) string {
 //
 // With task said, a task of the name that has ended isn't lost to the new
 // one: it's put behind it (archive), and n is the new one's number.
+//
+// Claims in one worktree are made one at a time (claimLock): one that
+// puts an ended run behind and takes its name can't be caught between,
+// by another taking the name or putting the new folder behind.
 func (s Store) claim(repo, worktree, want, recipe string, task bool) (name, dir string, n int, running *Run, err error) {
 	parent := s.place(repo, worktree)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return "", "", 0, nil, err
 	}
+	unlock, err := claimLock(parent)
+	if err != nil {
+		return "", "", 0, nil, err
+	}
+	defer unlock()
 	procs := s.snapshot()
 	for i := 1; i < 1000; i++ {
 		name = want
@@ -958,6 +967,23 @@ func (s Store) nextN(dir string, task bool) int {
 		}
 	}
 	return n + 1
+}
+
+// claimLock holds the worktree's claims, in parent, for this one until
+// it's let go: other processes and goroutines wait for it.
+func claimLock(parent string) (func(), error) {
+	f, err := os.OpenFile(filepath.Join(parent, ".claim"), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return func() {
+		_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN) // closing lets it go too
+		f.Close()
+	}, nil
 }
 
 // claimWait is how long a recipe's start waits for another ws, claiming
