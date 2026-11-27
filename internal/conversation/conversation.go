@@ -27,7 +27,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/mission"
@@ -1466,10 +1465,11 @@ func (s Store) SetModel(id string, m Model) error {
 	return err
 }
 
-// answerFor is how long an answering run counts as underway without
+// AnswerFor is how long an answering run counts as underway without
 // finishing: longer than any turn may be given ([conversation]
-// turn_minutes, at most config.MaxConversationTurnMinutes).
-const answerFor = (config.MaxConversationTurnMinutes + 10) * time.Minute
+// turn_minutes, at most config.MaxConversationTurnMinutes, which ops'
+// tests hold it to).
+const AnswerFor = 250 * time.Minute
 
 // StartAnswering marks an agent answering a conversation, by its process.
 // It's false if one already is: that run answers what's new when it's
