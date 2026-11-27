@@ -346,13 +346,7 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	}
 	w.missions.keep(slug, m) // what its stamp's of, from now
 	ws := w.WS()
-	var idx PRIndex
-	answered := true
-	if gh := w.GitHub(); w.opts.PRs != nil && gh != nil {
-		repos := MissionRepos([]*mission.Mission{m})
-		idx = w.opts.PRs.Peek(ws, gh, repos)
-		answered = len(idx) == len(repos) // Peek has only those GitHub's answered for
-	}
+	idx, answered := w.keptPRs(m)
 	// Nothing here waits on git: what's kept of each capsule is said, and
 	// what isn't is asked for behind the read (soonGit, standingSoon).
 	v := buildMissionViews(soonGit{&w.git}, ws, idx, []*mission.Mission{m})[0]
