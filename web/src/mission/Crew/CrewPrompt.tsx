@@ -1,3 +1,4 @@
+import { crewKeys } from "./keys";
 import { useState } from "react";
 import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt as Screen, getCrewPrompt, type TranscriptEntry } from "../../api";
 import { useLoaded } from "../../load";
@@ -53,7 +54,7 @@ export function CrewPrompt({ slug, crew, pending, fileLink, onTerminal, compact 
   };
   // Crew over ACP have no terminal: the card is the only way to answer.
   const terminal = crew.structured ? null : onTerminal ? (
-    <MoreLink onClick={onTerminal} keys="t">
+    <MoreLink onClick={onTerminal} keys={crewKeys.view}>
       Answer in the terminal
     </MoreLink>
   ) : (

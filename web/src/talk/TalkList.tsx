@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { startTalk, type Talk } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { talksKeys } from "./keys";
 import { useThingMenu } from "../shell/ThingMenu";
 import { Button } from "../ui/Button";
 import { Empty } from "../ui/Empty";
@@ -58,17 +59,15 @@ export function TalkList({
     setIndex(n);
     document.getElementById(`talk-${talks[n]?.id}`)?.scrollIntoView({ block: "nearest" });
   };
-  useKeys(
+  useCommands(
+    talksKeys,
     keys
       ? {
-          n: () => box.current?.focus(),
-          j: () => move(index + 1),
-          ArrowDown: () => move(index + 1),
-          k: () => move(index - 1),
-          ArrowUp: () => move(index - 1),
-          Enter: open,
-          o: open,
-          A: () => onToggleResolved?.(),
+          start: () => box.current?.focus(),
+          next: () => move(index + 1),
+          prev: () => move(index - 1),
+          open: () => void open(),
+          resolved: () => onToggleResolved?.(),
         }
       : {},
   );

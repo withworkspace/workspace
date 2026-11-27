@@ -1,3 +1,4 @@
+import type { KeyLike } from "../keymap/keymap";
 import { useMemo } from "react";
 import type { MissionDetail } from "../api";
 import { MoreLink } from "../ui/MoreLink";
@@ -12,7 +13,7 @@ const shown = 3;
 // latest few (those you decided outright before what you said when
 // asked), as they're the ones that stand over the plan, and the way to
 // all of them, saying how many there are and whose.
-export function DecisionsSummary({ d, all, keys }: { d: MissionDetail; all: () => void; keys?: string }) {
+export function DecisionsSummary({ d, all, keys }: { d: MissionDetail; all: () => void; keys?: KeyLike }) {
   const g = useMemo(() => groupDecisions(d.decisions, d.stages), [d.decisions, d.stages]);
   return (
     <div className={css.summary}>

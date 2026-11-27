@@ -3,7 +3,9 @@ import { Crumbs } from "../../ui/Crumbs";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { AnnotatedDoc } from "../../annotate/Annotate";
 import { type ArtifactContent, type DocDraft, dropDraft, getArtifact, getDraft, kindHint, placeOf } from "../../api";
-import { useKeys, useShortcut } from "../../keys";
+import { useSaid } from "../../keymap/keymap";
+import { useCommand, useCommands } from "../../keymap/useCommands";
+import { artifactKeys } from "./keys";
 import { Markdown } from "../../markdown/LazyMarkdown";
 import { highlightCode, languageOf, useHighlighter } from "../../review/highlight";
 import { Icon } from "../../ui/Icon";
@@ -13,7 +15,7 @@ import { Skeleton } from "../../ui/Skeleton";
 import { ErrorCard } from "../../ui/ErrorCard";
 import { Callout } from "../../ui/Callout";
 import { keyProps } from "../../ui/keyHint";
-import { Keys } from "../../ui/Keys";
+import { Keys, keysSaid } from "../../ui/Keys";
 import { Time } from "../../ui/Time";
 import { artifactTitle } from "../outputs";
 import { DocEdit } from "./DocEdit";
@@ -77,25 +79,24 @@ export function ArtifactPage() {
   // What the page's buttons do too, each with its key: the key's bound
   // here, and the button's handed what comes back, which says it. Not
   // while you edit, when the editor has the keys.
-  const edit = useShortcut("e", startEdit, { enabled: canEdit && !editing });
-  const again = useShortcut("r", load, { enabled: !editing });
-  useKeys(editing ? {} : {
-    ...(annotating
-      ? {}
-      : {
-          j: () => scroll(60),
-          ArrowDown: () => scroll(60),
-          k: () => scroll(-60),
-          ArrowUp: () => scroll(-60),
-        }),
-    "mod+d": () => scroll(window.innerHeight / 2),
-    "mod+u": () => scroll(-window.innerHeight / 2),
-    g: () => pageScroller()?.scrollTo({ top: 0 }),
-    G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
-    o: () => a?.url && window.open(a.url, "_blank", "noopener"),
-    // A document's Esc clears what's picked out in it first: it goes back.
-    ...(annotating ? {} : { Escape: back, h: back }),
+  const edit = useCommand(artifactKeys.edit, startEdit, { enabled: canEdit && !editing });
+  const again = useCommand(artifactKeys.reload, load, { enabled: !editing });
+  const reading = !editing;
+  // A document that's commented on has its own j, k and esc (annotate's):
+  // its Esc clears what's picked out in it first, then goes back.
+  const scrolls = reading && !annotating;
+  useCommands(artifactKeys, {
+    down: scrolls ? () => scroll(60) : undefined,
+    up: scrolls ? () => scroll(-60) : undefined,
+    halfDown: reading ? () => scroll(window.innerHeight / 2) : undefined,
+    halfUp: reading ? () => scroll(-window.innerHeight / 2) : undefined,
+    top: reading ? () => pageScroller()?.scrollTo({ top: 0 }) : undefined,
+    bottom: reading ? () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }) : undefined,
+    open: reading ? () => void (a?.url && window.open(a.url, "_blank", "noopener")) : undefined,
+    back: scrolls ? () => void back() : undefined,
   });
+  const editKey = useSaid(artifactKeys.edit);
+  const openKey = useSaid(artifactKeys.open);
 
   return (
     <MissionArtifactPage annotating={annotating}>
@@ -116,12 +117,12 @@ export function ArtifactPage() {
             <>
               {a.markdown && !editing && (
                 <Button size="small" onClick={edit} unavailable={a.editable ? undefined : `Not editable here: ${a.uneditable}`} title="Edit">
-                  <Icon name="pencil" size={12} /> Edit <Keys k="e" />
+                  <Icon name="pencil" size={12} /> Edit {editKey && <Keys k={editKey} />}
                 </Button>
               )}
               {a.url && (
-                <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} {...keyProps(editing ? undefined : "o", "Open in repo")}>
-                  <Icon name="external" size={12} /> Open <Keys k="o" />
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} {...keyProps(editing ? undefined : openKey, "Open in repo")}>
+                  <Icon name="external" size={12} /> Open {openKey && <Keys k={openKey} />}
                 </a>
               )}
             </>
@@ -138,7 +139,7 @@ export function ArtifactPage() {
           actions={
             <>
               <Button variant="primary" size="small" onClick={edit}>
-                Continue editing <Keys k="e" />
+                Continue editing {editKey && <Keys k={editKey} />}
               </Button>
               <Button variant="ghost" size="small" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>
                 Discard
@@ -162,7 +163,7 @@ export function ArtifactPage() {
           }}
           onClose={(kept) => {
             setEditing(false);
-            if (kept) toast("Draft saved: e to continue", { tone: "info" });
+            if (kept) toast(editKey ? `Draft saved: ${keysSaid(editKey).join(" ")} to continue` : "Draft saved", { tone: "info" });
             getDraft(slug, ref).then(setDraft, () => {});
           }}
         />

@@ -1,7 +1,9 @@
+import { useSaid } from "../../keymap/keymap";
+import { listKeys } from "./keys";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { Mission } from "../../api";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
 import { useThingMenu } from "../../shell/ThingMenu";
 import { Button, buttonClass } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
@@ -42,17 +44,15 @@ export function Missions({ missions }: { missions: Mission[] }) {
     }
   };
   const open = () => order[index] && navigate(`/missions/${order[index].slug}`);
-  useKeys({
-    j: () => select(index + 1),
-    ArrowDown: () => select(index + 1),
-    k: () => select(index - 1),
-    ArrowUp: () => select(index - 1),
-    g: () => select(0),
-    G: () => select(order.length - 1),
-    Enter: open,
-    o: open,
-    A: () => setShowPast((p) => !p),
+  useCommands(listKeys, {
+    next: () => select(index + 1),
+    prev: () => select(index - 1),
+    first: () => select(0),
+    last: () => select(order.length - 1),
+    open: () => void open(),
+    past: () => setShowPast((p) => !p),
   });
+  const pastKey = useSaid(listKeys.past);
 
   // A mission whose headline changes while you look flashes, so a change
   // isn't missed.
@@ -64,8 +64,8 @@ export function Missions({ missions }: { missions: Mission[] }) {
       actions={
         <>
           {pastCount > 0 && (
-            <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)} keys="⇧A">
-              {showPast ? "Hide past" : `Show past (${pastCount})`} <Keys k="⇧A" />
+            <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)} keys={listKeys.past}>
+              {showPast ? "Hide past" : `Show past (${pastCount})`} {pastKey && <Keys k={pastKey} />}
             </Button>
           )}
           <Link to="/conversations?new=1" className={buttonClass()}>

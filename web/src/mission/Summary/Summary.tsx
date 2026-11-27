@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import { useMemo } from "react";
 import type { CapsuleDetail, MissionDetail } from "../../api";
 import type { Reload } from "../../load";
@@ -64,7 +65,7 @@ export function Summary({
         {goal && (
           <SummaryRow label="Goal">
             <Inline text={goal} />{" "}
-            <MissionSummaryMore onClick={() => go("brief")} keys="2">
+            <MissionSummaryMore onClick={() => go("brief")} keys={missionKeys.brief}>
               Brief
             </MissionSummaryMore>
           </SummaryRow>
@@ -105,7 +106,7 @@ export function Summary({
             <MissionSummaryWork afterCards={w.hand.length > 0}>
               {workWords(w, label, d.slug) || "Nothing yet: crew lift a capsule when they start."}{" "}
               {(w.capsules.length > 0 || w.outputs.length > 0) && (
-                <MoreLink onClick={() => go("work")} keys="3">
+                <MoreLink onClick={() => go("work")} keys={missionKeys.work}>
                   See all in Work
                 </MoreLink>
               )}
@@ -121,14 +122,14 @@ export function Summary({
         )}
         {d.decisions.some((x) => x.state === "current") && (
           <SummaryRow label="Decided">
-            <DecisionsSummary d={d} all={() => go("decisions")} keys="7" />
+            <DecisionsSummary d={d} all={() => go("decisions")} keys={missionKeys.decisions} />
           </SummaryRow>
         )}
         {events.length > 0 && (
           <SummaryRow label="Recently">
             <Events events={events.slice(-recent)} lines={2} />
             {events.length > recent && (
-              <MissionSummaryMore onClick={() => go("log")} keys="5">
+              <MissionSummaryMore onClick={() => go("log")} keys={missionKeys.log}>
                 Full log ({events.length})
               </MissionSummaryMore>
             )}

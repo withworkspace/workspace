@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import type { Artifact, CapsuleDetail, MissionDetail } from "../../api";
 import type { Reload } from "../../load";
 import { Copyable } from "../../ui/Copyable";
@@ -107,7 +108,7 @@ export function Side({
             return <MissionOutput key={key} id={`side-${key}`} a={a} compact selected={selected(key)} open={openArtifact} />;
           })}
           {d.artifacts.length > sideArtifacts && (
-            <MissionSideMore onClick={toWork} keys="3">
+            <MissionSideMore onClick={toWork} keys={missionKeys.work}>
               {d.artifacts.length - sideArtifacts} more in Work
             </MissionSideMore>
           )}
@@ -166,7 +167,7 @@ export function Side({
           <CrewRow key={c.id} c={c} slug={d.slug} side />
         ))}
         {d.crew.length > live.length && (
-          <MissionSideMore onClick={toWork} keys="3">
+          <MissionSideMore onClick={toWork} keys={missionKeys.work}>
             {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none working now: in Work`}
           </MissionSideMore>
         )}

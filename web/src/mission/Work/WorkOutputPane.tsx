@@ -1,3 +1,5 @@
+import { useSaid } from "../../keymap/keymap";
+import { missionKeys } from "../keys";
 import { type Artifact, getArtifact, type MissionDetail } from "../../api";
 import { useLoaded } from "../../load";
 import { Markdown } from "../../markdown/LazyMarkdown";
@@ -21,6 +23,7 @@ import { Text } from "../../ui/Text";
 // The open output: what it is and where it came from, and its text to
 // read. Its own page (⏎) is where it's commented on and edited.
 export function WorkOutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: Artifact; home: Home; label: (repo: string) => string; select: (key: string) => void; open: (a: Artifact) => void }) {
+  const openKey = useSaid(missionKeys.open);
   const reads = a.readable && !isArtifact(a);
   const { value: doc, error } = useLoaded(reads ? () => getArtifact(d.slug, a.ref) : null, [d.slug, a.ref, reads], { keep: true });
   const { title, desc } = artifactTitle(a);
@@ -38,8 +41,8 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
           </>
         }
         actions={
-          <Button size="small" onClick={() => open(a)} title={reads ? "Open page to comment or edit" : "Open"} keys="⏎">
-            <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open page" : "Open"} <Keys k="⏎" />
+          <Button size="small" onClick={() => open(a)} title={reads ? "Open page to comment or edit" : "Open"} keys={missionKeys.open}>
+            <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open page" : "Open"} {openKey && <Keys k={openKey} />}
           </Button>
         }
         title={handoff ? (desc ?? title) : title}

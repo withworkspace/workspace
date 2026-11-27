@@ -1,3 +1,4 @@
+import { briefKeys } from "./keys";
 import type { ReactNode, Ref, UIEvent } from "react";
 import { Link } from "react-router";
 import { Button } from "../../ui/Button";
@@ -48,7 +49,7 @@ export function MissionBriefPlanner({ label, centre, reading, talk, action, onFo
         <span className={css.spacer} />
         {action}
         {onFold && (
-          <Button variant="ghost" square type="button" onClick={onFold} title="Hide planner" keys="p" aria-label="Hide planner">
+          <Button variant="ghost" square type="button" onClick={onFold} title="Hide planner" keys={briefKeys.planner} aria-label="Hide planner">
             <Icon name="panel" size={14} />
           </Button>
         )}

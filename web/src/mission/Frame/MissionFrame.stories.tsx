@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { RefsProvider } from "../../refs/known";
@@ -32,7 +33,7 @@ function Bar({ title, status, under, at = "Summary" }: { title?: string; status?
   return (
     <PageBar
       className={missionFrameBarClass}
-      back={{ to: "/", title: "Missions", keys: "esc", label: "Back to the missions" }}
+      back={{ to: "/", title: "Missions", keys: missionKeys.back, label: "Back to the missions" }}
       status={status}
       title={title}
       tabs={

@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import { useState } from "react";
 import type { Artifact, MissionDetail } from "../../api";
 import { Empty } from "../../ui/Empty";
@@ -46,7 +47,7 @@ export function Log({
           {elsewhere.length < d.crew.length && (
             <>
               Crew are on{" "}
-              <MoreLink onClick={toWork} keys="3">
+              <MoreLink onClick={toWork} keys={missionKeys.work}>
                 Work
               </MoreLink>, by capsule.{" "}
             </>

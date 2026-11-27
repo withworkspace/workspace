@@ -6,20 +6,6 @@ import type { StatusInfo } from "../ui/Status";
 // What a conversation's pages say of it: its name, where it is, how it
 // stands, its keys, and the icon each kind of proposal has.
 
-export const talksKeys: [string, string][] = [
-  ["n", "New conversation"],
-  ["j / k", "Next / previous"],
-  ["⏎ / o", "Open"],
-  ["⇧A", "Show or hide resolved"],
-];
-
-export const talkKeys: [string, string][] = [
-  ["mod+⏎", "Send"],
-  ["r", "Reply"],
-  ["x", "Resolve or reopen"],
-  ["esc", "Back to conversations"],
-];
-
 export const talkName = (t: { title?: string; opening?: string }) => t.title || t.opening || "New conversation";
 
 // docName is a document's file name, from its ref (records:notes/x.md).

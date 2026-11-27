@@ -1,8 +1,9 @@
+import { crewKeys } from "./keys";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { act } from "../../api";
 import { Icon } from "../../ui/Icon";
-import { useKeys } from "../../keys";
+import { useCommands } from "../../keymap/useCommands";
 import { useTitle } from "../../ui/useTitle";
 import { toast } from "../../ui/toast";
 import { Loading } from "../../ui/Loading";
@@ -29,15 +30,6 @@ import { useTimeline } from "../timeline";
 import { useMissionDetail } from "../useMissionDetail";
 
 const CrewTerminal = lazy(() => import("./CrewTerminal"));
-
-export const crewKeys: [string, string][] = [
-  ["r", "Message crew"],
-  ["mod+⏎", "Send"],
-  ["t", "Terminal / conversation"],
-  ["(any key)", "In terminal while focused, Esc included"],
-  ["mod+C / mod+V", "Copy / paste"],
-  ["(click outside)", "Leave terminal"],
-];
 
 // CrewPage is crew at work: first as a conversation (the agent view: what
 // it's doing, what it asks, a box to tell it what's next), and its
@@ -71,9 +63,9 @@ export function CrewPage() {
   const setView = (v: "terminal" | "conversation") => setParams(v === "terminal" ? { view: "terminal" } : {}, { replace: true });
   // The box to write to crew, which r gives the keys.
   const tell = useRef<HTMLElement>(null);
-  useKeys({
-    t: () => !structured && setView(shown === "terminal" ? "conversation" : "terminal"),
-    r: () => {
+  useCommands(crewKeys, {
+    view: () => void (!structured && setView(shown === "terminal" ? "conversation" : "terminal")),
+    message: () => {
       if (shown !== "conversation") setView("conversation");
       requestAnimationFrame(() => tell.current?.focus());
     },
@@ -136,7 +128,7 @@ export function CrewPage() {
           !structured && (
             <Segmented size="small" value={shown} onChange={setView} aria-label="Crew">
               {(["conversation", "terminal"] as const).map((v) => (
-                <Segment key={v} value={v} keys="t" title={v === "terminal" ? "Terminal" : "Conversation"}>
+                <Segment key={v} value={v} keys={crewKeys.view} title={v === "terminal" ? "Terminal" : "Conversation"}>
                   <Icon name={v === "terminal" ? "terminal" : "message"} size={13} />
                   {v === "terminal" ? "Terminal" : "Conversation"}
                   {v === "conversation" && asking && <Count tone="attention">1</Count>}
@@ -164,7 +156,7 @@ export function CrewPage() {
                 icon="terminal"
                 title={`${id} isn't running`}
                 action={
-                  <Button onClick={() => setView("conversation")} keys="t">
+                  <Button onClick={() => setView("conversation")} keys={crewKeys.view}>
                     <Icon name="message" /> Open conversation
                   </Button>
                 }

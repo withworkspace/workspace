@@ -1,3 +1,6 @@
+import { scopeOf } from "../../keymap/commands";
+import { saidOf, useKeymap } from "../../keymap/keymap";
+import { missionKeys } from "../keys";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { act, type ActVerb, type MissionAct, type MissionCard, type MissionDetail } from "../../api";
@@ -28,6 +31,7 @@ import { Text } from "../../ui/Text";
 export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; lead: boolean; reload: Reload }) {
   const navigate = useNavigate();
   const here = useHere();
+  const map = useKeymap();
   const [busy, setBusy] = useState(false);
   const [words, setWords] = useState("");
   const [opened, setOpened] = useState<MissionAct | undefined>();
@@ -99,6 +103,12 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
     if (shape === "reply") return <LeadReply slug={d.slug} id={crew.id} reload={reload} />;
     return <LeadCrewLink slug={d.slug} id={crew.id} verb={first.do} />;
   }
+  // An act's key is the page's command that has it of its own (v, for the
+  // lead's review): said as that command's key is now.
+  const said = (k: string | undefined) => {
+    const c = k ? scopeOf(missionKeys).commands.find((x) => x.defaults.includes(k)) : undefined;
+    return c ? saidOf(c, map) : k || undefined;
+  };
   const one = (a: MissionAct, i: number) => {
     const accent = a === first;
     // The first act is the one accented, where the card leads the page: a
@@ -106,12 +116,12 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
     const variant = accent ? (lead ? "primary" : undefined) : a.quiet ? "ghost" : undefined;
     const inside = (
       <>
-        {a.icon && <Icon name={a.icon as IconName} />} {a.label} {lead && a.key && <Keys k={a.key} />}
+        {a.icon && <Icon name={a.icon as IconName} />} {a.label} {lead && said(a.key) && <Keys k={said(a.key)!} />}
       </>
     );
     // Its key is the page's (v, for the lead's review), which the lead's
     // shows in it: pressed with the pointer, it hints at it.
-    const keys = lead ? a.key || undefined : undefined;
+    const keys = lead ? said(a.key) : undefined;
     if (a.do === "launch") return <MissionLeadLaunch key={i} picks={d.crewPicks} primary={accent && lead} again={!accent} busy={busy} launch={(p) => send("launch", { harness: p?.harness, model: p?.model })} />;
     if (a.do === "url") {
       // GitHub hasn't said where it is yet: its words, with nothing to open.

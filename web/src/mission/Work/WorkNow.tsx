@@ -1,3 +1,4 @@
+import { missionKeys } from "../keys";
 import { Link } from "react-router";
 import type { CapsuleDetail, MissionDetail } from "../../api";
 import { Button, buttonClass } from "../../ui/Button";
@@ -21,7 +22,7 @@ export function WorkNow({ d, x, review }: { d: MissionDetail; x: WorkCapsule; re
       actions={
         <>
           {s.who === "you" && s.type === "Review" && x.c.exists && (
-            <Button variant="primary" size="small" onClick={() => review(x.c)} keys="v">
+            <Button variant="primary" size="small" onClick={() => review(x.c)} keys={missionKeys.review}>
               <Icon name="eye" /> Review changes
             </Button>
           )}

@@ -1,3 +1,5 @@
+import type { KeyLike } from "../../keymap/keymap";
+import { tabKeys } from "../keys";
 import type { ReactNode } from "react";
 import type { Headline, MissionDetail } from "../../api";
 import { Count } from "../../ui/Count";
@@ -26,7 +28,7 @@ type MissionBarProps = {
   // Under the mission: the tab lit is a way there, not where you are.
   under?: boolean;
   // The way back.
-  back: { to: string; title: string; keys?: string; label?: string };
+  back: { to: string; title: string; keys?: KeyLike; label?: string };
   // The tabs' keys (1–7), said on each: the mission's page binds them.
   keys?: boolean;
   onRename?: (to: string) => void;
@@ -83,7 +85,7 @@ export function MissionBar({ d, title, headline, tab, onTab, under, back, keys, 
       tabs={
         <Tabs className={pageBarTabsClass()} value={tab} onChange={onTab} controls={under ? undefined : "mission-panel"} aria-label="Mission">
           {missionTabs.map((t) => (
-            <Tab key={t} value={t} title={missionTabNames[t]} keys={keys ? String(missionTabs.indexOf(t) + 1) : undefined} onPress={under && t === tab ? () => onTab(t) : undefined}>
+            <Tab key={t} value={t} title={missionTabNames[t]} keys={keys ? tabKeys[t] : undefined} onPress={under && t === tab ? () => onTab(t) : undefined}>
               {missionTabNames[t]}
               {d && count(t)}
             </Tab>

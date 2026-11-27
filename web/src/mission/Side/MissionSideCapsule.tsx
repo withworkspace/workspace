@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../../keymap/keymap";
 import type { ReactNode } from "react";
 import { cx } from "../../ui/cx";
 import { DirtyDot } from "../../ui/DirtyDot";
@@ -18,7 +19,7 @@ export function MissionSideCapsule({
   selected,
   gone,
   title,
-  keys,
+  keys: given,
   onReview,
 }: {
   id: string;
@@ -28,9 +29,10 @@ export function MissionSideCapsule({
   selected?: boolean;
   gone?: boolean;
   title: string;
-  keys?: string;
+  keys?: KeyLike;
   onReview: () => void;
 }) {
+  const keys = useSaid(given);
   return (
     <button id={id} className={cx(css.capsule, selected && css.selected)} {...keyProps(keys, title, onReview)} disabled={gone}>
       <span className={css.name}>

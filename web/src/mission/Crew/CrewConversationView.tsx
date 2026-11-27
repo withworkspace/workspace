@@ -1,3 +1,4 @@
+import { crewKeys } from "./keys";
 import type { Ref } from "react";
 import type { Crew, Transcript } from "../../api";
 import { Markdown } from "../../markdown/LazyMarkdown";
@@ -67,7 +68,7 @@ export function CrewConversationView({ slug, id, crew, live, t, error, reload, r
       plan={plan && <CrewPlan todos={plan} live={live} />}
       note={
         !t.available && (
-          <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal} keys="t">Open terminal</Button>}>
+          <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal} keys={crewKeys.view}>Open terminal</Button>}>
             {t.why} You can still send a message below.
           </Empty>
         )

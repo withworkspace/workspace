@@ -36,9 +36,3 @@ export function sectionsOf(missions: Mission[], showPast: boolean): MissionSecti
 // 7", or "At Z" once every step's done; its whole sentence is the title.
 export const onRoute = (at: string) => /^(?:Step|Stage) \d+ of \d+/.exec(at)?.[0] ?? (/^Every step done/.test(at) ? "At Z" : "");
 
-export const listKeys: [string, string][] = [
-  ["j / k", "Next / previous mission"],
-  ["g / G", "First / last"],
-  ["⏎ / o", "Open"],
-  ["⇧A", "Show or hide past missions"],
-];

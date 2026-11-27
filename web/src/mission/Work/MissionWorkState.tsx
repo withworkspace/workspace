@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../../keymap/keymap";
 import type { MouseEvent } from "react";
 import { chipClass } from "../../ui/Chip";
 import { Icon, type IconName } from "../../ui/Icon";
@@ -8,7 +9,8 @@ import type { Tone } from "../../ui/tone";
 // MissionWorkState is where a capsule stands, in a chip: crew at work in
 // it (live), yours to check, landed. With its pull request's address
 // (url) the chip goes there.
-export function MissionWorkState({ text, tone, icon, live, url, keys }: { text: string; tone?: Tone; icon?: IconName; live?: boolean; url?: string; keys?: string }) {
+export function MissionWorkState({ text, tone, icon, live, url, keys: given }: { text: string; tone?: Tone; icon?: IconName; live?: boolean; url?: string; keys?: KeyLike }) {
+  const keys = useSaid(given);
   const body = (
     <>
       {live ? <LiveDot /> : icon && <Icon name={icon} size={11} />}
