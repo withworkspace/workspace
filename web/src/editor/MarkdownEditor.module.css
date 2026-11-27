@@ -478,30 +478,31 @@ div.changeBar {
 
 /* Refs in the editor (refs.ts): what words name, marked as
    somewhere to go, with more on hover. What's only read draws the same
-   from refs/RefName.module.css and refs/RefLabel.module.css. */
+   from refs/RefName.module.css and refs/RefLabel.module.css. A box
+   that's written in (.refs, RichText.tsx) draws them as the editor does. */
 
-.pm .namedRef {
+:is(.pm, .refs) .namedRef {
   text-decoration: underline dotted var(--faint);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
   cursor: pointer;
 }
 
-.pm .namedRef:hover {
+:is(.pm, .refs) .namedRef:hover {
   text-decoration-color: var(--accent);
   color: var(--accent);
 }
 
-.pm .namedRef.kMission,
-.pm .namedRef.kPage,
-.pm .namedRef.kTalk,
-.pm .namedRef.kPr,
-.pm .namedRef.kThing {
+:is(.pm, .refs) .namedRef.kMission,
+:is(.pm, .refs) .namedRef.kPage,
+:is(.pm, .refs) .namedRef.kTalk,
+:is(.pm, .refs) .namedRef.kPr,
+:is(.pm, .refs) .namedRef.kThing {
   font-weight: 500;
 }
 
 /* What's said after one: where a mission stands, a page's name. */
-.pm .refLabel {
+:is(.pm, .refs) .refLabel {
   margin-left: 5px;
   padding: 0 6px;
   border-radius: 999px;
@@ -516,7 +517,7 @@ div.changeBar {
 
 /* A ref drawn as a pill (refs/views.tsx: a repo), in its accent colour,
    by its own text. */
-.pm .namedRef.shapePill {
+:is(.pm, .refs) .namedRef.shapePill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -531,13 +532,13 @@ div.changeBar {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ref-accent, var(--accent)) 45%, transparent);
 }
 
-.pm .namedRef.shapePill:hover {
+:is(.pm, .refs) .namedRef.shapePill:hover {
   color: var(--text);
   background: color-mix(in srgb, var(--ref-accent, var(--accent)) 24%, transparent);
 }
 
 /* A ref's name, while its own text is shown in its place (the editor,
    with the cursor elsewhere). */
-.pm .refHidden {
+:is(.pm, .refs) .refHidden {
   display: none;
 }

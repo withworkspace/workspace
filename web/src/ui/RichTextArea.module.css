@@ -1,0 +1,103 @@
+/* A box that's written in markdown (RichTextArea.tsx, editor/RichText.tsx).
+   It has no look but its words': where it is, its padding and its type are
+   the page's class, and the box around it (a Composer's, a ReplyBox's)
+   draws the border and the ring. What's here is how what's written reads:
+   paragraphs, lists, a quote, code. */
+
+@layer ui {
+  /* What scrolls, once it's grown as tall as it may. */
+  .area {
+    display: block;
+    min-width: 0;
+    max-height: var(--tallest, none);
+    overflow-y: auto;
+    font-size: var(--text-md);
+    line-height: 1.5;
+    color: var(--fg);
+    cursor: text;
+  }
+
+  /* The words: as many lines tall as it starts at, at least. */
+  .doc {
+    display: block;
+    min-height: calc(var(--rows, 1) * 1lh);
+    outline: none;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    caret-color: var(--accent);
+  }
+
+  /* While the editor loads, a plain text box that reads the same. */
+  .plain {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    resize: none;
+    font: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  .plain:focus {
+    outline: none;
+  }
+
+  /* What's written, as it reads: no margins of their own (in :where, so
+     the gap between blocks wins), a gap between blocks. */
+  .doc :where(p, ul, ol, blockquote, pre) {
+    margin: 0;
+  }
+
+  .doc > * + *,
+  .doc :where(li, blockquote) > * + * {
+    margin-top: 0.5em;
+  }
+
+  .doc :where(ul, ol) {
+    padding-left: 1.5em;
+  }
+
+  .doc li + li,
+  .doc li > :is(ul, ol) {
+    margin-top: 0.15em;
+  }
+
+  .doc blockquote {
+    padding-left: 10px;
+    border-left: 3px solid var(--line-strong);
+    color: var(--dim);
+  }
+
+  .doc :not(pre) > code {
+    font: 0.9em var(--mono);
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: var(--code-bg);
+  }
+
+  /* A block of code is drawn as the reader draws one (CodeBlock's), so
+     it reads the same once sent; it wraps, as it's typed. */
+  .doc pre {
+    white-space: pre-wrap;
+  }
+
+  .doc a {
+    color: var(--accent);
+  }
+
+  .doc strong {
+    font-weight: 600;
+  }
+
+  /* What to write, while there's nothing. */
+  .empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--dim);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+}
