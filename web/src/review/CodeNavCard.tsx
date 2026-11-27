@@ -1,8 +1,9 @@
+import { Keys } from "../ui/Keys";
 import { useLayoutEffect, useRef, useState } from "react";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { reviewPickKeys } from "./keys";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
 import css from "./CodeNavCard.module.css";
 import { CodeNavList, codeNavListWhereClass } from "./CodeNavList";
 import { CodeNavSig } from "./CodeNavSig";
@@ -34,15 +35,14 @@ export function CodeNavCard({
 }) {
   const list = a && (a.answer === "candidates" || a.targets.length > 1) ? a.targets : undefined;
   const [pick, setPick] = useState(0);
-  useKeys(
+  useCommands(
+    reviewPickKeys,
     pinned
       ? {
-          Escape: onClose,
-          j: () => setPick((i) => Math.min(i + 1, (list?.length ?? 1) - 1)),
-          ArrowDown: () => setPick((i) => Math.min(i + 1, (list?.length ?? 1) - 1)),
-          k: () => setPick((i) => Math.max(i - 1, 0)),
-          ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
-          Enter: () => (list ? onGo(list[pick]) : onFollow()),
+          close: onClose,
+          next: () => setPick((i) => Math.min(i + 1, (list?.length ?? 1) - 1)),
+          prev: () => setPick((i) => Math.max(i - 1, 0)),
+          go: () => (list ? onGo(list[pick]) : onFollow()),
         }
       : {},
     { modal: pinned },
@@ -100,7 +100,7 @@ export function CodeNavCard({
               Docs <Icon name="external" size={10} />
             </a>
           )}
-          {pinned && <Keys k="esc" />}
+          {pinned && <Keys k={reviewPickKeys.close} />}
         </Text>
       )}
     </div>

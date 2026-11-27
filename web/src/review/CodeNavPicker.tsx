@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { reviewPickKeys } from "./keys";
 import { CodeNavList } from "./CodeNavList";
 import css from "./CodeNavPicker.module.css";
 import { Text } from "../ui/Text";
@@ -9,15 +10,14 @@ import { Text } from "../ui/Text";
 export function CodeNavPicker({ names, rect, onClose, onPick }: { names: { from: number; text: string; part: string }[]; rect: DOMRect; onClose: () => void; onPick: (i: number) => void }) {
   const [pick, setPick] = useState(0);
   const n = names.length;
-  useKeys(
+  useCommands(
+    reviewPickKeys,
     {
-      Escape: onClose,
-      j: () => setPick((i) => Math.min(i + 1, n - 1)),
-      ArrowDown: () => setPick((i) => Math.min(i + 1, n - 1)),
-      k: () => setPick((i) => Math.max(i - 1, 0)),
-      ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
-      Enter: () => onPick(pick),
-      d: () => onPick(pick),
+      close: onClose,
+      next: () => setPick((i) => Math.min(i + 1, n - 1)),
+      prev: () => setPick((i) => Math.max(i - 1, 0)),
+      go: () => onPick(pick),
+      follow: () => onPick(pick),
     },
     { modal: true },
   );

@@ -1,5 +1,6 @@
-import { Fragment } from "react";
 import { Keys } from "../ui/Keys";
+import { reviewKeys } from "./keys";
+import { Fragment } from "react";
 import { Segment, Segmented } from "../ui/Segmented";
 import { type CommentEntry, type CommentFilter, inFilter } from "./comments";
 import { ReviewCommentFile } from "./ReviewCommentFile";
@@ -41,7 +42,7 @@ export function ReviewCommentList({ list, filter, onFilter, at, onPick }: { list
       ))}
       {!shown.length && <p className={css.none}>{list.length ? `No ${filters.find(([f]) => f === filter)![1].toLowerCase()} comments.` : "No comments yet: c on a line makes one."}</p>}
       <p className={css.keys}>
-        <Keys k="N" /> next · <Keys k="P" /> previous
+        <Keys k={reviewKeys.nextComment} /> next · <Keys k={reviewKeys.prevComment} /> previous
       </p>
     </div>
   );

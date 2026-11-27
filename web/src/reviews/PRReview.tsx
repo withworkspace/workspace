@@ -1,3 +1,4 @@
+import { prReviewKeys } from "./keys";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
@@ -82,16 +83,6 @@ import { Text } from "../ui/Text";
 // a pass found. ws docks it first, so the agent reads the code as files.
 // The answer is a card over the review, and a review comment it proposes
 // is added to your draft from there.
-
-export const prReviewKeys: [string, string][] = [
-  ["[ / ]", "Layer below / above"],
-  ["w", "Whole stack / single layer"],
-  ["/", "Ask bar"],
-  ["a", "Ask about line or selection"],
-  ["A", "Ask about the pull request"],
-  ["o", "Open on GitHub"],
-  ["O", "Open here"],
-];
 
 const verdictEvents: Record<Verdict, string> = { approve: "Approve", changes: "Request changes", comment: "Comment" };
 
@@ -505,7 +496,7 @@ export function PRReviewPage() {
       ) : undefined,
     opens: (
       <>
-        <MenuItem id="github" textValue="Open on GitHub" keys="o" onAction={() => window.open(pr.url, "_blank", "noopener")}>
+        <MenuItem id="github" textValue="Open on GitHub" keys={prReviewKeys.github} onAction={() => window.open(pr.url, "_blank", "noopener")}>
           <Icon name="external" size={13} />
           <MenuText>Open on GitHub</MenuText>
         </MenuItem>
@@ -515,7 +506,7 @@ export function PRReviewPage() {
             <MenuText>Docked in {d.docked.capsule}</MenuText>
           </MenuItem>
         ) : (
-          <MenuItem id="dock" textValue="Dock in workspace" keys="O" onAction={dock}>
+          <MenuItem id="dock" textValue="Dock in workspace" keys={prReviewKeys.dock} onAction={dock}>
             <Icon name="box" size={13} />
             <MenuText>{docking ? "Docking…" : pr.fork ? "Dock in workspace (not a fork)" : "Dock in workspace"}</MenuText>
           </MenuItem>
@@ -674,13 +665,17 @@ export function PRReviewPage() {
       />
     ),
     keys: {
-      "[": () => go(layers[at - 1]),
-      "]": () => go(layers[at + 1]),
-      w: toggleWhole,
-      "/": () => (d.noAsk ? toast(d.noAsk) : asker.current?.focus()),
-      A: () => ask(),
-      o: () => window.open(pr.url, "_blank", "noopener"),
-      O: dock,
+      commands: prReviewKeys,
+      handlers: {
+        below: () => go(layers[at - 1]),
+        above: () => go(layers[at + 1]),
+        whole: toggleWhole,
+        askBar: () => (d.noAsk ? toast(d.noAsk) : asker.current?.focus()),
+        askAll: () => ask(),
+        github: () => window.open(pr.url, "_blank", "noopener"),
+        dock,
+      },
+      back: prReviewKeys.back,
     },
   };
   return <ReviewView key={`${api}:${whole}`} source={source} />;

@@ -1,7 +1,9 @@
+import { Keys } from "../ui/Keys";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { getReviews, type PR, type PRState, type ReviewRow, useEvents } from "../api";
-import { useKeys } from "../keys";
+import { useCommands } from "../keymap/useCommands";
+import { reviewsKeys } from "./keys";
 import { useReviewsMemory } from "./memory";
 import { Icon, type IconName } from "../ui/Icon";
 import { useTitle } from "../ui/useTitle";
@@ -9,7 +11,6 @@ import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
-import { Keys } from "../ui/Keys";
 import type { StatusInfo } from "../ui/Status";
 import type { Tone } from "../ui/tone";
 import { Time } from "../ui/Time";
@@ -28,16 +29,6 @@ import { Text } from "../ui/Text";
 // Your teammates' come first, grouped by what each asks of you; yours sit
 // below, by where each stands. A stack of pull requests is one row, with
 // its layers inside.
-
-export const reviewsKeys: [string, string][] = [
-  ["j / k", "Next / previous pull request"],
-  ["g / G", "First / last"],
-  ["⏎", "Open review"],
-  ["o", "Open on GitHub"],
-  ["l", "Expand / collapse stack"],
-  ["/", "Filter by text, repo or author"],
-  ["r", "Refresh"],
-];
 
 const stateInfo: Record<PRState, { icon: IconName; tone: Tone }> = {
   "needs-review": { icon: "circle-dot", tone: "attention" },
@@ -157,18 +148,16 @@ export function ReviewsPage() {
       const said = useReviewsMemory.getState().list?.error;
       if (said) toast(humanError(said), { tone: "danger" });
     });
-  useKeys({
-    j: () => select(index + 1),
-    ArrowDown: () => select(index + 1),
-    k: () => select(index - 1),
-    ArrowUp: () => select(index - 1),
-    g: () => select(0),
-    G: () => select(order.length - 1),
-    Enter: () => open(current),
-    o: () => github(current),
-    l: () => fold(current),
-    r: refresh,
-    "/": () => filter.current?.focus(),
+  useCommands(reviewsKeys, {
+    next: () => select(index + 1),
+    prev: () => select(index - 1),
+    first: () => select(0),
+    last: () => select(order.length - 1),
+    open: () => open(current),
+    github: () => github(current),
+    fold: () => fold(current),
+    refresh,
+    filter: () => filter.current?.focus(),
   });
 
   const head = (
@@ -178,8 +167,8 @@ export function ReviewsPage() {
         <>
           {list && <ReviewsAsOf at={list.at} asking={loading} />}
           <ReviewsFilter ref={filter} value={q} onChange={setQ} />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Refresh from GitHub" keys="r">
-            <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Refresh from GitHub" keys={reviewsKeys.refresh}>
+            <Icon name="rotate" size={13} /> Refresh <Keys k={reviewsKeys.refresh} />
           </Button>
         </>
       }
@@ -206,7 +195,7 @@ export function ReviewsPage() {
     <div className="page">
       {head}
       {(error || list.error) && (
-        <Callout tone="attention" title="Could not reach GitHub" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
+        <Callout tone="attention" title="Could not reach GitHub" actions={<Button onClick={refresh} keys={reviewsKeys.refresh}>Try again</Button>}>
           {humanError(error ?? list.error ?? "")} Last updated <Time iso={list.at} as="relative" />.
         </Callout>
       )}

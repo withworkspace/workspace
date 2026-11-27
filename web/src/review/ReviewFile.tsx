@@ -1,3 +1,5 @@
+import { reviewKeys } from "./keys";
+import { useSaid } from "../keymap/keymap";
 import type { ReactNode } from "react";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -52,6 +54,7 @@ export function ReviewFile({
   onViewed: () => void;
   children?: ReactNode; // its lines, when they show
 }) {
+  const resolveKey = useSaid(reviewKeys.resolve);
   return (
     <section id={`file-${index}`} className={cx(css.file, viewed && css.viewed, folded && !viewed && css.folded)}>
       <div id={`row-${index}`} className={cx(css.head, cursor && css.cursor)} onClick={onHead}>
@@ -80,7 +83,7 @@ export function ReviewFile({
             {skim} · {folded ? "show" : "hide"}
           </Button>
         )}
-        <Checkbox className={css.viewedBox} checked={viewed} onChange={onViewed} {...keyProps("x", viewed ? "Mark not viewed" : "Mark viewed", (e: React.MouseEvent<HTMLLabelElement>) => e.stopPropagation())}>
+        <Checkbox className={css.viewedBox} checked={viewed} onChange={onViewed} {...keyProps(resolveKey, viewed ? "Mark not viewed" : "Mark viewed", (e: React.MouseEvent<HTMLLabelElement>) => e.stopPropagation())}>
           Viewed
         </Checkbox>
       </div>

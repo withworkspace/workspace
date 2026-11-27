@@ -1,5 +1,6 @@
-import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
+import { reviewKeys } from "./keys";
+import { Icon } from "../ui/Icon";
 import { Segment, Segmented } from "../ui/Segmented";
 import css from "./ReviewChangesBar.module.css";
 
@@ -23,11 +24,11 @@ export function ReviewChangesBar({ scope, additions, deletions, split }: ReviewC
     <div className={css.bar} data-review-changes-bar="">
       {scope && (
         <Segmented size="small" aria-label="What the changes are of" value={scope.since ? "since" : "all"} onChange={(v) => scope.onChange(v === "since")}>
-          <Segment value="since" title={`Only what's changed since ${scope.sinceName}`} keys="i">
+          <Segment value="since" title={`Only what's changed since ${scope.sinceName}`} keys={reviewKeys.since}>
             Since your review
           </Segment>
-          <Segment value="all" title="All the changes" keys="i">
-            All changes <Keys k="i" className={css.key} />
+          <Segment value="all" title="All the changes" keys={reviewKeys.since}>
+            All changes <Keys k={reviewKeys.since} className={css.key} />
           </Segment>
         </Segmented>
       )}
@@ -37,10 +38,10 @@ export function ReviewChangesBar({ scope, additions, deletions, split }: ReviewC
       <span className={css.spacer} />
       {split && (
         <Segmented size="small" className={css.layout} aria-label="Diff layout" value={split.on ? "split" : "unified"} onChange={(v) => split.onChange(v === "split")}>
-          <Segment value="unified" title="Unified" keys="u">
+          <Segment value="unified" title="Unified" keys={reviewKeys.split}>
             <Icon name="unified" size={13} /> <span className={css.words}>Unified</span>
           </Segment>
-          <Segment value="split" title="Side by side" keys="u">
+          <Segment value="split" title="Side by side" keys={reviewKeys.split}>
             <Icon name="split" size={13} /> <span className={css.words}>Split</span>
           </Segment>
         </Segmented>

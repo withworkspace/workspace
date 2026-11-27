@@ -1,7 +1,8 @@
+import { Keys } from "../ui/Keys";
+import { prReviewKeys } from "./keys";
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
 import { Spinner } from "../ui/Spinner";
 import { Status, type StatusInfo } from "../ui/Status";
 import { ToggleButton } from "../ui/ToggleButton";
@@ -48,7 +49,7 @@ export function PullRequestLayers({
           Stack <Text dim>· {about}</Text>
         </span>
         <Text dim className={css.keys}>
-          <Keys k="[" /> <Keys k="]" />
+          <Keys k={prReviewKeys.below} /> <Keys k={prReviewKeys.above} />
         </Text>
       </div>
       <ol>
@@ -64,8 +65,8 @@ export function PullRequestLayers({
           </li>
         ))}
       </ol>
-      <ToggleButton variant="ghost" size="small" className={css.whole} pressed={whole} aria-busy={goingWhole || undefined} onChange={onWhole} title="All layers' changes combined. Read-only: comment on a layer." keys="w">
-        {goingWhole && !whole ? <Spinner size={12} /> : <Icon name="layers" size={12} />} Whole stack <Keys k="w" />
+      <ToggleButton variant="ghost" size="small" className={css.whole} pressed={whole} aria-busy={goingWhole || undefined} onChange={onWhole} title="All layers' changes combined. Read-only: comment on a layer." keys={prReviewKeys.whole}>
+        {goingWhole && !whole ? <Spinner size={12} /> : <Icon name="layers" size={12} />} Whole stack <Keys k={prReviewKeys.whole} />
       </ToggleButton>
     </div>
   );

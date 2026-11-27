@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useKeys, useShortcut } from "../keys";
+import { useCommand, useCommands } from "../keymap/useCommands";
+import { reviewPanelKeys } from "./keys";
 import { CodeNavPanel } from "./CodeNavPanel";
 import { CodeNavUses } from "./CodeNavUses";
 import { groupUses, type NavRef, type NavReferences, type Side } from "./nav";
@@ -24,15 +25,14 @@ export function UsesPanel(props: {
   // The list as it's moved through: maybes only when opened.
   const flat = groups.flatMap((g) => [...g.uses, ...(open[g.title] ? g.maybes : [])]);
   const [pick, setPick] = useState(0);
-  const close = useShortcut("Escape", onClose, { modal: true });
-  const goBack = useShortcut("b", onBack, { modal: true });
-  useKeys(
+  const close = useCommand(reviewPanelKeys.close, onClose, { modal: true });
+  const goBack = useCommand(reviewPanelKeys.back, onBack, { modal: true });
+  useCommands(
+    reviewPanelKeys,
     {
-      j: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
-      ArrowDown: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
-      k: () => setPick((i) => Math.max(i - 1, 0)),
-      ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
-      Enter: () => flat[pick] && onGo(flat[pick]),
+      down: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
+      up: () => setPick((i) => Math.max(i - 1, 0)),
+      go: () => flat[pick] && onGo(flat[pick]),
     },
     { modal: true },
   );

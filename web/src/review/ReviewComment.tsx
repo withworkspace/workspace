@@ -1,10 +1,11 @@
+import { Keys } from "../ui/Keys";
+import { reviewKeys } from "./keys";
 import type { ReviewNote } from "../api";
 import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Excerpt } from "../ui/Excerpt";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
-import { Keys } from "../ui/Keys";
 import { NoteCard, NoteHead, NoteHint, NoteId, NoteStatus } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
 import { capital } from "../ui/strings";
@@ -66,11 +67,11 @@ export function ReviewComment({
               ))}
             {cursor && draft && (
               <Text dim className={css.keys}>
-                <Keys k="⏎" /> edit <Keys k="D" /> delete
+                <Keys k={reviewKeys.activate} /> edit <Keys k={reviewKeys.remove} /> delete
               </Text>
             )}
             {!draft && (
-              <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onToggle())} title={resolved ? "Reopen" : "Resolve"} keys="x">
+              <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onToggle())} title={resolved ? "Reopen" : "Resolve"} keys={reviewKeys.resolve}>
                 {resolved ? "Reopen" : "Resolve"}
               </Button>
             )}
@@ -134,7 +135,7 @@ export function ReviewComment({
           </div>
           {!draft && !replying && cursor && (
             <NoteHint>
-              <Keys k="⏎" /> reply
+              <Keys k={reviewKeys.activate} /> reply
             </NoteHint>
           )}
           {replying && <ReplyBox onSend={onReply} onCancel={onReplyCancel} />}

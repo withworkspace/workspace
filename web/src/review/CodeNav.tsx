@@ -373,9 +373,11 @@ export function useCodeNav(p: NavProps) {
     setPicking({ side, rev, path, line: cell.num, names: list, pick: 0, rect });
   };
 
+  // By command (keys.ts, reviewNavKeys): the review binds them, and the
+  // files' reader (files/Browser/FileCode.tsx).
   const keys = {
-    d: pickOnRow,
-    b: () => {
+    definition: pickOnRow,
+    back: () => {
       const w = back.current.pop();
       if (!w) {
         // In a file: the panel closes first, then back to where it was.
@@ -387,7 +389,7 @@ export function useCodeNav(p: NavProps) {
       if (now) forward.current.push(now);
       restore(w);
     },
-    B: () => {
+    forward: () => {
       const w = forward.current.pop();
       if (!w) return;
       const now = where();
@@ -438,7 +440,7 @@ export function useCodeNav(p: NavProps) {
         onGo={(u) => go({ path: u.path, line: u.line, col: u.col, endLine: u.line, kind: "use" }, panel.side, undefined, false)}
         sideWords={p.sideWords ?? reviewSides}
         onClose={() => setPanel(undefined)}
-        onBack={keys.b}
+        onBack={keys.back}
       />
     ) : (
       <NavPanel
@@ -448,7 +450,7 @@ export function useCodeNav(p: NavProps) {
         browse={p.browse?.(panel.path, panel.line)}
         sideWords={p.sideWords ?? reviewSides}
         onClose={() => setPanel(undefined)}
-        onBack={keys.b}
+        onBack={keys.back}
       />
     ));
   return { card: cardEl, picker: pickEl, panel: panelEl, keys };

@@ -1,3 +1,4 @@
+import { reviewsKeys } from "./keys";
 import type { MouseEventHandler, ReactNode } from "react";
 import { Link } from "react-router";
 import type { PR } from "../api";
@@ -106,7 +107,7 @@ export function ReviewsRow({
       )}
       {act && <span className={css.act}>{act}</span>}
       {fold && (
-        <Button variant="ghost" size="small" square className={css.fold} onClick={fold.onFold} title={`${fold.folded ? "Show" : "Hide"} layers`} keys="l" aria-expanded={!fold.folded} aria-label="Layers">
+        <Button variant="ghost" size="small" square className={css.fold} onClick={fold.onFold} title={`${fold.folded ? "Show" : "Hide"} layers`} keys={reviewsKeys.fold} aria-expanded={!fold.folded} aria-label="Layers">
           <Icon name={fold.folded ? "chevron-right" : "chevron-down"} size={13} />
         </Button>
       )}

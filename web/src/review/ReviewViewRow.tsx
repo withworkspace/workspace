@@ -1,3 +1,5 @@
+import { reviewKeys } from "./keys";
+import { useSaid } from "../keymap/keymap";
 import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
@@ -29,8 +31,9 @@ export function ReviewViewRow({
   tools?: ReactNode;
   onPick: () => void;
 }) {
+  const said = useSaid(viewCommands[n - 1]);
   return (
-    <li className={cx(css.row, here && css.here)} {...keyProps(`${n}`, `${label}${news ? `: ${news}` : ""}`, onPick)} aria-current={here ? "page" : undefined}>
+    <li className={cx(css.row, here && css.here)} {...keyProps(said, `${label}${news ? `: ${news}` : ""}`, onPick)} aria-current={here ? "page" : undefined}>
       <span className={css.mark}>
         <Icon name={icon} size={11} />
       </span>
@@ -46,3 +49,6 @@ export function ReviewViewRow({
     </li>
   );
 }
+
+// The command that shows each view, by where it is in the list.
+const viewCommands = [reviewKeys.view1, reviewKeys.view2, reviewKeys.view3, reviewKeys.view4, reviewKeys.view5];

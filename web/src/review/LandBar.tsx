@@ -1,11 +1,12 @@
+import { Keys } from "../ui/Keys";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { getLanding, landCapsule, type Landing, type LandStopped } from "../api";
-import { useShortcut } from "../keys";
+import { useCommand } from "../keymap/useCommands";
+import { reviewLandKeys } from "./keys";
 import { Icon } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { Callout } from "../ui/Callout";
-import { Keys } from "../ui/Keys";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import css from "./LandBar.module.css";
@@ -56,10 +57,10 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
   };
   // L asks, then ⏎ lands or esc takes it back: each key's bound here, and
   // its button is given what comes back, which says the key.
-  const ask = useShortcut("L", () => setAsking(true), { enabled: can && !busy });
+  const ask = useCommand(reviewLandKeys.ask, () => setAsking(true), { enabled: can && !busy });
   const confirm = { enabled: asking && !busy, modal: asking };
-  const landIt = useShortcut("Enter", land, confirm);
-  const cancel = useShortcut("Escape", () => setAsking(false), confirm);
+  const landIt = useCommand(reviewLandKeys.land, land, confirm);
+  const cancel = useCommand(reviewLandKeys.cancel, () => setAsking(false), confirm);
 
   if (!l?.direct) return null;
   const n = l.commits.length;
@@ -114,10 +115,10 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           actions={
             <>
               <Button variant="primary" onClick={landIt} disabled={busy}>
-                {busy ? "Landing…" : `Land on ${l.branch}`} <Keys k="⏎" />
+                {busy ? "Landing…" : `Land on ${l.branch}`} <Keys k={reviewLandKeys.land} />
               </Button>
               <Button variant="ghost" onClick={cancel} disabled={busy}>
-                Cancel <Keys k="esc" />
+                Cancel <Keys k={reviewLandKeys.cancel} />
               </Button>
             </>
           }
@@ -137,7 +138,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           title={l.approved ? `Approved: land ${commits} on ${l.branch}` : `${commits} to land on ${l.branch}, when you say`}
           actions={
             <Button variant={l.approved ? "primary" : undefined} onClick={ask}>
-              <Icon name="arrow-right" size={13} /> Land on {l.branch} <Keys k="L" />
+              <Icon name="arrow-right" size={13} /> Land on {l.branch} <Keys k={reviewLandKeys.ask} />
             </Button>
           }
         >

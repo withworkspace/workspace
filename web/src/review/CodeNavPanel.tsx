@@ -1,8 +1,9 @@
+import { Keys } from "../ui/Keys";
+import { reviewPanelKeys } from "./keys";
 import type { ReactNode, Ref } from "react";
 import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
 import css from "./CodeNavPanel.module.css";
 import { Text } from "../ui/Text";
 
@@ -44,7 +45,7 @@ export function CodeNavPanel({
         <span className={css.spacer} />
         {tools}
         <Button variant="ghost" size="small" onClick={onBack} title="Back">
-          <Icon name="arrow-left" size={12} /> <Keys k="b" />
+          <Icon name="arrow-left" size={12} /> <Keys k={reviewPanelKeys.back} />
         </Button>
         <Button variant="ghost" size="small" onClick={onClose} title="Close">
           <Icon name="x" size={13} />

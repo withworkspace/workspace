@@ -1,5 +1,6 @@
 import type { Diff, DismissWhy, PassFinding, Review as ReviewData, ReviewState } from "../api";
-import type { KeyMap } from "../keys";
+import type { Command, Commands } from "../keymap/commands";
+import type { Handler } from "../keymap/dispatch";
 import type { DiffAt } from "../ui/DiffLine";
 import type { Order } from "./files";
 
@@ -126,7 +127,16 @@ export interface ReviewSource {
   // anything.
   foot?: React.ReactNode;
   dismiss?: () => boolean;
-  keys?: KeyMap; // more keys, the page's own
+  keys?: SourceKeys; // more keys, the page's own
+}
+
+// SourceKeys are a page's own keys, beside the review's: its scope's
+// commands, what each is bound to, and its own way back (Escape), where
+// it says it in its own words.
+export interface SourceKeys {
+  commands: Commands;
+  handlers: Partial<Record<string, Handler | undefined>>;
+  back?: Command;
 }
 
 // AskedFinding is a pass's finding asked about: the pass, by its title,

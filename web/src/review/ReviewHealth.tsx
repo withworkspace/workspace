@@ -1,6 +1,7 @@
+import { Keys } from "../ui/Keys";
+import { prReviewKeys } from "../reviews/keys";
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardStrong } from "../ui/HoverCard";
 import { Icon, type IconName } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
 import { Text } from "../ui/Text";
 import { type Tone, toneClass } from "../ui/tone";
 import { cx } from "../ui/cx";
@@ -29,7 +30,7 @@ function checksSaid(checks = ""): Said {
       title: "Checks failing",
       why: (
         <>
-          A check on the latest push failed. GitHub (<Keys k="o" />) says which, with its log.
+          A check on the latest push failed. GitHub (<Keys k={prReviewKeys.github} />) says which, with its log.
         </>
       ),
     };
