@@ -16,7 +16,7 @@ import { MarkdownHeading } from "./MarkdownHeading";
 import { MarkdownImage } from "./MarkdownImage";
 import { MarkdownLink } from "./MarkdownLink";
 import { MarkdownMaths } from "./MarkdownMaths";
-import { alerts, anchors, displayMaths, foldFrontMatter, sourceLines } from "./plugins";
+import { alerts, anchors, displayMaths, foldFrontMatter, lineBreaks, sourceLines } from "./plugins";
 import { syntax } from "./syntax";
 
 // Markdown as a mission's artifacts, briefs, handoffs and reviews are
@@ -46,6 +46,9 @@ import { syntax } from "./syntax";
 // the document's text (a code block's language, a diagram's labels) is
 // marked data-skip.
 //
+// With breaks, a line break in a paragraph is one (lineBreaks), as in
+// something someone said (RichText), rather than a space.
+//
 // With headingLink, a reader's h2 and h3 headings show # when they're
 // hovered, which gives it the heading's name (to copy a link to it).
 //
@@ -54,7 +57,16 @@ import { syntax } from "./syntax";
 // its own (their rules, such as the brief's documents' in
 // mission/Brief/MissionBriefDoc.module.css and the refs' .markdown
 // .named-ref, and the brief's code that finds its steps and headings).
-export const Markdown = memo(function Markdown({ text, lines, at, pinned, headingLink }: { text: string; lines?: boolean; at?: Place; pinned?: Pinned[]; headingLink?: (anchor: string) => void }) {
+export interface MarkdownProps {
+  text: string;
+  lines?: boolean;
+  at?: Place;
+  pinned?: Pinned[];
+  headingLink?: (anchor: string) => void;
+  breaks?: boolean;
+}
+
+export const Markdown = memo(function Markdown({ text, lines, at, pinned, headingLink, breaks }: MarkdownProps) {
   useHighlighter();
   const box = useRef<HTMLDivElement>(null);
   // To the heading the address names, when the document opens or the
@@ -65,7 +77,10 @@ export const Markdown = memo(function Markdown({ text, lines, at, pinned, headin
   const clicked = (location.state as { clicked?: boolean } | null)?.clicked;
   const refs = useRefs();
   useWanted(text);
-  const plugins = useMemo<PluggableList>(() => [...syntax, foldFrontMatter, displayMaths, ...(refs ? [[remarkRefs, { known: refs.known, links: !at, pinned }] as Pluggable] : [])], [refs, at, pinned]);
+  const plugins = useMemo<PluggableList>(
+    () => [...syntax, foldFrontMatter, displayMaths, ...(breaks ? [lineBreaks] : []), ...(refs ? [[remarkRefs, { known: refs.known, links: !at, pinned }] as Pluggable] : [])],
+    [refs, at, pinned, breaks],
+  );
   useEffect(() => {
     if (hash && !clicked && box.current) toHeading(box.current, decodeURIComponent(hash));
     // eslint-disable-next-line react-hooks/exhaustive-deps

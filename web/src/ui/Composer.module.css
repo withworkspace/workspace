@@ -21,14 +21,15 @@
   }
 
   /* The words: a text box with no box of its own (said for its focus
-     too, which a TextArea draws). */
+     too, which a TextArea draws). Its foot is 2px more than its head's
+     room would say: the height a textarea it replaced grew to. */
   .composer .field,
   .composer .field:focus {
     display: block;
     width: 100%;
     border: 0;
     background: transparent;
-    padding: 12px 14px 4px;
+    padding: 12px 14px 6px;
     box-shadow: none;
     font-size: var(--text-md);
   }
@@ -91,7 +92,7 @@
   .composer.beside .field,
   .composer.beside .field:focus {
     flex: 1;
-    padding: 8px 10px 4px;
+    padding: 8px 10px 6px;
   }
 
   .beside > button {
@@ -107,7 +108,7 @@
 
   .composer.corner .field,
   .composer.corner .field:focus {
-    padding: 10px 58px 10px 12px;
+    padding: 10px 58px 12px 12px;
   }
 
   .cornerKeys {

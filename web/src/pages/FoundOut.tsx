@@ -15,6 +15,7 @@ import { PageTurn } from "./PageTurn";
 import { PageTurns } from "./PageTurns";
 import { PageVersion } from "./PageVersion";
 import { Text } from "../ui/Text";
+import { RichText } from "../ui/RichText";
 
 // FoundOut is what an agent found out about a finding, under it on the
 // pass's tab: its answers, what you asked after, and a box to ask more, or
@@ -41,7 +42,9 @@ export function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell;
           t.by === "you" ? (
             <PageTurn key={t.n}>
               <Turn by="you" dense landed>
-                <TurnSaid written>{t.body}</TurnSaid>
+                <TurnSaid>
+                  <RichText text={t.body} />
+                </TurnSaid>
               </Turn>
             </PageTurn>
           ) : t.by !== "agent" ? (

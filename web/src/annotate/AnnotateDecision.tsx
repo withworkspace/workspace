@@ -1,7 +1,6 @@
-import type { KeyboardEvent } from "react";
 import { Button } from "../ui/Button";
-import { TextArea } from "../ui/TextArea";
 import { AnnotateSuggestion } from "./AnnotateSuggestion";
+import { RichTextArea } from "../ui/RichTextArea";
 
 const rows = (s: string) => Math.min(5, Math.max(2, Math.ceil(s.length / 40)));
 
@@ -30,12 +29,8 @@ export function AnnotateDecision({
   onSkip?: () => void;
   onCancel?: () => void;
 }) {
-  const keys = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      onRecord();
-    }
-  };
+  // ⌘⏎ records it, whatever sends elsewhere: it's a form of two boxes.
+  const keys = { send: "mod+enter", onSend: onRecord } as const;
   const drafted = draftedBy !== undefined;
   return (
     <AnnotateSuggestion
@@ -60,8 +55,8 @@ export function AnnotateDecision({
         </>
       }
     >
-      <TextArea value={what} rows={rows(what)} placeholder="The decision, in a sentence" onChange={(e) => onWhat(e.target.value)} onKeyDown={keys} />
-      <TextArea value={why} rows={rows(why)} placeholder="Why" onChange={(e) => onWhy(e.target.value)} onKeyDown={keys} />
+      <RichTextArea refs look="field" value={what} rows={rows(what)} placeholder="The decision, in a sentence" aria-label="The decision" onChange={onWhat} {...keys} />
+      <RichTextArea marks lists quote code refs look="field" value={why} rows={rows(why)} placeholder="Why" aria-label="Why" onChange={onWhy} {...keys} />
     </AnnotateSuggestion>
   );
 }

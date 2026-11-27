@@ -9,12 +9,12 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import { Spinner } from "../ui/Spinner";
 import { humanError } from "../ui/strings";
-import { TextArea } from "../ui/TextArea";
 import { standingWords } from "./passWords";
 import { PullRequestPosting } from "./PullRequestPosting";
 import { PullRequestSubmit } from "./PullRequestSubmit";
 import { pullRequestLeftAloneClass, PullRequestSubmitLayer } from "./PullRequestSubmitLayer";
 import { Text } from "../ui/Text";
+import { RichTextArea } from "../ui/RichTextArea";
 
 // Posted is a review that's gone to GitHub: the pull request it's of, and
 // where it is there.
@@ -62,7 +62,7 @@ export function PRSubmitDialog({
   const [focus, setFocus] = useState(() => Math.max(0, prs.findIndex((p) => p.number === d.pr.number)));
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const area = useRef<HTMLTextAreaElement>(null);
+  const area = useRef<HTMLElement>(null);
   // What's been posted while this is open, a failed try before it included.
   const posted = useRef<Posted[]>([]);
   const mine = useRef<ReviewState | undefined>(undefined);
@@ -246,20 +246,22 @@ export function PRSubmitDialog({
               />
             )}
             {l.verdict && !l.state && (
-              <TextArea
-                ref={i === focus ? area : undefined}
+              <RichTextArea
+                marks
+                lists
+                quote
+                code
+                refs
+                look="field"
+                field={i === focus ? area : undefined}
                 value={l.summary}
                 rows={2}
                 placeholder="Summary (optional)"
                 aria-label={`Summary for #${l.pr.number}`}
                 onFocus={() => setFocus(i)}
-                onChange={(e) => set(i, { summary: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    submit();
-                  }
-                }}
+                onChange={(summary) => set(i, { summary })}
+                send="mod+enter"
+                onSend={submit}
               />
             )}
             {l.verdict === "approve" && !l.state && l.pr.number === d.pr.number && noGo.length > 0 && (

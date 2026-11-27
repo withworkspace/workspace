@@ -26,7 +26,7 @@ type NewTalkPaneProps = {
 // there whichever you come back to.
 export function NewTalkPane({ to }: NewTalkPaneProps) {
   const [text, setText] = useDraft("new:");
-  const field = useRef<HTMLTextAreaElement>(null);
+  const field = useRef<HTMLElement>(null);
   const asked = useKeysAsked(to);
   useEffect(() => {
     if (asked && useChromeStore.getState().takeKeys(to)) field.current?.focus();

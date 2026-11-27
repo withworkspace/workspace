@@ -8,6 +8,7 @@ import { Clamp } from "../ui/Clamp";
 import { type DecisionEffect, whoAsked, whoDecided } from "./decisions";
 import css from "./MissionDecision.module.css";
 import { MissionDecisionEffects } from "./MissionDecisionEffects";
+import { RichText } from "../ui/RichText";
 
 // MissionDecision is one of a mission's decisions: what was decided, why,
 // then its name (which copies), who made it, at which step, where, and
@@ -74,7 +75,7 @@ export function MissionDecision({
         d.why &&
         !dense && (
           <div className={css.why}>
-            <Inline text={d.why} />
+            <RichText text={d.why} />
           </div>
         )
       )}

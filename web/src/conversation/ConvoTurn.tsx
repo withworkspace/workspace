@@ -7,6 +7,7 @@ import { Calls } from "../ui/Calls";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { ConversationGiven } from "./ConversationGiven";
 import css from "./ConvoTurn.module.css";
+import { RichText } from "../ui/RichText";
 
 // ConvoTurn is a turn of a conversation beside the page: what you said
 // (with what the page gave the agent with it, folded), the agent's answer
@@ -28,7 +29,9 @@ export function ConvoTurn({
   if (t.by === "you") {
     return (
       <Turn by="you" dense landed>
-        <TurnSaid written>{t.body}</TurnSaid>
+        <TurnSaid>
+          <RichText text={t.body} pinned={t.refs} />
+        </TurnSaid>
         {t.given && <ConversationGiven from={t.given.from} parts={givenParts(t.given)} />}
       </Turn>
     );

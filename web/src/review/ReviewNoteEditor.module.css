@@ -24,10 +24,8 @@
   min-height: 22px;
 }
 
-.editor textarea {
-  width: 100%;
+.field {
   margin: 8px 0;
-  font: var(--text-md) / 1.5 var(--font);
 }
 
 .actions {

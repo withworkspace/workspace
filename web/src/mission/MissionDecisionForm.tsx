@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
-import { TextArea } from "../ui/TextArea";
 import css from "./MissionDecisionForm.module.css";
+import { RichTextArea } from "../ui/RichTextArea";
 
 // What a form of a decision's is for: one of your own recorded, one
 // recorded in place of another, or one withdrawn.
@@ -40,12 +40,10 @@ export function MissionDecisionForm({
 }) {
   const [what, setWhat] = useState(was);
   const [why, setWhy] = useState("");
-  const first = useRef<HTMLTextAreaElement>(null);
+  const first = useRef<HTMLElement>(null);
+  // The first box has the keys, its cursor at the end of what's there.
   useEffect(() => {
-    const el = first.current;
-    if (!el) return;
-    el.focus({ preventScroll: true });
-    el.setSelectionRange(el.value.length, el.value.length);
+    first.current?.focus({ preventScroll: true });
   }, []);
   const withdrawing = kind === "withdraw";
   // One in place of another has to say something else: the same words
@@ -53,16 +51,9 @@ export function MissionDecisionForm({
   const same = kind === "replace" && !!what.trim() && what.trim() === was.trim();
   const ready = withdrawing ? !!why.trim() : !!what.trim() && !same;
   const send = () => ready && !busy && onSend({ what: what.trim(), why: why.trim() });
-  const keys = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      send();
-    } else if (e.key === "Escape") {
-      // The form's own: not the page's way back.
-      e.preventDefault();
-      onCancel();
-    }
-  };
+  // ⌘⏎ records it, whatever sends elsewhere: it's a form of two boxes.
+  // Escape is the form's own, not the page's way back.
+  const keys = { send: "mod+enter", onSend: send, onEscape: (e: { stopPropagation(): void }) => (e.stopPropagation(), onCancel()) } as const;
   const rows = (text: string) => Math.min(6, Math.max(2, Math.ceil(text.length / 70)));
   const w = words[kind];
   return (
@@ -83,17 +74,23 @@ export function MissionDecisionForm({
         </span>
       </div>
       {!withdrawing && (
-        <TextArea ref={first} className={css.field} value={what} rows={rows(what)} placeholder="The decision, in a sentence" aria-label="The decision" onChange={(e) => setWhat(e.target.value)} onKeyDown={keys} />
+        <RichTextArea refs look="field" field={first} className={css.field} value={what} rows={rows(what)} placeholder="The decision, in a sentence" aria-label="The decision" onChange={setWhat} {...keys} />
       )}
-      <TextArea
-        ref={withdrawing ? first : undefined}
+      <RichTextArea
+        marks
+        lists
+        quote
+        code
+        refs
+        look="field"
+        field={withdrawing ? first : undefined}
         className={css.field}
         value={why}
         rows={rows(why)}
         placeholder={withdrawing ? "Why it no longer holds" : "Why"}
         aria-label={withdrawing ? "Reason for withdrawal" : "Why"}
-        onChange={(e) => setWhy(e.target.value)}
-        onKeyDown={keys}
+        onChange={setWhy}
+        {...keys}
       />
       {error && (
         <div className={css.error} role="alert">

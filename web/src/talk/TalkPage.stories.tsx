@@ -24,6 +24,7 @@ import { TalkSummary } from "./TalkSummary";
 import { TalkTurnGroup } from "./TalkTurnGroup";
 import { TalkTurns } from "./TalkTurns";
 import { talkStatus } from "./words";
+import { RichText } from "../ui/RichText";
 
 // A conversation's page from its parts: its bar (the name, what it's
 // about, Details and Resolve), the summary folded over the turns when
@@ -75,7 +76,9 @@ function Page({ side, about = "mission", unseen }: { side?: boolean; about?: "mi
           <TalkTurns>
             <TalkTurnGroup>
               <Turn by="you" head={head("you")}>
-                <TurnSaid written>Two studios asked this week for late fees on overdue invoices. Should we do it?</TurnSaid>
+                <TurnSaid>
+          <RichText text="Two studios asked this week for late fees on overdue invoices. Should we do it?" />
+        </TurnSaid>
               </Turn>
             </TalkTurnGroup>
             <TalkTurnGroup>

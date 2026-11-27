@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { threadKinds, type ThreadKind } from "../api";
 import { useKeys } from "../keys";
-import { sendKeys, sent, useSendKey } from "../ui/sendKey";
+import { sendKeys, useSendKey } from "../ui/sendKey";
 import { clip } from "../ui/strings";
-import { useAutosize } from "../ui/useAutosize";
 import { AnnotateComposer } from "./AnnotateComposer";
 import type { Pick } from "./geometry";
 
@@ -17,9 +16,8 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
   // An edit of your own: what the highlighted text should read.
   const [edit, setEdit] = useState<string>();
   const [error, setError] = useState<string>();
-  const area = useRef<HTMLTextAreaElement>(null);
+  const area = useRef<HTMLElement>(null);
   const sendKey = useSendKey();
-  useAutosize(area, text, 260);
   // While writing, the page's keys are off: these are the composer's. (Its
   // slot is see-through, not hidden, until it's placed: focus needs that.)
   useKeys({}, { modal: true });
@@ -48,18 +46,10 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
       onText={setText}
       textRef={area}
       onKeys={(e) => {
-        if (e.nativeEvent.isComposing) return;
-        if (sent(e, sendKey)) {
-          e.preventDefault();
-          post();
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          onCancel();
-        } else if (e.key === "Tab") {
-          e.preventDefault();
-          const i = threadKinds.indexOf(kind);
-          setKind(threadKinds[(i + (e.shiftKey ? threadKinds.length - 1 : 1)) % threadKinds.length]);
-        }
+        if (e.key !== "Tab" || e.metaKey || e.ctrlKey || e.altKey) return false;
+        const i = threadKinds.indexOf(kind);
+        setKind(threadKinds[(i + (e.shiftKey ? threadKinds.length - 1 : 1)) % threadKinds.length]);
+        return true;
       }}
       edit={edit}
       onEdit={setEdit}

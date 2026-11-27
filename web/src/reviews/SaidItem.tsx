@@ -5,11 +5,12 @@ import { Prose } from "../ui/Prose";
 
 // SaidItem is one thing said on a pull request on GitHub: its head (who,
 // what they did, when), then what they said. A bot's is folded: it's
-// rarely what you came to read.
+// rarely what you came to read. Its markdown is as GitHub draws a
+// comment: a line break is one (breaks).
 export function SaidItem({ head, body, bot }: { head: ReactNode; body?: string; bot?: boolean }) {
   const said = body && (
     <Prose className={css.body}>
-      <Markdown text={body} />
+      <Markdown text={body} breaks />
     </Prose>
   );
   if (bot) {

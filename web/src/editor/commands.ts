@@ -173,33 +173,42 @@ export function setLink(from: number, to: number, href: string): Command {
 
 // --- Keys
 
-// Enter on a line that's just ``` (and a language) makes it a code block;
-// on --- a rule.
-const fenceOrRule: Command = (state, dispatch) => {
+// endOfParagraph is the paragraph the cursor's at the end of, if it is.
+function endOfParagraph(state: EditorState) {
   const { $from, empty } = state.selection;
   const para = $from.parent;
-  if (!empty || para.type !== N.paragraph || $from.parentOffset !== para.content.size) return false;
-  const fence = /^```([\w+#.-]*)$/.exec(para.textContent);
-  if (fence) {
-    if (dispatch) {
-      const tr = state.tr.replaceWith($from.before(), $from.after(), N.code_block.create({ lang: fence[1] }));
-      dispatch(tr.setSelection(TextSelection.create(tr.doc, $from.before() + 1)).scrollIntoView());
-    }
-    return true;
+  return empty && para.type === N.paragraph && $from.parentOffset === para.content.size ? $from : undefined;
+}
+
+// fence is Enter on a line that's just ``` (and a language): it's a code
+// block.
+export const fence: Command = (state, dispatch) => {
+  const $from = endOfParagraph(state);
+  const found = $from && /^```([\w+#.-]*)$/.exec($from.parent.textContent);
+  if (!$from || !found) return false;
+  if (dispatch) {
+    const tr = state.tr.replaceWith($from.before(), $from.after(), N.code_block.create({ lang: found[1] }));
+    dispatch(tr.setSelection(TextSelection.create(tr.doc, $from.before() + 1)).scrollIntoView());
   }
-  if (/^(-{3,}|\*{3,}|_{3,})$/.test(para.textContent)) {
-    if (dispatch) {
-      const tr = state.tr.replaceWith($from.before(), $from.after(), [N.horizontal_rule.create(), N.paragraph.create()]);
-      dispatch(tr.setSelection(TextSelection.create(tr.doc, $from.before() + 2)).scrollIntoView());
-    }
-    return true;
-  }
-  return false;
+  return true;
 };
+
+// rule is Enter on a line that's just ---: a rule.
+const rule: Command = (state, dispatch) => {
+  const $from = endOfParagraph(state);
+  if (!$from || !/^(-{3,}|\*{3,}|_{3,})$/.test($from.parent.textContent)) return false;
+  if (dispatch) {
+    const tr = state.tr.replaceWith($from.before(), $from.after(), [N.horizontal_rule.create(), N.paragraph.create()]);
+    dispatch(tr.setSelection(TextSelection.create(tr.doc, $from.before() + 2)).scrollIntoView());
+  }
+  return true;
+};
+
+const fenceOrRule = chainCommands(fence, rule);
 
 // splitItem is Enter in a list: a new item (a task, after a task), or out
 // of the list from an empty one.
-const splitItem: Command = (state, dispatch) => {
+export const splitItem: Command = (state, dispatch) => {
   const { $from } = state.selection;
   if ($from.parent.type.spec.code || $from.depth < 2 || $from.node(-1).type !== N.list_item) return false;
   const task = $from.node(-1).attrs.checked !== null;
@@ -208,7 +217,7 @@ const splitItem: Command = (state, dispatch) => {
 
 // unItem is Backspace at the start of an item: a task loses its box
 // first, then the item leaves its list.
-const unItem: Command = (state, dispatch) => {
+export const unItem: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;
   if (!empty || $from.parentOffset !== 0 || $from.depth < 2 || $from.node(-1).type !== N.list_item || $from.index(-1) !== 0) return false;
   const item = $from.node(-1);
@@ -227,7 +236,7 @@ const hardBreak: Command = (state, dispatch) => {
 // leaveCode is ↓ (or →) at the very end of a code block with nothing
 // after it, or with one selected whole (a diagram, drawn): a paragraph
 // after it to go on in, since there's nowhere else to go.
-const leaveCode: Command = (state, dispatch) => {
+export const leaveCode: Command = (state, dispatch) => {
   const sel = state.selection;
   let after: number;
   if (sel instanceof NodeSelection) {
@@ -247,7 +256,7 @@ const leaveCode: Command = (state, dispatch) => {
   return true;
 };
 
-const indentCode: Command = (state, dispatch) => {
+export const indentCode: Command = (state, dispatch) => {
   if (!state.selection.$from.parent.type.spec.code) return false;
   dispatch?.(state.tr.insertText("  ").scrollIntoView());
   return true;
@@ -331,11 +340,13 @@ const linkRule = new InputRule(/(?:^|[\s(])((?:https?:\/\/|www\.)[^\s<]*[^\s<.,:
   return state.tr.addMark(from, end, M.link.create({ href: url.startsWith("www.") ? "http://" + url : url })).insertText(match[2], end);
 });
 
-export const rules: Plugin = inputRules({
-  rules: [
-    textblockTypeInputRule(/^(#{1,6})\s$/, N.heading, (m) => ({ level: m[1].length })),
-    wrappingInputRule(/^\s*>\s$/, N.blockquote),
-    taskRule,
+// ruleSets is the markdown you can type, by what it makes, for a box that
+// offers some of it (RichTextEditor.tsx). The document has them all (rules).
+export const ruleSets = {
+  heading: [textblockTypeInputRule(/^(#{1,6})\s$/, N.heading, (m) => ({ level: m[1].length }))],
+  quote: [wrappingInputRule(/^\s*>\s$/, N.blockquote)],
+  task: [taskRule],
+  list: [
     wrappingInputRule(/^\s*([-+*])\s$/, N.bullet_list),
     wrappingInputRule(
       /^(\d+)[.)]\s$/,
@@ -343,7 +354,9 @@ export const rules: Plugin = inputRules({
       (m) => ({ start: Number(m[1]) }),
       (m, node) => node.childCount + node.attrs.start === Number(m[1]),
     ),
-    textblockTypeInputRule(/^```([\w+#.-]*)\s$/, N.code_block, (m) => ({ lang: m[1] })),
+  ],
+  code: [textblockTypeInputRule(/^```([\w+#.-]*)\s$/, N.code_block, (m) => ({ lang: m[1] }))],
+  marks: [
     markRule(/\*\*([^*\s](?:[^*]*[^*\s])?)\*\*$/, M.strong),
     markRule(/(?<![\w_])__([^_\s](?:[^_]*[^_\s])?)__$/, M.strong),
     markRule(/(?<![*\w])\*([^*\s](?:[^*]*[^*\s])?)\*$/, M.em),
@@ -352,4 +365,7 @@ export const rules: Plugin = inputRules({
     markRule(/`([^`]+)`$/, M.code),
     linkRule,
   ],
-});
+};
+
+const R = ruleSets;
+export const rules: Plugin = inputRules({ rules: [...R.heading, ...R.quote, ...R.task, ...R.list, ...R.code, ...R.marks] });

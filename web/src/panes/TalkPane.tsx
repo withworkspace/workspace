@@ -54,7 +54,7 @@ export function TalkPane({ to, root, stamp, onGone }: TalkPaneProps) {
   const held = useTalk(to);
   const talk = held?.detail;
   const [keeping, setKeeping] = useState(false);
-  const field = useRef<HTMLTextAreaElement>(null);
+  const field = useRef<HTMLElement>(null);
 
   // It's shown, so it's followed while it's answered; and read, unless
   // whoever opened it has just said what it is. Read again when the

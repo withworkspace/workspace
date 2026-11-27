@@ -7,8 +7,8 @@ import { Icon } from "../../ui/Icon";
 import { Input } from "../../ui/Input";
 import { Spinner } from "../../ui/Spinner";
 import { humanError } from "../../ui/strings";
-import { TextArea } from "../../ui/TextArea";
 import css from "./MissionOpenPR.module.css";
+import { RichTextArea } from "../../ui/RichTextArea";
 
 type MissionOpenPRProps = {
   // The capsule it's opened from, repo/name.
@@ -56,13 +56,20 @@ export function MissionOpenPR({ name, step, title, onTitle, body, onBody, draft,
             {writing ? <Spinner size={12} /> : <Icon name="pencil" size={12} />} {writing ? "Writing…" : "Write"}
           </Button>
         </div>
-        <TextArea
+        <RichTextArea
+          marks
+          lists
+          quote
+          code
+          refs
+          look="field"
           value={body}
           rows={8}
+          tallest={480}
           aria-label="Description"
           placeholder="What changed, and why"
           disabled={writing}
-          onChange={(e) => onBody(e.target.value)}
+          onChange={onBody}
         />
       </div>
       <Checkbox className={cx(css.toggle, css.draft)} checked={draft} onChange={onDraft}>

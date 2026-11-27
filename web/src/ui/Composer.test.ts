@@ -1,12 +1,16 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { Composer } from "./Composer";
 
 // Composer draws one box around its words and what's pressed. These are
-// what each layout has in it, and what reaches the text box.
+// what each layout has in it, and what reaches the text box. (Drawn on
+// the server, the words are RichTextArea's plain box, as while the editor
+// loads: a textarea in the part's own element. In a router: a ref in it
+// is followed.)
 const html = (props: Partial<Parameters<typeof Composer>[0]> = {}, children?: string) =>
-  renderToStaticMarkup(h(Composer, { value: "", onChange: () => {}, onSend: () => {}, "aria-label": "Reply", ...props }, children));
+  renderToStaticMarkup(h(MemoryRouter, null, h(Composer, { value: "", onChange: () => {}, onSend: () => {}, "aria-label": "Reply", ...props }, children)));
 
 describe("Composer", () => {
   it("names its text box, and says what it's given of it", () => {
@@ -24,7 +28,7 @@ describe("Composer", () => {
 
   it("has a bar under the words, with the keys that send before what's pressed", () => {
     const out = html({ hint: "No changes." }, "Send");
-    expect(out).toMatch(/<\/textarea><div[^>]*><span[^>]*>No changes\.<\/span><span class="[^"]*"><kbd>[^<]*⏎<\/kbd><\/span>Send<\/div>/);
+    expect(out).toMatch(/<\/textarea><\/div><div[^>]*><span[^>]*>No changes\.<\/span><span class="[^"]*"><kbd>[^<]*⏎<\/kbd><\/span>Send<\/div>/);
   });
 
   it("shows ⏎ alone where that's what sends", () => {
@@ -37,14 +41,14 @@ describe("Composer", () => {
 
   it("has what's pressed beside the words, and no bar or keys of its own", () => {
     const out = html({ layout: "beside", send: "enter" }, "Ask");
-    expect(out).toMatch(/<\/textarea>Ask<\/div>$/);
+    expect(out).toMatch(/<\/textarea><\/div>Ask<\/div>$/);
     expect(out).not.toContain("<kbd>");
   });
 
   it("has only its keys with corner, and what's held over the words", () => {
     const out = html({ layout: "corner", over: "held" }, "not drawn");
-    expect(out).toMatch(/^<div[^>]*><div[^>]*>held<\/div><textarea/);
-    expect(out).toMatch(/<\/textarea><span class="[^"]*"><kbd>[^<]*⏎<\/kbd><\/span><\/div>$/);
+    expect(out).toMatch(/^<div[^>]*><div[^>]*>held<\/div><div[^>]*data-rich=\"\"><textarea/);
+    expect(out).toMatch(/<\/textarea><\/div><span class="[^"]*"><kbd>[^<]*⏎<\/kbd><\/span><\/div>$/);
     expect(out).not.toContain("not drawn");
   });
 });

@@ -89,7 +89,7 @@ export function BriefPlanner({
         if (turn.by === "you") {
           return (
             <Turn key={turn.n} by="you" dense landed>
-              <TurnSaid written>
+              <TurnSaid>
                 <BriefYourWords body={turn.body} />
               </TurnSaid>
             </Turn>

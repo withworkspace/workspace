@@ -4,6 +4,7 @@ import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { Text } from "../ui/Text";
+import { RichText } from "../ui/RichText";
 
 // Things to peek at, for the docks' stories: Sorrel's, written by hand,
 // since the panes that will draw real ones aren't parts yet. What a pane
@@ -36,7 +37,9 @@ export const rounding: SampleThing = {
   body: (
     <div style={{ display: "grid", gap: 14 }}>
       <Turn by="you" dense landed>
-        <TurnSaid written>Where do we round money, and is it the same everywhere?</TurnSaid>
+        <TurnSaid>
+          <RichText text="Where do we round money, and is it the same everywhere?" />
+        </TurnSaid>
       </Turn>
       <Turn by="agent" dense landed>
         <TurnSaid className="ask-answer">
