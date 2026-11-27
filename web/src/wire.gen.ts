@@ -2115,7 +2115,7 @@ export type Dispatch = "ask" | "auto";
 // From web/api.go
 /**
  * DocConflict is an edit merged with what's there now, where the two clash:
- * each clash is marked (<<<<<<< your edit … >>>>>>> the document now), to
+ * each clash is marked (<<<<<<< your edit … >>>>>>> current), to
  * settle and save again from Version.
  */
 export interface DocConflict {
