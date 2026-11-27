@@ -45,7 +45,7 @@ func skillFile(ws *workspace.Workspace, name string) (path, unavailable string) 
 			return s.Path, ""
 		}
 	}
-	return "", fmt.Sprintf("the workspace has no skill named %s (ws show skills lists them)", name)
+	return "", fmt.Sprintf("no skill named %s (ws show skills)", name)
 }
 
 // Passes are the workspace's passes over a page.
@@ -70,7 +70,7 @@ func (w *Workspace) cells() conversation.Store { return conversation.ForWorkspac
 // started as a kind of document is written as one, to be filed.
 func (w *Workspace) NewPage(title, kind, to string) (page.Page, error) {
 	if kind != "" && !slices.ContainsFunc(w.WS().Kinds, func(k *workspace.Kind) bool { return k.Name == kind }) {
-		return page.Page{}, &Invalid{Reason: "the workspace has no kind of document named " + kind}
+		return page.Page{}, &Invalid{Reason: "no document kind " + kind}
 	}
 	if to != "" {
 		var err error
@@ -102,15 +102,15 @@ func (w *Workspace) NewPage(title, kind, to string) (page.Page, error) {
 func (w *Workspace) plainPlace(to string) (string, error) {
 	repo, p, ok := strings.Cut(to, ":")
 	if !ok {
-		return "", &Invalid{Reason: fmt.Sprintf("%q isn't a place in a repo: it's repo:folder/", to)}
+		return "", &Invalid{Reason: fmt.Sprintf("%q is not a repo folder: use repo:folder/", to)}
 	}
 	name, ok := w.WS().ResolveAlias(repo)
 	if !ok {
-		return "", &Invalid{Reason: "the workspace has no repo " + repo}
+		return "", &Invalid{Reason: "no repo " + repo}
 	}
 	p = strings.TrimPrefix(strings.TrimSpace(p), "/")
 	if slices.Contains(strings.Split(p, "/"), "..") {
-		return "", &Invalid{Reason: fmt.Sprintf("%q leads out of %s", to, name)}
+		return "", &Invalid{Reason: fmt.Sprintf("%q is outside %s", to, name)}
 	}
 	if p != "" && !strings.HasSuffix(p, "/") && !strings.HasSuffix(strings.ToLower(p), ".md") {
 		p += "/"
@@ -140,10 +140,10 @@ func (w *Workspace) Cell(pageID, id string) (*conversation.Conversation, string,
 		return nil, "", err
 	}
 	if c.Kind != conversation.Cell || c.Anchor.Page != pageID {
-		return nil, "", errors.Join(conversation.ErrNotFound, errors.New(c.ID+" isn't a cell of "+pageID))
+		return nil, "", errors.Join(conversation.ErrNotFound, errors.New(c.ID+" is not a cell of "+pageID))
 	}
 	if _, ok := c.BlockOf(key); key != "" && !ok {
-		return nil, "", errors.Join(conversation.ErrNotFound, errors.New(c.ID+" planned no block "+key))
+		return nil, "", errors.Join(conversation.ErrNotFound, errors.New(c.ID+" has no block "+key))
 	}
 	return c, key, nil
 }
@@ -229,7 +229,7 @@ func (w *Workspace) Pass(pageID, name string) (page.PassDef, *conversation.Conve
 func (w *Workspace) RunPass(pageID, name string) (page.PassDef, *conversation.Conversation, []byte, error) {
 	def, c, text, err := w.Pass(pageID, name)
 	if err == nil && def.Unavailable != "" {
-		err = errors.New(def.Title + " can't be run: " + def.Unavailable)
+		err = errors.New(def.Title + " cannot run: " + def.Unavailable)
 	}
 	if err != nil {
 		return def, nil, nil, err
@@ -238,7 +238,7 @@ func (w *Workspace) RunPass(pageID, name string) (page.PassDef, *conversation.Co
 	case c == nil:
 		c, err = w.cells().OpenPass(pageID, def.Name, w.now())
 	case !c.Answering:
-		c, err = w.cells().Say(c.ID, conversation.Turn{By: conversation.You, At: w.now(), Body: "Run it again."})
+		c, err = w.cells().Say(c.ID, conversation.Turn{By: conversation.You, At: w.now(), Body: "Run again."})
 	}
 	if err != nil {
 		return def, nil, nil, err
@@ -251,7 +251,7 @@ func (w *Workspace) RunPass(pageID, name string) (page.PassDef, *conversation.Co
 func (w *Workspace) SettleFinding(pageID, name, key, state, why string) (page.PassDef, *conversation.Conversation, []byte, error) {
 	def, c, text, err := w.Pass(pageID, name)
 	if err == nil && c == nil {
-		err = errors.Join(conversation.ErrNotFound, errors.New(def.Name+" hasn't been run over this page"))
+		err = errors.Join(conversation.ErrNotFound, errors.New(def.Name+" has not run on this page"))
 	}
 	if err != nil {
 		return def, nil, nil, err

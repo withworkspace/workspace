@@ -360,11 +360,11 @@ func (s *Server) settleProposal(w http.ResponseWriter, r *http.Request) {
 	}
 	n, err := strconv.Atoi(r.PathValue("n"))
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "proposals are numbered 1, 2, …")
+		jsonError(w, http.StatusNotFound, "proposal must be a number: 1, 2, …")
 		return
 	}
 	if b.Action != "accept" && b.Action != "decline" {
-		jsonError(w, http.StatusBadRequest, "action is accept or decline")
+		jsonError(w, http.StatusBadRequest, "action must be accept or decline")
 		return
 	}
 	said, after, err := s.App.SettleProposal(store.Slug, id, n, b.Action == "accept", ops.ProposalEdits{What: b.What, Why: b.Why, Title: b.Title, Brief: b.Brief, Text: b.Text, Plan: b.Plan, Note: b.Note, Items: b.Items})

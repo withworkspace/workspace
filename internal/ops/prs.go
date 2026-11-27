@@ -112,14 +112,14 @@ func DockedTop(pr *pulls.PR, st *pulls.Stack) *pulls.PR {
 // will do.
 func (w *Workspace) dockQuietly(pr *pulls.PR) (string, error) {
 	if pr.Fork {
-		return "", fmt.Errorf("%s is from a fork: ws dock looks for its branch on origin, so it can't be docked", pr.Ref())
+		return "", fmt.Errorf("could not dock %s: pull requests from forks are not supported", pr.Ref())
 	}
 	if c := w.CapsuleOnBranch(pr.Repo, pr.Branch); c != "" {
 		return c, nil
 	}
 	c, err := w.Dock(pr.Repo, pr.Branch, CapsuleOptions{Bare: true, By: AsWS})
 	if err != nil {
-		return "", fmt.Errorf("docking %s: %w", pr.Ref(), err)
+		return "", fmt.Errorf("could not dock %s: %w", pr.Ref(), err)
 	}
 	capsule := c.Name
 	logFailed(pulls.Update(w.WS().Root, pr.Repo, pr.Number, func(r *pulls.Record) {
@@ -148,7 +148,7 @@ func (w *Workspace) askPR(svc *pulls.Service, repo string, number int, q PRQuest
 		return nil, fmt.Errorf("no agent can answer here: %w", err)
 	}
 	if top := DockedTop(pr, st); top.Fork {
-		return nil, fmt.Errorf("%s is from a fork: ws dock looks for its branch on origin, so it can't be docked", top.Ref())
+		return nil, fmt.Errorf("could not dock %s: pull requests from forks are not supported", top.Ref())
 	}
 	anchor := conversation.Anchor{PR: pr.Ref()}
 	if q.Path != "" {
@@ -207,7 +207,7 @@ func (w *Workspace) dockForAnswer(c *conversation.Conversation) error {
 var DockForReview = func(w *Workspace, repo, branch string) error {
 	c, err := w.Dock(repo, branch, CapsuleOptions{By: AsYou})
 	if err == nil && c.HookErr != nil {
-		err = fmt.Errorf("docked %s, but its after_create hook failed: %w", c.Path, c.HookErr)
+		err = fmt.Errorf("docked %s, but after_create hook failed: %w", c.Path, c.HookErr)
 	}
 	return err
 }
@@ -221,7 +221,7 @@ func (w *Workspace) openHere(svc *pulls.Service, repo string, number int) (strin
 		return "", err
 	}
 	if pr.Fork {
-		return "", fmt.Errorf("%s is from a fork: ws dock looks for its branch on origin, so it can't be opened here", pr.Ref())
+		return "", fmt.Errorf("could not open %s here: pull requests from forks are not supported", pr.Ref())
 	}
 	rec, err := pulls.Load(w.WS().Root, repo, number)
 	if err != nil {
@@ -237,21 +237,21 @@ func (w *Workspace) openHere(svc *pulls.Service, repo string, number int) (strin
 	if capsule := w.CapsuleOnBranch(repo, pr.Branch); capsule != "" {
 		path := filepath.Join(w.WS().RepoDir(repo), capsule)
 		if rec.Docked == nil || rec.Docked.By != pulls.ByWS || rec.Docked.Capsule != capsule {
-			return fmt.Sprintf("It's here already: %s.", path), nil
+			return fmt.Sprintf("Already here: %s.", path), nil
 		}
-		said := fmt.Sprintf("It's yours now: %s.", path)
+		said := fmt.Sprintf("Now yours: %s.", path)
 		if c := w.Adopt(repo, capsule); c.HookErr != nil {
-			said += " Its after_create hook failed: " + c.HookErr.Error() + "."
+			said += " The after_create hook failed: " + c.HookErr.Error() + "."
 		}
 		mine(capsule)
 		return said, nil
 	}
 	if err := DockForReview(w, repo, pr.Branch); err != nil {
-		return "", fmt.Errorf("docking %s: %w", pr.Ref(), err)
+		return "", fmt.Errorf("could not dock %s: %w", pr.Ref(), err)
 	}
 	capsule := w.CapsuleOnBranch(repo, pr.Branch)
 	if capsule == "" {
-		return "", fmt.Errorf("ws dock said it docked %s, but no capsule is on %s", pr.Ref(), pr.Branch)
+		return "", fmt.Errorf("docked %s, but found no capsule on %s", pr.Ref(), pr.Branch)
 	}
 	mine(capsule)
 	return fmt.Sprintf("Docked: %s.", filepath.Join(w.WS().RepoDir(repo), capsule)), nil
@@ -315,11 +315,11 @@ func (w *Workspace) TidyDocked() {
 func (w *Workspace) ParsePRRef(name string) (repo string, number int, err error) {
 	given, number, ok := ref.ParsePR(name)
 	if !ok {
-		return "", 0, fmt.Errorf("%q isn't a pull request: they're named <repo>#<number> from 1, such as api#89", name)
+		return "", 0, fmt.Errorf("%q is not a pull request: use <repo>#<number>, such as api#89", name)
 	}
 	repo, ok = w.WS().ResolveAlias(given)
 	if !ok {
-		return "", 0, fmt.Errorf("%s isn't a repo of this workspace", given)
+		return "", 0, fmt.Errorf("%s is not a repo in this workspace", given)
 	}
 	return repo, number, nil
 }
@@ -351,7 +351,7 @@ func (w *Workspace) acceptComment(store conversation.Store, c *conversation.Conv
 	if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, id, conversation.You, time.Now()); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("Added to your draft review of %s: it's posted when you submit.", p.PR), nil
+	return fmt.Sprintf("Added to your draft review of %s: posted when you submit.", p.PR), nil
 }
 
 // PRService is the Reviews page's service: one for the workspace's
@@ -370,7 +370,7 @@ func (w *Workspace) PRService() *pulls.Service {
 }
 
 // errNoReviews is the Reviews page's work where there's no GitHub.
-var errNoReviews = fmt.Errorf("%w: there's no GitHub to ask here", ErrNotFound)
+var errNoReviews = fmt.Errorf("%w: no GitHub access", ErrNotFound)
 
 // reviews is PRService, or why there's none.
 func (w *Workspace) reviews() (*pulls.Service, error) {

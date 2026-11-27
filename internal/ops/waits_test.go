@@ -58,7 +58,7 @@ func TestWaitOnYou(t *testing.T) {
 	if task == nil || task.Verb != mission.TaskDo || task.Step != 2 || len(task.Options) != 1 || task.Options[0] != mission.WaitDone {
 		t.Fatalf("asked = %+v", task)
 	}
-	if want := "Step 1 is done. Step 2 is yours, to do: Release. The release is tagged. ws can't see it happen, so nothing moves until you mark it done."; !strings.HasPrefix(task.Text, want) {
+	if want := "Step 1 is done. Step 2 is yours to do: Release. The release is tagged. Mark done once it has happened, with anything the next crew should know"; !strings.HasPrefix(task.Text, want) {
 		t.Errorf("asked %q, want it to start %q", task.Text, want)
 	}
 	if st := stepOf(t, w, 2); st.Watch() == nil || st.Watch().Since.IsZero() {
@@ -78,14 +78,14 @@ func TestWaitOnYou(t *testing.T) {
 		t.Fatalf("done: %+v, %v", a, err)
 	}
 	st := stepOf(t, w, 2)
-	if !st.Accepted() || st.Record.AcceptedBy != "you" || st.Record.Why != "the user marked it done: tagged v0.2.0, not v0.1.0" {
+	if !st.Accepted() || st.Record.AcceptedBy != "you" || st.Record.Why != "marked done by the user: tagged v0.2.0, not v0.1.0" {
 		t.Errorf("step 2 = %+v", st.Record)
 	}
 	if m, _ := w.Missions.Load("cache"); m.Asking() != nil {
 		t.Errorf("still asked: %+v", m.Asking())
 	}
 	ds, _ := w.Missions.Decisions("cache")
-	if last := ds[len(ds)-1]; last.What != "tagged v0.2.0, not v0.1.0" || !strings.Contains(last.Why, "said of step 2, a wait") {
+	if last := ds[len(ds)-1]; last.What != "tagged v0.2.0, not v0.1.0" || !strings.Contains(last.Why, "noted at step 2 as it passed") {
 		t.Errorf("decisions = %+v", ds)
 	}
 	if len(host.specs) != 1 {
@@ -133,7 +133,7 @@ func TestWaitWatched(t *testing.T) {
 		t.Fatalf("the look after it happened: %q", said)
 	}
 	st = stepOf(t, w, 2)
-	if !st.Accepted() || st.Record.AcceptedBy != "ws" || st.Record.Why != "what it waits for has happened: `test -f released` is met" {
+	if !st.Accepted() || st.Record.AcceptedBy != "ws" || st.Record.Why != "happened: `test -f released` is met" {
 		t.Errorf("step 2 = %+v", st.Record)
 	}
 	if len(host.specs) != 1 {
@@ -148,16 +148,16 @@ func TestWaitWatched(t *testing.T) {
 func TestWaitOnYouWatched(t *testing.T) {
 	w, _, _ := atWait(t, "   - on: you\n   - check: `test -f released` passes\n")
 	m, _ := w.Missions.Load("cache")
-	if task := m.Asking(); task == nil || !strings.Contains(task.Text, "ws watches for it (`test -f released`), and passes the step once it's happened; or mark it done, and ws looks then.") {
+	if task := m.Asking(); task == nil || !strings.Contains(task.Text, "Workspace watches (`test -f released`) and passes the step once it happens; or mark done to check now.") {
 		t.Fatalf("asked = %+v", task)
 	}
 	a, err := w.Answer("cache", AsYou, "Done")
-	if err != nil || !strings.Contains(a.Next, "ws's look doesn't show it yet (`test -f released` passes (failed (exit 1)") || stepOf(t, w, 2).Accepted() {
+	if err != nil || !strings.Contains(a.Next, "checks not met yet (`test -f released` passes (failed (exit 1)") || stepOf(t, w, 2).Accepted() {
 		t.Fatalf("done, not happened: %+v, %v", a, err)
 	}
 	m, _ = w.Missions.Load("cache")
 	task := m.Asking()
-	if task == nil || task.Verb != mission.TaskDo || len(task.Options) != 2 || task.Options[1] != mission.ChecksPass || !strings.Contains(task.Text, "Step 2 is marked done, and ws's look doesn't show it yet: `test -f released` passes (failed (exit 1)") {
+	if task == nil || task.Verb != mission.TaskDo || len(task.Options) != 2 || task.Options[1] != mission.ChecksPass || !strings.Contains(task.Text, "Step 2 marked done, but checks not met yet: `test -f released` passes (failed (exit 1)") {
 		t.Fatalf("asked again = %+v", task)
 	}
 	// Done again, once it has.
@@ -166,7 +166,7 @@ func TestWaitOnYouWatched(t *testing.T) {
 	if err != nil || a.Next != "started step 3: c1 in frontend/two" {
 		t.Fatalf("done: %+v, %v", a, err)
 	}
-	if st := stepOf(t, w, 2); !st.Accepted() || st.Record.Why != "the user marked it done, and `test -f released` is met" {
+	if st := stepOf(t, w, 2); !st.Accepted() || st.Record.Why != "marked done by the user, and `test -f released` is met" {
 		t.Errorf("step 2 = %+v", st.Record)
 	}
 
@@ -179,7 +179,7 @@ func TestWaitOnYouWatched(t *testing.T) {
 	if err != nil || a.Next != "started step 3: c1 in frontend/two" {
 		t.Fatalf("pass it: %+v, %v", a, err)
 	}
-	if st := stepOf(t, w, 2); !st.Accepted() || st.Record.Why != "the user passed it, its checks as they were" {
+	if st := stepOf(t, w, 2); !st.Accepted() || st.Record.Why != "passed by the user, checks as they were" {
 		t.Errorf("step 2 = %+v", st.Record)
 	}
 }

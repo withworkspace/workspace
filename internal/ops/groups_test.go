@@ -108,7 +108,7 @@ func TestGroupRepo_ForYou(t *testing.T) {
 	if g, ok := groupNamed(w.Groups(), "mine"); !ok || strings.Join(g.Repos, ",") != "api" {
 		t.Errorf("mine: %+v", g)
 	}
-	if _, err := w.GroupRepo(ctx, AsYou, "api", ""); err == nil || !strings.Contains(err.Error(), "not in none") {
+	if _, err := w.GroupRepo(ctx, AsYou, "api", ""); err == nil || !strings.Contains(err.Error(), "choose another group, not none") {
 		t.Errorf("api in none: %v", err)
 	}
 	done, err := w.GroupRepo(ctx, AsYou, "api", "platform")

@@ -43,7 +43,7 @@ func TestChecking_TheHeadlineSaysWhatsRunning(t *testing.T) {
 		Judged: []int{4, 5}, Since: start, Until: start.Add(15 * time.Minute)}
 
 	h := checkingHeadlineOf(t, m, start.Add(80*time.Second))
-	want := "Check 2 of 5 for step 1: `just test`, 1m20s so far (stopped at 15m). Last line: “ok  internal/cli  4.2s”. The judge reads checks 4 and 5 after"
+	want := "Check 2 of 5 for step 1: `just test`, 1m20s so far (limit 15m). Last line: “ok  internal/cli  4.2s”. The judge reads checks 4 and 5 after"
 	if h.Text != want || !h.Since.Equal(start) || h.Court != CourtAgent {
 		t.Errorf("headline = %q since %v, want %q", h.Text, h.Since, want)
 	}
@@ -53,19 +53,19 @@ func TestChecking_TheHeadlineSaysWhatsRunning(t *testing.T) {
 	}
 	// No line yet, and nothing for the judge.
 	m.Checking.Line, m.Checking.Judged = "", nil
-	if h := checkingHeadlineOf(t, m, start.Add(5*time.Second)); h.Text != "Check 2 of 5 for step 1: `just test`, 5s so far (stopped at 15m)" {
+	if h := checkingHeadlineOf(t, m, start.Add(5*time.Second)); h.Text != "Check 2 of 5 for step 1: `just test`, 5s so far (limit 15m)" {
 		t.Errorf("no line: %q", h.Text)
 	}
 
 	// The judge's turn.
 	m.Checking = &Checking{Step: 1, Crew: "c1", Of: 5, Judged: []int{4, 5}, Judge: "the judge (claude:sonnet)", Since: start, Until: start.Add(10 * time.Minute)}
-	if h := checkingHeadlineOf(t, m, start.Add(40*time.Second)); h.Text != "The judge (claude:sonnet) is reading checks 4 and 5 of step 1: 40s so far (stopped at 10m)" || h.Label != "… judging" {
+	if h := checkingHeadlineOf(t, m, start.Add(40*time.Second)); h.Text != "The judge (claude:sonnet) is reading checks 4 and 5 of step 1: 40s so far (limit 10m)" || h.Label != "… judging" {
 		t.Errorf("judging: %q (%s)", h.Text, h.Label)
 	}
 
 	// Left from a ws that stopped, long past when it would have been
 	// stopped, or for another step or crew: the usual headline.
-	plain := "ws is checking step 1: what c1 reported done, against what has to be true for it to be done"
+	plain := "Checking step 1: c1 reported done"
 	if h := checkingHeadlineOf(t, m, start.Add(time.Hour)); h.Text != plain || !h.Since.IsZero() {
 		t.Errorf("stale: %q", h.Text)
 	}

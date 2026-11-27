@@ -55,7 +55,7 @@ func OpenPRs(org, repo string) ([]PR, error) {
 		}
 		stdOut, stdErr, err := ghExec(args...)
 		if err != nil {
-			return nil, fmt.Errorf("open PRs of %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
+			return nil, fmt.Errorf("could not list open pull requests of %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		page, next, err := parseOpenPRs(stdOut.Bytes())
 		if err != nil {
@@ -126,10 +126,10 @@ func parseOpenPRs(data []byte) ([]PR, string, error) {
 		} `json:"errors"`
 	}
 	if err := json.Unmarshal(data, &res); err != nil {
-		return nil, "", fmt.Errorf("parsing open PRs: %w", err)
+		return nil, "", fmt.Errorf("could not read open pull requests: %w", err)
 	}
 	if len(res.Errors) > 0 {
-		return nil, "", fmt.Errorf("open PRs: %s", res.Errors[0].Message)
+		return nil, "", fmt.Errorf("could not read open pull requests: %s", res.Errors[0].Message)
 	}
 	prs := res.Data.Repository.PullRequests
 	var out []PR
@@ -173,11 +173,11 @@ func parseOpenPRs(data []byte) ([]PR, string, error) {
 func Viewer() (string, error) {
 	stdOut, _, err := ghExec("api", "user", "-q", ".login")
 	if err != nil {
-		return "", fmt.Errorf("gh api user: %w", err)
+		return "", fmt.Errorf("could not read your GitHub login: %w", err)
 	}
 	login := strings.TrimSpace(stdOut.String())
 	if login == "" {
-		return "", fmt.Errorf("gh api user: no login")
+		return "", fmt.Errorf("no GitHub login: run gh auth login")
 	}
 	return login, nil
 }
@@ -208,7 +208,7 @@ func ReviewRequested(org string) ([]PRRef, error) {
 		"--json", "number,repository",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("gh search prs --review-requested=@me: %w", err)
+		return nil, fmt.Errorf("could not search pull requests asking for your review: %w", err)
 	}
 	var found []struct {
 		Number     int `json:"number"`
@@ -218,7 +218,7 @@ func ReviewRequested(org string) ([]PRRef, error) {
 		} `json:"repository"`
 	}
 	if err := json.Unmarshal(stdOut.Bytes(), &found); err != nil {
-		return nil, fmt.Errorf("parsing gh output: %w", err)
+		return nil, fmt.Errorf("could not read GitHub's answer: %w", err)
 	}
 	out := make([]PRRef, 0, len(found))
 	for _, f := range found {
@@ -387,7 +387,7 @@ func SubmitReview(org, repo string, number int, r ReviewSubmission) (string, err
 		"--input", f.Name(),
 	)
 	if err != nil {
-		return "", fmt.Errorf("posting the review on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return "", fmt.Errorf("could not post the review on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	var res struct {
 		URL string `json:"html_url"`
@@ -480,7 +480,7 @@ func ReviewThreads(org, repo string, number int) ([]ReviewThread, error) {
 		}
 		stdOut, stdErr, err := ghExec(args...)
 		if err != nil {
-			return nil, fmt.Errorf("reading the threads on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
+			return nil, fmt.Errorf("could not read the threads on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		page, next, err := parseReviewThreads(stdOut.Bytes())
 		if err != nil {
@@ -541,7 +541,7 @@ func parseReviewThreads(data []byte) ([]ReviewThread, string, error) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(data, &res); err != nil {
-		return nil, "", fmt.Errorf("parsing review threads: %w", err)
+		return nil, "", fmt.Errorf("could not read review threads: %w", err)
 	}
 	rt := res.Data.Repository.PullRequest.ReviewThreads
 	var out []ReviewThread
@@ -567,7 +567,7 @@ func ReplyToThread(threadID, body string) error {
 	const q = `mutation($id: ID!, $body: String!) { addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $id, body: $body}) { comment { id } } }`
 	stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+q, "-f", "id="+threadID, "-f", "body="+body)
 	if err != nil {
-		return fmt.Errorf("replying on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
+		return fmt.Errorf("could not reply on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return nil
 }
@@ -580,7 +580,7 @@ func ResolveThread(threadID string, resolved bool) error {
 	}
 	stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+q, "-f", "id="+threadID)
 	if err != nil {
-		return fmt.Errorf("resolving on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
+		return fmt.Errorf("could not resolve on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return nil
 }
@@ -617,7 +617,7 @@ const discussionQuery = `query($owner: String!, $repo: String!, $number: Int!) {
 func Discussion(org, repo string, number int) ([]Said, error) {
 	stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+discussionQuery, "-f", "owner="+org, "-f", "repo="+repo, "-F", "number="+strconv.Itoa(number))
 	if err != nil {
-		return nil, fmt.Errorf("reading what's been said on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return nil, fmt.Errorf("could not read the discussion on %s#%d: %s", repoSlug(org, repo), number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return parseDiscussion(stdOut.Bytes())
 }
@@ -658,7 +658,7 @@ func parseDiscussion(data []byte) ([]Said, error) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(data, &res); err != nil {
-		return nil, fmt.Errorf("parsing a PR's reviews and comments: %w", err)
+		return nil, fmt.Errorf("could not read a pull request's reviews and comments: %w", err)
 	}
 	pr := res.Data.Repository.PullRequest
 	out := []Said{}
@@ -682,7 +682,7 @@ func parseDiscussion(data []byte) ([]Said, error) {
 func Comment(org, repo string, number int, body string) error {
 	stdOut, stdErr, err := ghExec("api", "--method", "POST", fmt.Sprintf("repos/%s/%s/issues/%d/comments", org, repo, number), "-f", "body="+body)
 	if err != nil {
-		return fmt.Errorf("commenting on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
+		return fmt.Errorf("could not comment on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	return nil
 }

@@ -168,7 +168,7 @@ func (c *CursorACP) Start(b Brief) (Launch, error) {
 // one only once a turn has run).
 func (c *CursorACP) Resume(dir, conversation string) (Launch, error) {
 	if conversation == "" || !c.sessionKept(conversation) {
-		return Launch{}, fmt.Errorf("%w: Cursor has no ACP session %q to resume", ErrNoResume, conversation)
+		return Launch{}, fmt.Errorf("%w: Cursor has no session %q", ErrNoResume, conversation)
 	}
 	agent, err := c.agent()
 	if err != nil {

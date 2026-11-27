@@ -70,13 +70,13 @@ func (s Source) Latest(ctx context.Context) (string, error) {
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("finding the latest release: %w", err)
+		return "", fmt.Errorf("could not find the latest release: %w", err)
 	}
 	resp.Body.Close()
 	_, tag, ok := strings.Cut(resp.Header.Get("Location"), "/releases/tag/")
 	if !ok || tag == "" {
 		if resp.StatusCode >= 400 {
-			return "", fmt.Errorf("finding the latest release: %s said %s", s.Base, resp.Status)
+			return "", fmt.Errorf("could not find the latest release: %s said %s", s.Base, resp.Status)
 		}
 		return "", fmt.Errorf("%s has no release yet", s.Base)
 	}
@@ -91,9 +91,9 @@ func Asset(version, goos, goarch string) (string, error) {
 	case "darwin/arm64", "linux/amd64", "linux/arm64":
 		return fmt.Sprintf("workspace_%s_%s_%s.tar.gz", version, goos, goarch), nil
 	case "darwin/amd64":
-		return "", errors.New("there's no release of ws for Intel Macs: build it from a clone with just build")
+		return "", errors.New("no release for Intel Macs: build from a clone with just build")
 	}
-	return "", fmt.Errorf("there's no release of ws for %s/%s: build it from a clone with just build", goos, goarch)
+	return "", fmt.Errorf("no release for %s/%s: build from a clone with just build", goos, goarch)
 }
 
 // Fetch downloads a release's build for a platform, checks it against the
@@ -121,10 +121,10 @@ func (s Source) Fetch(ctx context.Context, version, goos, goarch, dest string) (
 	defer archive.Close()
 	sum := sha256.New()
 	if err := s.get(ctx, base+"/"+asset, io.MultiWriter(archive, sum)); err != nil {
-		return "", "", fmt.Errorf("downloading %s: %w", asset, err)
+		return "", "", fmt.Errorf("could not download %s: %w", asset, err)
 	}
 	if got := hex.EncodeToString(sum.Sum(nil)); got != want {
-		return "", "", fmt.Errorf("%s doesn't match its checksum (%s, and the release says %s): not installed", asset, got, want)
+		return "", "", fmt.Errorf("%s does not match the release checksum (got %s, expected %s): not installed", asset, got, want)
 	}
 
 	path = filepath.Join(dir, ".workspace.new")
@@ -133,11 +133,11 @@ func (s Source) Fetch(ctx context.Context, version, goos, goarch, dest string) (
 	}
 	if err := extract(archive, path); err != nil {
 		os.Remove(path)
-		return "", "", fmt.Errorf("unpacking %s: %w", asset, err)
+		return "", "", fmt.Errorf("could not unpack %s: %w", asset, err)
 	}
 	if says, err = VersionOf(path); err != nil {
 		os.Remove(path)
-		return "", "", fmt.Errorf("the ws in %s doesn't run here (%w): not installed", asset, err)
+		return "", "", fmt.Errorf("the binary in %s does not run here (%w): not installed", asset, err)
 	}
 	return path, says, nil
 }
@@ -149,14 +149,14 @@ type Unwritable struct {
 	Err error
 }
 
-func (e *Unwritable) Error() string { return fmt.Sprintf("can't write to %s: %v", e.Dir, e.Err) }
+func (e *Unwritable) Error() string { return fmt.Sprintf("cannot write to %s: %v", e.Dir, e.Err) }
 func (e *Unwritable) Unwrap() error { return e.Err }
 
 // checksum is the SHA-256 a release's checksums.txt gives a build.
 func (s Source) checksum(ctx context.Context, url, asset string) (string, error) {
 	var b strings.Builder
 	if err := s.get(ctx, url, &b); err != nil {
-		return "", fmt.Errorf("fetching the release's checksums: %w", err)
+		return "", fmt.Errorf("could not fetch release checksums: %w", err)
 	}
 	sc := bufio.NewScanner(strings.NewReader(b.String()))
 	for sc.Scan() {
@@ -164,7 +164,7 @@ func (s Source) checksum(ctx context.Context, url, asset string) (string, error)
 			return strings.ToLower(f[0]), nil
 		}
 	}
-	return "", fmt.Errorf("%s isn't in the release's checksums.txt", asset)
+	return "", fmt.Errorf("%s is not in the release's checksums.txt", asset)
 }
 
 func (s Source) get(ctx context.Context, url string, w io.Writer) error {
@@ -178,7 +178,7 @@ func (s Source) get(ctx context.Context, url string, w io.Writer) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("%s isn't there: is there such a release?", url)
+		return fmt.Errorf("%s not found: no such release", url)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%s said %s", url, resp.Status)
@@ -197,7 +197,7 @@ func extract(archive io.Reader, path string) error {
 	for {
 		h, err := tr.Next()
 		if errors.Is(err, io.EOF) {
-			return errors.New("it has no workspace in it")
+			return errors.New("no workspace binary inside")
 		}
 		if err != nil {
 			return err

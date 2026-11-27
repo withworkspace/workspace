@@ -114,7 +114,7 @@ def run(e):
 `))
 	later(25 * time.Hour)
 	e.RunDue()
-	if runs, _ := Runs(e.Root, "bad", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "api has no task lint: it has coverage") {
+	if runs, _ := Runs(e.Root, "bad", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "api has no task lint (tasks: coverage)") {
 		t.Errorf("runs %+v", runs)
 	}
 }
@@ -130,7 +130,7 @@ def run(e):
 `))
 	later(25 * time.Hour)
 	e.RunDue()
-	if runs, _ := Runs(e.Root, "sneaky", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "may not") {
+	if runs, _ := Runs(e.Root, "sneaky", 1); len(runs) != 1 || !strings.Contains(runs[0].Error, "not allowed") {
 		t.Errorf("runs %+v", runs)
 	}
 }

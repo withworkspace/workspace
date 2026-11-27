@@ -330,7 +330,7 @@ func TestPluginCheck(t *testing.T) {
 
 	// One that asks for a word of ws's own doesn't start, and fails it.
 	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "taker", fakeplugin.Options{Command: "status"}))
-	if res.Err == nil || !strings.Contains(res.Stdout, "doesn't start") || !strings.Contains(res.Stdout, "ws's own command") {
+	if res.Err == nil || !strings.Contains(res.Stdout, "doesn't start") || !strings.Contains(res.Stdout, "is a built-in command") {
 		t.Errorf("a plugin taking ws status: %v\n%s", res.Err, res.Stdout)
 	}
 
@@ -704,7 +704,7 @@ func TestAMissionAboutAPluginsThing(t *testing.T) {
 	}
 	// A word isn't something a mission's about: none is made.
 	before := testutil.RunCommand(t, root, nil, "mission", "list").Stdout
-	if res := testutil.RunCommand(t, root, nil, "mission", "new", "Another", "--about", "UTF-8", "--no-edit"); res.Err == nil || !strings.Contains(res.Err.Error(), "ws names nothing UTF-8") {
+	if res := testutil.RunCommand(t, root, nil, "mission", "new", "Another", "--about", "UTF-8", "--no-edit"); res.Err == nil || !strings.Contains(res.Err.Error(), "nothing called UTF-8") {
 		t.Errorf("about a word: %v", res.Err)
 	}
 	if after := testutil.RunCommand(t, root, nil, "mission", "list").Stdout; after != before {

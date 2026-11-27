@@ -37,7 +37,7 @@ export const needs: Need[] = workspace.needs ?? [
       ref: t.id,
       kind: "your-turn",
       title: t.title || t.opening || "Conversation",
-      text: "The agent replied: your turn.",
+      text: "Agent replied: your turn.",
       to: `/conversations/${t.id}`,
     })),
 ];
@@ -75,7 +75,7 @@ const pull = (repo: string, number: number, title: string, text: string, key = `
 export const toReview: Need[] = [
   pull("api", 212, "Rate limit by key, not by address", "api#212, from ines, needs your review."),
   pull("web", 87, "Invoice table keeps its header on scroll", "web#87, from tomas, needs your review again."),
-  pull("api", 205, "Webhook signing", "api#205, from ines, needs your review, and 2 more of its stack do.", "api/stack-4"),
+  pull("api", 205, "Webhook signing", "api#205, from ines, needs your review, plus 2 more in the stack.", "api/stack-4"),
 ];
 
 // More of them than the list shows: the rest are a press away, in Reviews.

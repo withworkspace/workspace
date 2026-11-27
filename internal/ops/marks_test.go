@@ -249,7 +249,7 @@ func TestBriefingTurn_AtWorkFromAskedToReplied(t *testing.T) {
 	// taken it.
 	w.opts.Jobs = JobsOf(func(job.Job) { s.look("asked for, not yet taken") }, job.Answer, job.Thread, job.Draft)
 	w.answer(job.Answer, doc.OfMission(slug), c.ID)
-	s.want("asked for, not yet taken", mission.KindBriefing, "The briefing agent is at work, in "+c.ID)
+	s.want("asked for, not yet taken", mission.KindBriefing, "The briefing agent is working in "+c.ID)
 	if got, _ := talks.Load(c.ID); got.Answering {
 		t.Error("a process is marked answering it: the turn's mark isn't that")
 	}
@@ -265,7 +265,7 @@ func TestBriefingTurn_AtWorkFromAskedToReplied(t *testing.T) {
 	if err := w.AnswerConversation(doc.OfMission(slug), c.ID); err != nil {
 		t.Fatal(err)
 	}
-	s.want("on its turn", mission.KindBriefing, "The briefing agent is at work, in "+c.ID)
+	s.want("on its turn", mission.KindBriefing, "The briefing agent is working in "+c.ID)
 
 	// Its reply recorded, its turn's over: it waits for you.
 	if m := mustLoad(t, w, slug); m.Planning != nil {
@@ -311,7 +311,7 @@ func TestPlannerTurn_AtWorkFromAskedToReplied(t *testing.T) {
 	if _, err := w.SayInTalk(doc.OfMission("cache"), id, "Keep the fix small.", AsYou); err != nil {
 		t.Fatal(err)
 	}
-	s.want("asked for, not yet taken", mission.KindBriefing, "The planner is at work on the plan, in "+id)
+	s.want("asked for, not yet taken", mission.KindBriefing, "The planner is working on the plan in "+id)
 
 	fake.reply = "Which rounding do you want?"
 	fake.during = func() {
@@ -321,11 +321,11 @@ func TestPlannerTurn_AtWorkFromAskedToReplied(t *testing.T) {
 	if err := w.AnswerConversation(doc.OfMission("cache"), id); err != nil {
 		t.Fatal(err)
 	}
-	s.want("on its turn", mission.KindBriefing, "The planner is at work on the plan, in "+id)
+	s.want("on its turn", mission.KindBriefing, "The planner is working on the plan in "+id)
 	if m := mustLoad(t, w, "cache"); m.Planning != nil {
 		t.Errorf("its turn is still marked: %+v", m.Planning)
 	}
-	if h := s.now(); h.Court != mission.CourtYou || !strings.Contains(h.Text, "answer it in "+id) {
+	if h := s.now(); h.Court != mission.CourtYou || !strings.Contains(h.Text, "answer in "+id) {
 		t.Errorf("its reply recorded: %s %q", h.Kind, h.Text)
 	}
 }

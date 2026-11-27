@@ -40,9 +40,9 @@ export function Agent({ stretch, value = "claude" }: { stretch?: boolean; value?
 
 // Claude Code's models, as its harness lists them.
 const claudeModels = [
-  { id: "opus", name: "Opus", about: "the latest Opus: the most capable" },
-  { id: "sonnet", name: "Sonnet", about: "the latest Sonnet: capable and quicker" },
-  { id: "haiku", name: "Haiku", about: "the latest Haiku: small and quick" },
+  { id: "opus", name: "Opus", about: "latest Opus: most capable" },
+  { id: "sonnet", name: "Sonnet", about: "latest Sonnet: capable, faster" },
+  { id: "haiku", name: "Haiku", about: "latest Haiku: small, fastest" },
 ];
 
 export function Model({ stretch, value = "haiku" }: { stretch?: boolean; value?: string }) {

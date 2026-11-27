@@ -36,7 +36,7 @@ func TestProcess_AsItsWritten(t *testing.T) {
 	local := filepath.Join(w.Root, "ws.local.toml")
 	conf, _ := os.ReadFile(local)
 	os.WriteFile(local, append(conf, []byte("\n[missions]\nreview_before_pr = true\n")...), 0o644)
-	if out := testutil.Run(t, w, nil, "process").Stdout; !strings.Contains(out, "missions.review_before_pr: ws opens a pull request") || strings.Contains(out, "review_before_land") {
+	if out := testutil.Run(t, w, nil, "process").Stdout; !strings.Contains(out, "missions.review_before_pr: Workspace opens a pull request") || strings.Contains(out, "review_before_land") {
 		t.Errorf("with review_before_pr on:\n%s", out)
 	}
 	for _, gone := range []string{"read-back", "confirm", "answer", "edit"} {

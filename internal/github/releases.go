@@ -54,7 +54,7 @@ func (Releases) Release(repo, tag string) (name string, files []string, ok bool,
 		if strings.Contains(stdErr.String(), "release not found") {
 			return "", nil, false, nil
 		}
-		return "", nil, false, fmt.Errorf("reading %s's releases: %s", repo, ghError(stdOut.Bytes(), stdErr.String(), err))
+		return "", nil, false, fmt.Errorf("could not read %s's releases: %s", repo, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
 	var rel struct {
 		TagName string `json:"tagName"`
@@ -63,7 +63,7 @@ func (Releases) Release(repo, tag string) (name string, files []string, ok bool,
 		} `json:"assets"`
 	}
 	if err := json.Unmarshal(stdOut.Bytes(), &rel); err != nil {
-		return "", nil, false, fmt.Errorf("reading %s's releases: %w", repo, err)
+		return "", nil, false, fmt.Errorf("could not read %s's releases: %w", repo, err)
 	}
 	for _, a := range rel.Assets {
 		files = append(files, a.Name)
@@ -89,7 +89,7 @@ func releaseAsAnyone(repo, tag string) (name string, files []string, ok bool, er
 	if tag == "" {
 		res, err := noFollow.Get(githubHost + "/" + repo + "/releases/latest") //nolint:noctx // the client's Timeout bounds it
 		if err != nil {
-			return "", nil, false, fmt.Errorf("reading %s's releases: %w", repo, err)
+			return "", nil, false, fmt.Errorf("could not read %s's releases: %w", repo, err)
 		}
 		res.Body.Close()
 		// To /releases/tag/<tag> where there's a release; to /releases
@@ -102,7 +102,7 @@ func releaseAsAnyone(repo, tag string) (name string, files []string, ok bool, er
 	}
 	res, err := anyone.Get(githubHost + "/" + repo + "/releases/download/" + tag + "/checksums.txt") //nolint:noctx // the client's Timeout bounds it
 	if err != nil {
-		return "", nil, false, fmt.Errorf("reading %s's release %s: %w", repo, tag, err)
+		return "", nil, false, fmt.Errorf("could not read %s's release %s: %w", repo, tag, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
@@ -112,7 +112,7 @@ func releaseAsAnyone(repo, tag string) (name string, files []string, ok bool, er
 	}
 	list, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if err != nil {
-		return "", nil, false, fmt.Errorf("reading %s's release %s: %w", repo, tag, err)
+		return "", nil, false, fmt.Errorf("could not read %s's release %s: %w", repo, tag, err)
 	}
 	files = []string{"checksums.txt"}
 	for line := range strings.SplitSeq(string(list), "\n") {
@@ -131,13 +131,13 @@ func (Releases) Download(repo, tag string, files []string, dir string) error {
 			args = append(args, "--pattern", f)
 		}
 		if stdOut, stdErr, err := ghExec(args...); err != nil {
-			return fmt.Errorf("downloading from %s's release %s: %s", repo, tag, ghError(stdOut.Bytes(), stdErr.String(), err))
+			return fmt.Errorf("could not download from %s's release %s: %s", repo, tag, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		return nil
 	}
 	for _, f := range files {
 		if err := fetchFile(githubHost+"/"+repo+"/releases/download/"+tag+"/"+f, filepath.Join(dir, f)); err != nil {
-			return fmt.Errorf("downloading %s from %s's release %s: %w", f, repo, tag, err)
+			return fmt.Errorf("could not download %s from %s's release %s: %w", f, repo, tag, err)
 		}
 	}
 	return nil
@@ -174,7 +174,7 @@ func (Releases) Clone(repo, ref, dir string) error {
 	if loggedIn() {
 		args := append([]string{"repo", "clone", repo, dir, "--"}, depth...)
 		if stdOut, stdErr, err := ghExec(args...); err != nil {
-			return fmt.Errorf("fetching %s's source: %s", repo, ghError(stdOut.Bytes(), stdErr.String(), err))
+			return fmt.Errorf("could not fetch %s's source: %s", repo, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		return nil
 	}
@@ -188,9 +188,9 @@ func (Releases) Clone(repo, ref, dir string) error {
 			said = err.Error()
 		}
 		if _, ok := errors.AsType[*exec.ExitError](err); ok {
-			return fmt.Errorf("fetching %s's source: %s (is it there, and public? gh auth login reads a private one as you)", repo, lastLine(said))
+			return fmt.Errorf("could not fetch %s's source: %s (is it public? For a private repo, run gh auth login)", repo, lastLine(said))
 		}
-		return fmt.Errorf("fetching %s's source: %s", repo, said)
+		return fmt.Errorf("could not fetch %s's source: %s", repo, said)
 	}
 	return nil
 }

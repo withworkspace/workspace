@@ -37,7 +37,7 @@ func (e *UnknownCapsuleError) Error() string {
 	if len(e.Have) == 0 {
 		return "no capsule " + e.Want
 	}
-	return fmt.Sprintf("no capsule %s (it has: %s)", e.Want, strings.Join(e.Have, ", "))
+	return fmt.Sprintf("no capsule %s (mission has: %s)", e.Want, strings.Join(e.Have, ", "))
 }
 
 // PickPlace chooses where crew work: the capsule asked for (want, as

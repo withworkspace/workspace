@@ -200,15 +200,15 @@ func thingSaved(done protocol.RemoteSaved) ThingSaved {
 func (s *Server) thingAsked(w http.ResponseWriter, r *http.Request) (name string, req ThingRequest, ok bool) {
 	name = r.PathValue("name")
 	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
-		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		jsonError(w, http.StatusNotFound, "no plugin named "+name)
 		return name, req, false
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "which thing isn't JSON: "+err.Error())
+		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return name, req, false
 	}
 	if strings.TrimSpace(req.Kind) == "" || strings.TrimSpace(req.Ref) == "" {
-		jsonError(w, http.StatusBadRequest, "which thing? Its kind, and the plugin's name for it")
+		jsonError(w, http.StatusBadRequest, "missing thing kind or ref")
 		return name, req, false
 	}
 	return name, req, true
@@ -249,7 +249,7 @@ func (s *Server) saveThing(w http.ResponseWriter, r *http.Request) {
 func (s *Server) thingOffered(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
-		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		jsonError(w, http.StatusNotFound, "no plugin named "+name)
 		return
 	}
 	offers, err := s.App.ThingOffered(name, r.URL.Query().Get("kind"), r.URL.Query().Get("title"))
@@ -518,7 +518,7 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 	name, kind, ref := r.PathValue("name"), r.PathValue("kind"), r.PathValue("ref")
 	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
-		jsonError(w, http.StatusBadGateway, "there's no plugin called "+name)
+		jsonError(w, http.StatusBadGateway, "no plugin named "+name)
 		return
 	}
 	// As ws keeps how the plugin names things: the name has to be one.
@@ -543,7 +543,7 @@ func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 		return
 	case errors.Is(err, plugin.ErrNoShow):
 		// It says no more than it's told ws, and it hasn't told ws of this.
-		jsonError(w, http.StatusNotFound, name+" hasn't told ws of "+ref)
+		jsonError(w, http.StatusNotFound, name+" cannot show "+ref)
 		return
 	case err != nil:
 		jsonError(w, http.StatusBadGateway, err.Error())
@@ -586,12 +586,12 @@ type PluginActed struct {
 func (s *Server) pluginAct(w http.ResponseWriter, r *http.Request) {
 	name, id := r.PathValue("name"), r.PathValue("id")
 	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
-		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		jsonError(w, http.StatusNotFound, "no plugin named "+name)
 		return
 	}
 	var req PluginActRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "what to do isn't JSON: "+err.Error())
+		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return
 	}
 	done, err := s.Plugins.Act(r.Context(), name, protocol.ActionRunParams{ID: id, Kind: req.Kind, Ref: req.Ref, Answers: req.Answers})
@@ -628,7 +628,7 @@ type Started struct {
 func (s *Server) startMission(w http.ResponseWriter, r *http.Request) {
 	var req StartRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.About) == "" {
-		jsonError(w, http.StatusUnprocessableEntity, "say what the mission's about")
+		jsonError(w, http.StatusUnprocessableEntity, "say what the mission is about")
 		return
 	}
 	m, err := s.App.StartAbout(req.About)
@@ -699,7 +699,7 @@ type shell struct {
 // shell with a message saying why, and ok is false.
 func (s *Server) pluginSocket(w http.ResponseWriter, name string) (sock string, ok bool) {
 	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
-		s.shellMessage(w, http.StatusNotFound, "There's no such plugin", "<p><code>ws plugin list</code> says which this workspace has.</p>")
+		s.shellMessage(w, http.StatusNotFound, "Plugin not found", "<p>Run <code>ws plugin list</code> to see installed plugins.</p>")
 		return "", false
 	}
 	sock, err := s.Plugins.ViewSocket(name)
@@ -714,12 +714,12 @@ func (s *Server) pluginSocket(w http.ResponseWriter, name string) (sock string, 
 			}
 			keys[i] = "<li>" + html.EscapeString(title) + " (<code>" + html.EscapeString(k.Key) + "</code>)</li>"
 		}
-		s.shellMessage(w, http.StatusServiceUnavailable, name+" needs setting up",
-			"<p>It can't be used until these are set:</p><ul>"+strings.Join(keys, "")+"</ul><p>In a terminal: <code>ws plugin config "+html.EscapeString(name)+" --ask</code></p>")
+		s.shellMessage(w, http.StatusServiceUnavailable, name+" needs setup",
+			"<p>Set these first:</p><ul>"+strings.Join(keys, "")+"</ul><p>In a terminal: <code>ws plugin config "+html.EscapeString(name)+" --ask</code></p>")
 		return "", false
 	case err != nil:
-		s.shellMessage(w, http.StatusBadGateway, name+" didn't start",
-			"<p>"+html.EscapeString(err.Error())+"</p><p>Its log: <code>ws plugin logs "+html.EscapeString(name)+"</code></p>")
+		s.shellMessage(w, http.StatusBadGateway, name+" could not start",
+			"<p>"+html.EscapeString(err.Error())+"</p><p>Logs: <code>ws plugin logs "+html.EscapeString(name)+"</code></p>")
 		return "", false
 	}
 	return sock, true
@@ -740,12 +740,12 @@ func (s *Server) pluginShell(w http.ResponseWriter, r *http.Request) {
 	reg := s.Plugins.Status(name).Registration
 	switch {
 	case reg.UI == nil || reg.UI.Script == "":
-		s.shellMessage(w, http.StatusBadGateway, name+" has no app to show",
-			"<p>It was built on a framework from before plugin pages were apps: update it.</p>")
+		s.shellMessage(w, http.StatusBadGateway, name+" has no app",
+			"<p>Built for an older plugin framework. Update the plugin.</p>")
 		return
 	case !plugin.ValidUIPath(reg.UI.Script) || reg.UI.Style != "" && !plugin.ValidUIPath(reg.UI.Style):
-		s.shellMessage(w, http.StatusBadGateway, name+"'s app can't be loaded",
-			"<p>What it registered as its <code>ui</code> isn't a path in its own HTTP. <code>ws plugin check</code> says what's wrong with it.</p>")
+		s.shellMessage(w, http.StatusBadGateway, name+"'s app could not load",
+			"<p>Invalid <code>ui</code> path. Run <code>ws plugin check</code> for details.</p>")
 		return
 	}
 	page := shell{Title: name, Script: plugin.ViewBase(name) + reg.UI.Script}
@@ -817,8 +817,8 @@ func (s *Server) pluginView(w http.ResponseWriter, r *http.Request) {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
-			s.shellMessage(w, http.StatusBadGateway, name+" isn't answering",
-				"<p>"+html.EscapeString(err.Error())+"</p><p>Its log: <code>ws plugin logs "+html.EscapeString(name)+"</code></p>")
+			s.shellMessage(w, http.StatusBadGateway, name+" is not responding",
+				"<p>"+html.EscapeString(err.Error())+"</p><p>Logs: <code>ws plugin logs "+html.EscapeString(name)+"</code></p>")
 		},
 	}
 	proxy.ServeHTTP(w, r)
@@ -844,7 +844,7 @@ func (s *Server) shellMessage(w http.ResponseWriter, status int, title, body str
 func (s *Server) writeShell(w http.ResponseWriter, status int, p shell) {
 	styles, err := fs.ReadFile(s.Assets, shellStyles)
 	if err != nil {
-		page(w, http.StatusInternalServerError, "No web UI built", "This ws was built without its web UI: run <code>just build</code>.")
+		page(w, http.StatusInternalServerError, "Web UI not built", "This build of Workspace has no web UI. Run <code>just build</code>.")
 		return
 	}
 	var b strings.Builder

@@ -38,7 +38,7 @@ func staleAlone(r Run, procs Procs, owners Owners, now time.Time) string {
 	}
 	for _, n := range r.Needs {
 		if _, err := os.Stat(n.Dir); n.IsFolder() && errors.Is(err, os.ErrNotExist) {
-			return fmt.Sprintf("%s, the folder it was started on for %s, has gone", Label(n.Worktree), n.Name)
+			return fmt.Sprintf("%s, the folder for %s, has gone", Label(n.Worktree), n.Name)
 		}
 	}
 	var gone []string
@@ -55,9 +55,9 @@ func staleAlone(r Run, procs Procs, owners Owners, now time.Time) string {
 	}
 	if !r.Expires.IsZero() && !now.Before(r.Expires) {
 		if r.IsTask() {
-			return fmt.Sprintf("it hadn't ended after %s, its timeout (a task ends by itself: what's kept up is a service)", Span(r.Expires.Sub(r.Created)))
+			return fmt.Sprintf("timed out after %s", Span(r.Expires.Sub(r.Created)))
 		}
-		return "its time was up"
+		return "timed out"
 	}
 	return ""
 }
@@ -67,11 +67,11 @@ func ownerGone(r Run, o Owner, procs Procs, owners Owners, now time.Time) string
 	switch o.Kind {
 	case ByPID:
 		if procs.gone(o.PID, o.Began) {
-			return fmt.Sprintf("its owner (pid %d%s) has gone", o.PID, said(o.Command))
+			return fmt.Sprintf("owner (pid %d%s) exited", o.PID, said(o.Command))
 		}
 	case ByLooking:
 		if now.Sub(r.Looked) >= LookLinger {
-			return fmt.Sprintf("nobody has looked at it for %d minutes", int(LookLinger/time.Minute))
+			return fmt.Sprintf("not viewed for %d minutes", int(LookLinger/time.Minute))
 		}
 	case ByMission, ByStep, ByCrew, ByConversation:
 		if owners != nil {
@@ -81,7 +81,7 @@ func ownerGone(r Run, o Owner, procs Procs, owners Owners, now time.Time) string
 		// What needs it is the sweep's to say (Sweep): alone, it's needed
 		// only while the run it was started for is still being started.
 		if !now.Before(r.Hold) {
-			return "nothing needs it now"
+			return "no longer needed"
 		}
 	}
 	return ""
@@ -104,12 +104,12 @@ func said(command string) string {
 // A task that's running is stopped and kept, as one that came to nothing:
 // it's removed, the earlier runs behind it too, by ending it once it has
 // ended.
-func (s Store) End(r Run) error { return s.end(r, "it was stopped") }
+func (s Store) End(r Run) error { return s.end(r, "on request") }
 
 // end is End, with why a running task is stopped kept with it.
 func (s Store) end(r Run, why string) error {
 	if !s.owns(r.Path) {
-		return fmt.Errorf("%s isn't a run's folder", r.Path)
+		return fmt.Errorf("%s is not a run folder", r.Path)
 	}
 	if r.IsTask() && r.State == Running {
 		_ = os.WriteFile(filepath.Join(r.Path, stoppedFile), []byte(why+"\n"), 0o644) // how it ended is a note: it's stopped either way
@@ -148,7 +148,7 @@ func (s Store) runStop(r Run) error {
 		return nil
 	}
 	if _, err := os.Stat(r.Dir); err != nil {
-		return fmt.Errorf("its stop command (%s) wasn't run: where it ran has gone", r.Stop)
+		return fmt.Errorf("stop command (%s) not run: folder has gone", r.Stop)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), StopLimit)
 	defer cancel()
@@ -165,7 +165,7 @@ func (s Store) runStop(r Run) error {
 		if i := strings.LastIndex(tail, "\n"); i >= 0 {
 			tail = tail[i+1:]
 		}
-		return fmt.Errorf("its stop command (%s) failed: %v %s", r.Stop, err, tail)
+		return fmt.Errorf("stop command (%s) failed: %v %s", r.Stop, err, tail)
 	}
 	return nil
 }
@@ -301,9 +301,9 @@ func Ends(r Run, now time.Time) string {
 	case needed != "":
 		return what + ", and not while " + needed + " " + need(len(r.NeededBy)) + " it"
 	case what == "" && byRun:
-		return "within seconds, as nothing needs it now"
+		return "within seconds: no longer needed"
 	case what == "":
-		return "only when it's stopped"
+		return "only when stopped"
 	}
 	return what
 }
@@ -347,7 +347,7 @@ func endsWith(r Run, o Owner) string {
 			return fmt.Sprintf("%d minutes after nobody has %s open", int(LookLinger/time.Minute), o.App)
 		}
 		if o.Mission == "" {
-			return fmt.Sprintf("%d minutes after nobody has its files open", int(LookLinger/time.Minute))
+			return fmt.Sprintf("%d minutes after nobody has the files open", int(LookLinger/time.Minute))
 		}
 		return fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), o.Mission)
 	}

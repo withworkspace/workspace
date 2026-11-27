@@ -49,7 +49,7 @@ func (d *daemon) siloStates() []ops.SiloState {
 // resyncSilo gives a repo's silo its target's files in full.
 func (d *daemon) resyncSilo(repo string) error {
 	if d.silos == nil {
-		return errors.New("this daemon isn't keeping the silos: its log says why")
+		return errors.New("Workspace is not keeping silos: see the log for why")
 	}
 	return d.silos.Resync(repo)
 }

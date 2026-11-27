@@ -52,7 +52,7 @@ func (p PROpened) String() string {
 		at = fmt.Sprintf(", at step %d", p.Step)
 	}
 	if p.Writing {
-		return fmt.Sprintf("The PR writer is writing %s's pull request%s: ws opens it once it's written", p.Capsule, at)
+		return fmt.Sprintf("The PR writer is writing %s's pull request%s: opens when done", p.Capsule, at)
 	}
 	return fmt.Sprintf("Opened %s#%d from %s%s: %s", p.Repo, p.PR.Number, p.Capsule, at, p.PR.URL)
 }
@@ -88,7 +88,7 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	ws := w.WS()
 	out := PROpened{Slug: m.Slug, Capsule: c.Repo + "/" + c.Name, Repo: c.Repo}
 	if ws.Direct(c.Repo) {
-		return PROpened{}, refused("direct", "%s has no pull requests: its commits go straight to %s when the user lands them. Commit, and report done", c.Repo, ws.DefaultBranch)
+		return PROpened{}, refused("direct", "%s has no pull requests: commits go straight to %s when landed. Commit, and report done", c.Repo, ws.DefaultBranch)
 	}
 	if by.Kind == Crew && m.Plan != nil {
 		n, err := crewMayOpenPR(w.Missions, m, by.ID)
@@ -103,34 +103,34 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	}
 	o.Title = strings.TrimSpace(o.Title)
 	if _, ok := m.WritingPR(out.Capsule); ok && !o.inJob {
-		return PROpened{}, refused("pr-writing", "the PR writer is writing %s's pull request already: ws opens it once it's written", out.Capsule)
+		return PROpened{}, refused("pr-writing", "the PR writer is already writing %s's pull request: opens when done", out.Capsule)
 	}
 	dir := filepath.Join(ws.RepoDir(c.Repo), c.Name)
 	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-		return PROpened{}, refused("burned", "%s has no worktree any more, so there's nothing to open a pull request from", out.Capsule)
+		return PROpened{}, refused("burned", "%s has been burned: nothing to open a pull request from", out.Capsule)
 	}
 	if workspace.GitIsDirty(dir) {
-		return PROpened{}, refused("dirty", "%s has changes not committed: commit them (or set them aside), then open it", out.Capsule)
+		return PROpened{}, refused("dirty", "%s has uncommitted changes: commit or stash them first", out.Capsule)
 	}
 	if ws.CapsuleAhead(c.Repo, c.Name) == 0 {
-		return PROpened{}, refused("nothing", "%s has no commits that %s doesn't: there's nothing to open a pull request for", out.Capsule, ws.DefaultBranch)
+		return PROpened{}, refused("nothing", "%s has no commits ahead of %s: nothing to open a pull request for", out.Capsule, ws.DefaultBranch)
 	}
 	gh := w.GitHub()
 	if gh == nil {
-		return PROpened{}, refused("no-github", "ws can't reach GitHub here, so it can't open a pull request")
+		return PROpened{}, refused("no-github", "could not open a pull request: no GitHub access")
 	}
 	branch := workspace.GitCurrentBranch(dir)
 	if open, err := gh.PRsForRepo(ws.RemoteOf(c.Repo).Owner, ws.RemoteOf(c.Repo).Name); err == nil {
 		for _, pr := range open {
 			if pr.HeadRefName == branch && branch != "" {
-				return PROpened{}, refused("pr-open", "%s#%d is open from %s already (%s): push to the branch to change it", c.Repo, pr.Number, out.Capsule, pr.URL)
+				return PROpened{}, refused("pr-open", "%s#%d is already open from %s (%s): push to the branch to update it", c.Repo, pr.Number, out.Capsule, pr.URL)
 			}
 		}
 	}
 	// One that conflicts from the start is no use to anyone: its base is
 	// merged in first.
 	if files, err := ws.CapsuleConflicts(c.Repo, c.Name); err == nil && len(files) > 0 {
-		return PROpened{}, refused("conflicts", "%s doesn't merge cleanly onto %s: it conflicts in %s. Merge origin/%s into it (don't rebase, don't force-push), resolve them, commit, and open it again",
+		return PROpened{}, refused("conflicts", "%s does not merge cleanly onto %s: conflicts in %s. Merge origin/%s into it (do not rebase or force-push), resolve, commit, and open again",
 			out.Capsule, ws.DefaultBranch, strings.Join(files, ", "), ws.DefaultBranch)
 	}
 	if err := w.holdReview(GuaranteeReviewBeforePR, m.Slug, c.Repo, c.Name, "opening a pull request", reviewThen(by, "open it")); err != nil {
@@ -169,7 +169,7 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	}
 	pr, err := gh.CreatePR(ws.RemoteOf(c.Repo).Owner, ws.RemoteOf(c.Repo).Name, github.NewPR{Head: branch, Base: ws.DefaultBranch, Title: o.Title, Body: o.Body, Draft: o.Draft})
 	if err != nil {
-		return PROpened{}, fmt.Errorf("%s is pushed, but the pull request wasn't opened: %w", branch, err)
+		return PROpened{}, fmt.Errorf("pushed %s, but could not open the pull request: %w", branch, err)
 	}
 	out.PR = pr
 	at := ""
@@ -197,7 +197,7 @@ func (w *Workspace) missionCapsule(m *mission.Mission, capsule string) (mission.
 	}
 	i := slices.IndexFunc(m.Capsules, func(c mission.Capsule) bool { return c.Repo == repo && c.Name == name })
 	if i < 0 {
-		return mission.Capsule{}, refused("not-attached", "%s/%s isn't one of the mission's capsules", repo, name)
+		return mission.Capsule{}, refused("not-attached", "%s/%s is not one of the mission's capsules", repo, name)
 	}
 	return m.Capsules[i], nil
 }

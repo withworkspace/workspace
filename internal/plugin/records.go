@@ -108,17 +108,17 @@ func KeepRefs(root, name string, refs []protocol.Ref) (refused []string, err err
 		kinds := map[string]bool{}
 		for _, r := range refs {
 			if problem := r.Problem(); problem != "" {
-				refused = append(refused, fmt.Sprintf("its ref %q is left out: %s", r.Kind, problem))
+				refused = append(refused, fmt.Sprintf("ref %q left out: %s", r.Kind, problem))
 				continue
 			}
 			if kinds[r.Kind] {
-				refused = append(refused, fmt.Sprintf("its ref %q is registered twice: the second is left out", r.Kind))
+				refused = append(refused, fmt.Sprintf("ref %q registered twice: second left out", r.Kind))
 				continue
 			}
 			var prefixes []string
 			for _, p := range r.Prefixes {
 				if whose, ok := taken[p]; ok {
-					refused = append(refused, fmt.Sprintf("its ref %q doesn't name by %s: that's %s already", r.Kind, p, whose))
+					refused = append(refused, fmt.Sprintf("ref %q cannot use %s: already %s", r.Kind, p, whose))
 					continue
 				}
 				taken[p] = "its ref " + r.Kind + "'s"

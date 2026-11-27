@@ -34,7 +34,7 @@ func (u Upgrader) Replaceable() bool { return u.Release && u.Exe != "" }
 
 // ErrNotARelease is why a ws that isn't a release's build isn't upgraded.
 func (u Upgrader) ErrNotARelease() error {
-	return fmt.Errorf("this ws (%s, at %s) isn't a release's build, and ws upgrade only replaces one that is: build it again where it was built (just build in its clone, or go install), or install a release with scripts/install.sh", u.Version, u.Exe)
+	return fmt.Errorf("this ws (%s, at %s) is not a release build, so ws upgrade cannot replace it: rebuild it where it was built (just build in its clone, or go install), or install a release with scripts/install.sh", u.Version, u.Exe)
 }
 
 // Look finds the release an upgrade would install: the one named, or the
@@ -72,12 +72,12 @@ func (u Upgrader) Install(ctx context.Context, r Upgraded) (Upgraded, error) {
 	path, says, err := u.Source.Fetch(ctx, r.To, u.OS, u.Arch, u.Exe)
 	if err != nil {
 		if _, ok := errors.AsType[*Unwritable](err); ok {
-			return r, fmt.Errorf("%w: ws upgrade replaces %s where it is. Run it as whoever that folder belongs to, or install a release somewhere of your own with scripts/install.sh [version] [dir]", err, u.Exe)
+			return r, fmt.Errorf("%w: ws upgrade replaces %s in place. Run it as the folder's owner, or install a release elsewhere with scripts/install.sh [version] [dir]", err, u.Exe)
 		}
 		return r, err
 	}
 	if err := Install(path, u.Exe); err != nil {
-		return r, fmt.Errorf("putting ws %s in place of %s: %w", says, u.Exe, err)
+		return r, fmt.Errorf("could not install ws %s over %s: %w", says, u.Exe, err)
 	}
 	r.To, r.Installed = says, true
 	_, err = VersionOf(PrevPath(u.Exe))

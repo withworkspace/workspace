@@ -138,7 +138,7 @@ func TestAnswer(t *testing.T) {
 	w.Config().Crew.Harness = "fake-crew"
 	w.Config().Orchestrator.Dispatch = "auto"
 	acc, err := w.AcceptStage("cache", AsYou, "")
-	if err != nil || !strings.Contains(acc.Next, "the user is asked before stage 2") {
+	if err != nil || !strings.Contains(acc.Next, "asking before stage 2 starts") {
 		t.Fatalf("accept: %+v, %v", acc, err)
 	}
 	if a, err := w.Answer("cache", AsYou, "go on"); err != nil || a.Next != "started stage 2: c1 in frontend/two" {
@@ -157,7 +157,7 @@ func TestAnswer(t *testing.T) {
 	}
 
 	w.Missions.Ask("cache", "Which cache?", "orchestrator", "Redis", "In memory")
-	if a, err := w.Answer("cache", AsYou, "In memory"); err != nil || a.Next != "the orchestrator is acting on it" {
+	if a, err := w.Answer("cache", AsYou, "In memory"); err != nil || a.Next != "passed to the orchestrator" {
 		t.Errorf("an answer: %+v, %v", a, err)
 	}
 	if len(*runs) != 1 || (*runs)[0] != "cache/answer" {
@@ -172,7 +172,7 @@ func TestAnswer(t *testing.T) {
 	// What ws asks of its own when something stalled is what to do about
 	// it now: the orchestrator runs with the answer, and it's no decision.
 	w.Missions.Ask("cache", "The orchestrator looked at c1 (done) but ran no commands, twice, so nothing happened. What should happen next?", "ws")
-	if a, err := w.Answer("cache", AsYou, "The daemon is back"); err != nil || a.Next != "the orchestrator is acting on it" {
+	if a, err := w.Answer("cache", AsYou, "The daemon is back"); err != nil || a.Next != "passed to the orchestrator" {
 		t.Errorf("an answer to ws: %+v, %v", a, err)
 	}
 	if len(*runs) != 2 || (*runs)[1] != "cache/answer" {

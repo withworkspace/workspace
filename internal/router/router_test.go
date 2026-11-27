@@ -136,14 +136,14 @@ func TestServe(t *testing.T) {
 		{"shop.localhost", me, 200, "web UI at shop.localhost"},
 		{"web.feat.api.shop.localhost:7080", me, 200, "web run at web.feat.api.shop.localhost:7080, forwarded for web.feat.api.shop.localhost:7080"},
 		{"WEB.feat.api.shop.localhost.", "[::1]:50000", 200, "web run"},
-		{"web.feat.api.shop.localhost", "192.168.1.20:50000", 403, "this machine alone"},
+		{"web.feat.api.shop.localhost", "192.168.1.20:50000", 403, "only answers this machine"},
 		{"evil.example", me, 421, "under .localhost"},
 		{"api.feat.api.shop.localhost", me, 410, "exited (1) at 14:05"},
 		{"nope.feat.api.shop.localhost", me, 404, "web.feat.api"},
 		{"other.localhost", me, 404, "shop.localhost"},
 		{"stack.silo.api.shop.localhost", me, 200, "web run"},
 		{"stack.ground.api.shop.localhost", me, 200, "web run"},
-		{"stack.feat.api.shop.localhost", me, 409, "Point the silo at feat"},
+		{"stack.feat.api.shop.localhost", me, 409, "Point silo at feat"},
 	} {
 		code, body := ask(rt, c.host, c.remote)
 		if code != c.code || !strings.Contains(body, c.has) {
@@ -319,7 +319,7 @@ func TestAMountAnswersBelowTheRunsOwnName(t *testing.T) {
 		{"/api/auth/login", 200, "auth: /login?"}, // the longer mount, its path taken off
 		{"/api/auth", 200, "auth: /?"},
 		{"/cdn/app.css?v=1", 200, "outside: /assets/app.css?v=1 at " + outsideHost}, // an address outside ws is asked by its own name
-		{"/down/q", 502, "search</b> (search.ground.back) is mounted here at <b>/down</b>, and isn't running"},
+		{"/down/q", 502, "search</b> (search.ground.back) is mounted at <b>/down</b> and not running"},
 	} {
 		code, body := get(c.path)
 		if code != c.code || !strings.Contains(body, c.has) {

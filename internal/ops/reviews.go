@@ -79,7 +79,7 @@ func (w *Workspace) SetViewed(of ReviewOf, path, blob string, viewed bool) error
 func (w *Workspace) Respond(of ReviewOf, id string, what review.Response, body, commit string, by Actor) (*review.Review, error) {
 	store, key := w.Reviews(of)
 	if rv, _, err := store.FindNote(id); err == nil && key != "" && rv.Capsule != key {
-		return nil, fmt.Errorf("%w: %s isn't a comment on %s", review.ErrNotFound, id, key)
+		return nil, fmt.Errorf("%w: %s is not a comment on %s", review.ErrNotFound, id, key)
 	}
 	return store.Respond(id, by.By(), what, body, commit, w.now())
 }

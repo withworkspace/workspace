@@ -129,7 +129,7 @@ func (w *Workspace) putAwayCapsules(store conversation.Store, c *conversation.Co
 			// There before the conversation took it on: left as it is,
 			// and no longer the conversation's to write in.
 			if _, err := store.PutCapsuleAway(c.ID, cp.Repo, cp.Name, false, w.now()); err != nil {
-				left = append(left, fmt.Sprintf("%s (left where it is, but %s still has it: %v)", cp.Ref(), c.ID, err))
+				left = append(left, fmt.Sprintf("%s (left in place, but %s still holds it: %v)", cp.Ref(), c.ID, err))
 			}
 			continue
 		}
@@ -141,11 +141,11 @@ func (w *Workspace) putAwayCapsules(store conversation.Store, c *conversation.Co
 				// work signed off, and a signing agent may ask you for it.
 				msg := fmt.Sprintf("As it was when %s was put away", c.ID)
 				if err := git.Run(path, "add", "-A"); err != nil {
-					left = append(left, fmt.Sprintf("%s (what's not committed couldn't be kept: %v)", cp.Ref(), err))
+					left = append(left, fmt.Sprintf("%s (could not keep uncommitted changes: %v)", cp.Ref(), err))
 					continue
 				}
 				if err := git.Run(path, "-c", "commit.gpgsign=false", "commit", "-q", "--no-verify", "-m", msg); err != nil {
-					left = append(left, fmt.Sprintf("%s (what's not committed couldn't be kept: %v)", cp.Ref(), err))
+					left = append(left, fmt.Sprintf("%s (could not keep uncommitted changes: %v)", cp.Ref(), err))
 					continue
 				}
 				kept = true
@@ -156,7 +156,7 @@ func (w *Workspace) putAwayCapsules(store conversation.Store, c *conversation.Co
 			}
 		}
 		if _, err := store.PutCapsuleAway(c.ID, cp.Repo, cp.Name, kept, w.now()); err != nil {
-			left = append(left, fmt.Sprintf("%s (it's burned, but %s still has it as lifted: %v)", cp.Ref(), c.ID, err))
+			left = append(left, fmt.Sprintf("%s (burned, but %s still holds it: %v)", cp.Ref(), c.ID, err))
 		}
 	}
 	return left

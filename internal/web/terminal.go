@@ -122,7 +122,7 @@ func (s *Server) crewInput(w http.ResponseWriter, r *http.Request) {
 	case in.Paste != "":
 		err = s.App.Crew().Paste(slug, id, in.Paste)
 	default:
-		jsonError(w, http.StatusBadRequest, "send a key or a paste")
+		jsonError(w, http.StatusBadRequest, "missing key or paste")
 		return
 	}
 	if err != nil {

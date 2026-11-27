@@ -398,7 +398,7 @@ func ParseAccent(s string) (string, error) {
 		ok = ok && strings.ContainsRune("0123456789abcdefABCDEF", r)
 	}
 	if !ok {
-		return "", fmt.Errorf("%q isn't a hex colour: give it as #rgb or #rrggbb", s)
+		return "", fmt.Errorf("%q is not a hex colour: use #rgb or #rrggbb", s)
 	}
 	hex = strings.ToLower(hex)
 	if len(hex) == 3 {
@@ -621,7 +621,7 @@ func ParsePick(s string) (harness, model string, err error) {
 	harness, model, _ = strings.Cut(strings.TrimSpace(s), ":")
 	harness, model = strings.TrimSpace(harness), strings.TrimSpace(model)
 	if harness == "" || strings.ContainsAny(harness, " \t") {
-		return "", "", fmt.Errorf("%q isn't a harness and model: write it harness:model (claude:opus), or a harness alone", s)
+		return "", "", fmt.Errorf("%q is not a harness and model: use harness:model (claude:opus), or a harness alone", s)
 	}
 	return harness, model, nil
 }
@@ -964,7 +964,7 @@ func (r Runs) Twice() []string {
 func twiceSaid(file string, r Runs) []string {
 	var out []string
 	for _, name := range r.Twice() {
-		out = append(out, fmt.Sprintf("%s: run.task.%s (a service is called %s too, and a recipe's name is one run's)", file, name, name))
+		out = append(out, fmt.Sprintf("%s: run.task.%s (a service is also called %s: names must be unique)", file, name, name))
 	}
 	return out
 }
@@ -977,10 +977,10 @@ func valuesSaid(file string, r Runs) []string {
 	for _, name := range slices.Sorted(maps.Keys(r.Service)) {
 		s := r.Service[name]
 		if s.Kind != "" && s.Kind != RunApp && s.Kind != RunTool {
-			out = append(out, fmt.Sprintf("%s: run.service.%s.kind = %q (it's %q or %q: read as %q)", file, name, s.Kind, RunApp, RunTool, RunApp))
+			out = append(out, fmt.Sprintf("%s: run.service.%s.kind = %q (must be %q or %q: read as %q)", file, name, s.Kind, RunApp, RunTool, RunApp))
 		}
 		if s.Render != "" && s.Render != RenderInline && s.Render != RenderTab {
-			out = append(out, fmt.Sprintf("%s: run.service.%s.render = %q (it's %q or %q: read as %q)", file, name, s.Render, RenderInline, RenderTab, RenderInline))
+			out = append(out, fmt.Sprintf("%s: run.service.%s.render = %q (must be %q or %q: read as %q)", file, name, s.Render, RenderInline, RenderTab, RenderInline))
 		}
 	}
 	return out
@@ -1071,7 +1071,7 @@ func ParseRepoConfig(path string) (*RepoFileConfig, error) {
 	var cfg RepoFileConfig
 	md, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
-		return nil, fmt.Errorf("parsing %s: %w", path, err)
+		return nil, fmt.Errorf("could not read %s: %w", path, err)
 	}
 	cfg.Unknown = append(unknownKeys("ws.repo.toml", md), twiceSaid("ws.repo.toml", cfg.Run)...)
 	cfg.Unknown = append(cfg.Unknown, valuesSaid("ws.repo.toml", cfg.Run)...)
@@ -1099,7 +1099,7 @@ var (
 func ReadLocal(root string) (LocalConfig, error) {
 	var local LocalConfig
 	if _, err := toml.DecodeFile(filepath.Join(root, LocalFileName), &local); err != nil && !os.IsNotExist(err) {
-		return LocalConfig{}, fmt.Errorf("parsing %s: %w", LocalFileName, err)
+		return LocalConfig{}, fmt.Errorf("could not read %s: %w", LocalFileName, err)
 	}
 	return local, nil
 }
@@ -1190,7 +1190,7 @@ func (d *Documents) UnmarshalTOML(v any) error {
 			return nil
 		}
 		if slices.Contains(strings.Split(folder, "/"), "..") {
-			return fmt.Errorf("documents = %q leads out of the repo", x)
+			return fmt.Errorf("documents = %q points outside the repo", x)
 		}
 		*d = Documents{On: true, Folder: folder + "/"}
 		return nil
@@ -1224,7 +1224,7 @@ func Parse(path string) (*Config, error) {
 	var cfg Config
 	md, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
-		return nil, fmt.Errorf("parsing %s: %w", path, err)
+		return nil, fmt.Errorf("could not read %s: %w", path, err)
 	}
 	cfg.Unknown = append(unknownKeys(filepath.Base(path), md), twiceSaid(filepath.Base(path), cfg.Run)...)
 	cfg.Unknown = append(cfg.Unknown, valuesSaid(filepath.Base(path), cfg.Run)...)
@@ -1365,7 +1365,7 @@ func Load(startDir string) (*Config, string, error) {
 		var local LocalConfig
 		md, err := toml.DecodeFile(localPath, &local)
 		if err != nil {
-			return nil, "", fmt.Errorf("parsing %s: %w", LocalFileName, err)
+			return nil, "", fmt.Errorf("could not read %s: %w", LocalFileName, err)
 		}
 		unknown := append(cfg.Unknown, unknownKeys(LocalFileName, md)...)
 

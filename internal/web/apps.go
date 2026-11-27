@@ -139,7 +139,7 @@ func (s *Server) pointApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Need == "" {
-		jsonError(w, http.StatusBadRequest, "name the need to point")
+		jsonError(w, http.StatusBadRequest, "missing need")
 		return
 	}
 	name := r.PathValue("name")

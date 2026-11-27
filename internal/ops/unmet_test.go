@@ -37,8 +37,8 @@ func TestUnmetChecks_LeftIsYoursToPass(t *testing.T) {
 	refusedWith(t, err, "checks")
 
 	h := watching(t, w, "cache").now()
-	if h.Court != mission.CourtYou || h.Kind != mission.KindAccept || h.Action.Verb != mission.VerbAccept || h.Action.Label != "pass step 1 as it is" ||
-		!strings.Contains(h.Text, "Step 1's checks, round 1: 1 of 2 met; unmet: the lookup is cached. Nobody's on it: pass it as it is, or resume c1") {
+	if h.Court != mission.CourtYou || h.Kind != mission.KindAccept || h.Action.Verb != mission.VerbAccept || h.Action.Label != "pass step 1 as is" ||
+		!strings.Contains(h.Text, "Step 1's checks, round 1: 1 of 2 met; unmet: the lookup is cached. Pass as is, or resume c1") {
 		t.Fatalf("the headline = %+v", h)
 	}
 
@@ -87,7 +87,7 @@ func TestFlag_AtUnmetChecksIsTheSteps(t *testing.T) {
 	task, open := m.StepTask(1)
 	if !open || len(m.Tasks) != 1 || f.AtStep != 1 || f.Task.N != task.N || task.Verb != mission.TaskChecks || task.By != "orchestrator" ||
 		strings.Join(task.Options, "|") != "Pass it|Send it back|Drop the check|Reverse the decision" ||
-		!strings.HasPrefix(task.Text, "Check 2 asks for a cache, and you decided against one. Which should it be. Step 1's checks, round 1, came to 1 of 2 met. Pass it as it is, send it back to c1 with what's unmet, or say what to do.") {
+		!strings.HasPrefix(task.Text, "Check 2 asks for a cache, and you decided against one. Which should it be. Step 1's checks, round 1: 1 of 2 met. Pass as is, send back to c1 with what's unmet, or say what to do.") {
 		t.Fatalf("the task = %+v (flagged %+v, tasks %+v)", task, f, m.Tasks)
 	}
 
@@ -114,7 +114,7 @@ func TestFlag_TheUsersAnswerLetsTheOrchestratorPass(t *testing.T) {
 	refusedWith(t, err, "checks")
 
 	a, err := w.AnswerTask("cache", f.Task.N, AsYou, "Accept it with check 2 waived")
-	if err != nil || !strings.Contains(a.Next, "the orchestrator is acting on it; step 1 stays yours") {
+	if err != nil || !strings.Contains(a.Next, "passed to the orchestrator; step 1 stays yours") {
 		t.Fatalf("answering: %+v, %v", a, err)
 	}
 	m, _ := w.Missions.Load("cache")
@@ -208,7 +208,7 @@ func TestUnmetChecks_ApprovingTheBundlePasses(t *testing.T) {
 		}
 		if asked {
 			f, err := w.Flag("cache", "How should step 1 go?", AsOrchestrator)
-			if err != nil || !strings.Contains(f.Task.Text, "Look at b1, on the mission's Verify tab: approving it passes the step") {
+			if err != nil || !strings.Contains(f.Task.Text, "Review b1 on the Verify tab: approving it passes the step") {
 				t.Fatalf("the question: %+v, %v", f, err)
 			}
 		}
@@ -217,7 +217,7 @@ func TestUnmetChecks_ApprovingTheBundlePasses(t *testing.T) {
 			t.Fatalf("approving b1 (asked %v): %+v, %v", asked, done, err)
 		}
 		st := stepRecord(t, w, 1)
-		if !st.Accepted() || st.Record.AcceptedBy != "you" || !strings.Contains(st.Record.Why, "you approved b1, its checks as they were") {
+		if !st.Accepted() || st.Record.AcceptedBy != "you" || !strings.Contains(st.Record.Why, "you approved b1, checks as they were") {
 			t.Errorf("step 1 (asked %v) = %+v", asked, st.Record)
 		}
 		if m, _ = w.Missions.Load("cache"); len(m.Tasks) != 0 && m.Tasks[0].Step == 1 {
@@ -331,7 +331,7 @@ func TestPlanRevision_AcceptedRunsTheOrchestratorAgain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(*runs) != 1 || (*runs)[0] != "cache/plan" || !strings.Contains(said, "The orchestrator looks at the plan as it is now.") {
+	if len(*runs) != 1 || (*runs)[0] != "cache/plan" || !strings.Contains(said, "The orchestrator reviews the updated plan.") {
 		t.Errorf("accepted: %q, runs %v", said, *runs)
 	}
 }

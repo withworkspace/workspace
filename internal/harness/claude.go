@@ -42,7 +42,7 @@ func (c *Claude) bin() (string, error) {
 	}
 	p, err := c.lookPath(name)
 	if err != nil {
-		return "", fmt.Errorf("claude CLI not found (looked for %s; set %s to override)", name, EnvClaudeBin)
+		return "", fmt.Errorf("could not find claude CLI (looked for %s; set %s to override)", name, EnvClaudeBin)
 	}
 	return p, nil
 }
@@ -79,7 +79,7 @@ func (c *Claude) Start(b Brief) (Launch, error) {
 	}
 	id, err := c.newID()
 	if err != nil {
-		return Launch{}, fmt.Errorf("making a session id: %w", err)
+		return Launch{}, fmt.Errorf("could not make a session id: %w", err)
 	}
 	model, err := claudeModelArgs(b.Model)
 	if err != nil {
@@ -107,7 +107,7 @@ func sessionName(b Brief) string {
 // history and all.
 func (c *Claude) Resume(dir, conversation string) (Launch, error) {
 	if conversation == "" {
-		return Launch{}, fmt.Errorf("no claude session id recorded for this crew, so it can't be resumed")
+		return Launch{}, fmt.Errorf("cannot resume: no Claude session recorded for this crew")
 	}
 	bin, err := c.bin()
 	if err != nil {
@@ -148,7 +148,7 @@ func claudeModel(m string) (name, effort string, err error) {
 	}
 	effort, closed := strings.CutSuffix(effort, "]")
 	if !closed || !slices.Contains(ClaudeEfforts, effort) {
-		return "", "", fmt.Errorf("claude: %q isn't a model with an effort Claude Code takes: name[effort], effort one of %s", m, strings.Join(ClaudeEfforts, ", "))
+		return "", "", fmt.Errorf("claude: %q is not a valid model: use name[effort], with effort one of %s", m, strings.Join(ClaudeEfforts, ", "))
 	}
 	return name, effort, nil
 }

@@ -44,9 +44,9 @@ func (w *Workspace) thingKind(who, kind string) (plugin.KeptRef, error) {
 	k, ok := kinds[kind]
 	switch {
 	case !ok || k.Plugin != who:
-		return k, &Invalid{Reason: fmt.Sprintf("%s has no kind %q whose things live in a repo", who, kind)}
+		return k, &Invalid{Reason: fmt.Sprintf("%s has no kind %q that can live in a repo", who, kind)}
 	case !k.Remote.Exports:
-		return k, &Invalid{Reason: fmt.Sprintf("%s doesn't give its %s for a repo: there's nothing for ws to put there", who, kind)}
+		return k, &Invalid{Reason: fmt.Sprintf("%s does not export %s to a repo", who, kind)}
 	}
 	return k, nil
 }
@@ -92,7 +92,7 @@ func thingGroup(said string) (string, error) {
 	parts := strings.Split(said, "/")
 	for _, part := range parts {
 		if !groupPart.MatchString(part) {
-			return "", &Invalid{Reason: fmt.Sprintf("a folder to group it in is plain names with / between them (cross-stack, plans/q4): %q isn't", said)}
+			return "", &Invalid{Reason: fmt.Sprintf("a folder is plain names with / between them (cross-stack, plans/q4): %q is not", said)}
 		}
 	}
 	if len(parts) > 6 {
@@ -165,9 +165,9 @@ func (w *Workspace) inSpace(repo, folder string) error {
 	s, ok := w.WS().SpaceOf(repo)
 	switch {
 	case !ok:
-		return &Invalid{Reason: fmt.Sprintf("%s isn't a space of documents, so ws wouldn't find it there", repo)}
+		return &Invalid{Reason: fmt.Sprintf("%s is not a space of documents", repo)}
 	case !strings.HasPrefix(folder+"/", s.Folder):
-		return &Invalid{Reason: fmt.Sprintf("%s:%s/ isn't under %s, where %s's documents are, so ws wouldn't find it there", repo, folder, s.Folder, repo)}
+		return &Invalid{Reason: fmt.Sprintf("%s:%s/ is not under %s, where %s's documents are", repo, folder, s.Folder, repo)}
 	}
 	return nil
 }
@@ -186,7 +186,7 @@ func writeThing(dir, kind, main, slugName string, pkg protocol.RemotePackage) er
 	for _, f := range pkg.Files {
 		name := strings.ReplaceAll(f.Name, protocol.RemoteSlug, slugName)
 		if names[strings.ToLower(name)] {
-			return &Invalid{Reason: fmt.Sprintf("its file %s is there already: the main file, ws's own, or another of that name", name)}
+			return &Invalid{Reason: fmt.Sprintf("file %s is already there: the main file, the manifest, or another of that name", name)}
 		}
 		names[strings.ToLower(name)] = true
 		files = append(files, file{name, f.Content})
@@ -225,7 +225,7 @@ func thingGiven(who string, given protocol.RemoteExported, err error) (protocol.
 	}
 	given.Title = strings.Join(strings.Fields(given.Title), " ")
 	if problem := given.RemotePackage.Problem(); problem != "" {
-		return given, &Invalid{Reason: who + " gave what ws can't put in a repo: " + problem}
+		return given, &Invalid{Reason: who + " gave something that cannot go in a repo: " + problem}
 	}
 	return given, nil
 }
@@ -258,10 +258,10 @@ func (w *Workspace) thingPut(ctx context.Context, remotes RemoteReader, k plugin
 	// The plugin's told first: it's in the repo whatever comes next, and
 	// the plugin has to know, or it would be promoted again.
 	if err := remotes.SavedRemote(ctx, k.Plugin, protocol.RemoteSavedParams{Kind: k.Kind, Ref: name, Thing: out.Thing}); err != nil {
-		return out, &Upstream{Err: fmt.Errorf("it's in %s:%s/, but %s couldn't be told so: %v", repo, folder, k.Plugin, err)}
+		return out, &Upstream{Err: fmt.Errorf("saved to %s:%s/, but could not tell %s: %v", repo, folder, k.Plugin, err)}
 	}
 	if err := plugin.KeepAlias(w.WS().Root, k.Plugin, k.Kind, name, out.Thing.Name); err != nil {
-		return out, fmt.Errorf("it's in %s:%s/, but ws couldn't keep that %s is it now: %w", repo, folder, name, err)
+		return out, fmt.Errorf("saved to %s:%s/, but could not link %s to it: %w", repo, folder, name, err)
 	}
 	return out, nil
 }
@@ -304,7 +304,7 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name string, wh
 		return none, err
 	}
 	if given.Name != "" {
-		return none, &Invalid{Reason: fmt.Sprintf("%s lives at %s already: save it there", name, given.Name)}
+		return none, &Invalid{Reason: fmt.Sprintf("%s already lives at %s: save it there", name, given.Name)}
 	}
 	// Where: as you said, its files named after the folder; or the first
 	// of the places the kind's things go, named for its title once the
@@ -322,13 +322,13 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name string, wh
 	} else {
 		places, _ := w.thingPlaces(k)
 		if len(places) == 0 {
-			return none, &Invalid{Reason: fmt.Sprintf("the workspace has no space of documents to put a %s in: say where it's to live, as repo:folder/", kind)}
+			return none, &Invalid{Reason: fmt.Sprintf("no space of documents for a %s: say where it goes, as repo:folder/", kind)}
 		}
 		place = places[0]
 		if said := strings.TrimSpace(where.Place); said != "" {
 			i := slices.IndexFunc(places, func(p thingPlace) bool { return p.said() == said })
 			if i < 0 {
-				return none, &Invalid{Reason: fmt.Sprintf("%s isn't one of the places a %s goes: ws doctor says which there are", said, kind)}
+				return none, &Invalid{Reason: fmt.Sprintf("%s is not a place for a %s: ws doctor lists them", said, kind)}
 			}
 			place = places[i]
 		}
@@ -338,7 +338,7 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name string, wh
 		}
 		if group != "" {
 			if !w.Config().Things[kind].Subfolders {
-				return none, &Invalid{Reason: fmt.Sprintf("a %s goes straight in %s: [things.%s] subfolders = true in ws.toml lets one be grouped in a folder there", kind, place.repo+":"+place.base()+"/", kind)}
+				return none, &Invalid{Reason: fmt.Sprintf("a %s goes straight in %s: set [things.%s] subfolders = true in ws.toml to allow folders", kind, place.repo+":"+place.base()+"/", kind)}
 			}
 			place = place.under(group)
 		}
@@ -349,10 +349,10 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name string, wh
 		if folder == "" {
 			named, folder = place.free(capsule, given.Title, kind)
 		} else if _, err := os.Lstat(filepath.Join(capsule, filepath.FromSlash(folder))); err == nil {
-			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("there's something at %s:%s/ already: name another folder for it to live in", repo, folder)}
+			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("%s:%s/ is already taken: name another folder", repo, folder)}
 		}
 		if outer, inside := insideThing(capsule, folder); inside {
-			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("%s:%s/ is a thing itself, and one isn't put inside another: name a folder beside it", repo, outer)}
+			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("%s:%s/ is a thing already, and things cannot nest: name a folder beside it", repo, outer)}
 		}
 		main := strings.ReplaceAll(k.Remote.Main, protocol.RemoteSlug, named)
 		if err := writeThing(filepath.Join(capsule, filepath.FromSlash(folder)), kind, main, named, given.RemotePackage); err != nil {
@@ -380,11 +380,11 @@ func writtenThing(capsule, kind, repo, folder, main, slugName string, pkg protoc
 		}
 	}
 	if out, err := git.Combined(capsule, "add", "-A", "--", filepath.FromSlash(folder)); err != nil {
-		return protocol.RemoteThing{}, fmt.Errorf("staging %s: %s: %w", folder, strings.TrimSpace(out), err)
+		return protocol.RemoteThing{}, fmt.Errorf("could not stage %s: %s: %w", folder, strings.TrimSpace(out), err)
 	}
 	tree, err := git.Combined(capsule, "write-tree", "--prefix="+folder+"/")
 	if err != nil {
-		return protocol.RemoteThing{}, fmt.Errorf("naming %s as it's written: %s: %w", folder, strings.TrimSpace(tree), err)
+		return protocol.RemoteThing{}, fmt.Errorf("could not read back %s: %s: %w", folder, strings.TrimSpace(tree), err)
 	}
 	t.Tree = strings.TrimSpace(tree)
 	return remoteThing(t), nil
@@ -417,15 +417,15 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 		return none, err
 	}
 	if given.Name == "" {
-		return none, &Invalid{Reason: name + " isn't in a repo: promote it first"}
+		return none, &Invalid{Reason: name + " is not in a repo: promote it first"}
 	}
 	at, ok := ref.Parse(given.Name)
 	if !ok || at.Kind != ref.Dir || at.InCapsule() {
-		return none, &Invalid{Reason: fmt.Sprintf("%s says %s lives at %s, which isn't a folder in a repo", who, name, given.Name)}
+		return none, &Invalid{Reason: fmt.Sprintf("%s says %s lives at %s, which is not a folder in a repo", who, name, given.Name)}
 	}
 	repo, known := w.WS().ResolveAlias(at.Repo)
 	if !known {
-		return none, noThingAt(fmt.Sprintf("ws has no %s at %s", kind, given.Name))
+		return none, noThingAt(fmt.Sprintf("no %s at %s", kind, given.Name))
 	}
 	folder := at.Path
 	var written protocol.RemoteThing
@@ -434,15 +434,15 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 		dir := filepath.Join(capsule, filepath.FromSlash(folder))
 		text, err := os.ReadFile(filepath.Join(dir, protocol.ManifestName))
 		if err != nil {
-			return "", "", "", false, noThingAt(fmt.Sprintf("ws has no %s at %s", kind, given.Name))
+			return "", "", "", false, noThingAt(fmt.Sprintf("no %s at %s", kind, given.Name))
 		}
 		was, title, main, picture, ok := space.ReadManifest(text)
 		if !ok || was != kind {
-			return "", "", "", false, noThingAt(fmt.Sprintf("ws has no %s at %s", kind, given.Name))
+			return "", "", "", false, noThingAt(fmt.Sprintf("no %s at %s", kind, given.Name))
 		}
 		there, err := os.ReadFile(filepath.Join(dir, main))
 		if err != nil {
-			return "", "", "", false, noThingAt(fmt.Sprintf("ws has no %s at %s: its %s isn't there", kind, given.Name, main))
+			return "", "", "", false, noThingAt(fmt.Sprintf("no %s at %s: %s is missing", kind, given.Name, main))
 		}
 		if now := space.FolderTree(ctx, capsule, "HEAD", folder); now != given.Base {
 			// It's changed there since the plugin last had it: the plugin
@@ -452,7 +452,7 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 				return "", "", "", false, err
 			}
 			if given.Base != now {
-				return "", "", "", false, &Upstream{Err: fmt.Errorf("%s was given %s as it is in %s now, and what it gave back wasn't made from that", who, name, repo)}
+				return "", "", "", false, &Upstream{Err: fmt.Errorf("%s was sent the current %s from %s, but did not build on it", who, name, repo)}
 			}
 			merged = true
 		}

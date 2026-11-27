@@ -56,7 +56,7 @@ func (s *Server) refPaths(w http.ResponseWriter, r *http.Request) {
 		n += len(ps)
 	}
 	if n > refPathsMax {
-		jsonError(w, http.StatusBadRequest, fmt.Sprintf("that's %d paths: at most %d are checked at once", n, refPathsMax))
+		jsonError(w, http.StatusBadRequest, fmt.Sprintf("too many paths (%d): at most %d at once", n, refPathsMax))
 		return
 	}
 	out := RefPathsFound{Repos: map[string]RepoPaths{}}

@@ -319,7 +319,7 @@ func (s *Service) look(prev *Snapshot, since time.Time) (*Snapshot, error) {
 		at, err = keepLook(tx, snap, list)
 		return err
 	}); err != nil {
-		return nil, fmt.Errorf("keeping what was read of the team: %w", err)
+		return nil, fmt.Errorf("could not save team activity: %w", err)
 	}
 	s.mu.Lock()
 	s.snap, s.prs, s.snapAt = snap, prs, at

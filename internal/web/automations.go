@@ -253,7 +253,7 @@ func (s *Server) automationOutputFrame(w http.ResponseWriter, r *http.Request) {
 	version, err := strconv.Atoi(r.PathValue("version"))
 	shown, _, oerr := s.App.AutomationOutput(r.PathValue("name"), version)
 	if err != nil || version < 1 || oerr != nil || shown.Format != automation.OutputHTML {
-		framePage(w, http.StatusNotFound, "It can't be shown", "There's no such page of an automation's: /frame/automations/coverage/output/3 is coverage's third.")
+		framePage(w, http.StatusNotFound, "Could not show output", "Output not found: addresses look like /frame/automations/coverage/output/3.")
 		return
 	}
 	s.serveFrameFile(w, r, r.URL.Path, "index.html", []byte(shown.Body), "", "")

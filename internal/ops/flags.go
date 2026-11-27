@@ -53,7 +53,7 @@ func (w *Workspace) Flag(slug, text string, by Actor, options ...string) (Flagge
 			// Its question, if it has one open, is this one now.
 			logFailed(w.Missions.Ask(m.Slug, "", by.By()))
 			met := len(round.With(mission.CheckMet))
-			text = fmt.Sprintf("%s Step %d's checks, round %d, came to %d of %d met. %sass it as it is, send it back to %s with what's unmet, or say what to do.",
+			text = fmt.Sprintf("%s Step %d's checks, round %d: %d of %d met. %sass as is, send back to %s with what's unmet, or say what to do.",
 				sentence(text), st.N, round.N, met, len(round.Results), w.checksShownBy(m.Slug, st.N, round.Crew), round.Crew)
 			t, err := w.Missions.OpenTask(m.Slug, mission.Task{Verb: mission.TaskChecks, Text: text, Step: st.N, By: by.By(),
 				Options: checksOptions(options)})

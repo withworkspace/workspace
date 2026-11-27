@@ -32,7 +32,7 @@ func TestRun_TimeoutKillsWhatItStarted(t *testing.T) {
 	if took > 5*time.Second {
 		t.Fatalf("took %s: Run waited on the child", took)
 	}
-	if err == nil || !strings.Contains(err.Error(), "took longer than") || !strings.Contains(out.Output, "started") {
+	if err == nil || !strings.Contains(err.Error(), "timed out after") || !strings.Contains(out.Output, "started") {
 		t.Errorf("err = %v, out = %q", err, out.Output)
 	}
 	data, _ := os.ReadFile(pidFile)

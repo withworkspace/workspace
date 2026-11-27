@@ -210,14 +210,14 @@ func toneOf(h Headline) Tone {
 
 // kindWords is a kind's title where its sentence has none of its own.
 var kindWords = map[Kind]string{
-	KindCrewAsks: "Crew ask", KindPermission: "Crew want a permission", KindFlag: "A question", KindReReview: "Back for your re-review",
-	KindStepReview: "Yours to review", KindToDo: "Yours to do", KindReplies: "A reply to post", KindBriefTalk: "The plan", KindProposed: "To confirm",
-	KindQueued: "Crew queued", KindResume: "Crew to resume", KindReplied: "Crew wait for you", KindChecksFailing: "Checks failing",
-	KindChangesRequested: "Changes asked for", KindConflict: "Conflicts with its base", KindApprove: "To approve", KindAccept: "To accept", KindMerge: "Ready to merge", KindLand: "To land",
-	KindWrapUp: "Ready to end", KindStalled: "Nobody's on it", KindWorking: "Crew at work", KindLaunching: "Crew starting", KindOwnWork: "Your own work",
-	KindAnswering: "An agent's answering", KindBriefing: "Being briefed", KindChecking: "ws is checking", KindWritingPR: "Writing a pull request", KindMovingOn: "Moving on", KindDeciding: "The orchestrator's deciding",
+	KindCrewAsks: "Crew question", KindPermission: "Permission request", KindFlag: "Question", KindReReview: "Re-review",
+	KindStepReview: "To review", KindToDo: "To do", KindReplies: "Reply to post", KindBriefTalk: "Plan", KindProposed: "To confirm",
+	KindQueued: "Crew queued", KindResume: "Crew to resume", KindReplied: "Waiting on you", KindChecksFailing: "Checks failing",
+	KindChangesRequested: "Changes requested", KindConflict: "Conflicts with base", KindApprove: "To approve", KindAccept: "To accept", KindMerge: "Ready to merge", KindLand: "To land",
+	KindWrapUp: "Ready to end", KindStalled: "Idle", KindWorking: "Crew at work", KindLaunching: "Crew starting", KindOwnWork: "Background work",
+	KindAnswering: "Agent answering", KindBriefing: "Briefing", KindChecking: "Checking", KindWritingPR: "Writing pull request", KindMovingOn: "Moving on", KindDeciding: "Orchestrator deciding",
 	KindChecksRunning: "Checks running", KindAwaitingReview: "In review", KindWaitingOn: "Waiting", KindLanded: "Landed", KindEnded: "Ended",
-	KindToBrief: "Waiting to be briefed", KindReady: "Ready", KindParked: "Parked", KindArchived: "Archived",
+	KindToBrief: "To brief", KindReady: "Ready", KindParked: "Parked", KindArchived: "Archived",
 }
 
 // titleEnd is where a sentence's title ends: at its first colon, or -1
@@ -300,7 +300,7 @@ func (b cardBuilder) words(c *Card, h Headline, text string) {
 		c.Title, c.Detail = flagWho(h.By), strings.TrimSpace(strings.TrimPrefix(text, flagWho(h.By)+":"))
 		if ok && t.Verb == TaskChecks && t.Step > 0 && b.s.M != nil {
 			if st, round, unmet := b.s.M.ChecksUnmet(b.s.Brief); unmet && st.N == t.Step {
-				c.Title = fmt.Sprintf("Step %d's checks came to %d of %d met", st.N, len(round.With(CheckMet)), len(round.Results))
+				c.Title = fmt.Sprintf("Step %d's checks: %d of %d met", st.N, len(round.With(CheckMet)), len(round.Results))
 			}
 		}
 	case KindToDo:
@@ -311,9 +311,9 @@ func (b cardBuilder) words(c *Card, h Headline, text string) {
 		c.Title = fmt.Sprintf("Step %d is yours to do: %s", b.cur.N, b.cur.Short())
 		c.Detail = sentenceOf(strings.TrimPrefix(b.cur.Plain(), b.cur.Short()+". "))
 		if b.cur.Step.Watched() {
-			c.Detail += fmt.Sprintf(" ws watches for it (%s), and passes the step once it's happened.", checkCommands(b.cur.Step.Checks))
+			c.Detail += fmt.Sprintf(" Watched (%s): passes once it happens.", checkCommands(b.cur.Step.Checks))
 		} else {
-			c.Detail += " ws can't see it happen, so nothing moves until you mark it done."
+			c.Detail += " Nothing moves until marked done."
 		}
 	case KindStepReview:
 		t, ok := b.task(h)
@@ -407,8 +407,8 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 			c.Primary = &launch
 		}
 	case VerbLaunchNext:
-		c.Primary = &Act{Do: DoLaunchNext, Label: "Launch the queued crew", Icon: "play"}
-		c.More = []Act{{Do: DoDismiss, Label: "Dismiss it", Quiet: true}}
+		c.Primary = &Act{Do: DoLaunchNext, Label: "Launch queued crew", Icon: "play"}
+		c.More = []Act{{Do: DoDismiss, Label: "Dismiss", Quiet: true}}
 	case VerbResume:
 		c.Primary = &Act{Do: DoResume, Label: "Resume " + a.Target, Icon: "rotate", Target: a.Target}
 	case VerbAccept:
@@ -418,7 +418,7 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 	case VerbOpen:
 		c.Primary = &Act{Do: DoURL, Label: "Open " + a.Target, Icon: "pr", URL: a.URL}
 	case VerbMerge:
-		c.Primary = &Act{Do: DoURL, Label: "Open " + a.Target + " to merge it", Icon: "pr", URL: a.URL}
+		c.Primary = &Act{Do: DoURL, Label: "Open " + a.Target + " to merge", Icon: "pr", URL: a.URL}
 	case VerbArchive:
 		c.Primary = &Act{Do: DoArchive, Label: label, Icon: "archive"}
 		if h.Kind == KindEnded {
@@ -434,16 +434,16 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 			c.More = []Act{{Do: DoNotYet, Label: "Not yet", Quiet: true}}
 		}
 	case VerbBrief:
-		c.Primary = &Act{Do: DoBrief, Label: "Brief it", Icon: "pencil"}
+		c.Primary = &Act{Do: DoBrief, Label: "Brief", Icon: "pencil"}
 	case VerbConfirm:
 		c.Primary = &Act{Do: DoConfirm, Label: "Confirm and start", Icon: "play"}
-		c.More = []Act{{Do: DoBriefPage, Label: "Read them first"}}
+		c.More = []Act{{Do: DoBriefPage, Label: "Read brief and plan"}}
 	case VerbTalk:
 		c.Primary = &Act{Do: DoTalk, Label: label, Icon: "reply", Target: a.Target}
 	case VerbUnpark:
 		c.Primary = &Act{Do: DoUnpark, Label: label, Icon: "play"}
 	case VerbLog:
-		c.More = []Act{{Do: DoLog, Label: "Read the log", Quiet: true}}
+		c.More = []Act{{Do: DoLog, Label: "Open log", Quiet: true}}
 	}
 }
 
@@ -452,9 +452,9 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 // overrides that. One nobody's watching moves when it's marked done, with
 // a note for the crew after. yours is a Wait on you, answered at its task.
 func (b cardBuilder) waitActs(yours bool, task int, passIt bool) (*Act, []Act) {
-	mark := Act{Do: DoAccept, Label: "Mark done", Icon: "check", Field: "What happened, if the crew after should know"}
+	mark := Act{Do: DoAccept, Label: "Mark done", Icon: "check", Field: "What happened, for later crew"}
 	if yours {
-		mark = Act{Do: DoAnswer, Label: "Mark done", Icon: "check", Task: task, Text: WaitDone, Prefix: WaitDone + ": ", Field: "What you did, if the crew after should know"}
+		mark = Act{Do: DoAnswer, Label: "Mark done", Icon: "check", Task: task, Text: WaitDone, Prefix: WaitDone + ": ", Field: "What you did, for later crew"}
 	}
 	if !b.watched() {
 		return &mark, nil
@@ -466,7 +466,7 @@ func (b cardBuilder) waitActs(yours bool, task int, passIt bool) (*Act, []Act) {
 	mark.Label += "…"
 	more := []Act{mark}
 	if passIt {
-		more = append(more, Act{Do: DoAnswer, Label: "Pass it as it is", Task: task, Text: ChecksPass, Quiet: true})
+		more = append(more, Act{Do: DoAnswer, Label: "Pass as is", Task: task, Text: ChecksPass, Quiet: true})
 	}
 	return &Act{Do: DoLook, Label: b.lookWord(), Icon: "rotate"}, more
 }
@@ -496,7 +496,7 @@ func reviewActs(looks []Look, task int) (*Act, []Act) {
 		more = append(more, goOn)
 	}
 	if task > 0 {
-		more = append(more, Act{Do: DoAnswer, Label: "Send back…", Task: task, Field: "Say what's to change, and it goes back to its crew", Quiet: true})
+		more = append(more, Act{Do: DoAnswer, Label: "Send back…", Task: task, Field: "What to change", Quiet: true})
 	}
 	return primary, more
 }
@@ -552,7 +552,7 @@ func (b cardBuilder) answer(c *Card, h Headline) {
 		// Words are all there is to give: the field's open.
 		c.Primary = &own
 	} else {
-		own.Label, own.Field, own.Quiet = "Answer…", "Answer in your own words", true
+		own.Label, own.Field, own.Quiet = "Answer…", "Your answer", true
 		c.More = append(c.More, own)
 	}
 	if question {
@@ -588,6 +588,6 @@ func (b cardBuilder) fold(c *Card, lead, step Headline) {
 		c.Primary, c.More = reviewActs(step.Action.Look, task)
 		asked := c.Detail
 		c.Detail = flagWho(lead.By) + ": " + asked
-		c.More = append(c.More, Act{Do: DoDismiss, Label: "Dismiss the question", Quiet: true})
+		c.More = append(c.More, Act{Do: DoDismiss, Label: "Dismiss question", Quiet: true})
 	}
 }

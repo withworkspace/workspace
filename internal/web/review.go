@@ -35,7 +35,7 @@ func (s *Server) capsuleDir(w http.ResponseWriter, r *http.Request) (dir, baseRe
 	}
 	switch {
 	case errors.Is(err, ErrNotFound) && sc.IsWorkspace():
-		jsonError(w, http.StatusNotFound, "the workspace has no "+repo+"/"+name)
+		jsonError(w, http.StatusNotFound, "not found: "+repo+"/"+name)
 		return "", "", false
 	case errors.Is(err, ErrNotFound):
 		jsonError(w, http.StatusNotFound, "mission "+sc.Mission+" has no capsule "+repo+"/"+name)
@@ -55,7 +55,7 @@ func (s *Server) diff(w http.ResponseWriter, r *http.Request) {
 	}
 	since := r.URL.Query().Get("since")
 	if since != "" && !fullSHA.MatchString(since) {
-		jsonError(w, http.StatusBadRequest, "since is a full commit id")
+		jsonError(w, http.StatusBadRequest, "since must be a full commit id")
 		return
 	}
 	read := func() (any, error) {
@@ -110,7 +110,7 @@ func (s *Server) fileDiff(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	base, head, path := q.Get("base"), q.Get("head"), q.Get("path")
 	if !fullSHA.MatchString(base) || !fullSHA.MatchString(head) || !validPath(path) {
-		jsonError(w, http.StatusBadRequest, "need base and head (full commit ids) and a path")
+		jsonError(w, http.StatusBadRequest, "missing base, head (full commit ids) or path")
 		return
 	}
 	// Between two commits: kept for good (in keptMax).
@@ -131,7 +131,7 @@ func (s *Server) blob(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	rev, path := q.Get("rev"), q.Get("path")
 	if !fullSHA.MatchString(rev) || !validPath(path) {
-		jsonError(w, http.StatusBadRequest, "need rev (a full commit id) and a path")
+		jsonError(w, http.StatusBadRequest, "missing rev (full commit id) or path")
 		return
 	}
 	lines, err := s.reads.kept(keyOf("blob", dir, rev, path), func() (any, error) { return review.Blob(dir, rev, path) })
@@ -238,7 +238,7 @@ func readBody(w http.ResponseWriter, r *http.Request, v any) bool {
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
-		jsonError(w, http.StatusBadRequest, "bad request body: "+err.Error())
+		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return false
 	}
 	return true
@@ -248,7 +248,7 @@ func readBody(w http.ResponseWriter, r *http.Request, v any) bool {
 // commit ids it was given.
 func diffed(w http.ResponseWriter, dir, baseRef, base, head string) (review.Diffed, bool) {
 	if !fullSHA.MatchString(base) || !fullSHA.MatchString(head) {
-		jsonError(w, http.StatusBadRequest, "need base and head: the full commit ids of the diff")
+		jsonError(w, http.StatusBadRequest, "missing base or head (full commit ids)")
 		return review.Diffed{}, false
 	}
 	return review.Diffed{Dir: dir, BaseRef: baseRef, Base: base, Head: head}, true
@@ -277,7 +277,7 @@ func (s *Server) addNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !validPath(b.Path) {
-		jsonError(w, http.StatusBadRequest, "need a path")
+		jsonError(w, http.StatusBadRequest, "missing path")
 		return
 	}
 	err := s.App.AddNote(of, d, review.NewNote{Path: b.Path, Side: b.Side, Line: b.Line, EndLine: b.EndLine, Kind: b.Kind, Body: b.Body, Suggestion: b.Suggestion})
@@ -316,7 +316,7 @@ func (s *Server) setViewed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !validPath(b.Path) {
-		jsonError(w, http.StatusBadRequest, "need a path")
+		jsonError(w, http.StatusBadRequest, "missing path")
 		return
 	}
 	err := s.App.SetViewed(of, b.Path, b.Blob, b.Viewed)
@@ -336,7 +336,7 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request) {
 	}
 	what := review.Response(b.What)
 	if what != review.Answer && what != review.Resolve && what != review.Reopen {
-		jsonError(w, http.StatusBadRequest, "what is reply, resolve or reopen")
+		jsonError(w, http.StatusBadRequest, "action must be reply, resolve or reopen")
 		return
 	}
 	_, err := s.App.Respond(of, r.PathValue("id"), what, b.Body, "", ops.AsYou)

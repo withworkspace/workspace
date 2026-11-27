@@ -839,7 +839,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		// name under .localhost, or at 127.0.0.1 and its port.
 		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src 'self' http://*.localhost:* http://127.0.0.1:*; frame-ancestors 'none'")
 		if !s.hostAllowed(r.Host) {
-			http.Error(w, "this server answers only to 127.0.0.1 and localhost", http.StatusMisdirectedRequest)
+			http.Error(w, "open Workspace at localhost or 127.0.0.1", http.StatusMisdirectedRequest)
 			return
 		}
 		if r.URL.Path == "/auth" {
@@ -848,10 +848,10 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		}
 		if s.fromAnotherSite(r) {
 			if strings.HasPrefix(r.URL.Path, "/api/") {
-				jsonError(w, http.StatusForbidden, "refused: another site's page asked for this")
+				jsonError(w, http.StatusForbidden, "refused: request from another site")
 				return
 			}
-			page(w, http.StatusForbidden, "Refused", "Another site's page asked for this. Open the web UI with <code>ws web</code>.")
+			page(w, http.StatusForbidden, "Refused", "Request came from another site. Open Workspace with <code>ws web</code>.")
 			return
 		}
 		if !s.signedIn(r) {
@@ -862,10 +862,10 @@ func (s *Server) guard(next http.Handler) http.Handler {
 				return
 			}
 			if strings.HasPrefix(r.URL.Path, "/api/") {
-				jsonError(w, http.StatusUnauthorized, "not signed in: open the web UI with `ws web`")
+				jsonError(w, http.StatusUnauthorized, "not signed in: run `ws web`")
 				return
 			}
-			page(w, http.StatusUnauthorized, "Not signed in", "This page signs in through a link from your terminal. Run <code>ws web</code> in the workspace.")
+			page(w, http.StatusUnauthorized, "Not signed in", "Run <code>ws web</code> in the workspace to sign in.")
 			return
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -882,7 +882,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 			// form too: what's refused there is another site's request, above.
 			plugins := strings.HasPrefix(r.URL.Path, "/plugins/")
 			if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "application/json" && !plugins {
-				jsonError(w, http.StatusUnsupportedMediaType, "send JSON")
+				jsonError(w, http.StatusUnsupportedMediaType, "request must be JSON")
 				return
 			}
 		}
@@ -895,7 +895,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	if subtle.ConstantTimeCompare([]byte(q.Get("t")), []byte(s.info.Token)) != 1 {
-		page(w, http.StatusForbidden, "That link has expired", "Sign-in links work once. Run <code>ws web</code> again for a fresh one.")
+		page(w, http.StatusForbidden, "Link expired", "Sign-in links work once. Run <code>ws web</code> for a new one.")
 		return
 	}
 	// Lax, not Strict: a link to the UI from elsewhere (a notification, a
@@ -912,7 +912,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 // page hears it's been closed rather than only losing it.
 func (s *Server) shutdown(w http.ResponseWriter, r *http.Request) {
 	if s.Shutdown == nil {
-		jsonError(w, http.StatusNotFound, "this web UI has no daemon to close")
+		jsonError(w, http.StatusNotFound, "Workspace cannot be shut down from here")
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]bool{"ok": true})
@@ -1041,7 +1041,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	index, err := fs.ReadFile(s.Assets, "index.html")
 	if err != nil {
-		page(w, http.StatusInternalServerError, "No web UI built", "This ws was built without its web UI: run <code>just build</code>.")
+		page(w, http.StatusInternalServerError, "Web UI not built", "This build of Workspace has no web UI. Run <code>just build</code>.")
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

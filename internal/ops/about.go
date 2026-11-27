@@ -34,7 +34,7 @@ func (w *Workspace) AboutNames(names []string) ([]string, error) {
 			r, _, ok = w.ThingNamed(n)
 		}
 		if !ok {
-			return nil, &Invalid{Reason: "ws names nothing " + n + ": a mission is about something ws names (one of a plugin's things, as ws plugin list has them; a pull request, demo#12)"}
+			return nil, &Invalid{Reason: "nothing called " + n + ": a mission can be about a plugin thing (see ws plugin list) or a pull request (demo#12)"}
 		}
 		// A file's lines aren't what a mission's about: the file is.
 		r.Line, r.EndLine, r.Commit = 0, 0, ""

@@ -50,7 +50,7 @@ func (p *Pi) bin() (string, error) {
 	}
 	path, err := p.lookPath(name)
 	if err != nil {
-		return "", fmt.Errorf("pi CLI not found (looked for %s; set %s to override)", name, EnvPiBin)
+		return "", fmt.Errorf("could not find pi CLI (looked for %s; set %s to override)", name, EnvPiBin)
 	}
 	return path, nil
 }
@@ -81,7 +81,7 @@ func (p *Pi) Start(b Brief) (Launch, error) {
 	}
 	id, err := p.newID()
 	if err != nil {
-		return Launch{}, fmt.Errorf("making a session id: %w", err)
+		return Launch{}, fmt.Errorf("could not make a session id: %w", err)
 	}
 	args := []string{bin, "--session-id", id, "--name", sessionName(b)}
 	if b.Model != "" {
@@ -102,7 +102,7 @@ func (p *Pi) Start(b Brief) (Launch, error) {
 // blank session of that id if pi has lost it, it fails when there's none.
 func (p *Pi) Resume(dir, conversation string) (Launch, error) {
 	if conversation == "" {
-		return Launch{}, fmt.Errorf("no pi session id recorded for this crew, so it can't be resumed")
+		return Launch{}, fmt.Errorf("cannot resume: no pi session recorded for this crew")
 	}
 	bin, err := p.bin()
 	if err != nil {

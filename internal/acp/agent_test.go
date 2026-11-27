@@ -431,7 +431,7 @@ func TestAgentEnds(t *testing.T) {
 func TestAgentModelNotThere(t *testing.T) {
 	fa, from, to := newFakeAgent(t, func(a *fakeAgent) { a.New = cursorLikeSession })
 	_, err := Run(ctx5(t), Options{Model: "llama", Dial: func(ctx context.Context, cb Callbacks) (*Client, error) { return Connect(ctx, from, to, cb) }})
-	if err == nil || !strings.Contains(err.Error(), `no model "llama" (it has Auto, big)`) {
+	if err == nil || !strings.Contains(err.Error(), `no model "llama" (choose from Auto, big)`) {
 		t.Errorf("Run = %v", err)
 	}
 	within(t, fa.conn.Done(), "the agent to be closed")
@@ -484,7 +484,7 @@ func TestAgentAuthenticates(t *testing.T) {
 	})
 	_, err := Run(ctx5(t), Options{Auth: "nope", Dial: func(ctx context.Context, cb Callbacks) (*Client, error) { return Connect(ctx, from, to, cb) }})
 	within(t, fb.conn.Done(), "the refusing agent to be closed")
-	if err == nil || !strings.Contains(err.Error(), "signing in (nope)") {
+	if err == nil || !strings.Contains(err.Error(), "could not sign in (nope)") {
 		t.Errorf("Run = %v", err)
 	}
 }

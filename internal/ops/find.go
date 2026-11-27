@@ -76,13 +76,13 @@ func (w *Workspace) Find(ctx context.Context, q FindQuery) ([]Found, int, error)
 		return nil, 0, err
 	}
 	if _, err := w.Missions.Reread(ctx); err != nil {
-		return nil, 0, fmt.Errorf("reading the missions' briefs and files: %w", err)
+		return nil, 0, fmt.Errorf("could not read mission briefs and files: %w", err)
 	}
 	if _, err := w.pages().Reread(ctx); err != nil {
-		return nil, 0, fmt.Errorf("reading the pages: %w", err)
+		return nil, 0, fmt.Errorf("could not read pages: %w", err)
 	}
 	if _, err := w.Artifacts().Reread(ctx); err != nil {
-		return nil, 0, fmt.Errorf("reading the artifacts: %w", err)
+		return nil, 0, fmt.Errorf("could not read artifacts: %w", err)
 	}
 	// A plugin's things that live in a repo are found in the spaces: what's
 	// new there is read. A space that can't be read is as it was last read.
@@ -258,7 +258,7 @@ func (f Found) Where() string {
 	case f.Named != nil:
 		return "the " + f.Named.Plugin + " plugin"
 	case f.Scope == "":
-		return "the workspace"
+		return "Workspace"
 	case isPRScope(f.Scope):
 		return "pull request " + f.Scope
 	}
@@ -274,20 +274,20 @@ func (f Found) What() string {
 	switch f.Place {
 	case "brief":
 		if f.At != "" {
-			return "its brief"
+			return "brief"
 		}
-		return "the mission"
+		return "mission"
 	case "handoff":
-		return "a handoff"
+		return "handoff"
 	case "file":
-		return "a file"
+		return "file"
 	case "turn":
 		if f.At != "" {
 			return fmt.Sprintf("%s, turn %s", thingKind(f.Thing.Kind), f.At)
 		}
 	case "finding":
 		if f.At != "" {
-			return fmt.Sprintf("%s, a finding (%s)", thingKind(f.Thing.Kind), f.At)
+			return fmt.Sprintf("%s, finding (%s)", thingKind(f.Thing.Kind), f.At)
 		}
 	}
 	return thingKind(f.Thing.Kind)
@@ -309,21 +309,21 @@ func thingKind(kind string) string {
 	case "":
 		return "something"
 	case "thread-ask", "thread-change", "thread-note":
-		return "a thread (" + strings.TrimPrefix(kind, "thread-") + ")"
+		return "thread (" + strings.TrimPrefix(kind, "thread-") + ")"
 	case "pr":
-		return "a talk about a pull request"
+		return "pull request conversation"
 	case "doc":
-		return "a talk about a document" // an ask, kept
+		return "document conversation" // an ask, kept
 	case pulls.ThingKind:
-		return "a pull request"
+		return "pull request"
 	case "review-pass":
-		return "a pass over a review"
+		return "review pass"
 	case "ask":
-		return "a question in a page"
+		return "page question"
 	case artifact.ThingKind:
-		return "an artifact"
+		return "artifact"
 	case plugin.ThingKind:
-		return "something a plugin had" // its plugin's gone, or names it no more
+		return "plugin thing" // its plugin's gone, or names it no more
 	}
 	return "a " + kind
 }

@@ -35,9 +35,9 @@ func Sentence(e Event) (string, bool) {
 	case EventCrewEnded:
 		switch e.What {
 		case EndedInterrupted:
-			return who + " was stopped by a daemon restart", true
+			return who + " stopped when Workspace restarted", true
 		case EndedHandedBack:
-			return who + "'s session was closed: it had handed its work back", true
+			return who + "'s session closed: work handed back", true
 		case EndedStopped:
 			return who + " was stopped", true
 		}
@@ -69,11 +69,11 @@ func Sentence(e Event) (string, bool) {
 		return firstNonEmpty(e.Crew, "you") + " on " + text, true
 	case EventConclude:
 		if endingFirst(text) {
-			return "suggested ending it, " + text, true
+			return "suggested ending, " + text, true
 		}
 		return "suggested concluding: " + text, true
 	case EventEnded:
-		return firstNonEmpty(e.Crew, "you") + " ended it, " + text, true
+		return firstNonEmpty(e.Crew, "you") + " ended the mission, " + text, true
 	case EventCapsuleEnded:
 		return "capsule " + capsule + " " + text, true
 	case EventTold:

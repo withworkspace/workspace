@@ -82,7 +82,7 @@ func NewAsks(policy Policy, onChange func(), record func(Event)) *Asks {
 
 // ErrNoAsk is answering an ask that isn't open: already answered, or
 // cancelled.
-var ErrNoAsk = errors.New("no such ask open")
+var ErrNoAsk = errors.New("already answered or cancelled")
 
 // Wait opens an ask and waits for its answer: the policy's, someone's, or
 // cancelled when ctx ends (the agent gave up, or went) or all are.
@@ -146,7 +146,7 @@ func (a *Asks) Answer(id string, ans Answer) error {
 			continue
 		}
 		if r := p.ask.Permission; r != nil && !ans.Cancelled && !offers(r, ans.Option) {
-			return fmt.Errorf("%s doesn't offer %q", id, ans.Option)
+			return fmt.Errorf("%s does not offer %q", id, ans.Option)
 		}
 		a.remove(p)
 		p.answer <- ans

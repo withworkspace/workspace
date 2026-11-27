@@ -126,7 +126,7 @@ func (s *Server) settleReviewFinding(w http.ResponseWriter, r *http.Request) {
 	case conversation.FindingDismissed, conversation.FindingOpen:
 		def, c, err = s.App.SettleReviewFinding(of, r.PathValue("pass"), r.PathValue("key"), b.State, b.Why)
 	default:
-		jsonError(w, http.StatusBadRequest, "a finding is taken, dismissed or open")
+		jsonError(w, http.StatusBadRequest, "finding must be taken, dismissed or open")
 		return
 	}
 	if err != nil {

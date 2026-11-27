@@ -170,7 +170,7 @@ type DocAdding struct {
 
 // ErrChangedSince is a page's save refused because its file has changed
 // since the page last took it in.
-var ErrChangedSince = errors.New("the file has changed since the page last took it in")
+var ErrChangedSince = errors.New("file changed since you opened it")
 
 // DocFile is a document in a repo: where it is.
 type DocFile struct {
@@ -201,11 +201,11 @@ func isMarkdown(path string) bool {
 func (w *Workspace) FindDoc(ref string) (*DocFile, error) {
 	r := ParseArtifactRef(strings.TrimSpace(ref))
 	if r.Loc != LocGround && r.Loc != LocCapsule {
-		return nil, fmt.Errorf("%w: %q isn't a file in a repo: one is named repo:path, or repo/capsule:path", ErrNotFound, ref)
+		return nil, fmt.Errorf("%w: %q is not a file ref (repo:path or repo/capsule:path)", ErrNotFound, ref)
 	}
 	repo, ok := w.WS().ResolveAlias(r.Repo)
 	if !ok {
-		return nil, fmt.Errorf("%w: the workspace has no repo %s", ErrNotFound, r.Repo)
+		return nil, fmt.Errorf("%w: no repo %s", ErrNotFound, r.Repo)
 	}
 	r.Repo = repo
 	d := &DocFile{Repo: repo, Worktree: workspace.GroundDir, Rel: filepath.ToSlash(filepath.Clean(filepath.FromSlash(r.Path)))}
@@ -219,10 +219,10 @@ func (w *Workspace) FindDoc(ref string) (*DocFile, error) {
 	d.Ref = r.String()
 	full, err := review.ResolvePath(dir, d.Rel)
 	if errors.Is(err, review.ErrOutside) {
-		return nil, fmt.Errorf("%w: %s leads out of %s", ErrNotFound, r.Path, repo)
+		return nil, fmt.Errorf("%w: %s is outside %s", ErrNotFound, r.Path, repo)
 	}
 	if info, serr := os.Stat(full); err != nil || serr != nil || info.IsDir() {
-		return nil, fmt.Errorf("%w: there's no %s %s", ErrNotFound, d.Rel, d.In())
+		return nil, fmt.Errorf("%w: no %s %s", ErrNotFound, d.Rel, d.In())
 	}
 	d.Path = full
 	return d, nil
@@ -357,7 +357,7 @@ func (w *Workspace) Doc(ref string) (*DocText, error) {
 			return nil, err
 		}
 		if bytes.IndexByte(data, 0) >= 0 {
-			return nil, fmt.Errorf("%s isn't text", d.Ref)
+			return nil, fmt.Errorf("%s is not text", d.Ref)
 		}
 		state := "landed"
 		if d.Worktree != workspace.GroundDir {
@@ -373,9 +373,9 @@ func (w *Workspace) Doc(ref string) (*DocText, error) {
 		switch m, ref, ok := w.RecordedBy(d); {
 		case ok:
 			out.Mission = &DocMission{Slug: m.Slug, Title: m.Title, Ref: ref}
-			out.Uneditable = "it's mission " + m.Slug + "'s document: it's edited there"
+			out.Uneditable = "mission " + m.Slug + "'s document, edited there"
 		case !out.Markdown:
-			out.Uneditable = "only markdown is edited here"
+			out.Uneditable = "only markdown can be edited"
 		default:
 			out.Editable, out.Saves = true, w.docSaves(d, data)
 		}
@@ -405,7 +405,7 @@ func (w *Workspace) DocWhere(m *mission.Mission, ref string) (docPlace, error) {
 func placeOf(av ArtifactView, v MissionView) (docPlace, error) {
 	switch {
 	case av.Path == "" || av.State == "missing":
-		return docPlace{}, fmt.Errorf("%s isn't a file here", av.Ref)
+		return docPlace{}, fmt.Errorf("%s not found", av.Ref)
 	case av.Parsed.Loc == LocMission:
 		return docPlace{File: av.Path}, nil
 	case av.Parsed.Loc == LocCapsule && av.State != "landed":
@@ -415,7 +415,7 @@ func placeOf(av ArtifactView, v MissionView) (docPlace, error) {
 			}
 		}
 	}
-	return docPlace{}, fmt.Errorf("%s is on %s's default branch, which isn't changed in place: send it to crew to change in a capsule", av.Ref, av.Parsed.Repo)
+	return docPlace{}, fmt.Errorf("%s is on %s's default branch: send to crew to change in a capsule", av.Ref, av.Parsed.Repo)
 }
 
 // acceptSuggestion writes a thread's waiting suggestion into its document,
@@ -430,7 +430,7 @@ func (w *Workspace) acceptSuggestion(m *mission.Mission, id string, at time.Time
 	}
 	p := c.Pending()
 	if p == nil {
-		return "", fmt.Errorf("%w: %s has no suggestion waiting", conversation.ErrNotFound, id)
+		return "", fmt.Errorf("%w: %s has no pending suggestion", conversation.ErrNotFound, id)
 	}
 	place, err := w.DocWhere(m, c.Anchor.Doc)
 	if err != nil {
@@ -441,7 +441,7 @@ func (w *Workspace) acceptSuggestion(m *mission.Mission, id string, at time.Time
 		return "", err
 	}
 	if n := strings.Count(string(old), p.From); n != 1 {
-		return "", fmt.Errorf("the text it replaces is in the document %d times now, not once: it's changed since. Ask in the thread for a new suggestion", n)
+		return "", fmt.Errorf("document changed: the replaced text appears %d times, not once. Ask in the thread for a new suggestion", n)
 	}
 	// Saved as an edit you made from the document as it is: committed as
 	// you in a capsule, unless the file has uncommitted changes of its own
@@ -487,7 +487,7 @@ func (w *Workspace) Artifact(slug, ref string) (*DocText, error) {
 				continue
 			}
 			if av.Path == "" || av.State == "missing" {
-				return nil, fmt.Errorf("%s isn't a file here to show", ref)
+				return nil, fmt.Errorf("%s not found", ref)
 			}
 			info, err := os.Stat(av.Path)
 			if err != nil {
@@ -499,7 +499,7 @@ func (w *Workspace) Artifact(slug, ref string) (*DocText, error) {
 			var data []byte
 			if media == "" {
 				if info.IsDir() {
-					return nil, fmt.Errorf("%s is a folder, not a file to show", ref)
+					return nil, fmt.Errorf("%s is a folder", ref)
 				}
 				if info.Size() > artifactMax {
 					return nil, fmt.Errorf("%s is too large to show (%d bytes)", ref, info.Size())
@@ -508,7 +508,7 @@ func (w *Workspace) Artifact(slug, ref string) (*DocText, error) {
 					return nil, err
 				}
 				if bytes.IndexByte(data, 0) >= 0 {
-					return nil, fmt.Errorf("%s isn't text, or an image or a video", ref)
+					return nil, fmt.Errorf("%s is not text, an image or a video", ref)
 				}
 			}
 			out := &DocText{Ref: av.Ref, Kind: av.Kind, Label: av.Label, State: av.State, URL: av.URL, Path: av.Path, By: av.Crew, Added: av.Added,
@@ -524,7 +524,7 @@ func (w *Workspace) Artifact(slug, ref string) (*DocText, error) {
 				}
 			}
 			if media != "" {
-				out.Uneditable = "it's an image or a video, shown as it is"
+				out.Uneditable = "image or video"
 			} else if _, err := placeOf(av, v); err == nil {
 				out.Editable = true
 			} else {
@@ -584,16 +584,16 @@ func (w *Workspace) AddDocument(r DocAdd) (*DocAdding, error) {
 	}
 	text := strings.TrimSpace(r.Text)
 	if text == "" {
-		return nil, &Invalid{Reason: "the document has nothing in it"}
+		return nil, &Invalid{Reason: "document is empty"}
 	}
 	body := []byte(text + "\n")
 	if bytes.IndexByte(body, 0) >= 0 {
-		return nil, &Invalid{Reason: "a document is markdown: this isn't text"}
+		return nil, &Invalid{Reason: "document is not text"}
 	}
 	// Its title is its first heading, as a kind's names say.
 	title := workspace.DocTitle(body)
 	if title == "" {
-		return nil, &Invalid{Reason: "give it a title: start it with a heading (# Its title), which is what it's named from"}
+		return nil, &Invalid{Reason: "add a title: start with a heading (# Title)"}
 	}
 	return w.addDoc(newDoc{kind: k, repo: k.Repo, title: title, body: body, why: r.Why, what: "Added", dry: r.Dry}, w.now())
 }
@@ -619,11 +619,11 @@ func (w *Workspace) DocToAmend(ref string) (*DocAmend, error) {
 		return nil, err
 	}
 	if m, mref, ok := w.RecordedBy(d); ok {
-		return nil, &Refused{Code: "mission", Reason: fmt.Sprintf("mission %s records %s (as %s): it's changed in the mission, not here", m.Slug, d.Ref, mref)}
+		return nil, &Refused{Code: "mission", Reason: fmt.Sprintf("mission %s records %s (as %s): change it in the mission", m.Slug, d.Ref, mref)}
 	}
 	k, _ := w.WS().KindOf(d.Repo, d.Rel)
 	if k == nil {
-		return nil, &Invalid{Reason: fmt.Sprintf("%s isn't a document of one of the workspace's kinds (ws show kinds): only those are changed this way", d.Ref)}
+		return nil, &Invalid{Reason: fmt.Sprintf("%s is not one of the workspace's document kinds (ws show kinds)", d.Ref)}
 	}
 	text, err := os.ReadFile(d.Path)
 	if err != nil {
@@ -654,10 +654,10 @@ func (w *Workspace) AmendDocument(ref, was, text, body string) (*DocSaved, error
 	}
 	text = strings.TrimSpace(text)
 	if text == "" {
-		return nil, &Invalid{Reason: "the document has nothing in it"}
+		return nil, &Invalid{Reason: "document is empty"}
 	}
 	if strings.IndexByte(text, 0) >= 0 {
-		return nil, &Invalid{Reason: "a document is markdown: this isn't text"}
+		return nil, &Invalid{Reason: "document is not text"}
 	}
 	// What a merge starts from, kept with the versions the workspace's
 	// documents are merged from.
@@ -684,9 +684,9 @@ func (w *Workspace) kindNamed(name string) (*workspace.Kind, error) {
 		names = append(names, k.Name)
 	}
 	if len(names) == 0 {
-		return nil, &Invalid{Reason: "the workspace has no kinds of document: [documents.<name>] in ws.toml says one"}
+		return nil, &Invalid{Reason: "no document kinds: add one as [documents.<name>] in ws.toml"}
 	}
-	return nil, &Invalid{Reason: fmt.Sprintf("the workspace has no kind of document named %q: it has %s (ws show kinds)", name, strings.Join(names, ", "))}
+	return nil, &Invalid{Reason: fmt.Sprintf("no document kind %q: there are %s (ws show kinds)", name, strings.Join(names, ", "))}
 }
 
 // DocGuide is how a kind's documents are written: the kind, where one

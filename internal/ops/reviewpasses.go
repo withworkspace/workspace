@@ -169,7 +169,7 @@ func (w *Workspace) changeOf(of ReviewOf) (*change, error) {
 	}
 	head := review.CommitOf(dir, "HEAD")
 	if sum.Base == "" || head == "" {
-		return nil, fmt.Errorf("%s has no committed changes since %s to read", of.Capsule, baseRef)
+		return nil, fmt.Errorf("%s has no committed changes since %s", of.Capsule, baseRef)
 	}
 	ch := &change{of: of, ref: of.Capsule, dir: dir, baseRef: baseRef, base: sum.Base, head: head}
 	if m, err := w.Missions.Load(of.Mission); err == nil {
@@ -196,7 +196,7 @@ func (w *Workspace) RunReviewPass(of ReviewOf, name string) (page.PassDef, *conv
 		return def, nil, err
 	}
 	if def.Unavailable != "" {
-		return def, nil, errors.New(def.Title + " can't be run: " + def.Unavailable)
+		return def, nil, errors.New(def.Title + " cannot run: " + def.Unavailable)
 	}
 	if _, _, err := Roles(w.Config()).ForConversation(); err != nil {
 		return def, nil, fmt.Errorf("no agent can run a pass here: %w", err)
@@ -219,12 +219,12 @@ func (w *Workspace) RunReviewPass(of ReviewOf, name string) (page.PassDef, *conv
 				return def, nil, err
 			}
 			if len(threads) == 0 {
-				return def, nil, &Invalid{Reason: "There's nothing to follow up: you've no comments still open on " + pr.Ref() + "."}
+				return def, nil, &Invalid{Reason: "Nothing to follow up: no open comments of yours on " + pr.Ref() + "."}
 			}
 		}
 		if needsDocking(def) {
 			if pr.Fork {
-				return def, nil, fmt.Errorf("%s is from a fork, which ws can't dock: only a cold pass, which is given its changes, can be run over it", pr.Ref())
+				return def, nil, fmt.Errorf("%s is from a fork and cannot be docked: only a cold pass can run on it", pr.Ref())
 			}
 			if _, err := w.dockQuietly(DockedTop(pr, st)); err != nil {
 				return def, nil, err
@@ -238,7 +238,7 @@ func (w *Workspace) RunReviewPass(of ReviewOf, name string) (page.PassDef, *conv
 	case c == nil:
 		c, err = w.cells().OpenPassOver(passOver(of), def.Name, w.now())
 	case !c.NeedsAnswer(): // asked for already, and not yet begun: it's asked for once
-		c, err = w.cells().Say(c.ID, conversation.Turn{By: conversation.You, At: w.now(), Body: "Run it again."})
+		c, err = w.cells().Say(c.ID, conversation.Turn{By: conversation.You, At: w.now(), Body: "Run again."})
 	}
 	if err != nil {
 		return def, nil, err
@@ -308,7 +308,7 @@ func (w *Workspace) followedUp(repo string, number int, thread string, resolved 
 func (w *Workspace) SettleReviewFinding(of ReviewOf, name, key, state, why string) (page.PassDef, *conversation.Conversation, error) {
 	def, c, err := w.ReviewPass(of, name)
 	if err == nil && c == nil {
-		err = errors.Join(conversation.ErrNotFound, errors.New(def.Name+" hasn't been run over this review"))
+		err = errors.Join(conversation.ErrNotFound, errors.New(def.Name+" has not run on this review"))
 	}
 	if err != nil {
 		return def, nil, err
@@ -326,7 +326,7 @@ func (w *Workspace) SettleReviewFinding(of ReviewOf, name, key, state, why strin
 func (w *Workspace) TakeReviewFinding(of ReviewOf, name, key string) (page.PassDef, *conversation.Conversation, error) {
 	def, c, err := w.ReviewPass(of, name)
 	if err == nil && c == nil {
-		err = errors.Join(conversation.ErrNotFound, errors.New(def.Name+" hasn't been run over this review"))
+		err = errors.Join(conversation.ErrNotFound, errors.New(def.Name+" has not run on this review"))
 	}
 	if err != nil {
 		return def, nil, err
@@ -340,10 +340,10 @@ func (w *Workspace) TakeReviewFinding(of ReviewOf, name, key string) (page.PassD
 		}
 	}
 	if f == nil {
-		return def, nil, errors.Join(conversation.ErrNotFound, fmt.Errorf("%s found nothing it calls %s", def.Name, key))
+		return def, nil, errors.Join(conversation.ErrNotFound, fmt.Errorf("%s has no finding %s", def.Name, key))
 	}
 	if f.Thread != "" {
-		return def, nil, &Invalid{Reason: "It's about a comment you've already made: resolve its thread, or reply there."}
+		return def, nil, &Invalid{Reason: "About a comment you already made: resolve or reply in that thread."}
 	}
 	if c.FindingState(key) == conversation.FindingDone {
 		return def, c, nil
@@ -396,7 +396,7 @@ func noteKindOf(def page.PassDef, kind string) string {
 func linesNow(dir, commit string, f conversation.Finding) (int, error) {
 	lines, err := review.Blob(dir, commit, f.Path)
 	if err != nil {
-		return 0, fmt.Errorf("%s isn't there any more: run the pass again", f.Path)
+		return 0, fmt.Errorf("%s no longer exists: run the pass again", f.Path)
 	}
 	n := len(f.Excerpt)
 	same := func(at int) bool {
@@ -412,7 +412,7 @@ func linesNow(dir, commit string, f conversation.Finding) (int, error) {
 	}
 	if n == 0 || same(f.Line) {
 		if f.EndLine > len(lines) {
-			return 0, fmt.Errorf("%s has changed since the pass ran: run it again", f.Path)
+			return 0, fmt.Errorf("%s changed since the pass ran: run again", f.Path)
 		}
 		return f.Line, nil
 	}
@@ -423,7 +423,7 @@ func linesNow(dir, commit string, f conversation.Finding) (int, error) {
 		}
 	}
 	if best == 0 {
-		return 0, fmt.Errorf("the lines this is about have changed since the pass ran: run it again")
+		return 0, fmt.Errorf("the lines changed since the pass ran: run again")
 	}
 	return best, nil
 }
@@ -450,15 +450,15 @@ func reviewPassReady(a *answering) (bool, error) {
 	}
 	of, ok := reviewOfAnchor(a.c.Anchor)
 	if !ok {
-		return gone("It isn't over a pull request or a mission's capsule.")
+		return gone("Only runs on a pull request or a mission's capsule.")
 	}
 	def, ok := a.w.reviewPassNamed(of, a.c.Goal)
 	if !ok {
-		return gone("There's no pass named " + a.c.Goal + " here any more.")
+		return gone("No pass named " + a.c.Goal + " here any more.")
 	}
 	ch, err := a.w.changeOf(of)
 	if err != nil {
-		return gone("What it's over couldn't be read: " + err.Error())
+		return gone("Could not read the change: " + err.Error())
 	}
 	rp := prompt.ReviewPass{Def: def, Title: ch.title, Base: ch.base, Head: ch.head, Clone: ch.dir, GuidePath: GuidePath(a.w.Root(), def.File)}
 	if of.PR != 0 {
@@ -476,7 +476,7 @@ func reviewPassReady(a *answering) (bool, error) {
 	if def.Cold {
 		diff, err := review.CompareCommits(ch.dir, ch.baseRef, ch.base, ch.head)
 		if err != nil {
-			return gone("Its changes couldn't be read: " + err.Error())
+			return gone("Could not read the changes: " + err.Error())
 		}
 		rp.Body = ch.body
 		text, left := review.Numbered(diff.Files, coldDiffRoom)
@@ -517,14 +517,14 @@ func reviewPassReady(a *answering) (bool, error) {
 	if def.Name == page.FollowUp {
 		svc, err := a.w.reviews()
 		if err != nil || of.PR == 0 {
-			return gone("Follow-up is of your comments on a pull request.")
+			return gone("Follow-up only runs on your comments on a pull request.")
 		}
 		threads, err := openThreadsOfYours(svc, of.Repo, of.PR)
 		if err != nil {
-			return gone("Your comments on it couldn't be read: " + err.Error())
+			return gone("Could not read your comments: " + err.Error())
 		}
 		if len(threads) == 0 {
-			return gone("You've no comments still open on it: there's nothing to follow up.")
+			return gone("No open comments of yours: nothing to follow up.")
 		}
 		rp.Since, rp.Reviewed = ch.since, ch.reviewed
 		for i, n := range threads {
@@ -599,7 +599,7 @@ func reviewPassRead(a *answering, rep harness.Report, err error) reply {
 		if berr != nil || f.EndLine > len(lines) {
 			// It named lines that aren't there: what it says still stands,
 			// about the change as a whole.
-			f.Text = fmt.Sprintf("(Said of %s:%d, which isn't in the change.) %s", f.Path, f.Line, f.Text)
+			f.Text = fmt.Sprintf("(On %s:%d, not in the change.) %s", f.Path, f.Line, f.Text)
 			f.Path, f.Side, f.Line, f.EndLine, f.Suggest = "", "", 0, 0, ""
 			continue
 		}
@@ -607,7 +607,7 @@ func reviewPassRead(a *answering, rep harness.Report, err error) reply {
 	}
 	conversation.KeyFindings(findings)
 	if body == "" {
-		body = "Nothing to say of the change as a whole."
+		body = "No comments on the change as a whole."
 		if len(findings) == 0 {
 			body = rep.Output
 		}
@@ -694,7 +694,7 @@ func guideRead(a *answering, rep harness.Report) reply {
 	}
 	g := conversation.ParseGuide(rep.Output, func(p string) bool { return in[p] })
 	if len(g.Groups) == 0 {
-		err := errors.New("it didn't say what order to read the files in")
+		err := errors.New("the answer gave no reading order")
 		return reply{turns: []conversation.Turn{a.couldnt(err, rep)}, err: err}
 	}
 	t := conversation.Turn{By: conversation.Agent, At: a.w.now(), Body: g.Does, Calls: turnCalls(rep.Calls), Around: a.around, Guide: g}

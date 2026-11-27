@@ -59,7 +59,7 @@ func TestTalk_BriefingWithAPlan(t *testing.T) {
 	if r.Err == nil {
 		t.Fatal("a malformed plan was proposed")
 	}
-	for _, want := range []string{"the plan isn't right", "line 1: # Plan: a plan has no title", `line 5: "Bugs are squashed": isn't in the process`, "line 5: step 1 doesn't say what kind of step it is", "it has no ## Stops early"} {
+	for _, want := range []string{"plan is invalid", "line 1: # Plan: no titles", `line 5: "Bugs are squashed": isn't in the process`, "line 5: step 1 has no kind", "missing ## Stops early"} {
 		if !strings.Contains(r.Err.Error(), want) {
 			t.Errorf("refusal lacks %q:\n%v", want, r.Err)
 		}
@@ -85,7 +85,7 @@ func TestTalk_BriefingWithAPlan(t *testing.T) {
 	t.Setenv(mission.EnvCrew, "")
 
 	r = testutil.Run(t, w, nil, "conversation", "accept", "-m", m.Slug, "t1", "3")
-	for _, want := range []string{"Wrote the new brief, and its plan (4 steps).", "It's under way: "} {
+	for _, want := range []string{"Wrote the new brief and plan (4 steps).", "Under way: "} {
 		if !strings.Contains(r.Stderr, want) {
 			t.Errorf("accepting it said %q, lacking %q", r.Stderr, want)
 		}
@@ -179,7 +179,7 @@ func TestWeb_ThePlan(t *testing.T) {
 	w, _ := testutil.OrchestrateFixture(t)
 	act := testutil.WebAct(w.Root)
 	say := func(text string) (string, error) { return act("cache", web.ActRequest{Verb: "edit-plan", Text: text}) }
-	if _, err := say("## Z\n- Cached.\n## Steps\n1. Cache it.\n"); err == nil || !strings.Contains(err.Error(), "line 4: step 1 doesn't say what kind of step it is") || !strings.Contains(err.Error(), "it has no ## Stops early") {
+	if _, err := say("## Z\n- Cached.\n## Steps\n1. Cache it.\n"); err == nil || !strings.Contains(err.Error(), "line 4: step 1 has no kind") || !strings.Contains(err.Error(), "missing ## Stops early") {
 		t.Errorf("a malformed plan: %v", err)
 	}
 	plan := "## Z\n- Cached.\n## Stops early\n- None.\n## Steps\n1. Cache it.\n   - who: crew, in `backend/cache-lookup`\n   - makes: a pull request\n2. Look at it.\n   - who: you\n"
@@ -203,7 +203,7 @@ func TestWeb_ThePlan(t *testing.T) {
 	// works from its brief.
 	os.WriteFile(mission.Store{Root: w.Root}.PlanPath("cache"), []byte("## Steps\n- oops\n"), 0o644)
 	d, _ = testutil.WebMission(w.Root)("cache")
-	if !strings.Contains(d.PlanProblem, "isn't numbered") || len(d.Stages) != 0 {
+	if !strings.Contains(d.PlanProblem, "is not numbered") || len(d.Stages) != 0 {
 		t.Errorf("a plan that doesn't read: %q, stages %+v", d.PlanProblem, d.Stages)
 	}
 }

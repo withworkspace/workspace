@@ -18,9 +18,9 @@ export default meta;
 const cursor = samples.cursor as ModelInfo[];
 const acp = samples.acp as ModelInfo[];
 const claude: ModelInfo[] = [
-  { id: "opus", name: "Opus", about: "the latest Opus: the most capable" },
-  { id: "sonnet", name: "Sonnet", about: "the latest Sonnet: capable and quicker" },
-  { id: "haiku", name: "Haiku", about: "the latest Haiku: small and quick" },
+  { id: "opus", name: "Opus", about: "latest Opus: most capable" },
+  { id: "sonnet", name: "Sonnet", about: "latest Sonnet: capable, faster" },
+  { id: "haiku", name: "Haiku", about: "latest Haiku: small, fastest" },
 ];
 
 function Picker({ models, value: start, open }: { models: ModelInfo[]; value: string; open?: boolean }) {

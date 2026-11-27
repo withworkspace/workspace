@@ -129,10 +129,10 @@ func (s *Service) Posting(repo string, number int, head, verdict, summary string
 	}
 	event := events[verdict]
 	if event == "" {
-		return nil, fmt.Errorf("a review ends with %s, not %q", strings.Join(review.Verdicts, ", "), verdict)
+		return nil, fmt.Errorf("verdict must be %s, not %q", strings.Join(review.Verdicts, ", "), verdict)
 	}
 	if pr.Mine && verdict != review.Comment {
-		return nil, errors.New("it's your own pull request: GitHub takes comments on it, not a verdict")
+		return nil, errors.New("you cannot approve or request changes on your own pull request")
 	}
 	l, err := s.layer(pr, st)
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *Service) Posting(repo string, number int, head, verdict, summary string
 	summary = strings.TrimSpace(summary)
 	if draft == nil || len(draft.Comments) == 0 {
 		if verdict != review.Approve && summary == "" {
-			return nil, errors.New("say what needs changing: comment on the lines, or write a summary")
+			return nil, errors.New("say what needs changing: add a comment or a summary")
 		}
 		p.Body = summary
 		return p, nil
@@ -293,7 +293,7 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 		// It's posted: from here on, nothing may lose that.
 		r, _, err := s.keepReview(repo, number, l, base, p, verdict, summary, url)
 		if err != nil {
-			return &Submitted{URL: url}, fmt.Errorf("the review is on GitHub (%s), but ws couldn't keep it: %w", url, err)
+			return &Submitted{URL: url}, fmt.Errorf("review posted to GitHub (%s), but Workspace could not save it: %w", url, err)
 		}
 		s.Stale() // what it asks of you has changed
 		return &Submitted{Review: r, URL: url}, nil
@@ -352,10 +352,10 @@ func reviewLane(repo string, number int, st *Stack) string {
 // sendReview posts a review kept here to GitHub, and keeps where it is.
 func (s *Service) postReview(w outgoing) error {
 	if w.Posting == nil {
-		return errors.New("what was to be posted can't be read")
+		return errors.New("could not read the queued review")
 	}
 	if s.GitHub == nil {
-		return errors.New("there's no GitHub to ask here")
+		return errors.New("not connected to GitHub")
 	}
 	url, err := s.GitHub.SubmitReview(s.owner(w.Repo), s.name(w.Repo), w.Number, w.Posting.submission())
 	if err != nil {
@@ -389,7 +389,7 @@ const madeSkew = 5 * time.Minute
 // earlier than it was submitted here. Posting it twice would be two.
 func (s *Service) reviewMade(w outgoing, queued time.Time) (bool, error) {
 	if w.Posting == nil || s.GitHub == nil {
-		return false, errors.New("what was to be posted can't be read")
+		return false, errors.New("could not read the queued review")
 	}
 	me, err := s.GitHub.Viewer()
 	if err != nil {

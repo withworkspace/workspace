@@ -41,7 +41,7 @@ func (r Remote) MarshalText() ([]byte, error) { return []byte(r.String()), nil }
 func (r *Remote) UnmarshalText(b []byte) error {
 	got, ok := ParseRemote(string(b))
 	if !ok {
-		return fmt.Errorf("%q isn't owner/name", b)
+		return fmt.Errorf("%q is not owner/name", b)
 	}
 	*r = got
 	return nil

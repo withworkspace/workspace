@@ -132,7 +132,7 @@ func (o *outliner) stmts(list []syntax.Stmt) []OutlineStep {
 					if !met {
 						yes, no = no, yes
 					}
-					step.Branches = []OutlineBranch{{Label: "met", Steps: orNone(yes)}, {Label: "time's up", Steps: orNone(no)}}
+					step.Branches = []OutlineBranch{{Label: "met", Steps: orNone(yes)}, {Label: "timed out", Steps: orNone(no)}}
 					out = append(out, step)
 					i++
 					continue
@@ -300,7 +300,7 @@ func (o *outliner) builtin(name string, c *syntax.CallExpr) (OutlineStep, bool) 
 	case reads[name]:
 		step.Kind, step.Text = "read", name+"("+o.argsSource(c)+")"
 	case name == "output":
-		step.Kind, step.Text = "output", "its page"
+		step.Kind, step.Text = "output", "page"
 		if html := kw["html"]; html != nil {
 			step.Detail = "as HTML"
 		}

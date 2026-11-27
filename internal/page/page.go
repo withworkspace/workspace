@@ -57,7 +57,7 @@ var ErrNotFound = errors.New("not found")
 
 // ErrChanged is the answer for saving a page that's changed since the
 // version the edit started from: something else wrote it.
-var ErrChanged = errors.New("the page has changed since you opened it")
+var ErrChanged = errors.New("page changed since you opened it")
 
 // Untitled is what a page with nothing to name it by is called.
 const Untitled = "Untitled"

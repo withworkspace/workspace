@@ -40,7 +40,7 @@ const teamFresh = 5 * time.Minute
 
 func (s *Server) noTeam(w http.ResponseWriter) bool {
 	if s.Team == nil {
-		jsonError(w, http.StatusNotFound, "the team's events aren't available here")
+		jsonError(w, http.StatusNotFound, "team activity is not available here")
 		return true
 	}
 	return false
@@ -84,7 +84,7 @@ func (s *Server) teamView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if snap == nil {
-		msg := "the repos couldn't be read"
+		msg := "could not read repos"
 		if err != nil {
 			msg = err.Error()
 		}
@@ -113,12 +113,12 @@ func (s *Server) teamSummarise(w http.ResponseWriter, r *http.Request) {
 	}
 	var req TeamNarrate
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "send the period")
+		jsonError(w, http.StatusBadRequest, "missing period")
 		return
 	}
 	snap := s.Team.Peek()
 	if snap == nil {
-		jsonError(w, http.StatusConflict, "nothing's been read yet")
+		jsonError(w, http.StatusConflict, "team activity not loaded yet")
 		return
 	}
 	var since time.Time
@@ -180,12 +180,12 @@ func (s *Server) teamNarrate(w http.ResponseWriter, r *http.Request) {
 	}
 	var req TeamNarrate
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "send what to write: a strand, or a period")
+		jsonError(w, http.StatusBadRequest, "missing strand or period")
 		return
 	}
 	snap := s.Team.Peek()
 	if snap == nil {
-		jsonError(w, http.StatusConflict, "nothing's been read yet")
+		jsonError(w, http.StatusConflict, "team activity not loaded yet")
 		return
 	}
 	var strands []string

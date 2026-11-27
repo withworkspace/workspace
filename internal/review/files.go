@@ -145,7 +145,7 @@ type FileView struct {
 }
 
 // ErrOutside is ReadFile's answer for a path that leads out of the capsule.
-var ErrOutside = errors.New("that path is outside the capsule")
+var ErrOutside = errors.New("path is outside the capsule")
 
 // ResolvePath is path in dir, refusing anything that leads out of it (.., or
 // a link to somewhere else).

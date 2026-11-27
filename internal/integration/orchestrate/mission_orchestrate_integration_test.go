@@ -52,7 +52,7 @@ func TestOrchestrate_RunsAsOrchestratorAndLogs(t *testing.T) {
 	// (TestOrchestrate_ARunThatDoesNothingIsCaught).
 	capsule := filepath.Join(w.Root, "repos", "backend", "cache-lookup")
 	if len(reviews) != 4 || !strings.Contains(reviews[0], "with echo-orchestrator echo-small") || !strings.Contains(reviews[1], "ran as orchestrator on cache with echo-small in "+capsule) ||
-		!strings.Contains(reviews[2], "running it again") {
+		!strings.Contains(reviews[2], "ran no ws mission commands: running again") {
 		t.Fatalf("review events = %q", reviews)
 	}
 	// That each event is looked at once is ops.Notify's (TestNotify).
@@ -348,7 +348,7 @@ func TestOrchestrate_ARunThatDoesNothingIsCaught(t *testing.T) {
 	t.Setenv("WS_TEST_ORCHESTRATOR", `echo "…"; echo; echo "**My decision:** the note is accurate; flag the commit."`)
 	orchestrate()
 	f := flag()
-	if f == nil || f.By != "ws" || !strings.Contains(f.Text, "The orchestrator looked at c1 (done) but ran no commands, twice") ||
+	if f == nil || f.By != "ws" || !strings.Contains(f.Text, "The orchestrator looked at c1 (done) twice but ran no commands") ||
 		!strings.Contains(f.Text, "It said: My decision: the note is accurate; flag the commit.") {
 		t.Fatalf("flag = %+v", f)
 	}
@@ -359,7 +359,7 @@ func TestOrchestrate_ARunThatDoesNothingIsCaught(t *testing.T) {
 	if r := testutil.RunCommand(t, w.Root, nil, "mission", "orchestrate", "-m", "cache", "--crew", "c1", "--trigger", "done"); r.Err == nil {
 		t.Error("a run that failed succeeded")
 	}
-	if f := flag(); f == nil || !strings.Contains(f.Text, "The orchestrator couldn't run on c1 (done)") || !strings.Contains(f.Text, "not signed in") {
+	if f := flag(); f == nil || !strings.Contains(f.Text, "The orchestrator could not run on c1 (done)") || !strings.Contains(f.Text, "not signed in") {
 		t.Errorf("flag = %+v", f)
 	}
 }

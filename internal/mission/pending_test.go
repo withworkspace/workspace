@@ -94,7 +94,7 @@ func TestResolve_CrewWaitingOnOwnWork(t *testing.T) {
 		LastReply: "Rerunning the full suite; I'll commit once it passes.", Pending: heldOn(at, suite)}}}
 
 	h := Resolve(Snapshot{M: m, State: Active, Now: at.Add(time.Minute)})[0]
-	if h.Court != CourtAgent || h.Kind != KindOwnWork || h.Text != "c1 is waiting on its own work: just test" || !h.Since.Equal(at) {
+	if h.Court != CourtAgent || h.Kind != KindOwnWork || h.Text != "c1 is waiting on background work: just test" || !h.Since.Equal(at) {
 		t.Errorf("held: %+v", h)
 	}
 	if h.Action.Verb != VerbWatch || h.Action.Target != "c1" {

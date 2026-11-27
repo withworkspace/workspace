@@ -37,7 +37,7 @@ func Fetch(dir string, number int, branch, base string) (string, error) {
 		_, err = git.Line(dir, append([]string{"fetch", "--quiet", "--no-tags", "origin", fmt.Sprintf("+refs/heads/%s:%s", branch, head)}, specs...)...)
 	}
 	if err != nil {
-		return "", fmt.Errorf("fetching #%d: %w", number, err)
+		return "", fmt.Errorf("could not fetch #%d: %w", number, err)
 	}
 	return git.Line(dir, "rev-parse", "--verify", head+"^{commit}")
 }

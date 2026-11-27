@@ -152,7 +152,7 @@ func TestPromoteRestoreErase(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(s.DiscardedDir(), e.Folder)); !os.IsNotExist(err) {
 		t.Errorf("its folder's still there: %v", err)
 	}
-	if _, err := s.Restore(ctx, "a2", Restoration{At: day, By: "you"}); err == nil || !strings.Contains(err.Error(), "gone for good") {
+	if _, err := s.Restore(ctx, "a2", Restoration{At: day, By: "you"}); err == nil || !strings.Contains(err.Error(), "files are deleted") {
 		t.Errorf("restoring a2: %v", err)
 	}
 	if a1, _ := s.Get(ctx, "a1"); !a1.Restorable() {
@@ -240,7 +240,7 @@ func TestBringHome(t *testing.T) {
 	if e, _ := s.Get(ctx, "a1"); !e.Away() {
 		t.Fatalf("before: %+v", e)
 	}
-	if _, _, err := s.AddVersion(ctx, "a1", Revision{HTML: []byte(page), At: day, Version: Version{By: "you"}}); err == nil || !strings.Contains(err.Error(), "hasn't been brought onto this machine") {
+	if _, _, err := s.AddVersion(ctx, "a1", Revision{HTML: []byte(page), At: day, Version: Version{By: "you"}}); err == nil || !strings.Contains(err.Error(), "not yet on this machine") {
 		t.Errorf("a version of one that's away: %v", err)
 	}
 

@@ -33,7 +33,7 @@ const ciRed: AutomationOutline = {
       detail: "up to 2h",
       branches: [
         { label: "met", steps: [{ kind: "notify", at: "6:11", line: 6, text: "{e.pr} is green again", detail: 'opens "api#1"' }] },
-        { label: "time's up", steps: [{ kind: "notify", at: "18:15", line: 18, text: "{e.pr} is still red after 2h" }] },
+        { label: "timed out", steps: [{ kind: "notify", at: "18:15", line: 18, text: "{e.pr} is still red after 2h" }] },
       ],
     },
     { kind: "for", at: "21:5", line: 21, text: "c in e.commits", branches: [{ label: "for each c in e.commits", steps: [{ kind: "code", at: "22:9", line: 22, text: "n = len(c)" }] }] },

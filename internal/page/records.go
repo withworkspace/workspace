@@ -83,7 +83,7 @@ func (s Store) write(fn func(tx *store.Tx) error) error {
 func stampOf(t time.Time) string { return t.UTC().Format(store.Stamp) }
 
 func notFound(id string) error {
-	return fmt.Errorf("%w: the workspace has no page %s", ErrNotFound, id)
+	return fmt.Errorf("%w: no page %s", ErrNotFound, id)
 }
 
 // kept is a page's row: what the records hold of it.
@@ -362,7 +362,7 @@ func (s Store) freshen(ctx context.Context) ([]*kept, int, error) {
 // Read is a page's text, and the page.
 func (s Store) Read(id string) ([]byte, Page, error) {
 	if !IsRef(id) {
-		return nil, Page{}, fmt.Errorf("%w: %q isn't a page (they're named p1, p2, …)", ErrNotFound, id)
+		return nil, Page{}, fmt.Errorf("%w: %q is not a page (pages are p1, p2, …)", ErrNotFound, id)
 	}
 	var k *kept
 	var listed bool
@@ -439,7 +439,7 @@ func (s Store) New(text []byte) (Page, error) {
 			p = k.page()
 			return nil
 		}
-		return errors.New("couldn't number a new page")
+		return errors.New("could not number a new page")
 	})
 	if err != nil {
 		if made != "" {

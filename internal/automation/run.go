@@ -195,7 +195,7 @@ func (e *Engine) RunDue() []string {
 		}
 		a, err := e.load(name)
 		if err != nil {
-			e.failed(name, &st, "its file can't be read: "+err.Error())
+			e.failed(name, &st, "could not read file: "+err.Error())
 			continue
 		}
 		var own map[string]bool
@@ -340,7 +340,7 @@ func (e *Engine) runOn(a *Automation, st *State, ev events.Event, pace Pace, bat
 	key := keyOf(pace, ev)
 	if pace.AtMost > 0 && was == "" {
 		if n, err := runsSince(e.Root, a.Name, key, e.now().Add(-pace.AtMostIn)); err == nil && n >= pace.AtMost {
-			why := fmt.Sprintf("held back: it's run %d of at most %d in %s", n, pace.AtMost, shortDuration(pace.AtMostIn))
+			why := fmt.Sprintf("held back: ran %d of at most %d in %s", n, pace.AtMost, shortDuration(pace.AtMostIn))
 			if key != "" {
 				why += " for " + key
 			}
@@ -389,10 +389,10 @@ const MaxChain = 3
 func LoopOf(name string, chain []string) string {
 	said := strings.Join(append(append([]string{}, chain...), name), " → ")
 	if slices.Contains(chain, name) {
-		return "it'd loop: " + said
+		return "would loop: " + said
 	}
 	if len(chain) >= MaxChain {
-		return fmt.Sprintf("it'd be more than %d automations deep: %s", MaxChain, said)
+		return fmt.Sprintf("would be more than %d automations deep: %s", MaxChain, said)
 	}
 	return ""
 }
@@ -433,13 +433,13 @@ func (e *Engine) failed(name string, st *State, why string) {
 	case e.Hooks.Failed != nil:
 		_ = e.Hooks.Failed(a, why)
 	case e.Hooks.Notify != nil:
-		_ = e.Hooks.Notify(a, fmt.Sprintf("Automation %s couldn't run: %s", name, why), nil)
+		_ = e.Hooks.Notify(a, fmt.Sprintf("Automation %s could not run: %s", name, why), nil)
 	}
 }
 
 // errUnsure is a run stopped at a step that was started and never said
 // it was done.
-var errUnsure = errors.New("a step was started and never said it was done: it isn't done again, in case it was")
+var errUnsure = errors.New("a step started but never finished: not run again, in case it did")
 
 // errParked is a run parked at a wait(): it's run again when what it waits
 // for comes, or its time's up.
@@ -478,7 +478,7 @@ func (r *run) do() error {
 	if timeout == 0 {
 		timeout = 10 * time.Second
 	}
-	timer := time.AfterFunc(timeout, func() { thread.Cancel("it took longer than " + timeout.String()) })
+	timer := time.AfterFunc(timeout, func() { thread.Cancel("took longer than " + timeout.String()) })
 	defer timer.Stop()
 	// Read again for each run, so a run's globals are its own.
 	globals, err := starlark.ExecFileOptions(fileOptions, thread, r.a.Name+".star", r.a.Source, r.builtins())
@@ -487,7 +487,7 @@ func (r *run) do() error {
 	}
 	fn, ok := globals["run"].(starlark.Callable)
 	if !ok {
-		return fmt.Errorf("it has no run any more")
+		return fmt.Errorf("the file no longer has a run")
 	}
 	if _, err := starlark.Call(thread, fn, starlark.Tuple{batchValue(r.ev, r.batch)}, nil); err != nil {
 		for _, sentinel := range []error{errParked, errUnsure} {
@@ -593,7 +593,7 @@ func (r *run) placed(f builtinFn) builtinFn {
 // notify is notify(text, open = ref, refs = [...]).
 func (r *run) notify(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if !r.a.Allows(MayNotify) {
-		return nil, fmt.Errorf("notify: it may not (may = [\"notify\"] says it may)")
+		return nil, fmt.Errorf("notify: not allowed without may = [\"notify\"]")
 	}
 	var text, open string
 	var refs *starlark.List
@@ -614,7 +614,7 @@ func (r *run) notify(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 // id said.
 func (r *run) converse(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if !r.a.Allows(MayConverse) {
-		return nil, fmt.Errorf("converse: it may not (may = [\"converse\"] says it may)")
+		return nil, fmt.Errorf("converse: not allowed without may = [\"converse\"]")
 	}
 	var text string
 	var about *starlark.List
@@ -622,7 +622,7 @@ func (r *run) converse(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 		return nil, err
 	}
 	if r.e.Hooks.Converse == nil {
-		return nil, fmt.Errorf("converse: there's no conversation to start here")
+		return nil, fmt.Errorf("converse: not available here")
 	}
 	id, err := r.step("converse", func() (string, error) {
 		return r.e.Hooks.Converse(r.a, text, stringsOf(about), ChainOf(r.a.Name, r.ev, r.batch))
@@ -805,7 +805,7 @@ func lengthOf(s string) (time.Duration, error) {
 	}
 	d, err := time.ParseDuration(s)
 	if err != nil || d <= 0 {
-		return 0, fmt.Errorf("%q isn't a length of time: say it as 7d, 2h or 90m", s)
+		return 0, fmt.Errorf("%q is not a length of time: use 7d, 2h or 90m", s)
 	}
 	return d, nil
 }

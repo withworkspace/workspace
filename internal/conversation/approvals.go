@@ -31,7 +31,7 @@ func keepApproval(tx *store.Tx, scope string, a Approval) error {
 
 // ErrChangesOpen is the answer for approving a document with Change
 // threads open on it.
-var ErrChangesOpen = errors.New("changes asked for are still open")
+var ErrChangesOpen = errors.New("change requests still open")
 
 // OpenChanges is the Change threads open on a document, oldest first.
 func OpenChanges(threads []*Conversation, doc string) []string {
@@ -62,7 +62,7 @@ func (s Store) Approve(doc, path string, text []byte, by string, at time.Time) (
 			return err
 		}
 		if open := OpenChanges(threads, doc); len(open) > 0 {
-			return fmt.Errorf("%w: %s %s for a change: resolve %s first (declining a suggestion, if you don't want it)",
+			return fmt.Errorf("%w: %s %s for a change: resolve %s first, or decline the suggestion",
 				ErrChangesOpen, strings.Join(open, ", "), map[bool]string{true: "asks", false: "ask"}[len(open) == 1], map[bool]string{true: "it", false: "them"}[len(open) == 1])
 		}
 		if err := keepApproval(tx, s.Slug, a); err != nil {

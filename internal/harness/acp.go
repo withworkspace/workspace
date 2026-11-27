@@ -286,15 +286,15 @@ func carryOnPrompt(refused []string) string {
 func stopFailure(stop string) string {
 	switch stop {
 	case "max_tokens":
-		return "it ran out of tokens before answering"
+		return "ran out of tokens"
 	case "max_turn_requests":
-		return "it ran out of turns before answering"
+		return "ran out of turns"
 	case "refusal":
-		return "it refused"
+		return "refused"
 	case "cancelled":
-		return "its turn was cancelled"
+		return "turn cancelled"
 	}
-	return "its turn ended: " + stop
+	return "turn ended: " + stop
 }
 
 // CommandPolicy answers a headless run's asks, with nobody there to: a
@@ -795,7 +795,7 @@ func readACPStream(out string) Report {
 				rep.Failed = stopFailure(e.Stop)
 			}
 		case e.Error != "":
-			rep.Failed = "it failed: " + ClipHead(e.Error, 300, "…")
+			rep.Failed = "failed: " + ClipHead(e.Error, 300, "…")
 		}
 	}
 	for _, it := range tr.Items {

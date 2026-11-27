@@ -90,7 +90,7 @@ func (w *Workspace) lister() (github.ListingClient, bool) {
 func (w *Workspace) GitHubOwners(again bool) GitHubOwners {
 	lc, ok := w.lister()
 	if !ok {
-		return GitHubOwners{Owners: []github.Owner{}, Problem: "there's no GitHub to list repos from here"}
+		return GitHubOwners{Owners: []github.Owner{}, Problem: "GitHub not available"}
 	}
 	w.gh.mu.Lock()
 	if w.gh.owners == nil {
@@ -125,11 +125,11 @@ func (w *Workspace) GitHubRepos(owner string, again bool) GitHubRepos {
 	out := GitHubRepos{Owner: owner, Repos: []AddableRepo{}}
 	lc, ok := w.lister()
 	if !ok {
-		out.Problem = "there's no GitHub to list repos from here"
+		out.Problem = "GitHub not available"
 		return out
 	}
 	if !validLogin.MatchString(owner) {
-		out.Problem = fmt.Sprintf("%q isn't a GitHub owner's name", owner)
+		out.Problem = fmt.Sprintf("%q is not a GitHub owner name", owner)
 		return out
 	}
 	key := strings.ToLower(owner)
@@ -205,9 +205,9 @@ func (r RepoAdded) String() string {
 	if r.Team {
 		where = fmt.Sprintf("the team's, in ws.toml: pushed to %s (%s)", r.Branch, r.Commit)
 	}
-	s := fmt.Sprintf("%s (%s) is %s", r.Repo, r.GitHub, where)
+	s := fmt.Sprintf("%s (%s) added: %s", r.Repo, r.GitHub, where)
 	if r.Cloning {
-		s += ", and it's being cloned"
+		s += ", cloning"
 	}
 	return s
 }
@@ -223,25 +223,25 @@ func (w *Workspace) AddRepo(ctx context.Context, who Actor, a RepoAdd) (*RepoAdd
 	}
 	owner, name := strings.TrimSpace(a.Owner), strings.TrimSuffix(strings.TrimSpace(a.Name), ".git")
 	if !validLogin.MatchString(owner) || !validGitName.MatchString(name) {
-		return nil, invalid("say where the repo is on GitHub, as owner/name: %q isn't", owner+"/"+name)
+		return nil, invalid("%q is not a GitHub repo: use owner/name", owner+"/"+name)
 	}
 	key := strings.TrimSpace(a.As)
 	if key == "" {
 		key = name
 	}
 	if !validKey.MatchString(key) {
-		return nil, invalid("%q can't be a repo's name here: letters, digits, '.', '_' and '-'", key)
+		return nil, invalid("%q is not a valid repo name: use letters, digits, '.', '_' and '-'", key)
 	}
 	ws := w.WS()
 	if here, ok := ws.RepoAt(owner, name); ok && ws.OnGitHub(here) {
-		return nil, invalid("%s/%s is here already, as %s", owner, name, here)
+		return nil, invalid("%s/%s already added, as %s", owner, name, here)
 	}
 	if _, taken := ws.ResolveAlias(key); taken {
-		return nil, invalid("there's a repo called %s here already: give this one another name", key)
+		return nil, invalid("a repo called %s already exists: choose another name", key)
 	}
 	group := strings.TrimSpace(a.Group)
 	if strings.ContainsAny(group, ", \t") {
-		return nil, invalid("%q can't be a group's name: no spaces or commas", group)
+		return nil, invalid("%q is not a valid group name: no spaces or commas", group)
 	}
 	rc := config.RepoConfig{Group: group}
 	if !strings.EqualFold(owner, ws.Org) || name != key {
@@ -249,7 +249,7 @@ func (w *Workspace) AddRepo(ctx context.Context, who Actor, a RepoAdd) (*RepoAdd
 	}
 	out := &RepoAdded{Repo: key, GitHub: owner + "/" + name, Team: a.Team}
 	if a.Team {
-		commit, branch, err := w.teamRepo(ctx, key, rc, fmt.Sprintf("%s/%s, added by %s.", owner, name, gitUser(ctx, w.root)), "so it isn't added")
+		commit, branch, err := w.teamRepo(ctx, key, rc, fmt.Sprintf("%s/%s, added by %s.", owner, name, gitUser(ctx, w.root)), "repo not added")
 		if err != nil {
 			return nil, err
 		}

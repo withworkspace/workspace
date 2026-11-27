@@ -8,7 +8,7 @@ The page is p1. You have it and nothing else: you can't read the workspace, and 
 It should be fast.
 ----------
 
-This pass is "Cold read": What an agent would build from this page alone, and everything it had to assume.
+This pass is "Cold read": What an agent would build from this page alone, and what it had to assume.
 
 You have the page and nothing else, as someone handed it cold. Each thing you'd have to assume to build it, that the page doesn't settle, is an `assumption`: say what you'd assume, and what else it could be.
 

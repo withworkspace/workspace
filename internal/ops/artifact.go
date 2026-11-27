@@ -120,12 +120,12 @@ func (a ArtifactAdded) String() string {
 		s += fmt.Sprintf(", based on v%d", v.BasedOn)
 	}
 	if h := a.Entry.Home; h != nil && a.Entry.Lives() != "" {
-		s += fmt.Sprintf(" (%s has v%d: promote it to put this one there)", h.Where(), h.Version)
+		s += fmt.Sprintf(" (%s has v%d: promote to replace)", h.Where(), h.Version)
 	} else {
-		s += " (on this machine: promote it to keep it)"
+		s += " (on this machine only: promote to keep)"
 	}
 	if a.Recorded != "" {
-		s += ", and recorded it on " + a.Recorded
+		s += ", recorded on " + a.Recorded
 	}
 	return s
 }
@@ -182,14 +182,14 @@ func (w *Workspace) AddArtifact(a ArtifactAdd, by Actor) (ArtifactAdded, error) 
 			title = checked.Title
 		}
 		if title == "" {
-			return ArtifactAdded{}, invalid("not added: give it a title (--title), or give its page one (<title>)")
+			return ArtifactAdded{}, invalid("not added: needs a title (--title, or <title> in the page)")
 		}
 		out.Entry, err = store.Add(ctx, artifact.New{Title: title, Files: checked.Files, Version: v, At: w.now()})
 		out.Version = 1
 	} else {
 		id, on, ok := artifact.ParseRef(a.To)
 		if !ok {
-			return ArtifactAdded{}, invalid("%q isn't an artifact: they're named a1, a2, … (ws artifact list)", a.To)
+			return ArtifactAdded{}, invalid("%q is not an artifact: artifacts are named a1, a2, … (ws artifact list)", a.To)
 		}
 		if a.On != 0 {
 			on = a.On

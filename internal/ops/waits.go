@@ -38,30 +38,30 @@ func (w *Workspace) reachWait(m *mission.Mission, done string, st mission.StageS
 	on := strings.TrimPrefix(waitsOnWords(st), "waits")
 	watched := ""
 	if st.Step.Watched() {
-		watched = fmt.Sprintf("ws watches for it (%s), and passes the step once it's happened", waitCommands(st))
+		watched = fmt.Sprintf("Workspace watches (%s) and passes the step once it happens", waitCommands(st))
 	}
 	if st.Step.WaitOnYou() {
-		text := fmt.Sprintf("%sStep %d is yours, to do: %s", done, st.N, sentence(st.Plain()))
+		text := fmt.Sprintf("%sStep %d is yours to do: %s", done, st.N, sentence(st.Plain()))
 		if left := w.leftBefore(m); left != "" {
 			text += " " + left
 		}
 		if watched != "" {
-			text += " " + watched + "; or mark it done, and ws looks then."
+			text += " " + watched + "; or mark done to check now."
 		} else {
-			text += " ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0)."
+			text += " Mark done once it has happened, with anything the next crew should know (Done: tagged v1.4.0)."
 		}
 		if _, err := w.Missions.AskAtStep(m.Slug, mission.TaskDo, text, st.N, mission.WaitDone); err != nil {
-			return "couldn't ask the user: " + err.Error()
+			return "could not ask the user: " + err.Error()
 		}
 		if watched != "" {
-			return fmt.Sprintf("step %d is the user's, to do: they're asked, and %s", st.N, watched)
+			return fmt.Sprintf("step %d waits for the user; %s", st.N, watched)
 		}
-		return fmt.Sprintf("step %d is the user's, to do: they're asked, and it's passed when they mark it done", st.N)
+		return fmt.Sprintf("step %d waits for the user to mark done", st.N)
 	}
 	if watched != "" {
 		return fmt.Sprintf("step %d waits%s: %s", st.N, on, watched)
 	}
-	return fmt.Sprintf("step %d waits%s, and nobody's watching for it: it's passed when someone says it's happened (the user marks it done; ws mission accept, once you can tell it has)", st.N, on)
+	return fmt.Sprintf("step %d waits%s, unwatched: passes when marked done (or ws mission accept, once it has happened)", st.N, on)
 }
 
 // waitsOnWords is who a Wait step waits on, as a sentence says it: "waits
@@ -108,7 +108,7 @@ func (w *Workspace) leftBefore(m *mission.Mission) string {
 	if err != nil || h.LeftLine() == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s, the crew before it, left: %s", c.ID, sentence(clipLine(h.Left, 400)))
+	return fmt.Sprintf("Left to do, from %s: %s", c.ID, sentence(clipLine(h.Left, 400)))
 }
 
 // waitDir is where a Wait step's checks run: the mission's capsule in the
@@ -182,9 +182,9 @@ func (w *Workspace) passWatched(slug string, st mission.StageState) string {
 		return ""
 	}
 	began := w.stepBegan(m, st.N)
-	said := w.passStep(slug, st.N, "ws", "what it waits for has happened: "+waitCommands(st)+" "+metWord(st), mission.StepWait)
+	said := w.passStep(slug, st.N, "ws", "happened: "+waitCommands(st)+" "+metWord(st), mission.StepWait)
 	if said != "" {
-		w.settleAsked(m, st.N, began, "what it waited for having happened")
+		w.settleAsked(m, st.N, began, "wait over")
 	}
 	return said
 }
@@ -208,18 +208,18 @@ func (w *Workspace) CheckWait(slug string, by Actor) (string, error) {
 	case m == nil:
 		return "", ErrNotFound
 	case !ok:
-		return "", refused("no-wait", "the mission isn't at a Wait step")
+		return "", refused("no-wait", "the mission is not at a Wait step")
 	case !st.Step.Watched():
-		return "", refused("not-watched", "step %d has no check for ws to run: it's passed when someone says it's happened (mark it done)", st.N)
+		return "", refused("not-watched", "step %d has no check to run: mark done once it has happened", st.N)
 	}
 	results, met := w.lookAtWait(m, st)
 	if !met {
-		return fmt.Sprintf("Not yet: %s. ws keeps watching.", lookSaid(results)), nil
+		return fmt.Sprintf("Not yet: %s. Still watching.", lookSaid(results)), nil
 	}
 	if said := w.passWatched(slug, st); said != "" {
 		return upperFirst(said) + ".", nil
 	}
-	return "It's happened, and the step has moved on.", nil
+	return "Happened: step moved on.", nil
 }
 
 // lookSaid is what a look found, for a sentence: each check that isn't
@@ -233,7 +233,7 @@ func lookSaid(results []mission.CheckResult) string {
 		out = append(out, fmt.Sprintf("%s (%s)", clipLine(r.Check, 120), firstLine(r.Evidence)))
 	}
 	if len(out) == 0 {
-		return "every check is met"
+		return "all checks met"
 	}
 	return strings.Join(out, "; ")
 }
@@ -283,7 +283,7 @@ func (w *Workspace) answerWait(m *mission.Mission, t mission.Task, by Actor, tex
 	if !ok || cur.N != t.Step || cur.Step.Type != mission.StepWait {
 		// The step's moved on since it was asked: the task is moot.
 		w.Missions.CloseTask(m.Slug, t.N, by.By(), "") //nolint:errcheck // moot either way
-		out.Next = fmt.Sprintf("step %d has moved on already", t.Step)
+		out.Next = fmt.Sprintf("step %d already moved on", t.Step)
 		return out, true, nil
 	}
 	if done && cur.Step.Watched() {
@@ -291,24 +291,24 @@ func (w *Workspace) answerWait(m *mission.Mission, t mission.Task, by Actor, tex
 			if note != "" {
 				w.waitNote(m.Slug, cur, by, note)
 			}
-			text := fmt.Sprintf("Step %d is marked done, and ws's look doesn't show it yet: %s. ws keeps watching, and passes the step once it does; mark it done again to have it look now, or pass it as it is.", cur.N, lookSaid(results))
+			text := fmt.Sprintf("Step %d marked done, but checks not met yet: %s. Still watching; mark done again to check now, or pass as is.", cur.N, lookSaid(results))
 			if _, err := w.Missions.AskAtStep(m.Slug, mission.TaskDo, text, cur.N, mission.WaitDone, mission.ChecksPass); err != nil {
 				return out, true, wrap(err)
 			}
 			w.youActed(m.Slug, by)
-			out.Next = fmt.Sprintf("ws's look doesn't show it yet (%s): step %d stays yours, and ws keeps watching", lookSaid(results), cur.N)
+			out.Next = fmt.Sprintf("checks not met yet (%s): step %d stays yours, still watching", lookSaid(results), cur.N)
 			return out, true, nil
 		}
 	}
 	if _, _, err := w.Missions.AnswerTask(m.Slug, t.N, text, by.By(), false); err != nil {
 		return out, true, wrap(err)
 	}
-	why := "the user marked it done"
+	why := "marked done by the user"
 	switch {
 	case pass:
-		why = "the user passed it, its checks as they were"
+		why = "passed by the user, checks as they were"
 	case cur.Step.Watched():
-		why = "the user marked it done, and " + waitCommands(cur) + " " + metWord(cur)
+		why = "marked done by the user, and " + waitCommands(cur) + " " + metWord(cur)
 	}
 	if note != "" {
 		why += ": " + oneLine(note)
@@ -355,6 +355,6 @@ func (w *Workspace) SayWaiting(slug, text string, by Actor) error {
 func (w *Workspace) waitNote(slug string, st mission.StageState, by Actor, note string) {
 	w.Missions.Decide(slug, mission.Decision{ //nolint:errcheck // the step's why says it too
 		What: oneLine(note), By: by.By(),
-		Why: fmt.Sprintf("said of step %d, a wait, as it was passed: %s", st.N, st.Short()),
+		Why: fmt.Sprintf("noted at step %d as it passed: %s", st.N, st.Short()),
 	})
 }

@@ -71,7 +71,7 @@ func (s Store) WriteFilesIf(slug string, writes ...FileWrite) error {
 				err = s.writeBrief(slug, f.Now)
 			}
 			if err != nil {
-				return fmt.Errorf("writing the %s: %w", f.name(), err)
+				return fmt.Errorf("could not write the %s: %w", f.name(), err)
 			}
 		}
 		return nil

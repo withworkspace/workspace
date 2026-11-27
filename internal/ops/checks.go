@@ -138,7 +138,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 			continue
 		}
 		if !hasCapsule {
-			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
+			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "no capsule to run in"}
 		} else if before, res, ok := st.Record.MetOn(capsule, tree, c.Text); ok {
 			// The same files it was met on, all committed then and now:
 			// it's met, and isn't run again (a suite that takes minutes,
@@ -154,7 +154,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 		for k, i := range judged {
 			r := mission.CheckResult{Check: checks[i].Text, By: by}
 			if err != nil {
-				r.Result, r.Evidence, r.By = mission.CheckCantTell, "the judge couldn't be asked: "+err.Error(), "ws"
+				r.Result, r.Evidence, r.By = mission.CheckCantTell, "could not ask the judge: "+err.Error(), "ws"
 			} else {
 				r.Result, r.Evidence = verdicts[k].Result, verdicts[k].Why
 			}
@@ -208,7 +208,7 @@ func (w *Workspace) runCheckTask(capsule, dir string, c mission.Check, env []str
 	}
 	up, err := w.StartRun(ask)
 	if err != nil {
-		res.Result, res.Evidence = mission.CheckCantTell, "couldn't run it: "+err.Error()
+		res.Result, res.Evidence = mission.CheckCantTell, "could not run: "+err.Error()
 		return res
 	}
 	run, store := up.Run, w.runStore()
@@ -222,21 +222,21 @@ func (w *Workspace) runCheckTask(capsule, dir string, c mission.Check, env []str
 	tail := clipTail(strings.TrimSpace(now.Tail(200)), checkOutputMax)
 	switch {
 	case err != nil:
-		res.Result, res.Evidence = mission.CheckCantTell, "couldn't follow it: "+err.Error()
+		res.Result, res.Evidence = mission.CheckCantTell, "could not follow run: "+err.Error()
 		return res
 	case !ended:
 		store.End(now) //nolint:errcheck // it's stopped, and kept as stopped
-		res.Result, res.Evidence = mission.CheckCantTell, fmt.Sprintf("it ran past %s, and was stopped", timeout)
+		res.Result, res.Evidence = mission.CheckCantTell, fmt.Sprintf("timed out after %s", timeout)
 		return res
 	case now.State != runs.Exited:
-		why := "it was stopped before it ended"
+		why := "stopped before finishing"
 		if now.Why != "" {
 			why += ": " + now.Why
 		}
 		res.Result, res.Evidence = mission.CheckCantTell, why
 		return res
 	case now.Status == 126 || now.Status == 127:
-		res.Result, res.Evidence = mission.CheckCantTell, fmt.Sprintf("couldn't run it (exit %d): %s", now.Status, tail)
+		res.Result, res.Evidence = mission.CheckCantTell, fmt.Sprintf("could not run (exit %d): %s", now.Status, tail)
 		return res
 	}
 	took := now.Took().Round(time.Second)
@@ -320,13 +320,13 @@ func runCheckWithin(dir string, c mission.Check, env []string, hooks checkHooks,
 	var exit *exec.ExitError
 	switch {
 	case ctx.Err() != nil:
-		r.Result, r.Evidence = mission.CheckCantTell, fmt.Sprintf("it ran past %s, and was stopped", timeout)
+		r.Result, r.Evidence = mission.CheckCantTell, fmt.Sprintf("timed out after %s", timeout)
 		return r
 	case err != nil && !errors.As(err, &exit):
-		r.Result, r.Evidence = mission.CheckCantTell, "couldn't run it: "+err.Error()
+		r.Result, r.Evidence = mission.CheckCantTell, "could not run: "+err.Error()
 		return r
 	case exit != nil && (exit.ExitCode() == 126 || exit.ExitCode() == 127):
-		r.Result, r.Evidence = mission.CheckCantTell, fmt.Sprintf("couldn't run it (exit %d): %s", exit.ExitCode(), tail)
+		r.Result, r.Evidence = mission.CheckCantTell, fmt.Sprintf("could not run (exit %d): %s", exit.ExitCode(), tail)
 		return r
 	}
 	passed := err == nil
@@ -457,7 +457,7 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 	m, _ := w.Missions.Load(slug)
 	cur, _ := currentStep(w.Missions, m)
 	if _, ok := cur.Instance(round.Capsule); ok && cur.N == n && round.Met() {
-		return w.instanceDone(slug, cur, round.Capsule, "ws", "its checks are met")
+		return w.instanceDone(slug, cur, round.Capsule, "ws", "checks met")
 	}
 	// Rounds count where they ran: a step in several repos has its own in
 	// each.
@@ -474,15 +474,15 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 		return w.passChecked(slug, n, round)
 	}
 	if cant := round.With(mission.CheckCantTell); len(cant) > 0 && len(round.With(mission.CheckUnmet)) == 0 {
-		return w.askAboutChecks(slug, n, round, "the judge can't tell of "+checkList(cant)+": it's yours to say")
+		return w.askAboutChecks(slug, n, round, "the judge could not decide on "+checkList(cant)+": your call")
 	}
 	if round.N >= w.Config().MaxRounds() {
-		return w.askAboutChecks(slug, n, round, fmt.Sprintf("that's %d %s unmet, as many as ws lets come round (%s)", round.N, plural(round.N, "round"), guaranteeMaxRounds(w.Config().MaxRounds()).Key))
+		return w.askAboutChecks(slug, n, round, fmt.Sprintf("%d %s unmet, the most allowed (%s)", round.N, plural(round.N, "round"), guaranteeMaxRounds(w.Config().MaxRounds()).Key))
 	}
 	if w.Notify(slug, mission.OrchestratorEvent{Crew: round.Crew, Trigger: "checks"}) {
 		return fmt.Sprintf("step %d's checks aren't all met (%s): the orchestrator decides what follows, by the process", n, round.Summary())
 	}
-	return w.askAboutChecks(slug, n, round, "the orchestrator isn't running to send it back")
+	return w.askAboutChecks(slug, n, round, "the orchestrator is not running to send back")
 }
 
 // passChecked passes step n for ws, round's checks all met, and says what
@@ -500,7 +500,7 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 //   - Anything else that refuses it is yours to pass, asked as checks not
 //     all met are.
 func (w *Workspace) passChecked(slug string, n int, round mission.CheckRound) string {
-	met := fmt.Sprintf("step %d's checks are met", n)
+	met := fmt.Sprintf("step %d's checks met", n)
 	m, err := w.Missions.Load(slug)
 	if err != nil {
 		return met
@@ -515,19 +515,19 @@ func (w *Workspace) passChecked(slug string, n int, round mission.CheckRound) st
 	c, ok := m.CrewByID(round.Crew)
 	running := ok && c.Ended == nil
 	if running && c.InTurnSinceDone() {
-		return w.notePass(slug, fmt.Sprintf("%s (round %d): it passes when %s's turn ends, which began after they reported done", met, round.N, c.ID))
+		return w.notePass(slug, fmt.Sprintf("%s (round %d): passes when %s's current turn ends", met, round.N, c.ID))
 	}
 	if head := w.capsuleHead(round.Capsule); round.Commit != "" && head != "" && head != round.Commit {
-		moved := fmt.Sprintf("%s is at %s, and the checks ran at %s", round.Capsule, shortCommit(head), shortCommit(round.Commit))
+		moved := fmt.Sprintf("%s now at %s, checks ran at %s", round.Capsule, shortCommit(head), shortCommit(round.Commit))
 		if running {
 			text := fmt.Sprintf("Step %d's checks are met for the work as it was when you reported done, and you've committed since (%s). If what you've added is finished, report done again with a handoff (ws mission done): ws checks it again, and passes the step on that.", n, moved)
 			if _, err := w.Say(slug, c.ID, text, AsWS); err == nil {
-				return w.notePass(slug, fmt.Sprintf("%s (round %d), but the work has changed since (%s): asked %s to report done again", met, round.N, moved, c.ID))
+				return w.notePass(slug, fmt.Sprintf("%s (round %d), but the work changed since (%s): asked %s to report done again", met, round.N, moved, c.ID))
 			}
 		}
-		return w.askAboutChecks(slug, n, round, "the work has changed since they ran ("+moved+")")
+		return w.askAboutChecks(slug, n, round, "the work changed since checks ran ("+moved+")")
 	}
-	said, err := w.tryPassStep(slug, n, "ws", fmt.Sprintf("its checks are met (round %d)", round.N), mission.StepWork)
+	said, err := w.tryPassStep(slug, n, "ws", fmt.Sprintf("checks met (round %d)", round.N), mission.StepWork)
 	switch {
 	case err == nil && said != "":
 		return said
@@ -538,7 +538,7 @@ func (w *Workspace) passChecked(slug string, n int, round mission.CheckRound) st
 		// You've been asked of it already: once is enough.
 		return fmt.Sprintf("%s, and ws still couldn't pass it: %v", met, err)
 	}
-	return w.askAboutChecks(slug, n, round, "ws couldn't pass it: "+err.Error())
+	return w.askAboutChecks(slug, n, round, "could not pass the step: "+err.Error())
 }
 
 // notePass says on the mission why a step whose checks are met isn't
@@ -607,7 +607,7 @@ func (w *Workspace) askAboutChecks(slug string, n int, round mission.CheckRound,
 	if said := w.passApproved(slug, n, round); said != "" {
 		return said
 	}
-	text := fmt.Sprintf("Step %d's checks, round %d: %s. %s. %sass it as it is, send it back to %s with what's unmet, or say what to do.", n, round.N, round.Summary(), upperFirst(why), w.checksShownBy(slug, n, round.Crew), round.Crew)
+	text := fmt.Sprintf("Step %d's checks, round %d: %s. %s. %sass as is, send back to %s with what's unmet, or say what to do.", n, round.N, round.Summary(), upperFirst(why), w.checksShownBy(slug, n, round.Crew), round.Crew)
 	if _, err := w.Missions.AskAtStep(slug, mission.TaskChecks, text, n, mission.ChecksPass, mission.ChecksSendBack); err != nil {
 		return "couldn't ask the user: " + err.Error()
 	}
@@ -645,7 +645,7 @@ func (w *Workspace) passApproved(slug string, n int, round mission.CheckRound) s
 		}
 		ids = append(ids, b.ID)
 	}
-	why := fmt.Sprintf("you approved %s, its checks as they were (round %d: %s)", strings.Join(ids, ", "), round.N, round.Summary())
+	why := fmt.Sprintf("you approved %s (round %d: %s)", strings.Join(ids, ", "), round.N, round.Summary())
 	said, err := w.tryPassStep(slug, n, "you", why, cur.Step.Type)
 	if err != nil {
 		return "" // it couldn't be passed on that: you're asked, and told why
@@ -685,7 +685,7 @@ func (w *Workspace) checksShownBy(slug string, n int, crew string) string {
 	if len(bundles) == 0 {
 		return "P"
 	}
-	return fmt.Sprintf("Look at %s, on the mission's Verify tab: approving %s passes the step, and saying what's not right sends it back to %s. Or p", strings.Join(bundles, ", "), itOrThem(len(bundles)), crew)
+	return fmt.Sprintf("Review %s on the Verify tab: approving %s passes the step, saying what's wrong sends back to %s. Or p", strings.Join(bundles, ", "), itOrThem(len(bundles)), crew)
 }
 
 // SendBack sends a Work step back to the crew whose done its latest checks
@@ -705,12 +705,12 @@ func (w *Workspace) SendBack(slug string, n int, by Actor) (string, error) {
 	}
 	round, ok := st.Record.LatestChecks()
 	if !ok {
-		return "", refused("no-checks", "step %d's checks haven't been run, so there's nothing unmet to send back", st.N)
+		return "", refused("no-checks", "step %d's checks have not run: nothing to send back", st.N)
 	}
 	if st.Step != nil && st.Step.Type == mission.StepVerify {
 		worker, ok := workCrew(m, st, round.Capsule)
 		if !ok {
-			return "", refused("no-crew", "no crew made the work step %d verifies in %s, so there's nobody to send it back to: dispatch crew there with what's unmet", st.N, round.Capsule)
+			return "", refused("no-crew", "nobody to send back to: no crew did the work step %d verifies in %s. Dispatch crew there with what's unmet", st.N, round.Capsule)
 		}
 		return w.sendBackVerify(m, st, round, worker, by)
 	}
@@ -792,7 +792,7 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 			// It has more to do: its done is no longer its latest word.
 			logFailed(w.Missions.ClearStatus(m.Slug, c.ID))
 			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
-			return fmt.Sprintf("told %s, which is still running, to carry on at step %d", c.ID, st.N), nil
+			return fmt.Sprintf("told %s to carry on at step %d", c.ID, st.N), nil
 		}
 	}
 	if c.Conversation != "" {
@@ -801,7 +801,7 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 		}
 		if w.opts.Host == nil || !by.IsYou() && !w.Config().OrchestratorAutoDispatch() {
 			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
-			return fmt.Sprintf("%s has ended: the mission's page offers to resume it to carry on at step %d", c.ID, st.N), nil
+			return fmt.Sprintf("%s has ended: resume from the mission page to carry on at step %d", c.ID, st.N), nil
 		}
 		l, err := w.Launch(m.Slug, Dispatch{Resume: c.ID, Stage: st.N}, by)
 		var r *Refused
@@ -814,7 +814,7 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 			return fmt.Sprintf("resumed %s to carry on at step %d", l.ID, st.N), nil
 		case errors.As(err, &r) && r.Code == "dispatch-limit":
 			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
-			return fmt.Sprintf("ws has started as many crew without the user as it may: the mission's page offers to resume %s to carry on at step %d", c.ID, st.N), nil
+			return fmt.Sprintf("crew limit reached: resume %s from the mission page to carry on at step %d", c.ID, st.N), nil
 		}
 		logFailed(w.Missions.SetResumeWith(m.Slug, c.ID, ""))
 	}
@@ -832,13 +832,13 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 		if err := w.Missions.QueueDispatch(m.Slug, &mission.Dispatch{Text: text, Capsule: capsule, By: by.By(), Stage: st.N, Harness: pick.Harness, Model: pick.Model}); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s can't be resumed: fresh crew to carry on at step %d are queued in %s for the user to launch", c.ID, st.N, capsule), nil
+		return fmt.Sprintf("%s could not be resumed: new crew for step %d queued in %s, ready to launch", c.ID, st.N, capsule), nil
 	}
 	l, err := w.Launch(m.Slug, Dispatch{Capsule: capsule, Text: text, Stage: st.N, Harness: pick.Harness, Model: pick.Model}, by)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s can't be resumed: started %s in %s to carry on at step %d, with its handoff", c.ID, l.ID, l.Capsule, st.N), nil
+	return fmt.Sprintf("%s could not be resumed: started %s in %s to carry on at step %d, with handoff", c.ID, l.ID, l.Capsule, st.N), nil
 }
 
 // checkList is checks in a phrase: "the cause is named" and "…".

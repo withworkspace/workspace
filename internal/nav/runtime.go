@@ -29,4 +29,4 @@ type Capture struct {
 }
 
 // ErrNoParser is the answer of a build without a parser for a grammar.
-var ErrNoParser = errors.New("this build has no code navigation (it was built without cgo)")
+var ErrNoParser = errors.New("code navigation not available in this build")

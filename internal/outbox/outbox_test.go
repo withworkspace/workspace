@@ -191,7 +191,7 @@ func TestResume(t *testing.T) {
 	if got := states(t, root, "a"); got != "reply failed" {
 		t.Errorf("kept: %q", got)
 	}
-	if items, _ := In(root, "a"); !strings.Contains(items[0].Error, "may have been") {
+	if items, _ := In(root, "a"); !strings.Contains(items[0].Error, "may have gone through") {
 		t.Errorf("why: %q", items[0].Error)
 	}
 
@@ -251,7 +251,7 @@ func TestHalts(t *testing.T) {
 		t.Errorf("its kind was told of %q", got)
 	}
 	items, _ := In(root, "stack")
-	if items[1].Error != "not sent: middle, before it, wasn't taken" {
+	if items[1].Error != "not sent: middle, which came first, failed" {
 		t.Errorf("why the one behind wasn't sent: %q", items[1].Error)
 	}
 	// One sent again by itself is sent.

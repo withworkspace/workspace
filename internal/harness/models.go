@@ -116,14 +116,14 @@ func (c *CursorACP) Models(ctx context.Context) ([]Model, error) {
 	defer os.RemoveAll(dir)
 	s, err := openACPSession(ctx, acp.Command{Args: agent, Dir: dir}, cursorLogin, dir)
 	if err != nil {
-		return nil, fmt.Errorf("asking Cursor's ACP for its models: %w", err)
+		return nil, fmt.Errorf("could not list Cursor's models: %w", err)
 	}
 	if sd := c.sessionsDir(); sd != "" && s.ID != "" && !strings.ContainsAny(s.ID, `/\`) && !strings.HasPrefix(s.ID, ".") && !c.sessionKept(s.ID) {
 		os.RemoveAll(filepath.Join(sd, s.ID))
 	}
 	opt := s.Option("model")
 	if opt == nil {
-		return nil, errors.New("Cursor's ACP offered no model setting")
+		return nil, errors.New("Cursor offered no model setting")
 	}
 	// ACP names a model by its id alone; the CLI's list has it as it's
 	// shown ("Claude Haiku 5.5"), where the names meet.
@@ -192,7 +192,7 @@ func cursorACPOffered(v acp.ConfigValue) Model {
 		said = append(said, context+" context")
 	}
 	if len(said) > 0 {
-		m.About = "Over ACP, Cursor runs it only as: " + strings.Join(said, ", ") + "."
+		m.About = "Runs only as: " + strings.Join(said, ", ") + "."
 	}
 	return m
 }
@@ -243,7 +243,7 @@ var openACPSession = func(ctx context.Context, cmd acp.Command, auth, dir string
 	defer cl.Close(2 * time.Second) //nolint:errcheck // done with it
 	if auth != "" {
 		if err := cl.Authenticate(ctx, auth); err != nil {
-			return acp.Session{}, fmt.Errorf("signing in (%s): %w", auth, err)
+			return acp.Session{}, fmt.Errorf("could not sign in (%s): %w", auth, err)
 		}
 	}
 	return cl.NewSession(ctx, acp.SessionParams{Dir: dir})
@@ -259,9 +259,9 @@ var openACPSession = func(ctx context.Context, cmd acp.Command, auth, dir string
 func (c *Claude) Models(ctx context.Context) ([]Model, error) {
 	var models []Model
 	for _, m := range []Model{
-		{ID: "opus", Name: "Opus", About: "the latest Opus: the most capable"},
-		{ID: "sonnet", Name: "Sonnet", About: "the latest Sonnet: capable and quicker"},
-		{ID: "haiku", Name: "Haiku", About: "the latest Haiku: small and quick"},
+		{ID: "opus", Name: "Opus", About: "latest Opus: most capable"},
+		{ID: "sonnet", Name: "Sonnet", About: "latest Sonnet: capable, faster"},
+		{ID: "haiku", Name: "Haiku", About: "latest Haiku: small, fastest"},
 	} {
 		m.Label = m.Name
 		models = append(models, m)
@@ -327,7 +327,7 @@ func (c *Codex) Models(ctx context.Context) ([]Model, error) {
 		} `json:"models"`
 	}
 	if err := json.Unmarshal(out, &cat); err != nil {
-		return nil, fmt.Errorf("reading Codex's models: %w", err)
+		return nil, fmt.Errorf("could not read Codex's models: %w", err)
 	}
 	var models []Model
 	for _, m := range cat.Models {
@@ -336,7 +336,7 @@ func (c *Codex) Models(ctx context.Context) ([]Model, error) {
 		}
 		about := m.About
 		if m.DefaultLvl != "" {
-			about += " Its default effort: " + m.DefaultLvl + "."
+			about += " Default effort: " + m.DefaultLvl + "."
 		}
 		// Each is the model at an effort: one model in a picker.
 		at := placed(Model{ID: m.Slug})

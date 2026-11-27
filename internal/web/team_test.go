@@ -105,12 +105,12 @@ func TestTeamAPI(t *testing.T) {
 		t.Fatalf("view: %d days, repos %+v", len(v.Days), v.Repos)
 	}
 	// Cal's commit, with no pull request.
-	if it := v.Days[0].Items[0]; it.Kind != "commits" || it.Name != "Add adr 0007" || it.Words != "Cal landed it straight on main." {
+	if it := v.Days[0].Items[0]; it.Kind != "commits" || it.Name != "Add adr 0007" || it.Words != "Cal landed straight on main." {
 		t.Errorf("today = %+v", it)
 	}
 	// The pull request's merge is one thing, git's and GitHub's together.
 	it := v.Days[1].Items[0]
-	if it.PR != 12 || it.State != team.Done || it.Words != "Ana landed it." || it.URL == "" || len(it.Events) != 1 || it.Events[0].Commit == "" {
+	if it.PR != 12 || it.State != team.Done || it.Words != "Ana landed." || it.URL == "" || len(it.Events) != 1 || it.Events[0].Commit == "" {
 		t.Errorf("yesterday = %+v", it)
 	}
 	if len(v.People) != 3 {

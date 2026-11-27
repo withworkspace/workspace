@@ -79,7 +79,7 @@ func TestDocs_Save(t *testing.T) {
 	commit("crew: ship on Tuesday")
 	mine := strings.Replace(a.Text, "# Cache", "# Token cache", 1)
 	s, err = save("cache", web.DocSave{Ref: ref, Base: base, Text: mine, Message: "Name it for what it caches"})
-	if err != nil || s.Conflict != nil || !s.Merged || !strings.Contains(s.Message, "merged with the changes made while you edited") {
+	if err != nil || s.Conflict != nil || !s.Merged || !strings.Contains(s.Message, "merged with changes made while you edited") {
 		t.Fatalf("saving over crew's change: %+v, %v", s, err)
 	}
 	if got := read(); got != "# Token cache\n\nKey it per tenant.\n\n## Rollout\n\nShip on Tuesday.\n" {
@@ -100,7 +100,7 @@ func TestDocs_Save(t *testing.T) {
 	if err != nil || s.Conflict == nil || s.Conflict.Clashes != 1 {
 		t.Fatalf("a clash: %+v, %v", s, err)
 	}
-	for _, want := range []string{"<<<<<<< your edit\nShip on Monday.\n=======\nShip on Wednesday.\n>>>>>>> the document now"} {
+	for _, want := range []string{"<<<<<<< your edit\nShip on Monday.\n=======\nShip on Wednesday.\n>>>>>>> current"} {
 		if !strings.Contains(s.Conflict.Text, want) {
 			t.Errorf("the clash lacks %q:\n%s", want, s.Conflict.Text)
 		}
@@ -137,7 +137,7 @@ func TestDocs_Save(t *testing.T) {
 
 	// A version that isn't kept can't be merged with: it says so.
 	write(read() + "More.\n")
-	if _, err := save("cache", web.DocSave{Ref: ref, Base: "000000000000", Text: "# Mine\n"}); err == nil || !strings.Contains(err.Error(), "isn't kept") {
+	if _, err := save("cache", web.DocSave{Ref: ref, Base: "000000000000", Text: "# Mine\n"}); err == nil || !strings.Contains(err.Error(), "changed since you started and could not be merged") {
 		t.Errorf("saving from a version that isn't kept: %v", err)
 	}
 }

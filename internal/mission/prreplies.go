@@ -52,7 +52,7 @@ func (m *Mission) ReplyByN(n int) (Reply, bool) {
 func (s Store) DraftReply(slug string, r Reply) (Reply, error) {
 	r.Text = strings.TrimSpace(r.Text)
 	if r.Text == "" {
-		return Reply{}, fmt.Errorf("the reply is empty")
+		return Reply{}, fmt.Errorf("reply is empty")
 	}
 	if _, err := s.Update(slug, func(m *Mission) error {
 		r.N = len(m.Replies) + 1

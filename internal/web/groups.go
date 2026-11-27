@@ -52,7 +52,7 @@ func (s *Server) groups(w http.ResponseWriter, r *http.Request) {
 func (s *Server) showGroup(w http.ResponseWriter, r *http.Request) {
 	var req GroupShownSet
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "say whether it's hidden: true, false, or null for the team's")
+		jsonError(w, http.StatusBadRequest, "hidden must be true, false, or null for the team default")
 		return
 	}
 	done, err := s.App.ShowGroup(r.Context(), ops.AsYou, r.PathValue("group"), req.Hidden, false)
@@ -67,7 +67,7 @@ func (s *Server) showGroup(w http.ResponseWriter, r *http.Request) {
 func (s *Server) groupRepo(w http.ResponseWriter, r *http.Request) {
 	var req RepoGroupSet
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		jsonError(w, http.StatusBadRequest, "say which group: a name, or \"\" for none")
+		jsonError(w, http.StatusBadRequest, "missing group: a name, or \"\" for none")
 		return
 	}
 	done, err := s.App.GroupRepo(r.Context(), ops.AsYou, r.PathValue("repo"), req.Group)

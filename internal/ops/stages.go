@@ -163,7 +163,7 @@ func (w *Workspace) acceptAllowed(m *mission.Mission) error {
 	if len(blocking) > 0 {
 		r := blocking[0]
 		t := r.Tally()
-		return refused("changes-asked", "the user asked for changes in review %s of %s (%d of %d comments answered): they re-review it, and approve, before this stage is accepted. ws shows them it's ready once crew have committed and reported done; there's nothing more to do until then",
+		return refused("changes-asked", "changes asked for in review %s of %s (%d of %d comments answered): approve the review before accepting this stage",
 			r.ID, r.Capsule, t.Answered(), t.Total())
 	}
 	brief, _ := w.Missions.ReadBrief(m.Slug)
@@ -177,7 +177,7 @@ func (w *Workspace) acceptAllowed(m *mission.Mission) error {
 	}
 	for _, a := range docs {
 		if open := conversation.OpenChanges(threads, a.Ref); len(open) > 0 {
-			return refused("changes-open", "the user asked for changes to %s that are still open (%s): the stage is accepted once they resolve them. ws show %s says where each stands; there's nothing more to do until then",
+			return refused("changes-open", "changes asked for on %s still open (%s): resolve them before accepting this stage. ws show %s says where each stands",
 				a.Ref, strings.Join(open, ", "), open[0])
 		}
 	}
@@ -221,20 +221,20 @@ func (w *Workspace) afterAccept(slug string, acc mission.StageState, states []mi
 	next, ok := mission.CurrentStage(states)
 	if !ok {
 		if acc.Step != nil {
-			return "that was the plan's last step: the mission is at Z, if what Z says is true. Check each part of Z, and say how it ends (ws mission conclude --as …, or the user's ws mission end)"
+			return "that was the plan's last step: check each part of Z, then say how the mission ends (ws mission conclude --as …, or ws mission end)"
 		}
 		return "that was the last stage"
 	}
 	m, err := w.Missions.Load(slug)
 	if err != nil {
-		return "couldn't read the mission to start the next stage: " + err.Error()
+		return "could not read the mission to start the next stage: " + err.Error()
 	}
 	if acc.CheckIn {
 		text := fmt.Sprintf("Stage %d is done%s. Go on to stage %d: %s?", acc.N, stageDoneSummary(m, acc), next.N, next.Short())
 		if _, err := w.Missions.AskAtStep(slug, mission.TaskApprove, text, next.N); err != nil {
-			return "couldn't ask the user: " + err.Error()
+			return "could not ask the user: " + err.Error()
 		}
-		return fmt.Sprintf("stage %d said to check in, so the user is asked before stage %d starts", acc.N, next.N)
+		return fmt.Sprintf("stage %d checks in: asking before stage %d starts", acc.N, next.N)
 	}
 	return w.reachStep(m, acc, next)
 }
@@ -271,11 +271,11 @@ func (w *Workspace) reachStep(m *mission.Mission, acc, next mission.StageState) 
 			return said
 		}
 		// The planner can't be asked: the user writes what's after it.
-		text := fmt.Sprintf("%sStep %d is the planner's: %s The planner couldn't be asked (%v): write the steps after it (edit the plan), then go on.", done, next.N, sentence(next.Plain()), err)
+		text := fmt.Sprintf("%sStep %d is the planner's: %s Could not ask the planner (%v): write the next steps in the plan, then go on.", done, next.N, sentence(next.Plain()), err)
 		if _, err := w.Missions.AskAtStep(m.Slug, mission.TaskApprove, text, next.N); err != nil {
-			return "couldn't ask the user: " + err.Error()
+			return "could not ask the user: " + err.Error()
 		}
-		return fmt.Sprintf("step %d is the planner's, which couldn't be asked: the user is asked to write the steps after it and go on", next.N)
+		return fmt.Sprintf("could not ask the planner at step %d: asking the user to write the next steps", next.N)
 	case mission.StepWait:
 		return w.reachWait(m, done, next)
 	case mission.StepOpenPR:
@@ -291,7 +291,7 @@ func (w *Workspace) reviewHere(m *mission.Mission, n int) string {
 	if m.Plan == nil || n >= len(m.Plan.Steps) || !m.Plan.Steps[n].MakesPR() || !w.holding(GuaranteeReviewBeforePR) {
 		return ""
 	}
-	return fmt.Sprintf(" Step %d opens a pull request, and ws holds %s: review the work here, approving it, or it won't open.", n+1, GuaranteeReviewBeforePR.Key)
+	return fmt.Sprintf(" Step %d opens a pull request: approve a review here first (%s).", n+1, GuaranteeReviewBeforePR.Key)
 }
 
 // sentence is s with a full stop, if it ends without one.
@@ -361,7 +361,7 @@ func (w *Workspace) startFresh(m *mission.Mission, st mission.StageState, capsul
 		}
 	}
 	if !ok {
-		return fmt.Sprintf("%s %d names no capsule of the mission's, so ws didn't start it: dispatch it with --capsule <repo>/<name>", noun, st.N)
+		return fmt.Sprintf("%s %d names no capsule of the mission, so not started: dispatch with --capsule <repo>/<name>", noun, st.N)
 	}
 	text := strings.Join(strings.Fields(st.Whole()), " ")
 	if in, ok := st.Instance(capsule); ok {
@@ -370,20 +370,20 @@ func (w *Workspace) startFresh(m *mission.Mission, st mission.StageState, capsul
 	pick, own := w.stepPick(st, on)
 	if !w.Config().OrchestratorAutoDispatch() || w.opts.Host == nil {
 		if err := w.Missions.QueueDispatch(m.Slug, &mission.Dispatch{Text: text, Capsule: capsule, By: "ws", Stage: st.N, Harness: pick.Harness, Model: pick.Model}); err != nil {
-			return fmt.Sprintf("couldn't queue %s %d: %v", noun, st.N, err)
+			return fmt.Sprintf("could not queue %s %d: %v", noun, st.N, err)
 		}
-		return fmt.Sprintf("%s %d is queued in %s for the user to launch%s", noun, st.N, capsule, own)
+		return fmt.Sprintf("%s %d queued in %s, ready to launch%s", noun, st.N, capsule, own)
 	}
 	l, err := w.Launch(m.Slug, Dispatch{Capsule: capsule, Text: text, Stage: st.N, Harness: pick.Harness, Model: pick.Model}, AsWS)
 	var r *Refused
 	switch {
 	case errors.As(err, &r) && r.Code == "dispatch-limit":
 		Noun := strings.ToUpper(noun[:1]) + noun[1:]
-		text := fmt.Sprintf("%s %d is next, but ws has started as many crew without you as it may. Go on to %s %d: %s?", Noun, st.N, noun, st.N, st.Short())
+		text := fmt.Sprintf("%s %d is next, but the limit on crew started without you is reached. Go on to %s %d: %s?", Noun, st.N, noun, st.N, st.Short())
 		logFailed(w.Missions.AskAtStep(m.Slug, mission.TaskApprove, text, st.N))
-		return fmt.Sprintf("the dispatch limit is reached, so the user is asked before %s %d starts", noun, st.N)
+		return fmt.Sprintf("dispatch limit reached: asking before %s %d starts", noun, st.N)
 	case err != nil:
-		return fmt.Sprintf("couldn't start %s %d: %v", noun, st.N, err)
+		return fmt.Sprintf("could not start %s %d: %v", noun, st.N, err)
 	}
 	return fmt.Sprintf("started %s %d: %s in %s%s", noun, st.N, l.ID, l.Capsule, own)
 }
@@ -415,7 +415,7 @@ func (w *Workspace) carryOnAt(m *mission.Mission, st mission.StageState) (string
 	text := fmt.Sprintf("Step %d is done, and you carry on with step %d of the plan: %s\n\nCommit as you go, and report done with a handoff when it's finished (ws mission done).", from.N, st.N, st.Whole())
 	said, err := w.carryOn(m, st, id, text, AsWS)
 	if err != nil {
-		return fmt.Sprintf("couldn't have %s carry on at step %d: %v", id, st.N, err), true
+		return fmt.Sprintf("could not have %s carry on at step %d: %v", id, st.N, err), true
 	}
 	return said, true
 }
@@ -455,9 +455,9 @@ func (w *Workspace) routeWarnings(m *mission.Mission, route []mission.Stage, cha
 				worked[r] = true // ws lifts one when the step starts
 			case !named && (worked[r] || slices.ContainsFunc(m.Capsules, func(c mission.Capsule) bool { return c.Repo == r })):
 			case !named:
-				out = append(out, fmt.Sprintf("%s %d is in `%s`, where the mission has no capsule, and no Work step before it makes one: ws lift %s %s, or %s", st.Noun(), st.N, ref, r, m.Slug, change))
+				out = append(out, fmt.Sprintf("%s %d is in `%s`, where the mission has no capsule yet: ws lift %s %s, or %s", st.Noun(), st.N, ref, r, m.Slug, change))
 			default:
-				out = append(out, fmt.Sprintf("%s %d names `%s`, which isn't one of the mission's capsules (yet): ws lift %s %s, or %s", st.Noun(), st.N, ref, r, name, change))
+				out = append(out, fmt.Sprintf("%s %d names `%s`, not a capsule of the mission yet: ws lift %s %s, or %s", st.Noun(), st.N, ref, r, name, change))
 			}
 		}
 	}
@@ -497,7 +497,7 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 		return Answered{}, refused("not-yours", "the orchestrator asks with ws mission flag; the user, or crew they ask, answers")
 	}
 	if text == "" {
-		return Answered{}, invalid("the answer is empty")
+		return Answered{}, invalid("answer is empty")
 	}
 	m, err := w.load(slug)
 	if err != nil {
@@ -508,10 +508,10 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 	case n > 0:
 		var ok bool
 		if t, ok = m.Task(n); !ok {
-			return Answered{}, refused("nothing-asked", "the mission has no task %d open: ws show -f llm lists what it waits on the user for", n)
+			return Answered{}, refused("nothing-asked", "no open task %d: ws show -f llm lists what the mission waits on", n)
 		}
 	case head == nil:
-		return Answered{}, refused("nothing-asked", "nothing to answer: the mission isn't asking anything")
+		return Answered{}, refused("nothing-asked", "nothing to answer")
 	default:
 		t = *head
 	}
@@ -595,7 +595,7 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 		states, _ := m.StageProgress(brief)
 		cur, ok := mission.CurrentStage(states)
 		if !ok {
-			out.Next = "every stage is accepted already"
+			out.Next = "all stages already accepted"
 			return out, nil
 		}
 		if cur.Step != nil && cur.N == t.Step && (cur.Step.Who == mission.WhoYou || cur.Step.Who == mission.WhoPlanner) {
@@ -611,12 +611,12 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 	case (atStep || decide) && notYet && keep:
 		out.Next = fmt.Sprintf("step %d stays yours", t.Step)
 	case atStep && notYet:
-		out.Next = "it waits for you: launching crew starts the next stage"
+		out.Next = "waits for you: launch crew to start the next stage"
 	case !w.Config().OrchestratorEnabled():
-		out.Next = "the orchestrator is off ([orchestrator] enabled = false), so act on it yourself"
+		out.Next = "orchestrator is off ([orchestrator] enabled = false): act on the answer yourself"
 	default:
 		w.Notify(m.Slug, mission.OrchestratorEvent{Trigger: "answer"})
-		out.Next = "the orchestrator is acting on it"
+		out.Next = "passed to the orchestrator"
 		if atStep {
 			out.Next += fmt.Sprintf("; step %d stays yours", t.Step)
 		}
@@ -650,7 +650,7 @@ func (w *Workspace) answerAtWork(m *mission.Mission, t mission.Task, by Actor, t
 		if _, _, err := w.Missions.AnswerTask(m.Slug, t.N, text, by.By(), true); err != nil {
 			return out, true, wrap(err)
 		}
-		acc, err := w.AcceptStage(m.Slug, by, "the user passed it, its checks as they were")
+		acc, err := w.AcceptStage(m.Slug, by, "passed by the user, checks as they were")
 		if err != nil {
 			return out, true, err
 		}
@@ -737,14 +737,14 @@ func (w *Workspace) Dismiss(slug string, by Actor) (Dismissed, error) {
 		if err := w.Missions.SetConclude(m.Slug, nil); err != nil {
 			return Dismissed{}, wrap(err)
 		}
-		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "the ending suggested is put aside: it doesn't end yet"})
+		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Text: "suggested ending put aside: mission stays open"})
 		w.youActed(m.Slug, by)
 		return Dismissed{Slug: m.Slug, What: "suggested ending"}, nil
 	case len(m.Tasks) > 0:
 		t := m.Tasks[0]
-		return Dismissed{}, refused("yours", "step %d is yours: go on, or not yet (or change the plan), rather than dismissing it", t.Step)
+		return Dismissed{}, refused("yours", "step %d is yours: go on, not yet, or change the plan", t.Step)
 	}
-	return Dismissed{}, refused("nothing-to-dismiss", "nothing to dismiss: no question, no crew queued, and no ending suggested")
+	return Dismissed{}, refused("nothing-to-dismiss", "nothing to dismiss")
 }
 
 // oneLine joins a text's lines into one, its spaces single.

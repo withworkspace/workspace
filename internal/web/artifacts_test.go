@@ -605,16 +605,16 @@ func TestArtifactLifetimeAPI(t *testing.T) {
 	}
 	// A home that isn't a folder of one of the workspace's repos is said,
 	// and nothing's promoted to it.
-	if code := send(t, s, "/api/artifacts/a1/promote", `{"home": "nowhere:artifacts/glow/"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "nowhere isn't one of the workspace's repos") {
+	if code := send(t, s, "/api/artifacts/a1/promote", `{"home": "nowhere:artifacts/glow/"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "nowhere is not a repo in this workspace") {
 		t.Errorf("a home in no repo: %d %q", code, e.Error)
 	}
-	if code := send(t, s, "/api/artifacts/a1/promote", `{"home": "artifacts/glow"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "isn't a folder in a repo") {
+	if code := send(t, s, "/api/artifacts/a1/promote", `{"home": "artifacts/glow"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "is not a folder in a repo") {
 		t.Errorf("a home that's no folder: %d %q", code, e.Error)
 	}
-	if code := send(t, s, "/api/artifacts/a1/promote", `{"into": "nosuch"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "neither a mission nor a document") {
+	if code := send(t, s, "/api/artifacts/a1/promote", `{"into": "nosuch"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "is not a mission or a document") {
 		t.Errorf("into nothing that's there: %d %q", code, e.Error)
 	}
-	if code := send(t, s, "/api/artifacts/a2/promote", `{}`, &e); code != http.StatusConflict || !strings.Contains(e.Error, "restore it first") {
+	if code := send(t, s, "/api/artifacts/a2/promote", `{}`, &e); code != http.StatusConflict || !strings.Contains(e.Error, "restore first") {
 		t.Errorf("promoting one discarded: %d %q", code, e.Error)
 	}
 	if code := send(t, s, "/api/artifacts/a9/discard", `{}`, nil); code != http.StatusNotFound {

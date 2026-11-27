@@ -17,10 +17,10 @@ func (w *Workspace) PushBranch(repo, capsule string, quiet bool) (branch, said s
 	dir := filepath.Join(w.RepoDir(repo), capsule)
 	branch = GitCurrentBranch(dir)
 	if branch == "" {
-		return "", "", fmt.Errorf("%s/%s isn't on a branch, so there's nothing to open a pull request from", repo, capsule)
+		return "", "", fmt.Errorf("could not open a pull request: %s/%s is not on a branch", repo, capsule)
 	}
 	if branch == w.DefaultBranch {
-		return "", "", fmt.Errorf("%s/%s is on %s, the default branch: a pull request is opened from a branch of its own", repo, capsule, branch)
+		return "", "", fmt.Errorf("%s/%s is on %s, the default branch: open pull requests from a separate branch", repo, capsule, branch)
 	}
 	var env []string
 	if quiet {
@@ -28,7 +28,7 @@ func (w *Workspace) PushBranch(repo, capsule string, quiet bool) (branch, said s
 	}
 	out, err := git.Cmd{Dir: dir, Args: []string{"push", "--porcelain", "-u", "origin", "HEAD:refs/heads/" + branch}, Env: env}.Combined()
 	if err != nil {
-		return branch, strings.TrimSpace(out), fmt.Errorf("%s's remote refused the push of %s, and nothing was forced", repo, branch)
+		return branch, strings.TrimSpace(out), fmt.Errorf("%s's remote refused the push of %s: nothing forced", repo, branch)
 	}
 	return branch, "", nil
 }

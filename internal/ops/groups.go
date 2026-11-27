@@ -71,9 +71,9 @@ func (g GroupShown) String() string {
 	if g.Hidden {
 		state = "hidden"
 	}
-	s := fmt.Sprintf("%s is %s for you", g.Group, state)
+	s := fmt.Sprintf("%s %s for you", g.Group, state)
 	if !g.Chosen {
-		s = fmt.Sprintf("%s is as the team has it: %s", g.Group, state)
+		s = fmt.Sprintf("%s back to team setting: %s", g.Group, state)
 	}
 	switch len(g.Cloning) {
 	case 0:
@@ -94,10 +94,10 @@ func (w *Workspace) ShowGroup(ctx context.Context, who Actor, group string, hidd
 		return nil, refused("not-yours", "which groups are shown is the user's to say")
 	}
 	if !slices.ContainsFunc(w.Groups(), func(g Group) bool { return g.Name == group }) {
-		return nil, fmt.Errorf("%w: there's no group called %s", ErrNotFound, group)
+		return nil, fmt.Errorf("%w: no group %s", ErrNotFound, group)
 	}
 	if err := config.SaveGroupVisibility(w.root, group, hidden); err != nil {
-		return nil, fmt.Errorf("saving whether %s is shown: %w", group, err)
+		return nil, fmt.Errorf("could not show or hide %s: %w", group, err)
 	}
 	_, ws, _, err := Load(w.root)
 	if err != nil {
@@ -138,7 +138,7 @@ func (g RepoGrouped) String() string {
 	case g.Group == "":
 		return g.Repo + " is in no group"
 	case g.Team:
-		return fmt.Sprintf("%s is in %s, as the team has it", g.Repo, g.Group)
+		return fmt.Sprintf("%s is in %s (team setting)", g.Repo, g.Group)
 	}
 	return fmt.Sprintf("%s is in %s, for you", g.Repo, g.Group)
 }
@@ -155,11 +155,11 @@ func (w *Workspace) GroupRepo(ctx context.Context, who Actor, name, group string
 	ws := w.WS()
 	repo, ok := ws.ResolveAlias(name)
 	if !ok {
-		return nil, fmt.Errorf("%w: there's no repo called %s", ErrNotFound, name)
+		return nil, fmt.Errorf("%w: no repo %s", ErrNotFound, name)
 	}
 	group = strings.TrimSpace(group)
 	if group != "" && strings.ContainsAny(group, ", \t") {
-		return nil, invalid("%q can't be a group's name: no spaces or commas", group)
+		return nil, invalid("%q is not a valid group name: no spaces or commas", group)
 	}
 	team, overridden := ws.TeamGroups[repo]
 	if !overridden && !ws.Yours[repo] {
@@ -167,7 +167,7 @@ func (w *Workspace) GroupRepo(ctx context.Context, who Actor, name, group string
 	}
 	yours := ws.Yours[repo]
 	if !yours && group == "" && team != "" {
-		return nil, invalid("the team has %s in %s: it can be in another group for you, but not in none", repo, team)
+		return nil, invalid("the team has %s in %s: choose another group, not none", repo, team)
 	}
 	set := group
 	if !yours && group == team {

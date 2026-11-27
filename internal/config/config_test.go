@@ -1710,8 +1710,8 @@ kind = "tool"
 		t.Errorf("test, a task: %+v", test)
 	}
 	want := []string{
-		`ws.repo.toml: run.service.mail.kind = "toool" (it's "app" or "tool": read as "app")`,
-		`ws.repo.toml: run.service.mail.render = "window" (it's "inline" or "tab": read as "inline")`,
+		`ws.repo.toml: run.service.mail.kind = "toool" (must be "app" or "tool": read as "app")`,
+		`ws.repo.toml: run.service.mail.render = "window" (must be "inline" or "tab": read as "inline")`,
 		"ws.repo.toml: run.task.test.kind",
 	}
 	got := slices.Clone(cfg.Unknown)
@@ -1791,7 +1791,7 @@ command = "sleep 300"
 		"ws.repo.toml: run.service.api.reports.x",
 		"ws.repo.toml: run.task.lint.page",
 		"ws.repo.toml: run.task.lint.ready",
-		"ws.repo.toml: run.task.test (a service is called test too, and a recipe's name is one run's)",
+		"ws.repo.toml: run.task.test (a service is also called test: names must be unique)",
 	}
 	got := slices.Clone(cfg.Unknown)
 	slices.Sort(got)

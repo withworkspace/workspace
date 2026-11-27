@@ -23,7 +23,7 @@ func TestPin_YouPinListAndUnpin(t *testing.T) {
 		t.Errorf("listed:\n got  %q\n want %q", got, want)
 	}
 
-	if r := testutil.RunCommand(t, w.Root, nil, "pin", "no-such-mission"); r.Err == nil || !strings.Contains(r.Err.Error(), "nothing called no-such-mission") {
+	if r := testutil.RunCommand(t, w.Root, nil, "pin", "no-such-mission"); r.Err == nil || !strings.Contains(r.Err.Error(), "nothing named no-such-mission") {
 		t.Errorf("pinning what isn't there: %v", r.Err)
 	}
 	t.Setenv(mission.EnvCrew, "c1")

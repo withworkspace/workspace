@@ -46,15 +46,15 @@ func ReadManifest(dir string) (Manifest, error) {
 	path := filepath.Join(dir, ManifestName)
 	if _, err := toml.DecodeFile(path, &m); err != nil {
 		if os.IsNotExist(err) {
-			return m, fmt.Errorf("%s has no %s: it isn't a plugin", dir, ManifestName)
+			return m, fmt.Errorf("%s has no %s: not a plugin", dir, ManifestName)
 		}
-		return m, fmt.Errorf("reading %s: %w", path, err)
+		return m, fmt.Errorf("could not read %s: %w", path, err)
 	}
 	switch {
 	case !ValidName(m.Name):
 		return m, fmt.Errorf("%s: name %q must be lower-case letters, digits and hyphens, starting with a letter", path, m.Name)
 	case len(m.Command) == 0 || m.Command[0] == "":
-		return m, fmt.Errorf("%s: command is missing: it's how the plugin is started", path)
+		return m, fmt.Errorf("%s: command is missing", path)
 	}
 	return m, nil
 }
@@ -196,10 +196,10 @@ func Add(root, src string, link bool) (Manifest, error) {
 // for it and, with data, what it kept for itself.
 func Remove(root, name string, data bool) error {
 	if !ValidName(name) {
-		return fmt.Errorf("%q isn't a plugin's name", name)
+		return fmt.Errorf("%q is not a plugin name", name)
 	}
 	if _, err := os.Lstat(appDir(root, name)); err != nil {
-		return fmt.Errorf("there's no plugin called %s", name)
+		return fmt.Errorf("no plugin called %s", name)
 	}
 	if data {
 		return os.RemoveAll(home(root, name))

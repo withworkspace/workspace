@@ -158,7 +158,7 @@ func Load(root, name string) (*Automation, error) {
 // can't use.
 func Check(name string, src []byte) (*Automation, error) {
 	if !ValidName(name) {
-		return nil, fmt.Errorf("%q can't be an automation's name: lower-case letters, digits and hyphens", name)
+		return nil, fmt.Errorf("%q is not a valid automation name: use lower-case letters, digits and hyphens", name)
 	}
 	thread := &starlark.Thread{Name: "automation " + name}
 	thread.SetMaxExecutionSteps(100_000)
@@ -169,7 +169,7 @@ func Check(name string, src []byte) (*Automation, error) {
 	a := &Automation{Name: name, Source: src, About: aboutOf(src)}
 	when, ok := globals["when"]
 	if !ok {
-		return nil, fmt.Errorf("it says no when: which events it's for, as when = event(\"pr.merged\", pr = \"api#212\")")
+		return nil, fmt.Errorf("no when: say which events, as when = event(\"pr.merged\", pr = \"api#212\")")
 	}
 	ms, err := matchesOf(when)
 	if err != nil {
@@ -182,7 +182,7 @@ func Check(name string, src []byte) (*Automation, error) {
 		if m.action != nil {
 			for _, x := range a.Actions() {
 				if x.Title == m.action.Title {
-					return nil, fmt.Errorf("it has two actions called %q: each is called something of its own", x.Title)
+					return nil, fmt.Errorf("two actions called %q: rename one", x.Title)
 				}
 			}
 			m.m.Fields = []events.MatchField{{Key: "automation", Value: name}, {Key: "action", Value: m.action.Title}}
@@ -198,14 +198,14 @@ func Check(name string, src []byte) (*Automation, error) {
 	if run, ok := globals["run"]; ok {
 		fn, ok := run.(*starlark.Function)
 		if !ok {
-			return nil, fmt.Errorf("run is a %s: it's a def run(e), called with each event", run.Type())
+			return nil, fmt.Errorf("run is a %s: write def run(e), called with each event", run.Type())
 		}
 		if fn.NumParams() != 1 {
-			return nil, fmt.Errorf("run takes %d arguments: it's a def run(e), called with each event", fn.NumParams())
+			return nil, fmt.Errorf("run takes %d arguments: write def run(e), called with each event", fn.NumParams())
 		}
 		a.run = fn
 	} else if len(a.May) > 0 && !slices.Equal(a.May, []string{MayNotify}) {
-		return nil, fmt.Errorf("it may %s, and has no run to: without a def run(e), each event's notified as it is", strings.Join(a.May, ", "))
+		return nil, fmt.Errorf("may %s, but has no run: without def run(e), each event is only notified", strings.Join(a.May, ", "))
 	}
 	return a, nil
 }
@@ -311,7 +311,7 @@ func (v matchValue) Hash() (uint32, error) { return starlark.String(v.m.String()
 // eventBuiltin is event(kind, **fields): which events, as a Match.
 func eventBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("event takes its kind first (event(\"pr.merged\", pr = \"api#212\"))")
+		return nil, fmt.Errorf("event takes a kind first (event(\"pr.merged\", pr = \"api#212\"))")
 	}
 	kind, ok := starlark.AsString(args[0])
 	if !ok {
@@ -338,10 +338,10 @@ func eventBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		case starlark.Int:
 			value = v.String()
 		default:
-			return nil, fmt.Errorf("event's %s is a %s: say it as a string", key, kv[1].Type())
+			return nil, fmt.Errorf("event's %s is a %s: use a string", key, kv[1].Type())
 		}
 		if strings.ContainsAny(value, " \t") {
-			return nil, fmt.Errorf("event's %s (%q) has a space in it: a pattern can stand for one (%s)", key, value, strings.ReplaceAll(value, " ", "?"))
+			return nil, fmt.Errorf("event's %s (%q) has a space: use a pattern instead (%s)", key, value, strings.ReplaceAll(value, " ", "?"))
 		}
 		written += " " + key + "=" + value
 	}
@@ -405,18 +405,18 @@ func matchesOf(v starlark.Value) ([]matchValue, error) {
 			out = append(out, m)
 		}
 		if len(out) == 0 {
-			return nil, fmt.Errorf("when is empty: say which events it's for")
+			return nil, fmt.Errorf("when is empty: say which events")
 		}
 		return out, nil
 	}
-	return nil, fmt.Errorf("when is a %s: it's an event(), or a list of them", v.Type())
+	return nil, fmt.Errorf("when is a %s: use an event(), or a list of them", v.Type())
 }
 
 // maysOf is may, read: a list of what there is to do.
 func maysOf(v starlark.Value) ([]string, error) {
 	iterable, ok := v.(starlark.Iterable)
 	if !ok {
-		return nil, fmt.Errorf("may is a %s: it's a list, as may = [\"notify\"]", v.Type())
+		return nil, fmt.Errorf("may is a %s: use a list, as may = [\"notify\"]", v.Type())
 	}
 	var out []string
 	iter := iterable.Iterate()
@@ -425,10 +425,10 @@ func maysOf(v starlark.Value) ([]string, error) {
 	for iter.Next(&x) {
 		s, ok := starlark.AsString(x)
 		if !ok {
-			return nil, fmt.Errorf("may has a %s in it: each is what it may do, as a string", x.Type())
+			return nil, fmt.Errorf("may has a %s in it: each item is a string", x.Type())
 		}
 		if !slices.Contains(Mays, s) && !IsPluginKind(s) {
-			return nil, fmt.Errorf("%q isn't something an automation may do yet: it may %s, or act on a plugin's kind of proposal (jira:changes)", s, strings.Join(Mays, " or "))
+			return nil, fmt.Errorf("%q is not something an automation may do: use %s, or a plugin's kind of proposal (jira:changes)", s, strings.Join(Mays, " or "))
 		}
 		out = append(out, s)
 	}
@@ -460,7 +460,7 @@ func checkBuiltins() starlark.StringDict {
 	d := starlark.StringDict{"event": starlark.NewBuiltin("event", eventBuiltin), "every": starlark.NewBuiltin("every", everyBuiltin), "action": starlark.NewBuiltin("action", actionBuiltin)}
 	for _, name := range builtinNames {
 		d[name] = starlark.NewBuiltin(name, func(_ *starlark.Thread, b *starlark.Builtin, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
-			return nil, fmt.Errorf("%s is for run, called with each event: not for the file's top level", b.Name())
+			return nil, fmt.Errorf("%s works only inside run, not at the file's top level", b.Name())
 		})
 	}
 	return d

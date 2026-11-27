@@ -23,7 +23,7 @@ func TestDecisions(t *testing.T) {
 	if err != nil || d2.ID != "d2" {
 		t.Fatalf("d2 = %+v, %v", d2, err)
 	}
-	if _, err := s.Decide(m.Slug, Decision{What: "x", By: "you", Supersedes: "d1"}); err == nil || !strings.Contains(err.Error(), "superseded already") {
+	if _, err := s.Decide(m.Slug, Decision{What: "x", By: "you", Supersedes: "d1"}); err == nil || !strings.Contains(err.Error(), "already superseded") {
 		t.Errorf("superseding a superseded one: %v", err)
 	}
 	if _, err := s.Decide(m.Slug, Decision{What: "x", By: "you", Supersedes: "d9"}); !errors.Is(err, ErrNotFound) {

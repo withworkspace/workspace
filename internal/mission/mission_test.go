@@ -622,7 +622,7 @@ func TestTitles_TerseAndNamed(t *testing.T) {
 		t.Errorf("a briefing mission starts titled with its request: %q", m.Title)
 	}
 	err := s.SetTitle(m.Slug, strings.Repeat("x", MaxTitle+1))
-	if err == nil || !strings.Contains(err.Error(), "keep it to 50 or fewer") {
+	if err == nil || !strings.Contains(err.Error(), "keep to 50 or fewer") {
 		t.Errorf("long title: %v", err)
 	}
 	if err := s.SetTitle(m.Slug, "Rate limits for large-org imports"); err != nil {

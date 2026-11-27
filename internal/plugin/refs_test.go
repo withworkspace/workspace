@@ -71,7 +71,7 @@ func TestRefsAreKeptByThePluginThatRegisteredThem(t *testing.T) {
 		t.Fatal(err)
 	}
 	said := strings.Join(refused, "\n")
-	for _, want := range []string{`"issue" doesn't name by RAM-: that's the plugin jira's already`, `"cycle" doesn't name by SPRINT-`, `"Bad" is left out`, `"doc" doesn't name by ENG-: that's its ref issue's already`} {
+	for _, want := range []string{`"issue" cannot use RAM-: already the plugin jira's`, `"cycle" cannot use SPRINT-`, `"Bad" left out`, `"doc" cannot use ENG-: already its ref issue's`} {
 		if !strings.Contains(said, want) {
 			t.Errorf("refused doesn't say %q:\n%s", want, said)
 		}
@@ -187,9 +187,9 @@ func TestKitRegistersRefsAndShowsAThing(t *testing.T) {
 	// asked about those at all.
 	for name, why := range map[string]string{
 		"KIT-2":    "kit has no thing called KIT-2",
-		"KIT-x":    "KIT-x isn't a name kit registered for its thing",
-		"OTHER-1":  "isn't a name kit registered",
-		"KIT-1/..": "isn't a name kit registered",
+		"KIT-x":    "KIT-x is not a name kit registered for thing",
+		"OTHER-1":  "is not a name kit registered",
+		"KIT-1/..": "is not a name kit registered",
 	} {
 		if _, err := h.Show(ctx, "kit", "thing", name, false); !errors.Is(err, plugin.ErrNoThing) || !strings.Contains(err.Error(), why) {
 			t.Errorf("%s: %v, want %q", name, err, why)
@@ -234,7 +234,7 @@ func TestAPrefixIsTheFirstPluginsToRegisterIt(t *testing.T) {
 	if err != nil || st.State != plugin.Ready {
 		t.Fatalf("second: %+v, %v", st, err)
 	}
-	if len(st.Refused) != 1 || !strings.Contains(st.Refused[0], "KIT-: that's the plugin kit's already") {
+	if len(st.Refused) != 1 || !strings.Contains(st.Refused[0], "KIT-: already the plugin kit's") {
 		t.Errorf("refused: %v", st.Refused)
 	}
 	if got := prefixesOf(t, root); len(got) != 1 || got["kit/thing"] != "KIT-" {

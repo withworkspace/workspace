@@ -137,7 +137,7 @@ func (w *Workspace) makeCapsule(repo, branch string, o CapsuleOptions, create fu
 	hookErr, err := show(steps, run, hook, func() string { return out.Path })
 	if out.Name == "" {
 		if err == nil {
-			err = errors.New("failed to create capsule")
+			err = errors.New("could not create capsule")
 		}
 		return out, err
 	}
@@ -302,19 +302,19 @@ func (w *Workspace) land(repo, name string, by Actor, o workspace.LandOptions, q
 	ws := w.WS()
 	lock, err := os.OpenFile(filepath.Join(ws.BareDir(repo), "ws-land.lock"), os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
-		return Landed{}, fmt.Errorf("open landing lock: %w", err)
+		return Landed{}, fmt.Errorf("could not start landing: %w", err)
 	}
 	defer lock.Close()
 	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		if errors.Is(err, syscall.EWOULDBLOCK) {
 			return Landed{}, refused("landing", "%s already has a landing in progress", repo)
 		}
-		return Landed{}, fmt.Errorf("lock landing: %w", err)
+		return Landed{}, fmt.Errorf("could not start landing: %w", err)
 	}
 
 	missions, err := w.Missions.List()
 	if err != nil {
-		return Landed{}, fmt.Errorf("find the mission before landing: %w", err)
+		return Landed{}, fmt.Errorf("could not find the mission before landing: %w", err)
 	}
 	dir := filepath.Join(ws.RepoDir(repo), name)
 	var owner *mission.Mission
@@ -326,7 +326,7 @@ func (w *Workspace) land(repo, name string, by Actor, o workspace.LandOptions, q
 			owner = m
 			if p := c.PendingLanding; p != nil {
 				if p.Branch != ws.DefaultBranch {
-					return Landed{}, refused("landing", "%s/%s has a pending landing on %s. Restore that default branch and retry the landing first", repo, name, p.Branch)
+					return Landed{}, refused("landing", "%s/%s has a pending landing on %s: restore that default branch and retry first", repo, name, p.Branch)
 				}
 				o.Pending = &workspace.Landed{Repo: repo, Capsule: name, Branch: p.Branch, Head: p.Head, Commits: p.Commits, Settled: p.Settled}
 			}
@@ -344,7 +344,7 @@ func (w *Workspace) land(repo, name string, by Actor, o workspace.LandOptions, q
 					return err
 				}
 			}
-			return w.holdReview(GuaranteeReviewBeforeLand, owner.Slug, repo, name, "landing", reviewThen(by, "land it"))
+			return w.holdReview(GuaranteeReviewBeforeLand, owner.Slug, repo, name, "landing", reviewThen(by, "land"))
 		}
 		beforePush := o.BeforePush
 		o.BeforePush = func(candidate workspace.LandCandidate) error {
@@ -361,7 +361,7 @@ func (w *Workspace) land(repo, name string, by Actor, o workspace.LandOptions, q
 				Branch: candidate.Branch, Commits: candidate.Commits, Settled: candidate.Settled,
 			})
 			if err != nil {
-				return fmt.Errorf("couldn't record the landing before pushing: %w", err)
+				return fmt.Errorf("could not record the landing before pushing: %w", err)
 			}
 			return nil
 		}
@@ -404,14 +404,14 @@ func (w *Workspace) holdLandingReview(slug, dir, capsule string, by Actor, c wor
 		return nil
 	}
 	refuse := func(why string) error {
-		return refused("guarantee", "ws holds %s before landing: %s. %s", g.Key, why, reviewThen(by, "land it"))
+		return refused("guarantee", "Workspace requires %s before landing: %s. %s", g.Key, why, reviewThen(by, "land"))
 	}
 	r, err := review.For(w.Root(), slug).Latest(capsule)
 	if err != nil {
-		return refuse(fmt.Sprintf("the latest review couldn't be read (%v)", err))
+		return refuse(fmt.Sprintf("could not read the latest review (%v)", err))
 	}
 	if r == nil || r.Verdict != review.Approve || (r.Head != c.OriginalHead && r.Head != c.Head) {
-		return refuse("the latest review doesn't approve " + capsule + " at the commit being landed")
+		return refuse("the latest review does not approve " + capsule + " at the commit being landed")
 	}
 	if r.Head == c.Head {
 		return nil
@@ -566,19 +566,19 @@ func (w *Workspace) LandCapsule(repo, name string) (*LandOutcome, error) {
 		res.Warnings = append(res.Warnings, "Artifacts: "+said)
 	}
 	if l.Ground != nil {
-		res.Warnings = append(res.Warnings, "The ground wasn't brought up to it: "+l.Ground.Error())
+		res.Warnings = append(res.Warnings, "Ground not updated: "+l.Ground.Error())
 	}
 	switch {
 	case out.RecordErr != nil:
 		res.Warnings = append(res.Warnings, out.Unrecorded())
 	case out.BurnErr != nil:
-		res.Warnings = append(res.Warnings, "The capsule is still there: "+out.BurnErr.Error())
+		res.Warnings = append(res.Warnings, "Capsule not removed: "+out.BurnErr.Error())
 	}
 	return &LandOutcome{Landed: res}, nil
 }
 
 // Unrecorded says a landing went out but its mission couldn't be told.
 func (l Landed) Unrecorded() string {
-	return fmt.Sprintf("Mission %s couldn't record the landing (%v). The capsule is kept, so the mission still has it: its commits are on %s. Retry the landing to finish recording it",
+	return fmt.Sprintf("Mission %s could not record the landing (%v). Capsule kept; commits are on %s. Retry the landing to finish",
 		l.Mission, l.RecordErr, l.Landed.Branch)
 }

@@ -54,7 +54,7 @@ func TestWatchPRs(t *testing.T) {
 	red := github.PR{Number: 88, ReviewDecision: "REVIEW_REQUIRED", StatusRollup: "failure"}
 	watch(red, mission.PROpen, true)
 	watch(red, mission.PROpen, true) // the deck and the daemon both look
-	if got := prEvents(); strings.Join(got, "|") != "api#88's checks are failing" || strings.Join(spawned, " ") != slug+"/pr" {
+	if got := prEvents(); strings.Join(got, "|") != "api#88: checks failing" || strings.Join(spawned, " ") != slug+"/pr" {
 		t.Errorf("red checks: events %v, spawned %v", got, spawned)
 	}
 
@@ -69,7 +69,7 @@ func TestWatchPRs(t *testing.T) {
 	// A conflict is news too.
 	store.EndCrewStopped(slug, "c1", "hangup", true)
 	watch(github.PR{Number: 88, ReviewDecision: "CHANGES_REQUESTED", StatusRollup: "failure", Mergeable: "CONFLICTING"}, mission.PROpen, true)
-	if got := prEvents(); got[len(got)-1] != "api#88 conflicts with its base" || len(spawned) != 2 {
+	if got := prEvents(); got[len(got)-1] != "api#88 has merge conflicts" || len(spawned) != 2 {
 		t.Errorf("a conflict: events %v, spawned %v", got, spawned)
 	}
 

@@ -187,7 +187,7 @@ func (s *Service) Names(dir, rev, p string) (*Names, error) {
 		out.Why = "No navigation for " + describe(p) + " files"
 		return out, nil
 	case errors.Is(err, ErrNoParser):
-		out.Why = "This build has no code navigation: it was built without cgo"
+		out.Why = "Code navigation not available in this build"
 		return out, nil
 	case errors.Is(err, ErrTooLarge):
 		out.Why = "Too large to navigate"

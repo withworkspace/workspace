@@ -14,11 +14,11 @@ func TestPRChange(t *testing.T) {
 	}{
 		{"first sighting", nil, open, "", false},
 		{"nothing changed", &open, open, "", false},
-		{"checks go red", &open, with(func(p *SeenPR) { p.Checks = "failure" }), "api#88's checks are failing", true},
-		{"changes requested", &open, with(func(p *SeenPR) { p.Review = "CHANGES_REQUESTED" }), "api#88: a reviewer asked for changes", true},
+		{"checks go red", &open, with(func(p *SeenPR) { p.Checks = "failure" }), "api#88: checks failing", true},
+		{"changes requested", &open, with(func(p *SeenPR) { p.Review = "CHANGES_REQUESTED" }), "api#88: changes requested", true},
 		{"merged", &open, with(func(p *SeenPR) { p.Merged = true }), "api#88 merged", true},
 		{"approved", &open, with(func(p *SeenPR) { p.Review = "APPROVED" }), "api#88 was approved", false},
-		{"checks pass", &open, with(func(p *SeenPR) { p.Checks = "success" }), "api#88's checks pass", false},
+		{"checks pass", &open, with(func(p *SeenPR) { p.Checks = "success" }), "api#88: checks passed", false},
 		{"a different PR on the branch", &open, SeenPR{Number: 90, Checks: "failure"}, "", false},
 	}
 	for _, c := range cases {

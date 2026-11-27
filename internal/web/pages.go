@@ -538,7 +538,7 @@ func (s *Server) savePage(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, pageRoom))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&b); err != nil {
-		jsonError(w, http.StatusBadRequest, "bad request body: "+err.Error())
+		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return
 	}
 	v, err := s.App.SavePage(r.PathValue("id"), b.Base, []byte(b.Text))

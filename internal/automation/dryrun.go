@@ -135,7 +135,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 				}
 			}
 			if n >= pace.AtMost {
-				line.Held = fmt.Sprintf("it'd have run %d of at most %d in %s", n, pace.AtMost, shortDuration(pace.AtMostIn))
+				line.Held = fmt.Sprintf("would have run %d of at most %d in %s", n, pace.AtMost, shortDuration(pace.AtMostIn))
 				if key != "" {
 					line.Held += " for " + key
 				}
@@ -166,19 +166,19 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			// nothing.
 			dryTask := func(id int64) (Task, bool) {
 				h := did.tasks[id]
-				return Task{ID: id, Repo: h.repo, Recipe: h.recipe, State: TaskEnded, Status: "unknown: a dry run runs nothing"}, true
+				return Task{ID: id, Repo: h.repo, Recipe: h.recipe, State: TaskEnded, Status: "unknown: nothing runs in a dry run"}, true
 			}
 			if w.waitsOnYou() {
 				// What you'd say to what it proposed isn't for a dry run to
 				// guess.
-				line.Waited = append(line.Waited, "would wait for you to accept or decline what it proposed")
+				line.Waited = append(line.Waited, "would wait for you to accept or decline")
 				out.Waiting++
 				break
 			}
 			notOurs := func(later events.Event) bool { return later.By == events.ByWorkflow(a.Name) }
 			result, done := waitCame(w, list, e.now(), notOurs, lookups{task: dryTask})
 			if !done {
-				line.Waited = append(line.Waited, "would be waiting still, for "+waitSaid(w, did.tasks))
+				line.Waited = append(line.Waited, "would still be waiting for "+waitSaid(w, did.tasks))
 				out.Waiting++
 				break
 			}
@@ -246,7 +246,7 @@ func (e *Engine) DryRun(a *Automation, back time.Duration) (DryRun, error) {
 			flush(key)
 			continue
 		}
-		line := DryLine{Event: last.Ref(), At: last.At, Says: last.Says(), Waited: []string{fmt.Sprintf("settling still: it runs once these have been quiet %s", shortDuration(g.pace.Settle))}}
+		line := DryLine{Event: last.Ref(), At: last.At, Says: last.Says(), Waited: []string{fmt.Sprintf("still settling: runs once quiet for %s", shortDuration(g.pace.Settle))}}
 		if len(g.events) > 1 {
 			line.Batch = len(g.events)
 		}
@@ -319,10 +319,10 @@ func waitSaid(w waitFor, tasks map[int64]taskHandle) string {
 // waitedSaid is what a wait came to, in words, for a run on ev.
 func waitedSaid(w waitFor, result string, ev events.Event, tasks map[int64]taskHandle) string {
 	if len(w.Items) > 0 {
-		return "waited for " + waitSaid(w, tasks) + " (what a task comes to is unknown in a dry run)"
+		return "waited for " + waitSaid(w, tasks) + " (task results unknown in a dry run)"
 	}
 	if result == "null" {
-		return "waited " + shortDuration(w.Due.Sub(ev.At)) + " for " + w.Match + ", and its time was up"
+		return "waited " + shortDuration(w.Due.Sub(ev.At)) + " for " + w.Match + ", then timed out"
 	}
 	var later events.Event
 	_ = json.Unmarshal([]byte(result), &later)

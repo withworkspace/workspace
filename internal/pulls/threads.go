@@ -172,7 +172,7 @@ func (s *Service) Respond(repo string, number int, threadID string, what review.
 	case review.Reopen:
 		doing = "reopening the thread on "
 	default:
-		return nil, fmt.Errorf("can't %q a thread", what)
+		return nil, fmt.Errorf("cannot %q a thread", what)
 	}
 	behind, err := s.say(sendThread, doing+s.where(repo, number, threadID), w)
 	if err != nil {

@@ -216,9 +216,9 @@ type MalformedPlan struct{ Problems []string }
 
 func (m *MalformedPlan) Error() string {
 	if len(m.Problems) == 1 {
-		return "the plan isn't right: " + m.Problems[0]
+		return "plan is invalid: " + m.Problems[0]
 	}
-	return "the plan isn't right:\n- " + strings.Join(m.Problems, "\n- ")
+	return "plan is invalid:\n- " + strings.Join(m.Problems, "\n- ")
 }
 
 // IsMalformedPlan reports whether err is a plan refused for its form.
@@ -296,24 +296,24 @@ func (p *planParser) read(written string) {
 			continue
 		}
 		p.close()
-		p.problem(n, "%q isn't an item of a list: each part of a plan is a list under its heading (## %s, ## %s, ## %s)", clipPlan(trimmed), PlanZ, PlanEarly, PlanSteps)
+		p.problem(n, "%q is not a list item: each part is a list under its heading (## %s, ## %s, ## %s)", clipPlan(trimmed), PlanZ, PlanEarly, PlanSteps)
 	}
 	p.close()
 	p.endStep()
 	for _, part := range []string{PlanZ, PlanEarly, PlanSteps} {
 		if !p.seen[part] {
-			what := "it's needed"
+			what := "add one"
 			if part == PlanEarly {
-				what = "it's needed, with None. under it if the mission can't end before Z"
+				what = "add one, with None. under it if the mission cannot end before Z"
 			}
-			p.problems = append(p.problems, fmt.Sprintf("it has no ## %s: %s", part, what))
+			p.problems = append(p.problems, fmt.Sprintf("missing ## %s: %s", part, what))
 		}
 	}
 	if p.seen[PlanZ] && len(p.z) == 0 && !p.none[PlanZ] {
-		p.problems = append(p.problems, "## Z says nothing: list what has to be true for the brief's purpose to be met")
+		p.problems = append(p.problems, "## Z is empty: list what has to be true for the brief's purpose to be met")
 	}
 	if p.seen[PlanSteps] && len(p.steps) == 0 && !hasProblemFor(p.problems) {
-		p.problems = append(p.problems, "## Steps has no steps: the route is a numbered list under it")
+		p.problems = append(p.problems, "## Steps is empty: add the steps as a numbered list")
 	}
 }
 
@@ -330,17 +330,17 @@ func hasProblemFor(problems []string) bool {
 
 func (p *planParser) heading(n, level int, title string) {
 	if level != 2 {
-		p.problem(n, "%s %s: a plan has no title, and its headings are ## for its parts (## %s, ## %s, ## %s)", strings.Repeat("#", level), title, PlanZ, PlanEarly, PlanSteps)
+		p.problem(n, "%s %s: no titles, only the ## parts (## %s, ## %s, ## %s)", strings.Repeat("#", level), title, PlanZ, PlanEarly, PlanSteps)
 		return
 	}
 	part := planPartOf(title)
 	switch {
 	case part == "":
-		p.problem(n, "## %s isn't one of a plan's parts (## %s, ## %s, ## %s)", title, PlanZ, PlanEarly, PlanSteps)
+		p.problem(n, "## %s is not a plan part (## %s, ## %s, ## %s)", title, PlanZ, PlanEarly, PlanSteps)
 		p.part = "?"
 		return
 	case p.seen[part]:
-		p.problem(n, "## %s is here twice", part)
+		p.problem(n, "## %s appears twice", part)
 	}
 	p.seen[part] = true
 	p.part = part
@@ -371,11 +371,11 @@ func (p *planParser) item(n int, trimmed, number, text string) {
 		return // under a heading already refused
 	case PlanSteps:
 		if number == "" {
-			p.problem(n, "%q isn't numbered: steps are a numbered list, 1, 2, 3… in order", clipPlan(trimmed))
+			p.problem(n, "%q is not numbered: number steps 1, 2, 3… in order", clipPlan(trimmed))
 			return
 		}
 		if want := len(p.steps) + 1; number != fmt.Sprint(want) {
-			p.problem(n, "step %s comes where step %d should: number the steps 1, 2, 3… in order", number, want)
+			p.problem(n, "step %s where step %d should be: number steps 1, 2, 3… in order", number, want)
 		}
 		p.step = &Step{N: len(p.steps) + 1, Line: n}
 		p.fields = map[string]bool{}
@@ -387,7 +387,7 @@ func (p *planParser) item(n int, trimmed, number, text string) {
 // written before step types, its who: or makes:).
 func (p *planParser) field(n int, trimmed, text string) {
 	if p.part != PlanSteps || p.step == nil {
-		p.problem(n, "%q is a list inside a list: only a step has items under it, its parameters", clipPlan(trimmed))
+		p.problem(n, "%q is a nested list: only steps have items under them (parameters)", clipPlan(trimmed))
 		return
 	}
 	m := planField.FindStringSubmatch(strings.TrimSpace(text))
@@ -397,7 +397,7 @@ func (p *planParser) field(n int, trimmed, text string) {
 			p.open = &planOpen{line: n, text: "yes", field: word}
 			return
 		}
-		p.problem(n, "%q isn't one of a step's parameters: each is - key: value", clipPlan(trimmed))
+		p.problem(n, "%q is not a step parameter: each is - key: value", clipPlan(trimmed))
 		return
 	}
 	p.open = &planOpen{line: n, text: strings.TrimSpace(m[2]), field: strings.ToLower(strings.Join(strings.Fields(m[1]), " "))}
@@ -423,11 +423,11 @@ func (p *planParser) close() {
 func (p *planParser) closeLine(it *planOpen) {
 	if isNone(it.text) {
 		if p.part == PlanZ {
-			p.problem(it.line, "## Z can't be None.: say what has to be true for the brief's purpose to be met")
+			p.problem(it.line, "## Z cannot be None.: say what has to be true for the brief's purpose to be met")
 			return
 		}
 		if len(p.early) > 0 {
-			p.problem(it.line, "None. is for a part with nothing in it, and ## %s has something", p.part)
+			p.problem(it.line, "None. is for an empty part, and ## %s is not empty", p.part)
 		}
 		p.none[p.part] = true
 		return
@@ -460,10 +460,10 @@ func (p *planParser) closeStep(it *planOpen) {
 	if t, words, ok := typePrefix(text); ok {
 		st.Type, st.Who, text = t.Name, t.Who, words
 		if text == "" && t.Words == WordsNeeded {
-			p.problem(it.line, "step %d is a %s step and says nothing more: say what it's for after its kind (%d. %s: …)", st.N, t.Name, st.N, t.Name)
+			p.problem(it.line, "step %d is a bare %s step: add what it is for (%d. %s: …)", st.N, t.Name, st.N, t.Name)
 		}
 	} else if text == "" {
-		p.problem(it.line, "step %d says nothing but its quote: say what's done, in your words, then the process's in double quotes", st.N)
+		p.problem(it.line, "step %d has only a quote: say what is done in your words, then the process's in double quotes", st.N)
 	}
 	st.Text = text
 }
@@ -506,7 +506,7 @@ func (p *planParser) closeField(it *planOpen) {
 	t, typed := StepTypeOf(st.Type)
 	param, known := t.param(it.field)
 	if p.fields[it.field] && !(typed && known && param.Many) {
-		p.problem(it.line, "step %d says %s: twice: say it once", st.N, it.field)
+		p.problem(it.line, "step %d has %s: twice", st.N, it.field)
 		return
 	}
 	p.fields[it.field] = true
@@ -515,15 +515,15 @@ func (p *planParser) closeField(it *planOpen) {
 		return
 	}
 	if it.field == "who" {
-		p.problem(it.line, "step %d is a %s step, which says who's on it: leave out who:", st.N, t.Name)
+		p.problem(it.line, "step %d is a %s step, which sets who is on it: remove who:", st.N, t.Name)
 		return
 	}
 	if !known {
-		p.problem(it.line, "%s: isn't something a %s step takes: it takes %s", it.field, t.Name, t.paramKeys())
+		p.problem(it.line, "%s: does not apply to a %s step, which takes %s", it.field, t.Name, t.paramKeys())
 		return
 	}
 	if it.text == "" {
-		p.problem(it.line, "step %d's %s: is empty: say it, or leave the line out", st.N, it.field)
+		p.problem(it.line, "step %d's %s: is empty: fill it in or remove the line", st.N, it.field)
 		return
 	}
 	if why := param.read(st, it.text); why != "" {
@@ -539,14 +539,14 @@ func (p *planParser) closeOldField(it *planOpen) {
 	switch it.field {
 	case "makes":
 		if it.text == "" {
-			p.problem(it.line, "step %d's makes: is empty: say what it produces, or leave the line out", st.N)
+			p.problem(it.line, "step %d's makes: is empty: say what the step produces, or remove the line", st.N)
 			return
 		}
 		st.Makes = it.text
 	case "who":
 		p.who(it, st)
 	default:
-		p.problem(it.line, "step %d doesn't start with its kind of step, so %s: isn't something it can take: start it with one of %s (%d. Work: …)", st.N, it.field, stepTypeNames(), st.N)
+		p.problem(it.line, "step %d has no kind, so %s: does not apply: start with one of %s (%d. Work: …)", st.N, it.field, stepTypeNames(), st.N)
 	}
 }
 
@@ -555,7 +555,7 @@ func (p *planParser) closeOldField(it *planOpen) {
 func (p *planParser) who(it *planOpen, st *Step) {
 	m := planWhoSplit.FindStringSubmatch(it.text)
 	if m == nil {
-		p.problem(it.line, "who: %s isn't who's on a step: it's crew, you, CI, outside or the planner", it.text)
+		p.problem(it.line, "who: %s is not valid: use crew, you, CI, outside or the planner", it.text)
 		st.Who = "?"
 		return
 	}
@@ -582,13 +582,13 @@ func (p *planParser) who(it *planOpen, st *Step) {
 				}
 				st.Model = value
 			default:
-				p.problem(it.line, "step %d's who: crew, then %q: crew may say in `repo/name` (the capsule) and on <model>, and nothing else", st.N, part)
+				p.problem(it.line, "step %d's who: crew, then %q: crew takes only in `repo/name` (the capsule) and on <model>", st.N, part)
 			}
 		}
 	case "you":
 		st.Who = WhoYou
 		if rest != "" {
-			p.problem(it.line, "step %d's who: you, then %q: a checkpoint is the user's alone, so say what they look at in the step, not here", st.N, rest)
+			p.problem(it.line, "step %d's who: you, then %q: put what to look at in the step, not here", st.N, rest)
 		}
 	case "ci":
 		st.Who, st.Whom = WhoCI, rest
@@ -597,10 +597,10 @@ func (p *planParser) who(it *planOpen, st *Step) {
 	case "the planner", "planner":
 		st.Who = WhoPlanner
 		if rest != "" {
-			p.problem(it.line, "step %d's who: the planner, then %q: say what it plans in the step, not here", st.N, rest)
+			p.problem(it.line, "step %d's who: the planner, then %q: put what to plan in the step, not here", st.N, rest)
 		}
 	default:
-		p.problem(it.line, "who: %s isn't who's on a step: it's crew, you, CI, outside or the planner", it.text)
+		p.problem(it.line, "who: %s is not valid: use crew, you, CI, outside or the planner", it.text)
 	}
 }
 
@@ -639,11 +639,11 @@ func (p *planParser) carryingOn() {
 		switch {
 		case st.CarryOn == 0:
 		case st.Fresh:
-			p.problem(st.Line, "step %d carries on from step %d and is fresh: say one", st.N, st.CarryOn)
+			p.problem(st.Line, "step %d carries on from step %d and is fresh: choose one", st.N, st.CarryOn)
 		case st.CarryOn >= st.N:
-			p.problem(st.Line, "step %d carries on from step %d, which isn't before it: crew carry on from a step they've done", st.N, st.CarryOn)
+			p.problem(st.Line, "step %d carries on from step %d, which is not before it: carry on only from an earlier step", st.N, st.CarryOn)
 		case p.steps[st.CarryOn-1].Type != StepWork:
-			p.problem(st.Line, "step %d carries on from step %d, a %s step: crew carry on only from a Work step's", st.N, st.CarryOn, p.steps[st.CarryOn-1].Type)
+			p.problem(st.Line, "step %d carries on from step %d, a %s step: carry on only from a Work step", st.N, st.CarryOn, p.steps[st.CarryOn-1].Type)
 		}
 	}
 }
@@ -653,7 +653,7 @@ func (p *planParser) carryingOn() {
 func (p *planParser) inOrInEach() {
 	for _, st := range p.steps {
 		if st.InEach != "" && st.Capsule != "" {
-			p.problem(st.Line, "step %d says in: and in each: say one: in: for one repo, in each: for several", st.N)
+			p.problem(st.Line, "step %d has both in: and in each: use in: for one repo, in each: for several", st.N)
 		}
 	}
 }
@@ -666,7 +666,7 @@ func (p *planParser) endStep() {
 		return
 	}
 	if st.Type == StepVerify && len(st.Checks) == 0 {
-		p.problem(st.Line, "step %d verifies nothing: a Verify step says what's to be shown, a - check: each (or - yours: for one the user settles)", st.N)
+		p.problem(st.Line, "step %d verifies nothing: add a - check: for each thing to show (or - yours: for one the user settles)", st.N)
 	}
 	switch {
 	case st.Type != "":
@@ -680,7 +680,7 @@ func (p *planParser) endStep() {
 			}
 		}
 	case st.Who == "":
-		p.problem(st.Line, "step %d doesn't say what kind of step it is: start it with one of %s, then what it's for (%d. Work: …)", st.N, stepTypeNames(), st.N)
+		p.problem(st.Line, "step %d has no kind: start with one of %s, then what it is for (%d. Work: …)", st.N, stepTypeNames(), st.N)
 	case st.Who != "?":
 		st.Type = oldType(st.Who)
 	}

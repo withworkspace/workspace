@@ -305,11 +305,11 @@ func TestMission_ArchiveBurnsCapsules(t *testing.T) {
 		t.Fatal("archived with work that hasn't merged")
 	}
 	for _, want := range []string{
-		"4 haven't merged as they are",
-		"frontend/moved (it has moved since #8 merged)",
-		"frontend/dirty (it has changes not committed)",
+		"4 have unmerged work",
+		"frontend/moved (new commits since #8 merged)",
+		"frontend/dirty (uncommitted changes)",
 		"frontend/open (#10 is open)",
-		"frontend/wip (its work hasn't merged or landed)",
+		"frontend/wip (not merged or landed)",
 		"ws mission archive mixed --burn-all",
 	} {
 		if !strings.Contains(r.Err.Error(), want) {

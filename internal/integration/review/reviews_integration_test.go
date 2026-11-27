@@ -89,10 +89,10 @@ func TestShow_PullRequest(t *testing.T) {
 		}
 	}
 	// By an alias, too; and one that isn't open says so.
-	if r := testutil.RunCommand(t, w.Root, gh, "show", "be#7"); r.Err != nil && !strings.Contains(r.Err.Error(), "isn't a repo") {
+	if r := testutil.RunCommand(t, w.Root, gh, "show", "be#7"); r.Err != nil && !strings.Contains(r.Err.Error(), "is not a repo") {
 		t.Errorf("by an unknown alias: %v", r.Err)
 	}
-	if r := testutil.RunCommand(t, w.Root, gh, "show", "backend#99"); r.Err == nil || !strings.Contains(r.Err.Error(), "isn't open") {
+	if r := testutil.RunCommand(t, w.Root, gh, "show", "backend#99"); r.Err == nil || !strings.Contains(r.Err.Error(), "not an open pull request") {
 		t.Errorf("a PR that isn't open: %v", r.Err)
 	}
 }
@@ -224,13 +224,13 @@ func TestOpenHere(t *testing.T) {
 	if rec, _ := pulls.Load(w.Root, "backend", 7); rec.Docked == nil || rec.Docked.By != pulls.ByYou {
 		t.Errorf("record = %+v", rec.Docked)
 	}
-	if said, err = testutil.OpenHere(ctx, "backend", 7); err != nil || !strings.HasPrefix(said, "It's here already") {
+	if said, err = testutil.OpenHere(ctx, "backend", 7); err != nil || !strings.HasPrefix(said, "Already here") {
 		t.Errorf("open here again: %q, %v", said, err)
 	}
 
 	// One ws docked for a question becomes yours.
 	pulls.Update(w.Root, "backend", 7, func(r *pulls.Record) { r.Docked.By = pulls.ByWS })
-	if said, err = testutil.OpenHere(ctx, "backend", 7); err != nil || !strings.HasPrefix(said, "It's yours now") {
+	if said, err = testutil.OpenHere(ctx, "backend", 7); err != nil || !strings.HasPrefix(said, "Now yours") {
 		t.Fatalf("open here on ws's capsule: %q, %v", said, err)
 	}
 	if rec, _ := pulls.Load(w.Root, "backend", 7); rec.Docked.By != pulls.ByYou {

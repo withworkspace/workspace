@@ -393,7 +393,7 @@ func material(bare func(repo string) string, sub Subject) (Material, error) {
 // up to room bytes of its diff.
 func materialOf(bare string, sub Subject, room int) (Material, error) {
 	if bare == "" {
-		return Material{}, fmt.Errorf("%s isn't cloned here", sub.Repo)
+		return Material{}, fmt.Errorf("%s is not cloned here", sub.Repo)
 	}
 	var stats, patches []string
 	if sub.Of == OfOpen {
@@ -403,7 +403,7 @@ func materialOf(bare string, sub Subject, room int) (Material, error) {
 		}
 		base, err := git.Output(bare, "merge-base", pulls.BaseRef(sub.Base), head)
 		if err != nil {
-			return Material{}, fmt.Errorf("finding where #%d left %s: %w", sub.PR, sub.Base, err)
+			return Material{}, fmt.Errorf("could not find where #%d branched from %s: %w", sub.PR, sub.Base, err)
 		}
 		base = strings.TrimSpace(base)
 		stat, err := git.Output(bare, "diff", "--numstat", "-M", base, head, "--")
@@ -621,7 +621,7 @@ func ParseGist(reply string, files []FileChange) (string, []Know, error) {
 		}
 	}
 	if gist == "" {
-		return "", nil, fmt.Errorf("its reply had no gist: %s", clip(reply, 160))
+		return "", nil, fmt.Errorf("reply had no summary: %s", clip(reply, 160))
 	}
 	return gist, know, nil
 }
@@ -805,11 +805,11 @@ func (s *Service) writeGist(sub Subject, bare func(repo string) string) Gist {
 	g := Gist{Strand: sub.Strand, Of: sub.Of, From: sub.From, At: s.now(), Tries: 1}
 	m, err := material(bare, sub)
 	if err != nil {
-		g.Failed = "its change couldn't be read: " + err.Error()
+		g.Failed = "could not read changes: " + err.Error()
 		return g
 	}
 	if len(m.Files) == 0 {
-		g.Failed = "it changes no files"
+		g.Failed = "no files changed"
 		return g
 	}
 	reply, err := s.Writer(s.asked(sub, m))
@@ -875,7 +875,7 @@ func (s *Service) NarrativeVersion() int64 {
 func (s *Service) narrate(t *Timeline, snap *Snapshot, cfg map[string]PersonConfig) {
 	t.Narrative = &Narrative{On: s.Writer != nil, Off: s.NoWriter}
 	if s.Writer == nil && s.NoWriter == "" {
-		t.Narrative.Off = "nothing here writes them"
+		t.Narrative.Off = "no agent set up"
 	}
 	can := map[string]Subject{}
 	for _, sub := range subjects(snap.Events, s.readPRs(), cfg, s.now().Location()) {

@@ -20,7 +20,7 @@ The repos:
 
 Name what you mention as ws names it, and the web UI shows it as what it is, with a card and a link: a file by its repo and its path in the repo, with its lines when they matter (`api/internal/routes.go`, `api/internal/routes.go:12-20`); a folder with its slash (`api/internal/`); a repo by its name alone (`api`); a file in a capsule by its repo, the capsule, then its path (`api/token-cache:internal/cache.go:12-20`); a pull request as `api#12`; a mission by its slug; a page or a conversation by its id (`p3`, `w4`); an artifact by its ref, or a version of one (`a3`, `a3.v2`). Use the repo's full name, not an alias. Never name a file by where it is on this disk (no /Users/…, no repos/<repo>/.ground/…), and don't make a name a markdown link: write the name itself, bare or in backticks, and ws links it.
 
-This pass is "Check": What's open, ambiguous or missing, for someone who'd build from this page.
+This pass is "Check": Open choices, ambiguity and gaps, for whoever builds from this page.
 
 Read it as someone about to build from it. Find what's open (a choice not made), ambiguous (words that could mean two things) or missing (something they'd need that isn't there). Where the page says something about the code, check it against the code.
 

@@ -132,7 +132,7 @@ func TestDispatch_AskQueuesForTheDeck(t *testing.T) {
 func TestDispatch_MistakesAreCorrectable(t *testing.T) {
 	w, _, _ := dispatchFixture(t)
 	r := testutil.RunCommand(t, w.Root, nil, "mission", "dispatch", "--capsule", "frontend/nope", "x")
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "has no capsule frontend/nope (it has: backend/cache-lookup)") || !strings.Contains(r.Err.Error(), "ws lift") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "has no capsule frontend/nope (mission has: backend/cache-lookup)") || !strings.Contains(r.Err.Error(), "ws lift") {
 		t.Errorf("bad capsule: %v", r.Err)
 	}
 	t.Setenv("WS_ROLE", "")
@@ -213,7 +213,7 @@ func TestDispatch_BusyCapsuleRefusedUnlessQueued(t *testing.T) {
 		t.Errorf("named busy capsule: %v", r.Err)
 	}
 	r = testutil.RunCommand(t, w.Root, nil, "mission", "dispatch", "x")
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "crew are working in every capsule") {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "every capsule of cache is busy") {
 		t.Errorf("all busy: %v", r.Err)
 	}
 	// Queued, the deck asks before sharing.

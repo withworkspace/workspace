@@ -41,7 +41,7 @@ type RemoteReader interface {
 var RemoteReaders = func(root string) (RemoteReader, error) {
 	c, err := plugin.Dial(root)
 	if err != nil {
-		return nil, fmt.Errorf("the plugins can't be reached (is the workspace's daemon running?): %w", err)
+		return nil, fmt.Errorf("could not reach plugins (is Workspace running?): %w", err)
 	}
 	return c, nil
 }
@@ -185,7 +185,7 @@ func (w *Workspace) readRemote(ctx context.Context, reader RemoteReader, k plugi
 		return title, nil
 	}
 	if reader == nil {
-		return nil, errors.New("the plugins can't be reached")
+		return nil, errors.New("could not reach plugins")
 	}
 	fields, err := reader.ReadRemote(ctx, k.Plugin, protocol.RemoteReadParams{Kind: t.Kind, Name: t.Name(), Title: t.Title, File: t.Main, Content: content})
 	switch {
@@ -268,7 +268,7 @@ func (w *Workspace) pluginHasRemote(who, kind string) bool {
 func (w *Workspace) pluginRemotes(ctx context.Context, who, kind string) (protocol.RemoteListResult, error) {
 	out := protocol.RemoteListResult{Things: []protocol.RemoteThing{}}
 	if !w.pluginHasRemote(who, kind) {
-		return out, plugin.InvalidParams(fmt.Errorf("%s has no kind %q whose things live in a repo", who, kind))
+		return out, plugin.InvalidParams(fmt.Errorf("%s has no kind %q that can live in a repo", who, kind))
 	}
 	db, _, err := w.Spaces(ctx)
 	if db == nil {
@@ -291,9 +291,9 @@ func (w *Workspace) pluginRemotes(ctx context.Context, who, kind string) (protoc
 func (w *Workspace) pluginRemote(ctx context.Context, who, kind, name string) (protocol.RemoteOpened, error) {
 	var out protocol.RemoteOpened
 	if !w.pluginHasRemote(who, kind) {
-		return out, plugin.InvalidParams(fmt.Errorf("%s has no kind %q whose things live in a repo", who, kind))
+		return out, plugin.InvalidParams(fmt.Errorf("%s has no kind %q that can live in a repo", who, kind))
 	}
-	none := plugin.NotFound("ws has no " + kind + " at " + name)
+	none := plugin.NotFound("no " + kind + " at " + name)
 	r, ok := ref.Parse(name)
 	if !ok || r.Kind != ref.Dir || r.InCapsule() {
 		return out, none

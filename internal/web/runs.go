@@ -52,7 +52,7 @@ func (s *Server) pointSilo(w http.ResponseWriter, r *http.Request) {
 // files in full, by the daemon that keeps it.
 func (s *Server) resyncSilo(w http.ResponseWriter, r *http.Request) {
 	if s.ResyncSilo == nil {
-		jsonError(w, http.StatusNotFound, "nothing keeps the silos here: they're kept by the daemon")
+		jsonError(w, http.StatusNotFound, "silos are not available here")
 		return
 	}
 	repo := r.PathValue("repo")
@@ -74,7 +74,7 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Repo == "" || b.Capsule == "" || b.Recipe == "" {
-		jsonError(w, http.StatusBadRequest, "need the capsule's repo and name, and the recipe")
+		jsonError(w, http.StatusBadRequest, "missing capsule (repo and name) or recipe")
 		return
 	}
 	run, err := s.App.RunRecipe(r.PathValue("slug"), b.Repo, b.Capsule, b.Recipe, ops.AsYou)
@@ -91,7 +91,7 @@ func (s *Server) stopRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Ref == "" {
-		jsonError(w, http.StatusBadRequest, "need the run's ref")
+		jsonError(w, http.StatusBadRequest, "missing run ref")
 		return
 	}
 	if err := s.App.StopRun(r.PathValue("slug"), b.Ref); err != nil {
@@ -244,7 +244,7 @@ func (s *Server) runInWorktree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Recipe == "" {
-		jsonError(w, http.StatusBadRequest, "need the recipe")
+		jsonError(w, http.StatusBadRequest, "missing recipe")
 		return
 	}
 	repo, name := r.PathValue("repo"), r.PathValue("name")
@@ -364,7 +364,7 @@ func (s *Server) endRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Ref == "" {
-		jsonError(w, http.StatusBadRequest, "need the run's ref")
+		jsonError(w, http.StatusBadRequest, "missing run ref")
 		return
 	}
 	if err := s.App.EndRun(b.Ref); err != nil {
@@ -384,7 +384,7 @@ type RunPast struct {
 func (s *Server) runPast(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need the run's ref")
+		jsonError(w, http.StatusBadRequest, "missing run ref")
 		return
 	}
 	run, past, err := s.App.Run(ref)
@@ -415,7 +415,7 @@ type RunLog struct {
 func (s *Server) runLog(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	if ref == "" {
-		jsonError(w, http.StatusBadRequest, "need the run's ref")
+		jsonError(w, http.StatusBadRequest, "missing run ref")
 		return
 	}
 	log, size, _, err := s.App.RunLogSized(ref, runLogLines)
@@ -521,7 +521,7 @@ func (s *Server) writePR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Capsule == "" {
-		jsonError(w, http.StatusBadRequest, "name the capsule, as repo/name")
+		jsonError(w, http.StatusBadRequest, "missing capsule: repo/name")
 		return
 	}
 	o, err := s.App.WritePR(r.PathValue("slug"), b.Capsule, ops.AsYou)

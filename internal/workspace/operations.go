@@ -38,16 +38,16 @@ func (w *Workspace) SetupRepo(name string) SetupResult {
 	r := w.RemoteOf(name)
 	url := RepoCloneURL(r.Owner, r.Name, w.GitProtocol)
 	if err := GitCloneBare(url, bareDir); err != nil {
-		return SetupResult{Repo: name, Err: fmt.Errorf("cloning %s: %w", name, err)}
+		return SetupResult{Repo: name, Err: fmt.Errorf("could not clone %s: %w", name, err)}
 	}
 
 	mainWT := w.MainWorktree(name)
 	if err := GitWorktreeAddBranch(bareDir, mainWT, w.DefaultBranch); err != nil {
-		return SetupResult{Repo: name, Err: fmt.Errorf("creating %s worktree for %s: %w", w.DefaultBranch, name, err)}
+		return SetupResult{Repo: name, Err: fmt.Errorf("could not check out %s for %s: %w", w.DefaultBranch, name, err)}
 	}
 
 	if err := GitSetUpstream(bareDir, w.DefaultBranch, "origin"); err != nil {
-		return SetupResult{Repo: name, Err: fmt.Errorf("setting upstream for %s: %w", w.DefaultBranch, err)}
+		return SetupResult{Repo: name, Err: fmt.Errorf("could not set upstream for %s: %w", w.DefaultBranch, err)}
 	}
 
 	return SetupResult{Repo: name, Cloned: true}
@@ -93,13 +93,13 @@ func (w *Workspace) CreateLiftWorktree(repo, branch, base string) (string, error
 	capsule := UniqueCapsuleName(w.RepoDir(repo), branch)
 	wtPath := filepath.Join(w.RepoDir(repo), capsule)
 	if err := GitWorktreeAddNewBranch(bareDir, wtPath, branch, base); err != nil {
-		return "", fmt.Errorf("creating worktree: %w", err)
+		return "", fmt.Errorf("could not create capsule: %w", err)
 	}
 	// Override the tracking branch that git auto-set from the base ref (e.g. origin/main).
 	// The new branch should track its own remote counterpart, not the base branch.
 	// We use git config directly because the remote ref doesn't exist until the first push.
 	if err := GitConfigBranchUpstream(bareDir, branch, "origin"); err != nil {
-		return "", fmt.Errorf("setting upstream for %s: %w", branch, err)
+		return "", fmt.Errorf("could not set upstream for %s: %w", branch, err)
 	}
 	return capsule, nil
 }
@@ -111,7 +111,7 @@ func (w *Workspace) CreateDockWorktree(repo, branch string) (string, error) {
 	capsule := UniqueCapsuleName(w.RepoDir(repo), branch)
 	wtPath := filepath.Join(w.RepoDir(repo), capsule)
 	if err := GitWorktreeAddBranch(w.BareDir(repo), wtPath, branch); err != nil {
-		return "", fmt.Errorf("creating worktree: %w", err)
+		return "", fmt.Errorf("could not create capsule: %w", err)
 	}
 	return capsule, nil
 }
@@ -159,7 +159,7 @@ func (w *Workspace) RemoveWorktree(repo, branch string, force bool) error {
 		remove = GitWorktreeRemoveForce
 	}
 	if err := remove(w.BareDir(repo), wtPath); err != nil {
-		return fmt.Errorf("removing worktree: %w", err)
+		return fmt.Errorf("could not remove capsule: %w", err)
 	}
 	return nil
 }
@@ -208,15 +208,15 @@ func CopyFromGround(groundDir, capsuleDir string, paths []string) (skipped []str
 
 		dst := filepath.Join(capsuleDir, p)
 		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-			return skipped, fmt.Errorf("creating directory for %s: %w", p, err)
+			return skipped, fmt.Errorf("could not create folder for %s: %w", p, err)
 		}
 
 		data, err := os.ReadFile(src)
 		if err != nil {
-			return skipped, fmt.Errorf("reading %s: %w", p, err)
+			return skipped, fmt.Errorf("could not read %s: %w", p, err)
 		}
 		if err := os.WriteFile(dst, data, 0644); err != nil {
-			return skipped, fmt.Errorf("writing %s: %w", p, err)
+			return skipped, fmt.Errorf("could not write %s: %w", p, err)
 		}
 	}
 	return skipped, nil

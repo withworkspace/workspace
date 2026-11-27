@@ -68,10 +68,10 @@ func TestChecks_MetMidTurnPassesWhenTheTurnEnds(t *testing.T) {
 	inTurnSinceDone(t, w)
 
 	said := w.CrewDone("cache", "c1")
-	if !strings.Contains(said, "it passes when c1's turn ends") || stepRecord(t, w, 1).Accepted() {
+	if !strings.Contains(said, "passes when c1's current turn ends") || stepRecord(t, w, 1).Accepted() {
 		t.Fatalf("CrewDone said %q, step 1 = %+v", said, stepRecord(t, w, 1).Record)
 	}
-	if !logged(t, w, "step 1's checks are met (round 1): it passes when c1's turn ends") {
+	if !logged(t, w, "step 1's checks met (round 1): passes when c1's current turn ends") {
 		t.Error("the mission doesn't say why it isn't passed")
 	}
 
@@ -123,7 +123,7 @@ func TestChecks_WorkChangedSinceIsCheckedAgain(t *testing.T) {
 	checked := commitIn(t, dir, "feat: cache the lookup")
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
 	inTurnSinceDone(t, w)
-	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "it passes when c1's turn ends") {
+	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "passes when c1's current turn ends") {
 		t.Fatalf("CrewDone said %q", said)
 	}
 
@@ -143,7 +143,7 @@ func TestChecks_WorkChangedSinceIsCheckedAgain(t *testing.T) {
 	if c := m.Crew[0]; c.Status != "" {
 		t.Errorf("their done still stands: %+v", c)
 	}
-	if !logged(t, w, "the work has changed since") {
+	if !logged(t, w, "the work changed since") {
 		t.Error("the mission doesn't say the work changed")
 	}
 
@@ -173,7 +173,7 @@ func TestChecks_WorkChangedWithCrewGoneIsYours(t *testing.T) {
 	said, ok := w.settleChecked("cache", "c1")
 	m, _ := w.Missions.Load("cache")
 	task, open := m.StepTask(1)
-	if !ok || !open || task.Verb != mission.TaskChecks || !strings.Contains(task.Text, "The work has changed since they ran") {
+	if !ok || !open || task.Verb != mission.TaskChecks || !strings.Contains(task.Text, "The work changed since checks ran") {
 		t.Fatalf("settling said %q (%v), task %+v", said, ok, task)
 	}
 	if a, err := w.AnswerTask("cache", task.N, AsYou, mission.ChecksPass); err != nil || a.Next == "" {
@@ -197,7 +197,7 @@ func TestAnswer_PassItThatCantPassStaysOpen(t *testing.T) {
 	w.Missions.Nudged("cache", "c1", "put check 2 right", "orchestrator")
 	w.Missions.CrewHook("cache", "c1", mission.Hook{Prompted: true})
 
-	if _, err := w.AnswerTask("cache", task.N, AsYou, mission.ChecksPass); err == nil || !strings.Contains(err.Error(), "c1 is still working on it") {
+	if _, err := w.AnswerTask("cache", task.N, AsYou, mission.ChecksPass); err == nil || !strings.Contains(err.Error(), "c1 has not reported done") {
 		t.Fatalf("passing it under working crew: %v", err)
 	}
 	m, _ = w.Missions.Load("cache")

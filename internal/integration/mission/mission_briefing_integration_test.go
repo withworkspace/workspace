@@ -51,7 +51,7 @@ func TestBriefing_HumanPath(t *testing.T) {
 
 	testutil.Run(t, w, nil, "lift", "fe", "token-race")
 	ready := testutil.Run(t, w, nil, "mission", "ready", "--slug", "token-race")
-	if !strings.Contains(ready.Stderr, "Mission token-race is confirmed: Fix token refresh race · 1 capsule") || !strings.Contains(ready.Stderr, "it's ready for crew") {
+	if !strings.Contains(ready.Stderr, "Mission token-race is confirmed: Fix token refresh race · 1 capsule") || !strings.Contains(ready.Stderr, "ready for crew") {
 		t.Errorf("ready output:\n%s", ready.Stderr)
 	}
 	got, err := store.Load("token-race")

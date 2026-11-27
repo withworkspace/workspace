@@ -118,7 +118,7 @@ func TestPluginView(t *testing.T) {
 	}
 
 	// A plugin that isn't there.
-	if res := do(t, s, "GET", "/plugins/nobody/", true, nil); res.StatusCode != http.StatusNotFound || !strings.Contains(body(res), "no such plugin") {
+	if res := do(t, s, "GET", "/plugins/nobody/", true, nil); res.StatusCode != http.StatusNotFound || !strings.Contains(body(res), "Plugin not found") {
 		t.Errorf("no such plugin: %d", res.StatusCode)
 	}
 }
@@ -209,7 +209,7 @@ func TestPluginShell(t *testing.T) {
 	// A plugin that isn't there: the shell, with ws's message and no app.
 	res := do(t, s, "GET", "/plugin-frame/nobody/", true, nil)
 	page := body(res)
-	if res.StatusCode != http.StatusNotFound || !strings.Contains(page, "There&#39;s no such plugin") || strings.Contains(page, `type="module"`) {
+	if res.StatusCode != http.StatusNotFound || !strings.Contains(page, "Plugin not found") || strings.Contains(page, `type="module"`) {
 		t.Errorf("no such plugin: %d %q", res.StatusCode, page)
 	}
 	if !strings.Contains(page, "<style>:root{--bg:#fff;--ws-bg:var(--bg)}</style>") || res.Header.Get("Content-Security-Policy") != ShellPolicy {
@@ -240,7 +240,7 @@ func TestPluginShellWithNoApp(t *testing.T) {
 	s := startWithPlugin(t, fakeplugin.Options{NoUI: true})
 	res := do(t, s, "GET", "/plugin-frame/fake/", true, nil)
 	page := body(res)
-	if res.StatusCode != http.StatusBadGateway || !strings.Contains(page, "fake has no app to show") || !strings.Contains(page, "update it") || strings.Contains(page, `type="module"`) {
+	if res.StatusCode != http.StatusBadGateway || !strings.Contains(page, "fake has no app") || !strings.Contains(page, "Update the plugin") || strings.Contains(page, `type="module"`) {
 		t.Errorf("a plugin with no app: %d %q", res.StatusCode, page)
 	}
 }
@@ -317,7 +317,7 @@ func TestPluginNeedsSettingUp(t *testing.T) {
 	for _, path := range []string{"/plugin-frame/fake/", "/plugins/fake/api/greeting"} {
 		res := do(t, s, "GET", path, true, nil)
 		page := body(res)
-		if res.StatusCode != http.StatusServiceUnavailable || !strings.Contains(page, "needs setting up") || !strings.Contains(page, "ws plugin config fake --ask") {
+		if res.StatusCode != http.StatusServiceUnavailable || !strings.Contains(page, "needs setup") || !strings.Contains(page, "ws plugin config fake --ask") {
 			t.Errorf("%s before it's set up: %d %q", path, res.StatusCode, page)
 		}
 		if !strings.Contains(page, "--ws-bg") || strings.Contains(page, `type="module"`) {

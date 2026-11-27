@@ -237,11 +237,11 @@ const askAtOnce = 6
 
 func (s *Service) load() (*List, error) {
 	if s.GitHub == nil {
-		return nil, errors.New("there's no GitHub to ask here")
+		return nil, errors.New("not connected to GitHub")
 	}
 	me, err := s.GitHub.Viewer()
 	if err != nil {
-		return nil, fmt.Errorf("asking GitHub who you are: %w", err)
+		return nil, fmt.Errorf("could not get your GitHub account: %w", err)
 	}
 	repos := s.Repos()
 	data := make([]repoPRs, len(repos))
@@ -287,10 +287,10 @@ func (s *Service) load() (*List, error) {
 		}
 	}
 	if len(repos) > 0 && failed == len(repos) {
-		return nil, fmt.Errorf("GitHub couldn't be asked about any repo: %s", problems[0])
+		return nil, fmt.Errorf("could not reach GitHub for any repo: %s", problems[0])
 	}
 	if askedErr != nil {
-		l.Problems = append(l.Problems, "requests to your teams couldn't be found: "+askedErr.Error())
+		l.Problems = append(l.Problems, "could not load review requests to your teams: "+askedErr.Error())
 	}
 	sort.Strings(l.Problems)
 	return l, nil
@@ -385,7 +385,7 @@ func (s *Service) Open(repo string, number int) (*PR, *Stack, error) {
 			return pr, st, nil
 		}
 	}
-	return nil, nil, fmt.Errorf("%w: %s#%d isn't open (merged or closed, or not one of this workspace's repos)", ErrNotOpen, repo, number)
+	return nil, nil, fmt.Errorf("%w: %s#%d is merged, closed, or not in this workspace", ErrNotOpen, repo, number)
 }
 
 // lockRepo serialises fetches into one repo's clone.
@@ -409,7 +409,7 @@ func (s *Service) lockRepo(repo string) func() {
 func (s *Service) fetched(pr *PR) (string, error) {
 	dir := s.BareDir(pr.Repo)
 	if _, err := os.Stat(dir); err != nil {
-		return "", fmt.Errorf("%s isn't cloned here (ws setup clones it)", pr.Repo)
+		return "", fmt.Errorf("%s is not cloned: run ws setup", pr.Repo)
 	}
 	defer s.lockRepo(pr.Repo)()
 	have := review.CommitOf(dir, HeadRef(pr.Number))
@@ -476,7 +476,7 @@ func (s *Service) layer(pr *PR, st *Stack) (*layer, error) {
 		}
 		l.baseRef = BaseRef(l.below.Branch)
 	} else if tip = review.CommitOf(l.dir, BaseRef(pr.Base)); tip == "" {
-		return nil, fmt.Errorf("%s, the branch %s is for, isn't in %s's clone (ws fetch)", pr.Base, pr.Ref(), pr.Repo)
+		return nil, fmt.Errorf("%s, the base of %s, is not fetched in %s: run ws fetch", pr.Base, pr.Ref(), pr.Repo)
 	}
 	if l.base, err = review.MergeBase(l.dir, tip, head); err != nil {
 		return nil, err
@@ -743,7 +743,7 @@ func (s *Service) Diff(repo string, number int, scope string) (*Diffed, error) {
 	}
 	rv := s.reviewed(pr, rec, l)
 	if rv == nil {
-		return nil, fmt.Errorf("you haven't reviewed %s yet", pr.Ref())
+		return nil, fmt.Errorf("you have not reviewed %s yet", pr.Ref())
 	}
 	return sinceDiff(pr, l, rv, sinceMode(l, rv))
 }
@@ -798,7 +798,7 @@ func sinceDiff(pr *PR, l *layer, rv *Reviewed, since string) (*Diffed, error) {
 // branch the stack is for.
 func (s *Service) whole(pr *PR, st *Stack) (*Diffed, error) {
 	if st == nil || len(st.Layers) == 0 {
-		return nil, fmt.Errorf("%s isn't in a stack", pr.Ref())
+		return nil, fmt.Errorf("%s is not in a stack", pr.Ref())
 	}
 	bottom, top := &st.Layers[0], &st.Layers[len(st.Layers)-1]
 	if _, err := s.fetched(bottom); err != nil {
@@ -811,7 +811,7 @@ func (s *Service) whole(pr *PR, st *Stack) (*Diffed, error) {
 	dir := s.BareDir(pr.Repo)
 	tip := review.CommitOf(dir, BaseRef(bottom.Base))
 	if tip == "" {
-		return nil, fmt.Errorf("%s, the branch the stack is for, isn't in %s's clone (ws fetch)", bottom.Base, pr.Repo)
+		return nil, fmt.Errorf("%s, the stack's base, is not fetched in %s: run ws fetch", bottom.Base, pr.Repo)
 	}
 	base, err := review.MergeBase(dir, tip, head)
 	if err != nil {

@@ -43,7 +43,7 @@ func TestArtifact_CrewAddTwoVersionsAndShowSaysWhatEachIs(t *testing.T) {
 	dir := t.TempDir()
 
 	r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow.html", glowV1), "--note", "Accent at 20% in dark and light, fading out by 55% of the height.")
-	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "Added a1.v1, \"Horizon glow\"") || !strings.Contains(r.Stderr, "recorded it on glow") {
+	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "Added a1.v1, \"Horizon glow\"") || !strings.Contains(r.Stderr, "recorded on glow") {
 		t.Errorf("add said:\n%s%s", r.Stdout, r.Stderr)
 	}
 	r = testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow2.html", glowV2), "--to", "a1", "--note", "No glow in light: it looked grey there.")

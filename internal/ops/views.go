@@ -446,7 +446,7 @@ func docThreadCourt(ws *workspace.Workspace, v MissionView, brief string, store 
 			for _, p := range c.Proposals {
 				b.Proposed = b.Proposed || (p.Kind == conversation.ProposeBrief && p.State == conversation.ProposalOpen)
 				if p.Kind == conversation.ProposePlan && p.State == conversation.ProposalOpen {
-					b.PlanWhy = firstNonEmpty(p.Why, "a change to the plan, yours to confirm")
+					b.PlanWhy = firstNonEmpty(p.Why, "plan change to confirm")
 				}
 			}
 			out.Briefing = b

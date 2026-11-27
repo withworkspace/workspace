@@ -232,7 +232,7 @@ func TestRoles_Orchestrator(t *testing.T) {
 		t.Errorf("model only = %+v", pick)
 	}
 	// The shell can't run headless: an explicit choice says so.
-	if _, _, err := (Roles{Orchestrator: Pick{Harness: "shell"}}).ForOrchestrator(); err == nil || !strings.Contains(err.Error(), "can't run the headless orchestrator") {
+	if _, _, err := (Roles{Orchestrator: Pick{Harness: "shell"}}).ForOrchestrator(); err == nil || !strings.Contains(err.Error(), "cannot run the orchestrator") {
 		t.Errorf("shell orchestrator err = %v", err)
 	}
 }

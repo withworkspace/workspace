@@ -75,13 +75,13 @@ func TestPRStep_RedChecksComeRound(t *testing.T) {
 	w, runs, _ := prFixture(t)
 	w.cur.cfg.Missions.MaxRounds = 1
 	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "failure"})
-	if len(*runs) != 1 || (*runs)[0] != "cache/pr" || !strings.Contains(strings.Join(prLog(t, w), "|"), "checks-failed: frontend#5's checks are failing") {
+	if len(*runs) != 1 || (*runs)[0] != "cache/pr" || !strings.Contains(strings.Join(prLog(t, w), "|"), "checks-failed: frontend#5: checks failing") {
 		t.Fatalf("round 1: runs %v, log %v", *runs, prLog(t, w))
 	}
 	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "pending"})
 	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "failure", Mergeable: "CONFLICTING"})
 	m, _ := w.Missions.Load("cache")
-	if q, ok := m.Question(); !ok || !strings.Contains(q.Text, "frontend#5 conflicts with its base, again: that's round 2") || len(*runs) != 1 {
+	if q, ok := m.Question(); !ok || !strings.Contains(q.Text, "frontend#5 has merge conflicts again: round 2") || len(*runs) != 1 {
 		t.Errorf("round 2: question %+v, runs %v", q, *runs)
 	}
 	if st := stepRecord(t, w, 1); st.Record.Rounds != 2 {
@@ -157,7 +157,7 @@ func TestPRStep_GreenDraft(t *testing.T) {
 	watchPR(t, w2, github.PR{IsDraft: true, StatusRollup: "success"})
 	m, _ := w2.Missions.Load("cache")
 	task := m.Asking()
-	if task == nil || task.Step != 1 || task.Verb != mission.TaskApprove || !strings.Contains(task.Text, "go on, and ws marks it ready") {
+	if task == nil || task.Step != 1 || task.Verb != mission.TaskApprove || !strings.Contains(task.Text, "go on to mark it ready") {
 		t.Fatalf("the task = %+v", task)
 	}
 	if a, err := w2.AnswerTask("cache", task.N, AsYou, mission.CheckInGoOn); err != nil || !strings.Contains(a.Next, "marked frontend#5 ready") || len(gh2.readied) != 1 {
@@ -173,7 +173,7 @@ func TestPRStep_GreenDraft(t *testing.T) {
 	w3.cur.cfg.Missions.ReviewBeforeReady = &held
 	watchPR(t, w3, github.PR{IsDraft: true, StatusRollup: "success"})
 	m, _ = w3.Missions.Load("cache")
-	if task := m.Asking(); task == nil || !strings.Contains(task.Text, "ws holds missions.review_before_ready: review frontend/one") || len(*runs3) != 0 {
+	if task := m.Asking(); task == nil || !strings.Contains(task.Text, "With missions.review_before_ready on, approve frontend/one in review") || len(*runs3) != 0 {
 		t.Errorf("held: task %+v, runs %v", task, *runs3)
 	}
 	_, err = w3.MarkReady("cache", "", AsOrchestrator)
@@ -197,7 +197,7 @@ func TestPRStep_WhatsSaid(t *testing.T) {
 	gh.threads = []github.ReviewThread{{ID: "PRRT_1", Path: "cache.go", Line: 12, Comments: []github.ThreadComment{{Author: "bob", Body: "Why a map?", At: "2026-11-15T10:06:00Z"}}}}
 	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "pending", ReviewDecision: "CHANGES_REQUESTED"})
 	got := strings.Join(prLog(t, w), "|")
-	for _, want := range []string{"said: bob reviewed frontend#5 (changes requested): Key it per tenant.", "said: bob on frontend#5, `cache.go:12` (thread PRRT_1): Why a map?", "changes-requested: frontend#5: a reviewer asked for changes"} {
+	for _, want := range []string{"said: bob reviewed frontend#5 (changes requested): Key it per tenant.", "said: bob on frontend#5, `cache.go:12` (thread PRRT_1): Why a map?", "changes-requested: frontend#5: changes requested"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("the log lacks %q: %s", want, got)
 		}
@@ -232,7 +232,7 @@ func TestPRStep_Replies(t *testing.T) {
 	if task == nil || task.Verb != mission.TaskReply || task.Reply != 1 || !strings.Contains(task.Text, "c1 drafted a reply on thread PRRT_1 on frontend#5, to bob: “A map's enough") || strings.Join(task.Options, "|") != "Post it|Don't post" {
 		t.Fatalf("the task = %+v", task)
 	}
-	if a, err := w.AnswerTask("cache", task.N, AsYou, mission.ReplyPost); err != nil || a.Next != "posted it on thread PRRT_1 on frontend#5" || strings.Join(gh.posted, "|") != "PRRT_1: A map's enough: lookups are by key." {
+	if a, err := w.AnswerTask("cache", task.N, AsYou, mission.ReplyPost); err != nil || a.Next != "posted on thread PRRT_1 on frontend#5" || strings.Join(gh.posted, "|") != "PRRT_1: A map's enough: lookups are by key." {
 		t.Errorf("posting it: %+v, %v, %v", a, err, gh.posted)
 	}
 	if m, _ = w.Missions.Load("cache"); m.Replies[0].Posted == nil || len(m.Tasks) != 0 {
@@ -267,7 +267,7 @@ func TestPRStep_Closed(t *testing.T) {
 	}
 	m, _ := w.Missions.Load("cache")
 	w.WatchPRs([]MissionView{{M: m, State: mission.Review, Capsules: []CapsuleView{{Capsule: m.Capsules[0], Exists: true}}}})
-	if got := strings.Join(prLog(t, w), "|"); got != "closed: frontend#5 was closed without merging" || len(*runs) != 1 {
+	if got := strings.Join(prLog(t, w), "|"); got != "closed: frontend#5 closed without merging" || len(*runs) != 1 {
 		t.Errorf("closed: log %q, runs %v", got, *runs)
 	}
 }
@@ -290,7 +290,7 @@ func TestPRStep_MergedTakesBackItsQuestion(t *testing.T) {
 	off := false
 	w.cur.cfg.Orchestrator.Enabled = &off
 	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "failure"})
-	if m, _ := w.Missions.Load("cache"); m.Asking() == nil || !strings.Contains(m.Asking().Text, "frontend#5's checks are failing. The orchestrator isn't running") {
+	if m, _ := w.Missions.Load("cache"); m.Asking() == nil || !strings.Contains(m.Asking().Text, "frontend#5: checks failing. The orchestrator is off") {
 		t.Fatalf("asked: %+v", m.Asking())
 	}
 	m, _ := w.Missions.Load("cache")
@@ -349,7 +349,7 @@ func TestPRStep_MergedSettlesWhatTheOrchestratorAskedAtIt(t *testing.T) {
 	if len(left) != 1 || !strings.HasPrefix(left[0], "c1: The brief names two caches") {
 		t.Errorf("asked at the step: still asked %q", left)
 	}
-	if got := strings.Join(notes, "|"); !strings.Contains(got, "closed: step 2 passed, its pull request merged: what the orchestrator asked at it is settled") {
+	if got := strings.Join(notes, "|"); !strings.Contains(got, "closed: step 2 passed, pull request merged: orchestrator's question settled") {
 		t.Errorf("the log doesn't say why it closed: %s", got)
 	}
 
@@ -448,7 +448,7 @@ func TestPRStep_SeenBeforeGitHubIsAsked(t *testing.T) {
 
 	w.Missions.SeePR("cache", "frontend/one", mission.SeenPR{Number: 5})
 	h := headlineWith(t, w, PRIndex{})
-	if h.Court != mission.CourtAgent || h.Kind != mission.KindMovingOn || h.Text != "frontend#5 is open: ws is asking GitHub how its checks and review stand" {
+	if h.Court != mission.CourtAgent || h.Kind != mission.KindMovingOn || h.Text != "frontend#5 is open: asking GitHub for checks and review status" {
 		t.Errorf("only just opened: %+v", h)
 	}
 

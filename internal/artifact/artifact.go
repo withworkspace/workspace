@@ -356,7 +356,7 @@ func Check(files Files) (Checked, error) {
 		c.Title = strings.Join(strings.Fields(html.UnescapeString(string(m[1]))), " ")
 	}
 	if !doctype.Match(start) {
-		c.Warnings = append(c.Warnings, "it doesn't start with <!doctype html>, so it's drawn in quirks mode: start it with that")
+		c.Warnings = append(c.Warnings, "missing <!doctype html> at the start: renders in quirks mode")
 	}
 	seen := map[string]bool{}
 	warn := func(s string) {
@@ -378,7 +378,7 @@ func Check(files Files) (Checked, error) {
 		switch strings.ToLower(path.Ext(f.Path)) {
 		case ".html", ".htm":
 			for _, m := range loadsFrom.FindAllSubmatch(f.Data, -1) {
-				warn(fmt.Sprintf("%s <%s> loads %s, which the frame won't fetch: put it among the artifact's files, and load it from there", its, strings.ToLower(string(m[1])), clip(string(m[2]))))
+				warn(fmt.Sprintf("%s <%s> loads %s from outside, which is blocked: add it to the artifact's files", its, strings.ToLower(string(m[1])), clip(string(m[2]))))
 			}
 			for _, m := range loadsOwn.FindAllSubmatch(f.Data, -1) {
 				ref := string(m[2]) + string(m[3]) + string(m[4])
@@ -387,11 +387,11 @@ func Check(files Files) (Checked, error) {
 				}
 			}
 			for _, m := range cssFrom.FindAllSubmatch(f.Data, -1) {
-				warn(fmt.Sprintf("%s CSS loads %s, which the frame won't fetch: put it among the artifact's files, and load it from there", its, clip(string(m[1]))))
+				warn(fmt.Sprintf("%s CSS loads %s from outside, which is blocked: add it to the artifact's files", its, clip(string(m[1]))))
 			}
 		case ".css":
 			for _, m := range cssFrom.FindAllSubmatch(f.Data, -1) {
-				warn(fmt.Sprintf("%s loads %s, which the frame won't fetch: put it among the artifact's files, and load it from there", f.Path, clip(string(m[1]))))
+				warn(fmt.Sprintf("%s loads %s from outside, which is blocked: add it to the artifact's files", f.Path, clip(string(m[1]))))
 			}
 			continue
 		case ".js", ".mjs":
@@ -399,13 +399,13 @@ func Check(files Files) (Checked, error) {
 			continue
 		}
 		for _, m := range fetchFrom.FindAllSubmatch(f.Data, -1) {
-			warn(fmt.Sprintf("%s fetches %s, and nothing outside the artifact answers: put the data among its files (fetch(\"data.json\") reads one)", it, clip(string(m[1]))))
+			warn(fmt.Sprintf("%s fetches %s, which is blocked: add the data to the artifact's files (fetch(\"data.json\") reads one)", it, clip(string(m[1]))))
 		}
 		for _, m := range sockets.FindAllSubmatch(f.Data, -1) {
-			warn(fmt.Sprintf("%s calls %s, and nothing leaves the frame: show what it would be sent in the page", it, m[1]))
+			warn(fmt.Sprintf("%s calls %s, which is blocked: show what it would send on the page", it, m[1]))
 		}
 		for _, m := range storage.FindAllSubmatch(f.Data, -1) {
-			warn(fmt.Sprintf("%s uses %s, which the frame doesn't give it (it throws, or is empty): keep what it needs in variables", it, m[1]))
+			warn(fmt.Sprintf("%s uses %s, which is unavailable (throws, or is empty): keep state in variables", it, m[1]))
 		}
 	}
 	return c, nil
@@ -423,19 +423,19 @@ func ownFile(dir, ref string, has map[string]bool) string {
 		return ""
 	}
 	if strings.HasPrefix(ref, "/") {
-		return "from the top of the server, where the artifact isn't: say it from the page (" + strings.TrimLeft(ref, "/") + ")"
+		return "an absolute path, which is blocked: use a path relative to the page (" + strings.TrimLeft(ref, "/") + ")"
 	}
 	if un, err := url.PathUnescape(ref); err == nil {
 		ref = un
 	}
 	p := path.Join(dir, ref)
 	if p == ".." || strings.HasPrefix(p, "../") {
-		return "which is outside the artifact: put it among its files"
+		return "which is outside the artifact: add it to the artifact's files"
 	}
 	if has[p] {
 		return ""
 	}
-	return "which isn't among its files: add the artifact as a folder with it in (ws artifact add <folder>)"
+	return "which is missing from the artifact's files: add the folder that has it (ws artifact add <folder>)"
 }
 
 func clip(s string) string {

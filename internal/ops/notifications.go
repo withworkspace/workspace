@@ -163,7 +163,7 @@ func (r NotificationsRead) String() string {
 	}
 	switch r.Count {
 	case 0:
-		return "Nothing to mark: they were " + map[bool]string{false: "read", true: "dismissed"}[r.Dismissed] + " already."
+		return "Nothing to mark: all " + map[bool]string{false: "read", true: "dismissed"}[r.Dismissed] + " already."
 	case 1:
 		return what + " 1 notification."
 	}
@@ -182,7 +182,7 @@ func (w *Workspace) ReadNotifications(ns []int64, all bool, by Actor) (Notificat
 		count, err = notification.ReadAll(w.root, notifyRoutes(w.root).muted())
 	} else {
 		if len(ns) == 0 {
-			return NotificationsRead{}, invalid("say which: a notification's number (n3), or all of them")
+			return NotificationsRead{}, invalid("name a notification (n3), or all")
 		}
 		count, err = notification.MarkRead(w.root, ns)
 	}
@@ -196,7 +196,7 @@ func (w *Workspace) DismissNotifications(ns []int64, by Actor) (NotificationsRea
 		return NotificationsRead{}, err
 	}
 	if len(ns) == 0 {
-		return NotificationsRead{}, invalid("say which: a notification's number (n3)")
+		return NotificationsRead{}, invalid("name a notification (n3)")
 	}
 	count, err := notification.Dismiss(w.root, ns)
 	return NotificationsRead{Count: count, Dismissed: true}, err
@@ -238,7 +238,7 @@ func (w *Workspace) notifyPluginUpdates(was, now keptUpdates, installed func(nam
 		}
 		w.notify(notification.Notification{
 			Source: notification.SourcePlugins, Kind: notification.PluginUpdate,
-			Text: fmt.Sprintf("%s %s is out: update it from Plugins", name, kept.Latest),
+			Text: fmt.Sprintf("%s %s is out: update from Plugins", name, kept.Latest),
 			Refs: []string{"plugin:" + name},
 		})
 	}
@@ -259,7 +259,7 @@ func (w *Workspace) NoteStarted() {
 	}
 	w.notify(notification.Notification{
 		Source: notification.SourceWS, Kind: notification.WSUpgraded,
-		Text: fmt.Sprintf("ws was upgraded to %s, from %s: the daemon restarted onto it", ws.Version, was),
+		Text: fmt.Sprintf("Workspace upgraded to %s, from %s", ws.Version, was),
 	})
 }
 

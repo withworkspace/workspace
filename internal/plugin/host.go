@@ -226,7 +226,7 @@ func (h *Host) startLock(name string) *sync.Mutex {
 // ensure is the plugin's process, started if it isn't running.
 func (h *Host) ensure(name string) (*proc, error) {
 	if !ValidName(name) {
-		return nil, fmt.Errorf("%q isn't a plugin's name", name)
+		return nil, fmt.Errorf("%q is not a plugin name", name)
 	}
 	lock := h.startLock(name)
 	lock.Lock()
@@ -235,7 +235,7 @@ func (h *Host) ensure(name string) (*proc, error) {
 	h.mu.Lock()
 	if h.closing {
 		h.mu.Unlock()
-		return nil, errors.New("the daemon is closing")
+		return nil, errors.New("Workspace is shutting down")
 	}
 	prev := h.procs[name]
 	h.mu.Unlock()
@@ -277,14 +277,14 @@ func (h *Host) ensure(name string) (*proc, error) {
 func (h *Host) start(name string) (*proc, error) {
 	app, err := filepath.EvalSymlinks(appDir(h.Root, name))
 	if err != nil {
-		return nil, fmt.Errorf("there's no plugin called %s", name)
+		return nil, fmt.Errorf("no plugin called %s", name)
 	}
 	m, err := ReadManifest(app)
 	if err != nil {
 		return nil, err
 	}
 	if m.Name != name {
-		return nil, fmt.Errorf("the plugin in %s calls itself %s, not %s", app, m.Name, name)
+		return nil, fmt.Errorf("plugin in %s is named %s, not %s", app, m.Name, name)
 	}
 	data := dataDir(h.Root, name)
 	if err := os.MkdirAll(data, 0o755); err != nil {
@@ -308,7 +308,7 @@ func (h *Host) start(name string) (*proc, error) {
 		return nil, err
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("starting %s: %w", strings.Join(m.Command, " "), err)
+		return nil, fmt.Errorf("could not start %s: %w", strings.Join(m.Command, " "), err)
 	}
 	p := &proc{
 		name: name, manifest: m, cmd: cmd, stdin: stdin, exited: make(chan struct{}), ready: make(chan struct{}),
@@ -360,10 +360,10 @@ func (h *Host) start(name string) (*proc, error) {
 	if err != nil {
 		h.kill(p)
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%s didn't answer in %s of starting: see %s", name, startTimeout, LogPath(h.Root, name))
+			return nil, fmt.Errorf("%s did not answer within %s of starting: see %s", name, startTimeout, LogPath(h.Root, name))
 		}
 		if errors.Is(err, acp.ErrClosed) {
-			return nil, fmt.Errorf("%s stopped as it started: see %s", name, LogPath(h.Root, name))
+			return nil, fmt.Errorf("%s stopped while starting: see %s", name, LogPath(h.Root, name))
 		}
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
@@ -443,13 +443,13 @@ func agreed(name string, answer protocol.InitializeResult) error {
 		speaks = []int{answer.Protocol} // from before versions were chosen
 	}
 	if len(speaks) == 0 {
-		return fmt.Errorf("%s doesn't say which version of the plugin protocol it speaks, and this ws speaks %s. Update the plugin", name, versions(Protocols))
+		return fmt.Errorf("%s does not say which plugin protocol version it speaks; Workspace speaks %s. Update the plugin", name, versions(Protocols))
 	}
 	update := "Update the plugin"
 	if slices.Max(speaks) > slices.Max(Protocols) {
 		update = "Update ws"
 	}
-	return fmt.Errorf("%s speaks the plugin protocol's %s, and this ws speaks %s. %s", name, versions(speaks), versions(Protocols), update)
+	return fmt.Errorf("%s speaks plugin protocol %s; Workspace speaks %s. %s", name, versions(speaks), versions(Protocols), update)
 }
 
 // versions says a list of the protocol's versions: "version 1",
@@ -490,17 +490,17 @@ func (h *Host) acceptable(name string, r Registration) error {
 		return nil
 	}
 	if !ValidName(word) {
-		return fmt.Errorf("%s: its command %q must be lower-case letters, digits and hyphens", name, word)
+		return fmt.Errorf("%s: command %q must be lower-case letters, digits and hyphens", name, word)
 	}
 	if h.Reserved != nil && h.Reserved(word) {
-		return fmt.Errorf("%s: ws %s is ws's own command, so the plugin can't have it", name, word)
+		return fmt.Errorf("%s: ws %s is a built-in command", name, word)
 	}
 	for _, other := range Installed(h.Root) {
 		if other == name {
 			continue
 		}
 		if reg, ok := ReadRegistration(h.Root, other); ok && reg.CommandName(other) == word {
-			return fmt.Errorf("%s: ws %s is the plugin %s's command already", name, word, other)
+			return fmt.Errorf("%s: ws %s already belongs to plugin %s", name, word, other)
 		}
 	}
 	return nil
@@ -776,7 +776,7 @@ func (h *Host) Show(ctx context.Context, name, kind, ref string, full bool) (Sho
 	}
 	p.mu.Unlock()
 	if i < 0 || registered.Problem() != "" || !named(name, registered).Names(ref) {
-		return out, &noThing{fmt.Sprintf("%s isn't a name %s registered for its %s", ref, name, kind)}
+		return out, &noThing{fmt.Sprintf("%s is not a name %s registered for %s", ref, name, kind)}
 	}
 	if h.Hold != nil {
 		defer h.Hold()()
@@ -789,13 +789,13 @@ func (h *Host) Show(ctx context.Context, name, kind, ref string, full bool) (Sho
 	case errors.As(err, &re) && re.Code == protocol.CodeNotFound:
 		return out, &noThing{fmt.Sprintf("%s has no %s called %s", name, kind, ref)}
 	case errors.As(err, &re) && re.Code == protocol.CodeMethodNotFound:
-		return out, &noShow{fmt.Sprintf("%s says no more of a %s than it's told ws", name, kind)}
+		return out, &noShow{fmt.Sprintf("%s has no more to show for a %s", name, kind)}
 	case errors.As(err, &re):
 		return out, fmt.Errorf("%s: %s", name, re.Message)
 	case errors.Is(err, acp.ErrClosed):
-		return out, fmt.Errorf("%s stopped while it was asked about %s: see %s", name, ref, LogPath(h.Root, name))
+		return out, fmt.Errorf("%s stopped while looking up %s: see %s", name, ref, LogPath(h.Root, name))
 	case errors.Is(err, context.DeadlineExceeded):
-		return out, fmt.Errorf("%s didn't say what %s is in %s", name, ref, showTimeout)
+		return out, fmt.Errorf("%s did not answer about %s within %s", name, ref, showTimeout)
 	}
 	return out, err
 }
@@ -851,9 +851,9 @@ func (h *Host) Act(ctx context.Context, name string, in protocol.ActionRunParams
 	case errors.As(err, &re):
 		return out, fmt.Errorf("%s: %s", name, re.Message)
 	case errors.Is(err, acp.ErrClosed):
-		return out, fmt.Errorf("%s stopped while it was doing it: see %s", name, LogPath(h.Root, name))
+		return out, fmt.Errorf("%s stopped mid-action: see %s", name, LogPath(h.Root, name))
 	case errors.Is(err, context.DeadlineExceeded):
-		return out, fmt.Errorf("%s hadn't done it in %s", name, actTimeout)
+		return out, fmt.Errorf("%s did not finish within %s", name, actTimeout)
 	}
 	return out, err
 }

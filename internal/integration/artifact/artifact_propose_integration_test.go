@@ -182,7 +182,7 @@ func TestArtifact_ProposedInAMissionsTalk(t *testing.T) {
 	t.Setenv(mission.EnvMission, "")
 	t.Setenv(conversation.EnvConversation, "")
 	t.Setenv(mission.EnvCrew, "")
-	if r := testutil.Run(t, w, nil, "conversation", "accept", "-m", "glow", c.ID, "1"); !strings.Contains(r.Stderr, `Added a1.v1, "Horizon glow"`) || !strings.Contains(r.Stderr, "recorded it on glow") {
+	if r := testutil.Run(t, w, nil, "conversation", "accept", "-m", "glow", c.ID, "1"); !strings.Contains(r.Stderr, `Added a1.v1, "Horizon glow"`) || !strings.Contains(r.Stderr, "recorded on glow") {
 		t.Errorf("accepting:\n%s", r.Stderr)
 	}
 	show := testutil.Run(t, w, nil, "show", "a1").Stdout

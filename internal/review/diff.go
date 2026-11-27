@@ -93,11 +93,11 @@ func Compare(dir, baseRef string) (*Diff, error) {
 		return nil, fmt.Errorf("no commits to review: %w", err)
 	}
 	if _, err := git.ReadLine(context.Background(), dir, "rev-parse", "--verify", "--quiet", baseRef+"^{commit}"); err != nil {
-		return nil, fmt.Errorf("can't compare with %s: there's no such branch here (fetch it?)", baseRef)
+		return nil, fmt.Errorf("could not compare changes: %s not fetched", baseRef)
 	}
 	base, err := git.ReadLine(context.Background(), dir, "merge-base", baseRef, head)
 	if err != nil {
-		return nil, fmt.Errorf("%s and HEAD share no history: %w", baseRef, err)
+		return nil, fmt.Errorf("%s and the capsule share no history: %w", baseRef, err)
 	}
 	d, err := between(dir, baseRef, base, head)
 	if err != nil {
@@ -118,7 +118,7 @@ func CompareSince(dir, baseRef, since string) (*Diff, error) {
 		return nil, fmt.Errorf("no commits to review: %w", err)
 	}
 	if _, err := git.ReadLine(context.Background(), dir, "merge-base", "--is-ancestor", since, head); err != nil {
-		return nil, fmt.Errorf("%s isn't in the capsule's history any more (rebased?): show all its changes instead", short(since))
+		return nil, fmt.Errorf("%s is no longer in the capsule's history (rebased?): show all changes instead", short(since))
 	}
 	d, err := between(dir, baseRef, since, head)
 	if err != nil {
@@ -201,7 +201,7 @@ func FileDiff(dir, base, head, path string) (*File, error) {
 			return &fs[i], nil
 		}
 	}
-	return nil, fmt.Errorf("%s isn't changed between %s and %s", path, short(base), short(head))
+	return nil, fmt.Errorf("%s is not changed between %s and %s", path, short(base), short(head))
 }
 
 // TextDiff is the changes from one text to another where neither is in a
@@ -233,7 +233,7 @@ func TextDiff(ctx context.Context, name string, old, new []byte) (*File, error) 
 		return f, nil
 	}
 	if len(sections) > 1 {
-		return nil, fmt.Errorf("git patched %d files, for two texts", len(sections))
+		return nil, fmt.Errorf("could not compare versions: %d diffs for two texts", len(sections))
 	}
 	if err := parseSection(sections[0], f); err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
@@ -319,7 +319,7 @@ func files(dir, base, head string) ([]File, error) {
 	}
 	sections := splitSections(string(patch))
 	if len(sections) != len(list) {
-		return nil, fmt.Errorf("git listed %d changed files but patched %d", len(list), len(sections))
+		return nil, fmt.Errorf("could not read diff: %d changed files but %d patches", len(list), len(sections))
 	}
 	for i, s := range sections {
 		if err := parseSection(s, &list[i]); err != nil {

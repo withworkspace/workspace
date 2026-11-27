@@ -232,7 +232,7 @@ func EnableWorkspaceGit(root string) error {
 	disabled := filepath.Join(root, ".git-disabled")
 	if info, err := os.Stat(disabled); err == nil && info.IsDir() {
 		if err := os.Rename(disabled, gitDir); err != nil {
-			return fmt.Errorf("bringing the workspace's git out: %w", err)
+			return fmt.Errorf("could not re-enable the workspace's git: %w", err)
 		}
 	}
 	return nil

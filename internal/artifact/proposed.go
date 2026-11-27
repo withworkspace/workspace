@@ -59,11 +59,11 @@ func bytesTrim(b []byte) []byte {
 // ProposedFiles is what a proposal's commit holds, whole.
 func (s Store) ProposedFiles(ctx context.Context, commit string) (Files, error) {
 	if !IsCommit(commit) {
-		return nil, fmt.Errorf("%q doesn't name what was proposed", commit)
+		return nil, fmt.Errorf("%q does not match a proposal", commit)
 	}
 	files, err := s.Proposed().AllAt(ctx, commit)
 	if err != nil || len(files) == 0 {
-		return nil, fmt.Errorf("what was proposed isn't there any more (%s in %s)", commit[:12], string(s.Proposed()))
+		return nil, fmt.Errorf("proposed files are missing (%s in %s)", commit[:12], string(s.Proposed()))
 	}
 	return files, nil
 }
@@ -72,7 +72,7 @@ func (s Store) ProposedFiles(ctx context.Context, commit string) (Files, error) 
 // names its bytes. A file it hasn't is ErrNoFile.
 func (s Store) ProposedFile(ctx context.Context, commit, p string) ([]byte, string, error) {
 	if !IsCommit(commit) {
-		return nil, "", fmt.Errorf("%w: %q doesn't name what was proposed", ErrNoFile, commit)
+		return nil, "", fmt.Errorf("%w: %q does not match a proposal", ErrNoFile, commit)
 	}
 	return s.Proposed().ReadAt(ctx, commit, p)
 }

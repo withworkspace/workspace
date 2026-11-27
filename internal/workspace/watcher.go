@@ -179,7 +179,7 @@ func (sw *SiloWatcher) keep(repo, capsule, why string) {
 		return
 	}
 	if !dirExists(siloDir) {
-		sw.fail(repo, "there's no "+SiloDir+" folder (ws silo point makes it)")
+		sw.fail(repo, "no "+SiloDir+" folder: ws silo point creates it")
 		return
 	}
 	switched := SiloTarget(siloDir) != capsule
@@ -192,7 +192,7 @@ func (sw *SiloWatcher) keep(repo, capsule, why string) {
 		MarkSiloTarget(siloDir, capsule) //nolint:errcheck // unmarked, the next start runs the hooks again
 	}
 	if err := sw.addWatch(repo, capsule); err != nil {
-		sw.fail(repo, fmt.Sprintf("can't watch %s: %v", capsule, err))
+		sw.fail(repo, fmt.Sprintf("could not watch %s: %v", capsule, err))
 	}
 	switch {
 	case switched:
@@ -391,7 +391,7 @@ func (sw *SiloWatcher) handleEvent(event fsnotify.Event, localPath string) {
 			sw.verbose("%s: HEAD debounce scheduled (500ms)", repo)
 			r := repo
 			sw.gitDebounce[repo] = time.AfterFunc(500*time.Millisecond, func() {
-				sw.fullResync(r, "HEAD change")
+				sw.fullResync(r, "checkout")
 			})
 			return
 		}
@@ -542,7 +542,7 @@ func (sw *SiloWatcher) flushPending(repo string) {
 	var err error
 	if len(failed) > 0 {
 		sort.Strings(failed)
-		err = fmt.Errorf("failed to sync %d file(s): %s", len(failed), strings.Join(failed, ", "))
+		err = fmt.Errorf("could not sync %d file(s): %s", len(failed), strings.Join(failed, ", "))
 	}
 	if synced == 0 && err == nil {
 		return
@@ -610,7 +610,7 @@ func (sw *SiloWatcher) Resync(repo string) error {
 	}
 	sw.mu.Unlock()
 	if repo != "" && len(repos) == 0 {
-		return fmt.Errorf("%s's silo isn't kept: it's pointed nowhere, or at what isn't there", repo)
+		return fmt.Errorf("%s's silo is not pointed at a capsule", repo)
 	}
 	for _, r := range repos {
 		sw.fullResync(r, "resync")

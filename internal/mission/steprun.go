@@ -72,7 +72,7 @@ func stepRecord(m *Mission, brief string, n int) (StageState, *StageRecord, erro
 	states, _ := m.StageProgress(brief)
 	cur, ok := CurrentStage(states)
 	if !ok || cur.N != n {
-		return StageState{}, nil, fmt.Errorf("the mission isn't at step %d", n)
+		return StageState{}, nil, fmt.Errorf("mission is not at step %d", n)
 	}
 	return cur, recordFor(m, m.Route(brief), cur.Stage), nil
 }
@@ -163,7 +163,7 @@ func (s Store) SetInstance(slug string, n int, repo, capsule string, done bool) 
 		}
 		i := slices.IndexFunc(r.Instances, func(in StepInstance) bool { return in.Repo == repo })
 		if i < 0 {
-			return fmt.Errorf("step %d doesn't run in %s", n, repo)
+			return fmt.Errorf("step %d does not run in %s", n, repo)
 		}
 		if capsule != "" {
 			r.Instances[i].Capsule = capsule

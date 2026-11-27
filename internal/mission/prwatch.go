@@ -88,28 +88,28 @@ func PRChanges(ref string, prev *SeenPR, now SeenPR) []PREvent {
 	case now.Merged && !prev.Merged:
 		return []PREvent{{PREventMerged, ref + " merged", true}}
 	case now.Closed && !prev.Closed:
-		return []PREvent{{PREventClosed, ref + " was closed without merging", true}}
+		return []PREvent{{PREventClosed, ref + " closed without merging", true}}
 	case now.Merged || now.Closed:
 		return nil
 	}
 	var out []PREvent
 	if now.Checks == "failure" && prev.Checks != "failure" {
-		out = append(out, PREvent{PREventChecksFailed, ref + "'s checks are failing", true})
+		out = append(out, PREvent{PREventChecksFailed, ref + ": checks failing", true})
 	}
 	if now.Checks == "success" && prev.Checks != "success" {
-		out = append(out, PREvent{PREventChecksPassed, ref + "'s checks pass", false})
+		out = append(out, PREvent{PREventChecksPassed, ref + ": checks passed", false})
 	}
 	if now.Conflict && !prev.Conflict {
-		out = append(out, PREvent{PREventConflict, ref + " conflicts with its base", true})
+		out = append(out, PREvent{PREventConflict, ref + " has merge conflicts", true})
 	}
 	if now.Review == "CHANGES_REQUESTED" && prev.Review != "CHANGES_REQUESTED" {
-		out = append(out, PREvent{PREventChangesAsked, ref + ": a reviewer asked for changes", true})
+		out = append(out, PREvent{PREventChangesAsked, ref + ": changes requested", true})
 	}
 	if now.Review == "APPROVED" && prev.Review != "APPROVED" {
 		out = append(out, PREvent{PREventApproved, ref + " was approved", false})
 	}
 	if prev.Draft && !now.Draft {
-		out = append(out, PREvent{PREventMarkedReady, ref + " was marked ready for review", false})
+		out = append(out, PREvent{PREventMarkedReady, ref + " marked ready for review", false})
 	}
 	return out
 }

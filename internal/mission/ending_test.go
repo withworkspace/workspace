@@ -186,7 +186,7 @@ func TestStore_EndingsAndCapsulesThatEndAlone(t *testing.T) {
 			said = append(said, text)
 		}
 	}
-	want := []string{"capsule web/fix handed on to web-fix: its own work", "suggested ending it, answered: found it", "you ended it, answered: found it"}
+	want := []string{"capsule web/fix handed on to web-fix: its own work", "suggested ending, answered: found it", "you ended the mission, answered: found it"}
 	if !slices.Equal(said, want) {
 		t.Errorf("the log says %q, want %q", said, want)
 	}
@@ -221,7 +221,7 @@ func TestSnapshotPosition(t *testing.T) {
 			want: "Step 3 of 3, waiting on a teammate: Merged"},
 		{name: "every step done", state: Active, m: Mission{Plan: plan,
 			Stages: []StageRecord{{Text: "Reproduce it as a failing test.", N: 1, Of: 3, Accepted: ago(time.Hour)}, {Text: "Is this the cause?", N: 2, Of: 3, Accepted: ago(time.Hour)}, {Text: "Merged.", N: 3, Of: 3, Accepted: ago(time.Hour)}}},
-			want: "Every step done: at Z, if what Z says is true"},
+			want: "All steps done: at Z, if Z holds"},
 		{name: "ended", state: Answered, m: Mission{Plan: plan, Ending: &Conclusion{Ending: EndAnswered, Text: "x", Z: []ZCheck{{Z: "Merged.", How: "no code"}}}},
 			want: "Ended, answered (early: 0 of 1 of Z met)"},
 		{name: "a brief's stages", state: Active, brief: "## Stages\n1. Write it.\n2. Build it.\n", want: "Stage 1 of 2: Write it"},

@@ -90,7 +90,7 @@ func Grant(root, name, kind string, on bool, at time.Time) error {
 		return ErrNotFound
 	}
 	if on && !a.Allows(kind) {
-		return fmt.Errorf("%s may not act on %s: its may says what it may (%s)", name, kind, strings.Join(a.PluginKinds(), ", "))
+		return fmt.Errorf("%s may not act on %s: may allows only %s", name, kind, strings.Join(a.PluginKinds(), ", "))
 	}
 	return write(root, func(tx *store.Tx) error {
 		if !on {
@@ -155,10 +155,10 @@ func (r *run) act(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	}
 	kind = strings.TrimSpace(kind)
 	if !IsPluginKind(kind) {
-		return nil, fmt.Errorf("act: %q isn't a plugin's kind of proposal: it's the plugin's name, a colon and what (jira:changes). For a mission or a decision, propose", kind)
+		return nil, fmt.Errorf("act: %q is not a plugin's kind of proposal: use the plugin's name, a colon and what (jira:changes). For a mission or a decision, use propose", kind)
 	}
 	if !r.a.Allows(kind) {
-		return nil, fmt.Errorf("act: it may not act on %s (may = [%q] says it may)", kind, kind)
+		return nil, fmt.Errorf("act: not allowed on %s without may = [%q]", kind, kind)
 	}
 	v, err := goOf(input)
 	if err != nil {
@@ -176,7 +176,7 @@ func (r *run) act(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	}
 	do := func() (string, error) {
 		if r.e.Hooks.Act == nil {
-			return "", fmt.Errorf("act: there's nowhere to do it here")
+			return "", fmt.Errorf("act: not available here")
 		}
 		return r.e.Hooks.Act(r.a, p, how, r.conv, ChainOf(r.a.Name, r.ev, r.batch))
 	}
@@ -185,11 +185,11 @@ func (r *run) act(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 			said := "act " + p.Says()
 			switch {
 			case how.Confirm:
-				said += " (you'd confirm it)"
+				said += " (you would confirm)"
 			case granted:
-				said += " (done without asking: you let it)"
+				said += " (done without asking: allowed)"
 			default:
-				said += " (proposed: you haven't let it do that without asking)"
+				said += " (proposed: not allowed without asking)"
 			}
 			r.dry.did = append(r.dry.did, said)
 			return fmt.Sprintf("dry#%d", r.steps), nil

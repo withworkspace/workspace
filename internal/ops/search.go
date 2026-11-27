@@ -62,7 +62,7 @@ type Rg struct {
 }
 
 // ErrNoRg is ripgrep not found on PATH.
-var ErrNoRg = errors.New("ripgrep (rg) not found on PATH; install it from https://github.com/BurntSushi/ripgrep")
+var ErrNoRg = errors.New("could not find ripgrep (rg) on PATH: install it from https://github.com/BurntSushi/ripgrep")
 
 // RgExit is ripgrep's exit status when it's not 0: 1 for no match, 2 for
 // an error (with what it said of it, when it was kept).
@@ -73,9 +73,9 @@ type RgExit struct {
 
 func (e *RgExit) Error() string {
 	if msg := strings.TrimSpace(e.Stderr); msg != "" {
-		return fmt.Sprintf("ripgrep exited %d: %s", e.Code, msg)
+		return fmt.Sprintf("ripgrep failed (exit %d): %s", e.Code, msg)
 	}
-	return fmt.Sprintf("ripgrep exited %d", e.Code)
+	return fmt.Sprintf("ripgrep failed (exit %d)", e.Code)
 }
 
 // Rg is ripgrep over roots with args (its own flags, patterns and paths,
@@ -256,10 +256,10 @@ type Span struct {
 // find were emitted.
 func (w *Workspace) Search(ctx context.Context, req SearchRequest, emit func(Match) error) error {
 	if len(req.Patterns) == 0 {
-		return invalid("no pattern to search for")
+		return invalid("nothing to search for")
 	}
 	if len(req.Roots) == 0 {
-		return refused("nothing-to-search", "nothing to search: no roots")
+		return refused("nothing-to-search", "nothing to search")
 	}
 	searched := false
 	for _, r := range req.Roots {
@@ -295,7 +295,7 @@ func (r *Rg) search(ctx context.Context, roots []SearchRoot, emit func(Match) er
 		return err
 	}
 	if err := c.Start(); err != nil {
-		return fmt.Errorf("running rg: %w", err)
+		return fmt.Errorf("could not run ripgrep: %w", err)
 	}
 
 	attr := newRootAttributor(roots)
@@ -324,7 +324,7 @@ func (r *Rg) search(ctx context.Context, roots []SearchRoot, emit func(Match) er
 	}
 	var exitErr *exec.ExitError
 	if !errors.As(waitErr, &exitErr) {
-		return fmt.Errorf("running rg: %w", waitErr)
+		return fmt.Errorf("could not run ripgrep: %w", waitErr)
 	}
 	if exitErr.ExitCode() == 1 {
 		return nil
@@ -379,14 +379,14 @@ func parseRgJSON(r io.Reader, emit func(rgMatch) error) error {
 			if err == io.EOF {
 				return nil
 			}
-			return fmt.Errorf("reading ripgrep's output: not its JSON (an option such as -l or -c changes what it prints): %w", err)
+			return fmt.Errorf("could not read ripgrep output (options such as -l or -c change it): %w", err)
 		}
 		if msg.Type != "match" {
 			continue
 		}
 		var d rgMatchData
 		if err := json.Unmarshal(msg.Data, &d); err != nil {
-			return fmt.Errorf("reading ripgrep's match: %w", err)
+			return fmt.Errorf("could not read ripgrep match: %w", err)
 		}
 		m := rgMatch{path: d.Path.String(),
 			Line: d.LineNumber,

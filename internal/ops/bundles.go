@@ -349,7 +349,7 @@ func (w *Workspace) yourBundle(slug, id string, by Actor) (*mission.Mission, mis
 		return nil, mission.Bundle{}, fmt.Errorf("%w: mission %s has no bundle %s", ErrNotFound, m.Slug, id)
 	}
 	if by, ok := m.ReplacedBy(b.ID); ok {
-		return nil, mission.Bundle{}, refused("bundle-replaced", "%s has taken %s's place: it's the one to look at", by.ID, b.ID)
+		return nil, mission.Bundle{}, refused("bundle-replaced", "%s replaced %s: look at that one instead", by.ID, b.ID)
 	}
 	return m, b, nil
 }
@@ -396,7 +396,7 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 		return BundleDone{}, err
 	}
 	if b.Verdict == mission.BundleApproved {
-		return BundleDone{}, refused("bundle-approved", "%s is approved already", b.ID)
+		return BundleDone{}, refused("bundle-approved", "%s already approved", b.ID)
 	}
 	b, err = w.Missions.SetBundleVerdict(m.Slug, b.ID, mission.BundleApproved, nil)
 	if err != nil {
@@ -419,12 +419,12 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 		}
 	}
 	if len(waits) > 0 {
-		out.Next = fmt.Sprintf("step %d also looks at %s, and passes once that's approved too", cur.N, strings.Join(waits, ", "))
+		out.Next = fmt.Sprintf("step %d also needs %s approved", cur.N, strings.Join(waits, ", "))
 		return out, nil
 	}
 	why := "you approved " + b.ID
 	if cur.Step.Type != mission.StepReview {
-		why += ", its checks as they were"
+		why += ", checks as they were"
 	}
 	if checks != nil {
 		// What ws asked of its checks is answered: kept for the
@@ -433,7 +433,7 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 	}
 	acc, err := w.AcceptStage(m.Slug, AsYou, why)
 	if err != nil {
-		out.Next = fmt.Sprintf("step %d isn't passed yet: %v", cur.N, err)
+		out.Next = fmt.Sprintf("step %d not passed yet: %v", cur.N, err)
 		return out, nil
 	}
 	out.Next = fmt.Sprintf("step %d passed; %s", cur.N, acc.Next)
@@ -460,12 +460,12 @@ func (w *Workspace) SendBackBundle(slug, id string, notes []mission.BundleNote, 
 			continue
 		}
 		if n.Check != 0 && !slices.ContainsFunc(b.Checks, func(c mission.BundleCheck) bool { return c.N == n.Check }) {
-			return BundleDone{}, invalid("%s has no check %d: it has %s", b.ID, n.Check, bundleCheckNumbers(b))
+			return BundleDone{}, invalid("%s has no check %d (checks: %s)", b.ID, n.Check, bundleCheckNumbers(b))
 		}
 		kept = append(kept, n)
 	}
 	if len(kept) == 0 {
-		return BundleDone{}, invalid("say what's not right, of a check (by its number) or of the bundle as a whole: that's what goes back to its crew")
+		return BundleDone{}, invalid("say what is wrong, of a check (by number) or the whole bundle")
 	}
 	b, err = w.Missions.SetBundleVerdict(m.Slug, b.ID, mission.BundleSentBack, kept)
 	if err != nil {
@@ -482,7 +482,7 @@ func (w *Workspace) SendBackBundle(slug, id string, notes []mission.BundleNote, 
 		}
 	}
 	if !ok {
-		out.Next = "it has no step to send it back at: tell " + b.Crew + " yourself"
+		out.Next = "no step to send back to: tell " + b.Crew + " yourself"
 		return out, nil
 	}
 	text := bundleBackText(b)
@@ -492,7 +492,7 @@ func (w *Workspace) SendBackBundle(slug, id string, notes []mission.BundleNote, 
 	}
 	said, err := w.carryOn(m, st, b.Crew, text, by)
 	if err != nil {
-		out.Next = fmt.Sprintf("couldn't reach %s (%v): tell them yourself", b.Crew, err)
+		out.Next = fmt.Sprintf("could not reach %s (%v): tell them yourself", b.Crew, err)
 		return out, nil
 	}
 	out.Next = said

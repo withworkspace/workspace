@@ -192,9 +192,9 @@ func byName(l *List) []string {
 // review again the next time GitHub's asked.
 func (s *Service) Decline(repo string, number int) error {
 	if s.GitHub == nil {
-		return errors.New("there's no GitHub to ask here")
+		return errors.New("not connected to GitHub")
 	}
-	behind, err := s.say(sendDecline, "taking your name off "+Key(repo, number)+"'s reviewers", outgoing{Repo: repo, Number: number})
+	behind, err := s.say(sendDecline, "removing you from "+Key(repo, number)+"'s reviewers", outgoing{Repo: repo, Number: number})
 	if err != nil {
 		return err
 	}

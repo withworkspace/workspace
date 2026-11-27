@@ -32,7 +32,7 @@ func TestFlag_AnsweringRunsTheOrchestratorWithTheAnswer(t *testing.T) {
 	t.Setenv(mission.EnvCrew, "")
 
 	r := testutil.Run(t, w, nil, "mission", "answer", "-m", "cache", "Commit both and open PRs")
-	if !strings.Contains(r.Stderr, "the orchestrator is acting on it") || strings.Join(*runs, ",") != "cache//answer" {
+	if !strings.Contains(r.Stderr, "passed to the orchestrator") || strings.Join(*runs, ",") != "cache//answer" {
 		t.Errorf("stderr %q, runs %v", r.Stderr, *runs)
 	}
 	m, _ := store.Load("cache")
@@ -50,7 +50,7 @@ func TestFlag_AnsweringRunsTheOrchestratorWithTheAnswer(t *testing.T) {
 		}
 	}
 
-	if r := testutil.RunCommand(t, w.Root, nil, "mission", "answer", "-m", "cache", "again"); r.Err == nil || !strings.Contains(r.Err.Error(), "isn't asking anything") {
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "answer", "-m", "cache", "again"); r.Err == nil || !strings.Contains(r.Err.Error(), "nothing to answer") {
 		t.Errorf("answering twice: %v", r.Err)
 	}
 }
@@ -62,7 +62,7 @@ func TestFlag_AnswerWithTheOrchestratorOff(t *testing.T) {
 	os.WriteFile(filepath.Join(w.Root, "ws.local.toml"), []byte("[orchestrator]\nenabled = false\n"), 0o644)
 	store.Ask("cache", "Which way?", "orchestrator")
 	r := testutil.Run(t, w, nil, "mission", "answer", "-m", "cache", "Left")
-	if !strings.Contains(r.Stderr, "the orchestrator is off") || len(*runs) != 0 {
+	if !strings.Contains(r.Stderr, "orchestrator is off ([orchestrator] enabled = false)") || len(*runs) != 0 {
 		t.Errorf("stderr %q, runs %v", r.Stderr, *runs)
 	}
 }

@@ -96,10 +96,10 @@ var errCapped = errors.New("capped")
 func (w *Workspace) CodeSearch(ctx context.Context, req CodeSearchRequest, emit func(CodeHit) error) (CodeSearchResult, error) {
 	var res CodeSearchResult
 	if len(req.Patterns) == 0 {
-		return res, invalid("no pattern to search for")
+		return res, invalid("nothing to search for")
 	}
 	if slices.Contains(req.Patterns, "") {
-		return res, invalid("an empty pattern matches every line")
+		return res, invalid("pattern is empty")
 	}
 	maxMatches := capOf(req.MaxMatches, CodeSearchMatches, CodeSearchMaxMatches)
 	maxBytes := capOf(req.MaxBytes, CodeSearchBytes, CodeSearchMaxBytes)
@@ -227,7 +227,7 @@ func (w *Workspace) codeSearchRoots(ctx context.Context, req CodeSearchRequest) 
 	}
 	if req.Worktree != "" {
 		if req.Repo == "" {
-			return nil, nil, invalid("a worktree is searched in a repo: name it")
+			return nil, nil, invalid("name a repo to search a capsule")
 		}
 		dir, _, err := w.Worktree(req.Repo, req.Worktree)
 		if err != nil {

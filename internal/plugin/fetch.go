@@ -108,7 +108,7 @@ func Fetch(rs Releases, repo, tag, goos, goarch, into string, say func(string)) 
 	}
 	if !ok && tag != "" {
 		// Not a release: a tag or a branch of the source, perhaps.
-		say(fmt.Sprintf("%s has no release tagged %s: fetching its source there", repo, tag))
+		say(fmt.Sprintf("%s has no release %s: fetching source", repo, tag))
 		src.Tag = tag
 		return src, cloneInto(rs, repo, tag, into)
 	}
@@ -123,11 +123,11 @@ func Fetch(rs Releases, repo, tag, goos, goarch, into string, say func(string)) 
 	}
 	if file == "" {
 		if ok {
-			say(fmt.Sprintf("%s %s has no build for %s/%s: fetching its source, to build here", repo, name, goos, goarch))
+			say(fmt.Sprintf("%s %s has no build for %s/%s: fetching source to build", repo, name, goos, goarch))
 			src.Tag = name
 			return src, cloneInto(rs, repo, name, into)
 		}
-		say(fmt.Sprintf("%s has no releases: fetching its source, to build here", repo))
+		say(fmt.Sprintf("%s has no releases: fetching source to build", repo))
 		return src, cloneInto(rs, repo, "", into)
 	}
 
@@ -155,7 +155,7 @@ func Fetch(rs Releases, repo, tag, goos, goarch, into string, say func(string)) 
 			return src, err
 		}
 	} else {
-		say(fmt.Sprintf("%s %s lists no checksums: installed as it was downloaded", repo, name))
+		say(fmt.Sprintf("%s %s lists no checksums: installed unverified", repo, name))
 	}
 	if err := extract(archive, into); err != nil {
 		return src, fmt.Errorf("%s: %w", file, err)
@@ -192,7 +192,7 @@ func checksum(path, sums string) error {
 		}
 	}
 	if want == "" {
-		return fmt.Errorf("%s isn't in the release's checksums.txt", name)
+		return fmt.Errorf("%s is not in the release's checksums.txt", name)
 	}
 	f, err := os.Open(path)
 	if err != nil {
@@ -204,7 +204,7 @@ func checksum(path, sums string) error {
 		return err
 	}
 	if got := hex.EncodeToString(h.Sum(nil)); !strings.EqualFold(got, want) {
-		return fmt.Errorf("%s isn't what the release's checksums.txt says it is (it's %s, and should be %s): not installed", name, got, want)
+		return fmt.Errorf("%s does not match the release's checksums.txt (got %s, want %s): not installed", name, got, want)
 	}
 	return nil
 }
@@ -223,7 +223,7 @@ func extract(archive, dir string) error {
 	defer f.Close()
 	gz, err := gzip.NewReader(f)
 	if err != nil {
-		return fmt.Errorf("it isn't a .tar.gz: %w", err)
+		return fmt.Errorf("not a .tar.gz: %w", err)
 	}
 	tr := tar.NewReader(gz)
 	var size int64
@@ -240,7 +240,7 @@ func extract(archive, dir string) error {
 			continue
 		}
 		if filepath.IsAbs(name) || name == ".." || strings.HasPrefix(name, ".."+string(filepath.Separator)) {
-			return fmt.Errorf("it has a file outside the plugin's folder (%s): not installed", h.Name)
+			return fmt.Errorf("file outside the plugin folder (%s): not installed", h.Name)
 		}
 		to := filepath.Join(dir, name)
 		switch h.Typeflag {
@@ -250,7 +250,7 @@ func extract(archive, dir string) error {
 			}
 		case tar.TypeReg:
 			if size += h.Size; size > maxPluginSize {
-				return errors.New("it unpacks to more than a plugin is: not installed")
+				return errors.New("too large to unpack: not installed")
 			}
 			if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 				return err
@@ -272,7 +272,7 @@ func extract(archive, dir string) error {
 			}
 		default:
 			// A link, a device: nothing a plugin's build has.
-			return fmt.Errorf("it has something that isn't a file or a folder (%s): not installed", h.Name)
+			return fmt.Errorf("not a file or folder (%s): not installed", h.Name)
 		}
 	}
 }

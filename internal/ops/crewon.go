@@ -36,7 +36,7 @@ func (w *Workspace) allowsCrew(p harness.Pick) error {
 	if Roles(w.Config()).AllowsCrew(p) {
 		return nil
 	}
-	return refused("not-allowed", "crew can't run on %s: it's not in [crew] allowed (crew may run on %s)", p, crewOnList(w))
+	return refused("not-allowed", "crew cannot run on %s: not in [crew] allowed (allowed: %s)", p, crewOnList(w))
 }
 
 // crewOnList is what crew may run on, in words, the default first.
@@ -45,7 +45,7 @@ func crewOnList(w *Workspace) string {
 	for i, p := range Roles(w.Config()).CrewPicks() {
 		s := p.String()
 		if i == 0 {
-			s += " (the default)"
+			s += " (default)"
 		}
 		picks = append(picks, s)
 	}
@@ -68,7 +68,7 @@ func (w *Workspace) stepPick(st mission.StageState, on string) (harness.Pick, st
 	}
 	p := w.CrewPick(on)
 	if err := w.allowsCrew(p); err != nil {
-		return harness.Pick{}, fmt.Sprintf(" (on crew's own: %s isn't in [crew] allowed)", on)
+		return harness.Pick{}, fmt.Sprintf(" (on crew default: %s not in [crew] allowed)", on)
 	}
 	return p, ""
 }
@@ -82,7 +82,7 @@ func (w *Workspace) planPicks(p *mission.Plan) error {
 			continue
 		}
 		if err := w.allowsCrew(w.CrewPick(st.Model)); err != nil {
-			problems = append(problems, fmt.Sprintf("line %d: step %d's on: %s isn't what crew may run on here: [crew] allowed lists %s; name one of them, or leave on: out for the default", st.Line, st.N, st.Model, crewOnList(w)))
+			problems = append(problems, fmt.Sprintf("line %d: step %d's on: %s is not in [crew] allowed (%s): name one of those, or leave on: out for the default", st.Line, st.N, st.Model, crewOnList(w)))
 		}
 	}
 	if len(problems) == 0 {

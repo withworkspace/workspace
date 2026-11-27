@@ -31,21 +31,21 @@ func (w *Workspace) askHeld(m *mission.Mission, done string, st mission.StageSta
 	text := fmt.Sprintf("%sStep %d %s: %s", done, st.N, heldWhy(st), sentence(st.Plain()))
 	options := []string{mission.CheckInGoOn, mission.StepSkip}
 	if st.Step.InEach != "" {
-		text += " Name the repos it runs in (a comma between), and ws starts it in each"
+		text += " Name the repos to run in, comma-separated"
 		options = nil
 		if st.Step.OnlyIf != "" {
-			text += ", or skip it"
+			text += ", or skip"
 			options = []string{mission.StepSkip}
 		}
 		text += "."
 	} else {
-		text += " Go on to start it, or skip it."
+		text += " Go on to start, or skip."
 	}
 	if options == nil {
 		options = []string{mission.CheckInNotYet}
 	}
 	if _, err := w.Missions.AskAtStep(m.Slug, mission.TaskApprove, text, st.N, options...); err != nil {
-		return "couldn't ask the user: " + err.Error()
+		return "could not ask the user: " + err.Error()
 	}
 	return fmt.Sprintf("step %d waits for the user's call: %s", st.N, heldWhy(st))
 }
@@ -124,7 +124,7 @@ func (w *Workspace) Skip(slug, why string, by Actor) (string, error) {
 		}
 	}
 	if why == "" {
-		why = "the user skipped it"
+		why = "skipped by the user"
 	}
 	if err := w.Missions.SkipStep(m.Slug, cur.N, by.By(), why); err != nil {
 		return "", wrap(err)
@@ -221,7 +221,7 @@ func (w *Workspace) startInstances(m *mission.Mission, st mission.StageState, on
 		if queued && len(said) > 0 {
 			// Crew wait for you one at a time: the next run's are queued
 			// when these are launched (queueNextRun).
-			said = append(said, "the rest are queued one at a time, as each is launched")
+			said = append(said, "the rest queue one at a time as each launches")
 			break
 		}
 		capsule, ok := w.capsuleIn(m, st, in.Repo, true)
@@ -260,7 +260,7 @@ func (w *Workspace) oneDispatch(slug string, launched *int, said string) {
 func (w *Workspace) carryOnInstances(m *mission.Mission, from, st mission.StageState) string {
 	repos := instanceRepos(from)
 	if err := w.Missions.StartStep(m.Slug, st.N, "ws", repos); err != nil {
-		return "couldn't start it in " + strings.Join(repos, ", ") + ": " + err.Error()
+		return "could not start in " + strings.Join(repos, ", ") + ": " + err.Error()
 	}
 	var said []string
 	launched := 0
@@ -286,7 +286,7 @@ func (w *Workspace) carryOnInstances(m *mission.Mission, from, st mission.StageS
 		text := fmt.Sprintf("Step %d is done, and you carry on with step %d of the plan, in `%s`: %s\n\nCommit as you go, and report done with a handoff when it's finished (ws mission done).", from.N, st.N, in.Repo, st.Whole())
 		s, err := w.carryOn(m2, cur, id, text, AsWS)
 		if err != nil {
-			s = fmt.Sprintf("couldn't have %s carry on in %s: %v", id, in.Repo, err)
+			s = fmt.Sprintf("could not have %s carry on in %s: %v", id, in.Repo, err)
 		}
 		w.oneDispatch(m.Slug, &launched, s)
 		said = append(said, s)
@@ -344,17 +344,17 @@ func (w *Workspace) instanceDone(slug string, st mission.StageState, capsule, by
 	}
 	all, err := w.Missions.SetInstance(slug, st.N, in.Repo, capsule, true)
 	if err != nil {
-		return "couldn't record it: " + err.Error()
+		return "could not mark run done: " + err.Error()
 	}
 	if !all {
 		m, _ := w.Missions.Load(slug)
 		cur, _ := currentStep(w.Missions, m)
-		return fmt.Sprintf("step %d is done in %s, and runs on in %s", st.N, in.Repo, strings.Join(cur.InstancesLeft(), ", "))
+		return fmt.Sprintf("step %d done in %s, still running in %s", st.N, in.Repo, strings.Join(cur.InstancesLeft(), ", "))
 	}
-	if said := w.passStep(slug, st.N, by, why+", in every repo it runs in", st.Step.Type); said != "" {
+	if said := w.passStep(slug, st.N, by, why+", in every repo", st.Step.Type); said != "" {
 		return said
 	}
-	return fmt.Sprintf("step %d is done in every repo it runs in", st.N)
+	return fmt.Sprintf("step %d done in every repo", st.N)
 }
 
 // answerHeld answers your task at a step that waits for your call: go on
@@ -469,7 +469,7 @@ func (w *Workspace) launchAtHeld(m *mission.Mission, d Dispatch, by Actor) error
 		if _, ok := m.StepTask(cur.N); !ok {
 			w.askHeld(m, "", cur)
 		}
-		return refused("which-repos", "step %d runs in each %s: say which repos in its task, and ws starts it in each (or ws mission start --in <repo>, for each)", cur.N, strings.TrimSuffix(cur.Step.InEach, "."))
+		return refused("which-repos", "step %d runs in each %s: name the repos in the step's task (or ws mission start --in <repo>, for each)", cur.N, strings.TrimSuffix(cur.Step.InEach, "."))
 	}
 	return w.Missions.StartStep(m.Slug, cur.N, by.By(), nil)
 }

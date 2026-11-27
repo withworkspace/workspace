@@ -56,7 +56,7 @@ func (w *Workspace) WritePR(slug, capsule string, by Actor) (NewPullRequest, err
 	}
 	title, body, _, err := w.writePR(m, c, step)
 	if err != nil {
-		return NewPullRequest{}, fmt.Errorf("the PR writer couldn't write it: %w", err)
+		return NewPullRequest{}, fmt.Errorf("could not write the pull request: %w", err)
 	}
 	return NewPullRequest{Title: title, Body: body}, nil
 }
@@ -70,7 +70,7 @@ func (w *Workspace) writtenPR(m *mission.Mission, c mission.Capsule, step int, o
 	if err != nil {
 		title, body = w.prDraft(m, capsule, step)
 		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Repo: c.Repo, Capsule: c.Name,
-			Text: fmt.Sprintf("the PR writer couldn't write %s's pull request (%s): ws titled it as the mission is", capsule, strings.TrimSuffix(oneLine(err.Error()), "."))})
+			Text: fmt.Sprintf("the PR writer could not write %s's pull request (%s): titled after the mission", capsule, strings.TrimSuffix(oneLine(err.Error()), "."))})
 	} else {
 		w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Repo: c.Repo, Capsule: c.Name,
 			Text: fmt.Sprintf("%s wrote %s's pull request: %s", who, capsule, title)})
@@ -307,7 +307,7 @@ func (w *Workspace) OpenWrittenPR(slug, capsule string) string {
 	}
 	opened, err := w.openPR(slug, capsule, NewPullRequest{Draft: p.Draft, Quiet: true, inJob: true}, by)
 	if err != nil {
-		text := fmt.Sprintf("ws couldn't open %s's pull request, which %s asked for: %s. Put it right and open it (Open pull request on the capsule, or ws mission open-pr).", capsule, by.By(), strings.TrimSuffix(oneLine(err.Error()), "."))
+		text := fmt.Sprintf("Could not open %s's pull request, asked for by %s: %s. Fix and open again (Open pull request on the capsule, or ws mission open-pr).", capsule, by.By(), strings.TrimSuffix(oneLine(err.Error()), "."))
 		logFailed(w.Missions.Ask(slug, text, "ws"))
 		return "couldn't open it: " + err.Error()
 	}

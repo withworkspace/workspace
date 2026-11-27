@@ -23,7 +23,7 @@ import (
 // ErrHandEdit is a change the file is written in a way ws can't make
 // safely (a key in an inline table, or as a dotted key where ws would add
 // a table): it's left as it is, to be edited by hand.
-var ErrHandEdit = errors.New("ws.local.toml is written in a way ws can't change safely: edit it by hand")
+var ErrHandEdit = errors.New("Workspace cannot safely edit ws.local.toml: edit it by hand")
 
 // Turn runs fn, a write of root's ws.local.toml, in its turn. ws writes
 // the file from more than one process (a lift, ws silo point, the Settings
@@ -88,7 +88,7 @@ func updateLocal(root string, fn func(*LocalConfig), rewrite bool) error {
 	var local LocalConfig
 	md, err := toml.Decode(text, &local)
 	if err != nil {
-		return fmt.Errorf("parsing %s: %w", LocalFileName, err)
+		return fmt.Errorf("could not read %s: %w", LocalFileName, err)
 	}
 	before, err := leaves(local)
 	if err != nil {
@@ -679,7 +679,7 @@ func encodeValue(v any) (string, error) {
 	s := strings.TrimSpace(buf.String())
 	val, ok := strings.CutPrefix(s, "v = ")
 	if !ok || strings.Contains(val, "\n") {
-		return "", fmt.Errorf("%w: %v can't be written on one line", ErrHandEdit, v)
+		return "", fmt.Errorf("%w: %v cannot be written on one line", ErrHandEdit, v)
 	}
 	return val, nil
 }

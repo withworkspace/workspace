@@ -62,7 +62,7 @@ func TestArtifactFiles_AFolderIsAVersionCheckedOutAndPromoted(t *testing.T) {
 	os.WriteFile(filepath.Join(empty, "page.html"), []byte(sitePage), 0o644)
 	refused("has no index.html", "artifact", "add", empty, "--note", "x")
 	r := run("artifact", "add", writeHTML(t, t.TempDir(), "alone.html", sitePage), "--title", "Alone", "--note", "Its page, without its files.")
-	if !strings.Contains(r.Stderr, "its <link> loads css/site.css, which isn't among its files") {
+	if !strings.Contains(r.Stderr, "its <link> loads css/site.css, which is missing from the artifact's files") {
 		t.Errorf("a page added without its files said:\n%s", r.Stderr)
 	}
 

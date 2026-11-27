@@ -26,10 +26,10 @@ func TestAgreedSaysWhichSideIsBehind(t *testing.T) {
 	}{
 		{"chose what ws speaks", protocol.InitializeResult{Protocol: 1, Protocols: []int{1, 2}}, ""},
 		{"from before versions were chosen", protocol.InitializeResult{Protocol: 1}, ""},
-		{"newer, from before versions were chosen", protocol.InitializeResult{Protocol: 9}, "jira speaks the plugin protocol's version 9, and this ws speaks version 1. Update ws"},
-		{"newer, none in common", protocol.InitializeResult{Protocols: []int{7, 8, 9}}, "jira speaks the plugin protocol's versions 7, 8 and 9, and this ws speaks version 1. Update ws"},
+		{"newer, from before versions were chosen", protocol.InitializeResult{Protocol: 9}, "jira speaks plugin protocol version 9; Workspace speaks version 1. Update ws"},
+		{"newer, none in common", protocol.InitializeResult{Protocols: []int{7, 8, 9}}, "jira speaks plugin protocol versions 7, 8 and 9; Workspace speaks version 1. Update ws"},
 		{"chose what ws doesn't speak", protocol.InitializeResult{Protocol: 2, Protocols: []int{2}}, "Update ws"},
-		{"says nothing it speaks", protocol.InitializeResult{}, "jira doesn't say which version of the plugin protocol it speaks, and this ws speaks version 1. Update the plugin"},
+		{"says nothing it speaks", protocol.InitializeResult{}, "jira does not say which plugin protocol version it speaks; Workspace speaks version 1. Update the plugin"},
 	} {
 		err := plugin.Agreed("jira", c.answer)
 		switch {

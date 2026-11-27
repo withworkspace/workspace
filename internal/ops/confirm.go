@@ -33,7 +33,7 @@ func (w *Workspace) ConfirmBrief(slug string, by Actor) (string, error) {
 	}
 	cur, ok := currentStep(w.Missions, m)
 	if !ok {
-		return "it's ready for crew", nil
+		return "ready for crew", nil
 	}
-	return fmt.Sprintf("it's under way: %s", w.reachStep(m, mission.StageState{}, cur)), nil
+	return fmt.Sprintf("under way: %s", w.reachStep(m, mission.StageState{}, cur)), nil
 }

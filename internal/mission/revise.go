@@ -37,7 +37,7 @@ func (r Revision) Problem() string {
 	if len(r.Held) == 0 {
 		return ""
 	}
-	return "a revision changes only what's ahead, and the steps behind the mission stay as they were: " + strings.Join(r.Held, "; ")
+	return "only steps ahead can change: " + strings.Join(r.Held, "; ")
 }
 
 // Why is what makes it the user's, in a sentence, or "".
@@ -45,7 +45,7 @@ func (r Revision) Why() string {
 	if len(r.Yours) == 0 {
 		return ""
 	}
-	return "It " + joinAnd(r.Yours) + ", which is the user's to confirm."
+	return "It " + joinAnd(r.Yours) + ", so needs confirming."
 }
 
 // Summary is what it changes, in a line, for the log.
@@ -87,9 +87,9 @@ func Revise(was, now *Plan, states []StageState) Revision {
 		old := was.Steps[i]
 		switch {
 		case i >= len(now.Steps):
-			r.Held = append(r.Held, fmt.Sprintf("step %d (%s) is %s, and it's gone", old.N, stepShort(old), behindWord(states, i)))
+			r.Held = append(r.Held, fmt.Sprintf("step %d (%s) is %s and was removed", old.N, stepShort(old), behindWord(states, i)))
 		case !sameStep(old, now.Steps[i]):
-			r.Held = append(r.Held, fmt.Sprintf("step %d (%s) is %s, and it isn't as it was", old.N, stepShort(old), behindWord(states, i)))
+			r.Held = append(r.Held, fmt.Sprintf("step %d (%s) is %s and was changed", old.N, stepShort(old), behindWord(states, i)))
 		}
 	}
 	if !sameList(was.Z, now.Z) {
@@ -136,7 +136,7 @@ func Revise(was, now *Plan, states []StageState) Revision {
 	for _, st := range news {
 		for _, c := range st.Checks {
 			if c.Run() && !had[c.Command] {
-				r.Yours = append(r.Yours, fmt.Sprintf("adds a command ws runs at step %d (`%s`)", st.N, c.Command))
+				r.Yours = append(r.Yours, fmt.Sprintf("adds a check command at step %d (`%s`)", st.N, c.Command))
 				had[c.Command] = true
 			}
 		}
@@ -147,7 +147,7 @@ func Revise(was, now *Plan, states []StageState) Revision {
 		} else if !sameStep(old, news[j]) {
 			r.Changes = append(r.Changes, fmt.Sprintf("step %d changed (%s)", news[j].N, stepShort(news[j])))
 		} else if old.N != news[j].N {
-			r.Changes = append(r.Changes, fmt.Sprintf("step %d is step %d now (%s)", old.N, news[j].N, stepShort(old)))
+			r.Changes = append(r.Changes, fmt.Sprintf("step %d moved to step %d (%s)", old.N, news[j].N, stepShort(old)))
 		}
 	}
 	for j, st := range news {
@@ -238,7 +238,7 @@ func behindWord(states []StageState, i int) string {
 	if i < len(states) && states[i].Accepted() {
 		return "passed"
 	}
-	return "the one the mission is at"
+	return "current"
 }
 
 // stepShort is a step in a few words: a question stays one.

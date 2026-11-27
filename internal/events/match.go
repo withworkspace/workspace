@@ -40,24 +40,24 @@ var matchKeys = []string{"by", "repo", "capsule", "branch", "mission", "pr", "do
 func ParseMatch(s string) (Match, error) {
 	words := strings.Fields(strings.TrimSpace(s))
 	if len(words) == 0 {
-		return Match{}, fmt.Errorf("say which event: a kind (%s), then what it's of (pr=api#212)", strings.Join(Kinds, ", "))
+		return Match{}, fmt.Errorf("name an event kind (%s), then what it is about (pr=api#212)", strings.Join(Kinds, ", "))
 	}
 	m := Match{Kind: words[0]}
 	if !Known(m.Kind) {
-		return Match{}, fmt.Errorf("%q isn't a kind of event: they're %s", m.Kind, strings.Join(Kinds, ", "))
+		return Match{}, fmt.Errorf("%q is not an event kind: use one of %s", m.Kind, strings.Join(Kinds, ", "))
 	}
 	ofThing := m.Kind == ThingChanged || m.Kind == ThingAdded
 	for _, w := range words[1:] {
 		key, value, ok := strings.Cut(w, "=")
 		key = strings.ToLower(strings.TrimSpace(key))
 		if !ok || key == "" || value == "" {
-			return Match{}, fmt.Errorf("%q: after the kind, say what it's of as field=value (pr=api#212)", w)
+			return Match{}, fmt.Errorf("%q: after the kind, give field=value (pr=api#212)", w)
 		}
 		if !slices.Contains(matchKeys, key) && !ofThing {
-			return Match{}, fmt.Errorf("%q isn't a field %s events say: they're %s (and a thing's own fields, for thing.changed)", key, m.Kind, strings.Join(matchKeys, ", "))
+			return Match{}, fmt.Errorf("%q is not a field of %s events: use one of %s (or a thing's own fields, for thing.changed)", key, m.Kind, strings.Join(matchKeys, ", "))
 		}
 		if _, err := path.Match(value, ""); err != nil {
-			return Match{}, fmt.Errorf("%q: %s's value isn't a pattern ws can read", w, key)
+			return Match{}, fmt.Errorf("%q: %s's value is not a valid pattern", w, key)
 		}
 		m.Fields = append(m.Fields, MatchField{Key: key, Value: value})
 	}

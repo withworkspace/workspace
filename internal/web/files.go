@@ -47,7 +47,7 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	}
 	p := r.URL.Query().Get("path")
 	if !validPath(p) {
-		jsonError(w, http.StatusBadRequest, "need a path in the capsule")
+		jsonError(w, http.StatusBadRequest, "missing path")
 		return
 	}
 	// Kept by the capsule as it is (its commits, what's staged, its
@@ -89,23 +89,23 @@ func (s *Server) raw(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Query().Get("path")
 	kind, image := imageTypes[strings.ToLower(path.Ext(p))]
 	if !validPath(p) || !image {
-		jsonError(w, http.StatusBadRequest, "only images are served as they are")
+		jsonError(w, http.StatusBadRequest, "only images can be shown")
 		return
 	}
 	full, err := review.ResolvePath(dir, p)
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "no such image in the capsule")
+		jsonError(w, http.StatusNotFound, "image not found in capsule")
 		return
 	}
 	f, err := os.Open(full)
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "no such image in the capsule")
+		jsonError(w, http.StatusNotFound, "image not found in capsule")
 		return
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil || info.IsDir() || info.Size() > review.FileMax*4 {
-		jsonError(w, http.StatusUnprocessableEntity, "not an image to show")
+		jsonError(w, http.StatusUnprocessableEntity, "not an image")
 		return
 	}
 	w.Header().Set("Content-Type", kind)

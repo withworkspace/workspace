@@ -42,7 +42,7 @@ const atOnce = 4
 
 // stoppedMidway is why a write a daemon stopped in the middle of, which
 // can't be sent twice, is failed.
-const stoppedMidway = "ws stopped while this was being sent, so it may have been: look before sending it again"
+const stoppedMidway = "Workspace stopped mid-send, so it may have gone through: check before sending again"
 
 // Queue sends what's in a workspace's outbox, in the daemon: each lane's
 // writes in the order they were made, one at a time.
@@ -316,7 +316,7 @@ func (q *Queue) hold(lane string, behind Item) []Item {
 		q.logf("outbox: reading %s's: %v", lane, err)
 		return nil
 	}
-	why := "not sent: " + behind.Doing + ", before it, wasn't taken"
+	why := "not sent: " + behind.Doing + ", which came first, failed"
 	var out []Item
 	for _, it := range items {
 		if it.ID <= behind.ID || it.Kind != behind.Kind || it.State != Waiting {
@@ -336,11 +336,11 @@ func (q *Queue) wasMade(k Kind, it Item) (was bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			q.logf("outbox: asking whether %s was made: %v\n%s", it, r, debug.Stack())
-			err = fmt.Errorf("ws failed asking: %v", r)
+			err = fmt.Errorf("could not check whether it was sent: %v", r)
 		}
 	}()
 	if k.Made == nil {
-		return false, errors.New("its kind can't say")
+		return false, errors.New("cannot tell whether it was sent")
 	}
 	return k.Made(it)
 }
@@ -360,7 +360,7 @@ func (q *Queue) sendOne(k Kind, it Item) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			q.logf("outbox: sending %s: %v\n%s", it, r, debug.Stack())
-			err = fmt.Errorf("ws failed sending it: %v", r)
+			err = fmt.Errorf("could not send: %v", r)
 		}
 	}()
 	return k.Send(it)

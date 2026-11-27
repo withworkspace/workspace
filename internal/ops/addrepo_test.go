@@ -145,7 +145,7 @@ func TestAddRepo_ForYouAndCloned(t *testing.T) {
 	if _, err := w.AddRepo(context.Background(), AsYou, RepoAdd{Owner: "other", Name: "api"}); err == nil || !strings.Contains(err.Error(), "another name") {
 		t.Errorf("api's name is taken: %v", err)
 	}
-	if _, err := w.AddRepo(context.Background(), AsYou, RepoAdd{Owner: "ana", Name: "notes", As: "notes2"}); err == nil || !strings.Contains(err.Error(), "here already, as notes") {
+	if _, err := w.AddRepo(context.Background(), AsYou, RepoAdd{Owner: "ana", Name: "notes", As: "notes2"}); err == nil || !strings.Contains(err.Error(), "already added, as notes") {
 		t.Errorf("ana/notes is here: %v", err)
 	}
 	if _, err := w.AddRepo(context.Background(), AsCrew("c1"), RepoAdd{Owner: "other", Name: "api", As: "other-api"}); err == nil {

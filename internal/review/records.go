@@ -89,7 +89,7 @@ func (s Store) loadIn(tx *store.Tx, id string) (*Review, error) {
 	}
 	var r Review
 	if err := json.Unmarshal([]byte(data), &r); err != nil {
-		return nil, fmt.Errorf("review %s: %w", id, err)
+		return nil, fmt.Errorf("could not read review %s: %w", id, err)
 	}
 	return &r, nil
 }

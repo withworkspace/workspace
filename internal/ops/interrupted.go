@@ -132,9 +132,9 @@ func (w *Workspace) resumeInterrupted(m *mission.Mission, c mission.Crew) string
 		}
 		return err.Error()
 	}
-	text := "ws resumed " + c.ID + ", which the daemon shut down under while it was waiting for you"
+	text := "Workspace resumed " + c.ID + ", stopped by a restart while waiting for you"
 	if midTurn {
-		text = "ws resumed " + c.ID + ", which the daemon shut down under mid-turn, and told it to carry on"
+		text = "Workspace resumed " + c.ID + ", stopped by a restart mid-turn, and told them to carry on"
 	}
 	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: text}) //nolint:errcheck // the resume is logged already
 	return ""

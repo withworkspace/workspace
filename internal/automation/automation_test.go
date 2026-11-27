@@ -27,13 +27,13 @@ func TestCheck(t *testing.T) {
 		t.Errorf("read as %+v", a)
 	}
 	for src, want := range map[string]string{
-		`may = ["notify"]`:                                  "it says no when",
-		`when = event("pr.mergd")`:                          `"pr.mergd" isn't a kind of event`,
-		`when = event("pr.merged", colour = "red")`:         `"colour" isn't a field`,
+		`may = ["notify"]`:                                  "no when: say which events",
+		`when = event("pr.mergd")`:                          `"pr.mergd" is not an event kind`,
+		`when = event("pr.merged", colour = "red")`:         `"colour" is not a field`,
 		`when = "pr.merged"`:                                "when is a string",
-		"when = event(\"pr.merged\")\nmay = [\"merge\"]":    `"merge" isn't something an automation may do yet`,
+		"when = event(\"pr.merged\")\nmay = [\"merge\"]":    `"merge" is not something an automation may do`,
 		"when = event(\"pr.merged\")\ndef run(): pass":      "run takes 0 arguments",
-		"when = event(\"pr.merged\")\nmay = [\"converse\"]": "has no run to",
+		"when = event(\"pr.merged\")\nmay = [\"converse\"]": "but has no run",
 		"when = event(\"pr.merged\")\nwhile True: pass":     "while",
 	} {
 		if _, err := Check("x", []byte(src)); err == nil || !strings.Contains(err.Error(), want) {
@@ -133,7 +133,7 @@ func TestEngine_StepsAreDoneOnce(t *testing.T) {
 	keepStep(e.Root, "drawing", ev.N, 1, "notify", "started", "", "")
 	e.RunDue()
 	runs, _ := Runs(e.Root, "drawing", 1)
-	if runs[0].State != Unsure || len(got.notified) != 1 || !strings.Contains(got.notified[0], "couldn't run") {
+	if runs[0].State != Unsure || len(got.notified) != 1 || !strings.Contains(got.notified[0], "could not run") {
 		t.Errorf("unsure: %+v, told %q", runs[0], got.notified)
 	}
 }
@@ -156,7 +156,7 @@ func TestEngine_DefaultsFailuresAndItsOwn(t *testing.T) {
 		switch {
 		case strings.HasPrefix(n, "merges: Idempotency api#212"), strings.HasPrefix(n, "merges: Retry api#213"):
 			merges++
-		case strings.Contains(n, "broken couldn't run"):
+		case strings.Contains(n, "broken could not run"):
 			failed++
 		}
 	}

@@ -28,7 +28,7 @@ func TestReviewStep_PassedByTheReview(t *testing.T) {
 	}
 	m, _ := w.Missions.Load("cache")
 	task, ok := m.StepTask(2)
-	if !ok || task.Verb != mission.TaskReview || !strings.Contains(task.Text, "Step 2 is yours, to review: the fix. Review frontend/one, and read docs/why.md: approving it all passes the step") {
+	if !ok || task.Verb != mission.TaskReview || !strings.Contains(task.Text, "Step 2 is yours to review: the fix. Review frontend/one, and read docs/why.md: approving all passes the step") {
 		t.Fatalf("the review task: %+v", task)
 	}
 
@@ -89,7 +89,7 @@ func TestReviewStep_NotesAreRead(t *testing.T) {
 	}
 	m, _ := w.Missions.Load("cache")
 	task, ok := m.StepTask(2)
-	want := "Review frontend/one: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: seen.md, handoffs/c1.md."
+	want := "Review frontend/one: approving passes the step; asking for changes sends it back to the crew. Or go on. Crew notes: seen.md, handoffs/c1.md."
 	if !ok || !strings.Contains(task.Text, want) {
 		t.Fatalf("the review task: %q", task.Text)
 	}
@@ -115,7 +115,7 @@ func TestReviewStep_OnlyNotesWaitsToGoOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	m, _ := w.Missions.Load("cache")
-	if task, ok := m.StepTask(2); !ok || !strings.Contains(task.Text, "Read what the crew found (why.md), and go on when you're satisfied") {
+	if task, ok := m.StepTask(2); !ok || !strings.Contains(task.Text, "Read what the crew found (why.md), then go on") {
 		t.Fatalf("the review task: %+v", task)
 	}
 	if said := w.PassReviewStep("cache"); said != "" {

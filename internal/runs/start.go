@@ -251,7 +251,7 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = null, log, log
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if err := cmd.Start(); err != nil {
-		return Run{}, false, fmt.Errorf("starting %s: %w", name, err)
+		return Run{}, false, fmt.Errorf("could not start %s: %w", name, err)
 	}
 	pid := cmd.Process.Pid
 	began := now
@@ -313,16 +313,16 @@ var reportName = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
 // as more than a pattern.
 func (r Report) valid() error {
 	if !reportName.MatchString(r.Name) {
-		return fmt.Errorf("a report's name is lower case letters, numbers, - and _, not %q", r.Name)
+		return fmt.Errorf("invalid report name %q: use lowercase letters, numbers, - and _", r.Name)
 	}
 	p := strings.TrimSpace(r.Path)
 	switch {
 	case p == "":
-		return fmt.Errorf("report %s has no path: the file the command writes", r.Name)
+		return fmt.Errorf("report %s has no path", r.Name)
 	case filepath.IsAbs(p) || slices.Contains(strings.Split(filepath.ToSlash(p), "/"), ".."):
-		return fmt.Errorf("report %s: %s isn't below where the command runs", r.Name, p)
+		return fmt.Errorf("report %s: %s is not inside the run's folder", r.Name, p)
 	case strings.ContainsAny(p, " \t\n;&|<>$`\"'(){}!~\\"):
-		return fmt.Errorf("report %s: %s: a report's path is a file's, or a pattern of * and ?, with no spaces", r.Name, p)
+		return fmt.Errorf("report %s: %s: path must be a file or a pattern of * and ?, with no spaces", r.Name, p)
 	}
 	return nil
 }
@@ -506,9 +506,9 @@ type EndedError struct{ Run Run }
 
 func (e *EndedError) Error() string {
 	if e.Run.State == Exited {
-		return fmt.Sprintf("%s exited (%d) before it was up on %d", e.Run.Ref(), e.Run.Status, e.Run.Port)
+		return fmt.Sprintf("%s exited (%d) before listening on %d", e.Run.Ref(), e.Run.Status, e.Run.Port)
 	}
-	return fmt.Sprintf("%s ended before it was up on %d", e.Run.Ref(), e.Run.Port)
+	return fmt.Sprintf("%s ended before listening on %d", e.Run.Ref(), e.Run.Port)
 }
 
 // tailBytes is as much of a log's end as Tail reads: a dev server's log

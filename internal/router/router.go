@@ -258,7 +258,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// It listens on every interface (macOS lets a user have 80 no other
 	// way), so it answers this machine alone.
 	if !loopback(r.RemoteAddr) {
-		http.Error(w, "ws's router answers this machine alone", http.StatusForbidden)
+		http.Error(w, "Workspace's router only answers this machine", http.StatusForbidden)
 		return
 	}
 	if (r.URL.Path == path || r.URL.Path == path+"/yield") && !ownName(r.Host) {
@@ -297,7 +297,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host = strings.ToLower(strings.TrimSuffix(host, "."))
 	if !strings.HasSuffix(host, Suffix) {
 		// Another site's name pointed here (DNS rebinding) gets nothing.
-		http.Error(w, "ws's router answers names under .localhost alone", http.StatusMisdirectedRequest)
+		http.Error(w, "Workspace's router only answers names under .localhost", http.StatusMisdirectedRequest)
 		return
 	}
 	labels := strings.Split(strings.TrimSuffix(host, Suffix), ".")
@@ -318,7 +318,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			through(w, r, rte)
 			return
 		}
-		notice(w, http.StatusGone, key+" has ended", fmt.Sprintf("<p><b>%s</b> %s.</p><p>Start it again with <code>ws run</code>, or from its mission's Work tab.</p>%s", esc(key), esc(rte.Ended), listRuns(f, wsName, port)))
+		notice(w, http.StatusGone, key+" has ended", fmt.Sprintf("<p><b>%s</b> %s.</p><p>Start again with <code>ws run</code>, or from the mission's Work tab.</p>%s", esc(key), esc(rte.Ended), listRuns(f, wsName, port)))
 		return
 	}
 	if len(labels) == 4 {
@@ -351,7 +351,7 @@ func (rt *Router) silo(w http.ResponseWriter, r *http.Request, f File, wsName, p
 	then := Link(Host(siloKey, wsName), portNum)
 	point := Link(Host("", wsName), portNum) + "silo/" + url.PathEscape(repo) + "?" + url.Values{"to": {capsule}, "then": {then}}.Encode()
 	notice(w, http.StatusConflict, run+" runs in the silo",
-		fmt.Sprintf("<p><b>%s</b> runs in %s's silo, which is on <b>%s</b>, not <b>%s</b>.</p><p><a class=\"button\" href=\"%s\">Point the silo at %s</a></p><p>Or go to it as it is: <a href=\"%s\">%s</a></p>",
+		fmt.Sprintf("<p><b>%s</b> runs in %s's silo, which is on <b>%s</b>, not <b>%s</b>.</p><p><a class=\"button\" href=\"%s\">Point silo at %s</a></p><p>Or open as is: <a href=\"%s\">%s</a></p>",
 			esc(run), esc(repo), esc(runs.Label(s.Target)), esc(capsule), esc(point), esc(capsule), esc(then), esc(strings.TrimSuffix(strings.TrimPrefix(then, "http://"), "/"))))
 }
 
@@ -440,7 +440,7 @@ func through(w http.ResponseWriter, r *http.Request, rte Route) {
 	case m.URL != "":
 		target, err := url.Parse(m.URL)
 		if err != nil || target.Host == "" {
-			notice(w, http.StatusBadGateway, what+" has no address", fmt.Sprintf("<p><b>%s</b> is mounted at <b>%s</b>, at an address that can't be read: <code>%s</code>.</p>", esc(what), esc(m.Path), esc(m.URL)))
+			notice(w, http.StatusBadGateway, what+" has no address", fmt.Sprintf("<p><b>%s</b> is mounted at <b>%s</b> with an invalid address: <code>%s</code>.</p>", esc(what), esc(m.Path), esc(m.URL)))
 			return
 		}
 		proxyTo(w, r, target, true)
@@ -451,7 +451,7 @@ func through(w http.ResponseWriter, r *http.Request, rte Route) {
 		if m.Run != "" {
 			run = " (" + m.Run + ")"
 		}
-		notice(w, http.StatusBadGateway, what+" isn't running", fmt.Sprintf("<p><b>%s</b>%s is mounted here at <b>%s</b>, and isn't running.</p><p>Starting this run again with <code>ws run</code> starts it too.</p>", esc(what), esc(run), esc(m.Path)))
+		notice(w, http.StatusBadGateway, what+" isn't running", fmt.Sprintf("<p><b>%s</b>%s is mounted at <b>%s</b> and not running.</p><p>Restart this run with <code>ws run</code> to start it.</p>", esc(what), esc(run), esc(m.Path)))
 	}
 }
 
@@ -482,14 +482,14 @@ func proxyTo(w http.ResponseWriter, r *http.Request, target *url.URL, itsHost bo
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			if errors.Is(err, syscall.ECONNREFUSED) || strings.Contains(err.Error(), "connection refused") {
-				at := "its port (" + target.Port() + ")"
+				at := "port (" + target.Port() + ")"
 				if itsHost {
 					at = target.Host
 				}
-				notice(w, http.StatusBadGateway, "Not up yet", fmt.Sprintf("<p>Nothing's listening on %s yet. If it's just started, reload in a moment; <code>ws run logs</code> says what it's doing.</p>", esc(at)))
+				notice(w, http.StatusBadGateway, "Not up yet", fmt.Sprintf("<p>Nothing listening on %s yet. If just started, reload in a moment, or check <code>ws run logs</code>.</p>", esc(at)))
 				return
 			}
-			notice(w, http.StatusBadGateway, "Couldn't reach it", "<p>"+esc(err.Error())+"</p>")
+			notice(w, http.StatusBadGateway, "Could not connect", "<p>"+esc(err.Error())+"</p>")
 		},
 	}
 	p.ServeHTTP(w, r)

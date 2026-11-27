@@ -49,7 +49,7 @@ func ParseEnding(s string) (Ending, error) {
 	case "":
 		return "", fmt.Errorf("say how it ends: %s", endingList())
 	}
-	return "", fmt.Errorf("%q isn't how a mission ends: it's %s", s, endingList())
+	return "", fmt.Errorf("%q is not an ending: choose %s", s, endingList())
 }
 
 func endingList() string {

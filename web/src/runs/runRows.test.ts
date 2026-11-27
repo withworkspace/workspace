@@ -98,7 +98,7 @@ describe("a task's result", () => {
     const task = (more: Partial<RunDetail>) => run({ type: "task", state: "exited", ...more });
     expect(came(task({ result: "passed", took: 42_000 }))).toBe("passed in 42s");
     expect(came(task({ result: "failed", status: 2, took: 185_000 }))).toBe("failed (exit 2) in 3m 05s");
-    expect(came(task({ result: "stopped", why: "its time was up" }))).toBe("stopped: its time was up");
+    expect(came(task({ result: "stopped", why: "timed out" }))).toBe("stopped: timed out");
     expect(came(task({ result: "stopped" }))).toBe("stopped early");
     expect(came(task({ state: "running", result: "running" }))).toBe("running");
   });

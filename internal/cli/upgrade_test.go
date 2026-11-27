@@ -104,10 +104,10 @@ func TestUpgrade_Refuses(t *testing.T) {
 		version string
 		want    string
 	}{
-		{"a ws built from a clone", func(_ *testing.T, u *release.Upgrader) { u.Release = false }, "", "isn't a release's build"},
+		{"a ws built from a clone", func(_ *testing.T, u *release.Upgrader) { u.Release = false }, "", "is not a release build"},
 		{"what isn't a tag", func(*testing.T, *release.Upgrader) {}, "latest", "isn't a release's tag"},
-		{"a release that isn't there", func(*testing.T, *release.Upgrader) {}, "v9.9.9", "is there such a release?"},
-		{"a machine with no builds", func(_ *testing.T, u *release.Upgrader) { u.OS, u.Arch = "darwin", "amd64" }, "", "no release of ws for Intel Macs"},
+		{"a release that isn't there", func(*testing.T, *release.Upgrader) {}, "v9.9.9", "no such release"},
+		{"a machine with no builds", func(_ *testing.T, u *release.Upgrader) { u.OS, u.Arch = "darwin", "amd64" }, "", "no release for Intel Macs"},
 		{"a folder it can't write to", func(t *testing.T, u *release.Upgrader) {
 			if os.Getuid() == 0 {
 				t.Skip("root writes anywhere")

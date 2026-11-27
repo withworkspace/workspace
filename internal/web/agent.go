@@ -38,7 +38,7 @@ func (s *Server) crewSay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.TrimSpace(req.Text) == "" {
-		jsonError(w, http.StatusBadRequest, "the message is empty")
+		jsonError(w, http.StatusBadRequest, "message is empty")
 		return
 	}
 	msg, err := s.App.Crew().Say(r.PathValue("slug"), r.PathValue("id"), req.Text)
@@ -54,7 +54,7 @@ func (s *Server) crewModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.TrimSpace(req.Model) == "" {
-		jsonError(w, http.StatusBadRequest, "say which model")
+		jsonError(w, http.StatusBadRequest, "choose a model")
 		return
 	}
 	msg, err := s.App.Crew().SwitchModel(r.PathValue("slug"), r.PathValue("id"), req.Model)
@@ -69,11 +69,11 @@ func (s *Server) crewAnswer(w http.ResponseWriter, r *http.Request) {
 	switch req.Permission {
 	case "", "allow", "always", "deny":
 	default:
-		jsonError(w, http.StatusBadRequest, "permission is allow, always or deny")
+		jsonError(w, http.StatusBadRequest, "permission must be allow, always or deny")
 		return
 	}
 	if req.Permission == "" && req.Option == "" && strings.TrimSpace(req.Text) == "" && !req.Interrupt {
-		jsonError(w, http.StatusBadRequest, "nothing to answer with")
+		jsonError(w, http.StatusBadRequest, "answer is empty")
 		return
 	}
 	msg, err := s.App.Crew().Answer(r.PathValue("slug"), r.PathValue("id"), ops.CrewAnswer(req))

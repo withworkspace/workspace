@@ -77,7 +77,7 @@ func ParseSchedule(s string) (Schedule, error) {
 		hh, err1 := strconv.Atoi(h)
 		mm, err2 := strconv.Atoi(m)
 		if !ok || err1 != nil || err2 != nil || hh < 0 || hh > 23 || mm < 0 || mm > 59 {
-			return out, fmt.Errorf("every %q: the time of day is as 03:00 or 17:30", s)
+			return out, fmt.Errorf("every %q: write the time of day as 03:00 or 17:30", s)
 		}
 		out.At = hh*60 + mm
 	}
@@ -191,7 +191,7 @@ func (a *Automation) slotsIn(from, to time.Time, limit int) []events.Event {
 }
 
 // ErrNoSchedule is the answer for running one now that isn't on a clock.
-var ErrNoSchedule = errors.New("it runs on events, not on a schedule: it runs when the next one it's for comes")
+var ErrNoSchedule = errors.New("runs on events, not on a schedule")
 
 // RunNow keeps a schedule.due for name, by you: its time come now, which
 // the daemon runs it on as on any.

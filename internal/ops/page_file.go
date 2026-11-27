@@ -34,7 +34,7 @@ func (w *Workspace) filePage(id string, r PageFile, at time.Time) (*PageFiling, 
 		return nil, err
 	}
 	if p.Filed != nil {
-		return nil, fmt.Errorf("%s was filed already, as %s: it's edited there now", id, p.Filed.Ref)
+		return nil, fmt.Errorf("%s already filed as %s: edit it there", id, p.Filed.Ref)
 	}
 	// Of a kind, where the kind says; else where it's said to go, a folder
 	// of a repo (or a file in one), named from its title.
@@ -43,13 +43,13 @@ func (w *Workspace) filePage(id string, r PageFile, at time.Time) (*PageFiling, 
 	if r.Kind != "" {
 		var ok bool
 		if k, ok = w.WS().KindNamed(r.Kind); !ok {
-			return nil, fmt.Errorf("the workspace has no kind of document named %q: ws show kinds lists them", r.Kind)
+			return nil, fmt.Errorf("no document kind %q (ws show kinds)", r.Kind)
 		}
 		repo = k.Repo
 	} else {
 		to := cmp.Or(r.To, p.To)
 		if to == "" {
-			return nil, fmt.Errorf("say where %s goes: one of the workspace's kinds, or a folder of a repo (repo:folder/)", id)
+			return nil, fmt.Errorf("choose where %s goes: a document kind, or a repo folder (repo:folder/)", id)
 		}
 		if to, err = w.plainPlace(to); err != nil {
 			return nil, err
@@ -57,16 +57,16 @@ func (w *Workspace) filePage(id string, r PageFile, at time.Time) (*PageFiling, 
 		repo, plain, _ = strings.Cut(to, ":")
 	}
 	if busy := w.cellBeingWritten(id); busy != "" {
-		return nil, fmt.Errorf("a cell of %s is still being written (%s): file it once that's done", id, busy)
+		return nil, fmt.Errorf("a cell of %s is still being written (%s): file once done", id, busy)
 	}
 	body := page.AsText(text)
 	if strings.TrimSpace(string(body)) == "" {
-		return nil, fmt.Errorf("%s has nothing in it to file", id)
+		return nil, fmt.Errorf("%s is empty: nothing to file", id)
 	}
 	heading := workspace.DocTitle(body)
 	title := cmp.Or(strings.Join(strings.Fields(r.Title), " "), heading)
 	if title == "" {
-		return nil, fmt.Errorf("give it a title: what it's named is made from it")
+		return nil, fmt.Errorf("add a title")
 	}
 	if heading == "" {
 		body = append([]byte("# "+title+"\n\n"), body...)
@@ -87,7 +87,7 @@ func (w *Workspace) filePage(id string, r PageFile, at time.Time) (*PageFiling, 
 	// filing gave it is the page's too.
 	if heading == "" {
 		if _, err := ps.Write(id, doc.Version(text), append([]byte("# "+title+"\n\n"), text...)); err != nil {
-			out.Message += fmt.Sprintf("; the page couldn't take the heading it was filed with (%v)", err)
+			out.Message += fmt.Sprintf("; could not add the title heading to the page (%v)", err)
 		}
 	}
 	meta := ps.Meta(id)
@@ -96,10 +96,10 @@ func (w *Workspace) filePage(id string, r PageFile, at time.Time) (*PageFiling, 
 		meta.Kind = k.Name
 	}
 	if err := ps.SetMeta(id, meta); err != nil {
-		out.Message += fmt.Sprintf("; the page couldn't keep where it was filed (%v)", err)
+		out.Message += fmt.Sprintf("; could not save the filed location on the page (%v)", err)
 	}
 	if err := tiePage(w.WS(), ps, id, out.Ref, body, at); err != nil {
-		out.Message += fmt.Sprintf("; the page isn't tied to it (%v)", err)
+		out.Message += fmt.Sprintf("; could not link the page to the file (%v)", err)
 	}
 	return out, nil
 }
@@ -177,7 +177,7 @@ func (w *Workspace) addDoc(d newDoc, at time.Time) (*DocAdding, error) {
 		file := filepath.Join(l.dir, filepath.FromSlash(rel))
 		if _, err := os.Stat(file); err == nil {
 			l.undo()
-			return nil, fmt.Errorf("there's a %s on %s already: give it another title", rel, w.WS().DefaultBranch)
+			return nil, fmt.Errorf("%s already exists on %s: choose another title", rel, w.WS().DefaultBranch)
 		}
 		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 			l.undo()

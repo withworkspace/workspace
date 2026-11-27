@@ -57,7 +57,7 @@ func (w *Workspace) automationPropose(a *automation.Automation, p automation.Pro
 	if err != nil {
 		return "", err
 	}
-	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": yours to accept or decline")
+	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": accept or decline")
 	return ref, nil
 }
 
@@ -79,14 +79,14 @@ func (w *Workspace) automationAct(a *automation.Automation, p automation.Proposi
 	case how.Accept:
 		_, err := w.acceptUnattended(a, ref)
 		if err == nil {
-			w.tellOfAutomation(a, ref, a.Name+" did it without asking, as you let it: "+firstNonEmpty(prop.Title, prop.Says()))
+			w.tellOfAutomation(a, ref, a.Name+" acted without asking: "+firstNonEmpty(prop.Title, prop.Says()))
 			return ref, nil
 		}
-		_, _ = store.Say(id, conversation.Turn{By: conversation.WS, At: w.now(), Body: "It couldn't be done without asking: " + err.Error() + ". It's yours to accept, or not."})
-		w.tellOfAutomation(a, ref, a.Name+" couldn't do "+prop.Says()+" ("+err.Error()+"): yours to accept or decline")
+		_, _ = store.Say(id, conversation.Turn{By: conversation.WS, At: w.now(), Body: "Could not do without asking: " + err.Error() + ". Accept or decline."})
+		w.tellOfAutomation(a, ref, a.Name+" could not do "+prop.Says()+" ("+err.Error()+"): accept or decline")
 		return ref, nil
 	}
-	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": yours to accept or decline")
+	w.tellOfAutomation(a, ref, a.Name+" proposes "+prop.Says()+": accept or decline")
 	return ref, nil
 }
 
@@ -130,10 +130,10 @@ func (w *Workspace) proposeFor(a *automation.Automation, p automation.Proposing,
 	if in == "" {
 		body := p.Why
 		if body == "" {
-			body = "The automation " + a.Name + " proposes this, for you to accept or decline."
+			body = "Automation " + a.Name + " proposes this."
 		}
 		if p.On != "" {
-			body += "\n\n(From the automation " + a.Name + ", on " + p.On + ".)"
+			body += "\n\n(From automation " + a.Name + ", on " + p.On + ".)"
 		}
 		c, err := store.OpenTalkChained("automation:"+a.Name, chain, conversation.Turn{By: conversation.WS, At: now, Body: body})
 		if err != nil {
@@ -191,9 +191,9 @@ func (w *Workspace) automationProposal(in string, p automation.Proposing, now ti
 	case err != nil:
 		return prop, err
 	case refused != "":
-		return prop, fmt.Errorf("%s refused it: %s", p.Kind, refused)
+		return prop, fmt.Errorf("%s refused: %s", p.Kind, refused)
 	case guide != "":
-		return prop, fmt.Errorf("%s can't read what it was given. How one's written:\n%s", p.Kind, guide)
+		return prop, fmt.Errorf("%s could not read the input. Expected format:\n%s", p.Kind, guide)
 	}
 	return prop, nil
 }

@@ -95,7 +95,7 @@ const reviewsFresh = 2 * time.Minute
 
 func (s *Server) noReviews(w http.ResponseWriter) bool {
 	if s.Reviews == nil {
-		jsonError(w, http.StatusNotFound, "there's no GitHub to ask here")
+		jsonError(w, http.StatusNotFound, "not connected to GitHub")
 		return true
 	}
 	return false
@@ -113,7 +113,7 @@ func (s *Server) reviewsList(w http.ResponseWriter, r *http.Request) {
 		out.List, err = s.Reviews.List(false)
 	}
 	if out.List == nil {
-		msg := "the list couldn't be read"
+		msg := "could not read pull requests"
 		if err != nil {
 			msg = err.Error()
 		}
@@ -165,12 +165,12 @@ func (s *Server) prOf(w http.ResponseWriter, r *http.Request) (repo string, numb
 	}
 	repo = r.PathValue("repo")
 	if !repoName.MatchString(repo) || strings.Trim(repo, ".") == "" {
-		jsonError(w, http.StatusNotFound, "the workspace has no such repo")
+		jsonError(w, http.StatusNotFound, "no such repo")
 		return "", 0, false
 	}
 	number, err := strconv.Atoi(r.PathValue("number"))
 	if err != nil || number < 1 {
-		jsonError(w, http.StatusNotFound, "pull requests are numbered: "+r.PathValue("number")+" isn't one")
+		jsonError(w, http.StatusNotFound, "pull request number "+r.PathValue("number")+" is not valid")
 		return "", 0, false
 	}
 	return repo, number, true
@@ -215,7 +215,7 @@ func (s *Server) prDetail(w http.ResponseWriter, r *http.Request) {
 	out := PRDetail{Detail: d, Talks: PRTalks(s.Root, pulls.Key(repo, number)), Unsent: s.Reviews.Unsent(repo, number)}
 	switch {
 	case d.PR.Fork:
-		out.NoAsk = "It's from a fork, which ws can't dock, so an agent can't read it here."
+		out.NoAsk = "Asking is not available for pull requests from forks."
 	case !s.App.AsksPRs():
 		out.NoAsk = "Conversations aren't available here."
 	}
@@ -240,7 +240,7 @@ func (s *Server) prDiff(w http.ResponseWriter, r *http.Request) {
 		scope = pulls.ScopeLayer
 	case pulls.ScopeLayer, pulls.ScopeSince, pulls.ScopeWhole:
 	default:
-		jsonError(w, http.StatusBadRequest, "scope is layer, since or whole")
+		jsonError(w, http.StatusBadRequest, "scope must be layer, since or whole")
 		return
 	}
 	d, err := s.Reviews.KeptDiff(repo, number, scope)
@@ -259,7 +259,7 @@ type prSubmitBody struct {
 
 func (b prSubmitBody) ok(w http.ResponseWriter) bool {
 	if b.Head != "" && !fullSHA.MatchString(b.Head) {
-		jsonError(w, http.StatusBadRequest, "head is the full commit id you reviewed")
+		jsonError(w, http.StatusBadRequest, "head must be the full commit id reviewed")
 		return false
 	}
 	return true
@@ -332,7 +332,7 @@ func (s *Server) prRespond(w http.ResponseWriter, r *http.Request) {
 	}
 	what := review.Response(b.What)
 	if what != review.Answer && what != review.Resolve && what != review.Reopen {
-		jsonError(w, http.StatusBadRequest, "what is reply, resolve or reopen")
+		jsonError(w, http.StatusBadRequest, "action must be reply, resolve or reopen")
 		return
 	}
 	t, err := s.App.RespondPR(repo, number, r.PathValue("id"), what, b.Body)
@@ -386,7 +386,7 @@ func (s *Server) prUnsent(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "nothing's waiting to be sent by that name")
+		jsonError(w, http.StatusNotFound, "unsent comment not found")
 		return
 	}
 	if r.Method == http.MethodDelete {
@@ -427,15 +427,15 @@ func (s *Server) prAsk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.App.AsksPRs() {
-		jsonError(w, http.StatusNotFound, "conversations aren't available here: no agent here can answer")
+		jsonError(w, http.StatusNotFound, "conversations are not available here")
 		return
 	}
 	if strings.TrimSpace(q.Body) == "" {
-		jsonError(w, http.StatusUnprocessableEntity, "say what you want to know")
+		jsonError(w, http.StatusUnprocessableEntity, "question is empty")
 		return
 	}
 	if q.Path != "" && (!validPath(q.Path) || q.Line < 1 || (q.Side != "new" && q.Side != "old") || !fullSHA.MatchString(q.Commit)) {
-		jsonError(w, http.StatusBadRequest, "lines are a path, a side (new or old), a line and the commit they're at")
+		jsonError(w, http.StatusBadRequest, "missing line: path, side (new or old), line and commit")
 		return
 	}
 	c, err := s.App.AskPR(repo, number, ops.PRQuestion(q))
@@ -464,5 +464,5 @@ func (s *Server) prDock(w http.ResponseWriter, r *http.Request) {
 // prNoRespond answers for the route a capsule's review has that a PR's
 // doesn't: its comments, once submitted, are GitHub's threads.
 func (s *Server) prNoRespond(w http.ResponseWriter, r *http.Request) {
-	jsonError(w, http.StatusNotFound, "a submitted comment on a pull request is on GitHub: answer its thread")
+	jsonError(w, http.StatusNotFound, "comment already on GitHub: reply in its thread")
 }

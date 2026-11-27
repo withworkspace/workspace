@@ -49,7 +49,7 @@ const Topic = "workspace"
 
 // ErrNotFound is the answer for a write that isn't waiting here, or isn't
 // as it was asked of (only one that failed is sent again, or let go of).
-var ErrNotFound = errors.New("no such write is waiting here")
+var ErrNotFound = errors.New("nothing waiting to send")
 
 // Item is one write.
 type Item struct {

@@ -22,29 +22,29 @@ func revise(ctx context.Context, dir, id string, r Revision) (*Artifact, int, fu
 	}
 	data, err := os.ReadFile(filepath.Join(dir, RecordFile))
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, 0, nil, fmt.Errorf("%s's folder has gone (%s): add a new artifact", id, dir)
+		return nil, 0, nil, fmt.Errorf("%s's folder is missing (%s): add a new artifact", id, dir)
 	}
 	if err != nil {
 		return nil, 0, nil, err
 	}
 	a, err := Parse(data) // the file wins
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("%s's record can't be read (%s): %w", id, filepath.Join(dir, RecordFile), err)
+		return nil, 0, nil, fmt.Errorf("could not read %s's record (%s): %w", id, filepath.Join(dir, RecordFile), err)
 	}
 	if a.Status == Discarded {
-		return nil, 0, nil, fmt.Errorf("%w: %s was discarded, so it takes no new versions: add a new artifact", ErrDiscarded, id)
+		return nil, 0, nil, fmt.Errorf("%w: %s was discarded: add a new artifact instead", ErrDiscarded, id)
 	}
 	// One from when a version was a file in the folder: into its repo
 	// first, so the new one has what it's based on to stand on.
 	if _, err := convert(ctx, dir, a); err != nil {
-		return nil, 0, nil, fmt.Errorf("putting %s's versions in its repo: %w", id, err)
+		return nil, 0, nil, fmt.Errorf("could not upgrade %s: %w", id, err)
 	}
 	latest, _ := a.Latest()
 	on := r.On
 	if on == 0 {
 		on = latest.N
 	} else if _, ok := a.Version(on); !ok {
-		return nil, 0, nil, fmt.Errorf("%s has no v%d to base it on: %s", id, on, versionsSaid(*a))
+		return nil, 0, nil, fmt.Errorf("%s has no v%d to base on: %s", id, on, versionsSaid(*a))
 	}
 	// The number after the latest, and after any commit no version names
 	// (what a write that didn't finish left): a version's number is never
@@ -53,7 +53,7 @@ func revise(ctx context.Context, dir, id string, r Revision) (*Artifact, int, fu
 	n := latest.N + 1
 	for ; repo.Has(ctx, n); n++ {
 		if n > latest.N+100 {
-			return nil, 0, nil, fmt.Errorf("couldn't number a new version of %s", id)
+			return nil, 0, nil, fmt.Errorf("could not number a new version of %s", id)
 		}
 	}
 	v := r.Version

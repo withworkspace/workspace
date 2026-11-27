@@ -224,7 +224,7 @@ func (w *Workspace) Worktree(repo, name string) (string, string, error) {
 		if name == workspace.GroundDir {
 			dir := ws.MainWorktree(repo)
 			if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-				return "", "", fmt.Errorf("%s isn't cloned yet: ws setup %s clones it", repo, repo)
+				return "", "", fmt.Errorf("%s not cloned: run ws setup %s", repo, repo)
 			}
 			return dir, "", nil
 		}
@@ -295,7 +295,7 @@ func (w *Workspace) CapsuleDir(slug, repo, name string) (string, string, error) 
 	ws := w.WS()
 	dir := filepath.Join(ws.RepoDir(repo), name)
 	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-		return "", "", fmt.Errorf("capsule %s/%s is missing from %s", repo, name, dir)
+		return "", "", fmt.Errorf("capsule %s/%s not found at %s", repo, name, dir)
 	}
 	branch := ws.DefaultBranch
 	if branch == "" {

@@ -34,7 +34,7 @@ func (s *Server) focus(w http.ResponseWriter, r *http.Request) {
 		err = s.App.ArrangeFocus(ops.AsYou, b.Order)
 		said = "Arranged."
 	default:
-		jsonError(w, http.StatusBadRequest, "say one of pin, unpin or order")
+		jsonError(w, http.StatusBadRequest, "missing pin, unpin or order")
 		return
 	}
 	if err != nil {

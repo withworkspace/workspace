@@ -33,7 +33,7 @@ export const pulls: SampleRow[] = [
     mark: <Icon name="pr" />,
     title: "Paginate the invoices endpoint",
     hint: "api#45 · you",
-    notes: ["its checks are running"],
+    notes: ["checks running"],
     kind: "Pull request",
     pull: { repo: "api", number: 45, title: "Paginate the invoices endpoint", author: "you", branch: "paginate", words: "Open, waiting on its checks", checks: "pending" },
   },

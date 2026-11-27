@@ -42,7 +42,7 @@ func (w *Workspace) AutomationHooks() automation.Hooks {
 		Failed: func(a *automation.Automation, why string) error {
 			_, err := notification.Add(w.Root(), notification.Notification{
 				Source: notification.SourceAutomations, Kind: "automation:" + a.Name, Attention: true,
-				Text: "Automation " + a.Name + " couldn't run: " + why,
+				Text: "Automation " + a.Name + " could not run: " + why,
 			})
 			return err
 		},
@@ -160,7 +160,7 @@ func (w *Workspace) automationRepos() []automation.RepoInfo {
 func (w *Workspace) automationThings(kind string) ([]automation.ThingInfo, error) {
 	name, what, ok := strings.Cut(kind, ":")
 	if !ok {
-		return nil, &Invalid{Reason: kind + " isn't a plugin's kind, as jira:issue"}
+		return nil, &Invalid{Reason: kind + " is not a plugin kind (as jira:issue)"}
 	}
 	list, titled, err := plugin.Things(w.Root(), name, what)
 	if err != nil {
@@ -181,7 +181,7 @@ func (w *Workspace) acceptAutomation(store conversation.Store, c *conversation.C
 	}
 	a, err := (&automation.Engine{Root: w.Root()}).Add(p.Automation.Name, []byte(p.Text))
 	if err != nil {
-		return "", &Invalid{Reason: "it can't be added: " + err.Error()}
+		return "", &Invalid{Reason: "could not add automation: " + err.Error()}
 	}
 	if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, a.Name, conversation.You, time.Now()); err != nil {
 		return "", err
@@ -559,7 +559,7 @@ func proposalSays(root, ref string) string {
 func waitedFor(raw json.RawMessage) string {
 	s := strings.TrimSpace(string(raw))
 	if s == "" || s == "null" {
-		return "its time was up"
+		return "timed out"
 	}
 	if strings.HasPrefix(s, "[") {
 		var each []json.RawMessage

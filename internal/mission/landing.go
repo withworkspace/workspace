@@ -20,7 +20,7 @@ func capsuleForLanding(m *Mission, repo, name string) (*Capsule, error) {
 			return c, nil
 		}
 	}
-	return nil, fmt.Errorf("mission %s no longer owns %s/%s", m.Slug, repo, name)
+	return nil, fmt.Errorf("mission %s no longer has capsule %s/%s", m.Slug, repo, name)
 }
 
 // PrepareLanding records what ws is about to push.

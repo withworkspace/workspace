@@ -186,7 +186,7 @@ func searchCapsules(snap *snapshot, q string, limit int) []Result {
 				n++
 			}
 		}
-		hint := "nothing changed"
+		hint := "no changes"
 		if n == 1 {
 			hint = "1 file changed"
 		} else if n > 1 {

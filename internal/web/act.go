@@ -94,7 +94,7 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("Asked %s to answer it: it answers with ws mission answer.", l.ID), nil
+		return fmt.Sprintf("Asked %s to answer.", l.ID), nil
 	case "brief":
 		return a.Brief(slug, you)
 	case "confirm":
@@ -117,7 +117,7 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 		if _, err := a.Unend(slug, you); err != nil {
 			return "", err
 		}
-		return "Reopened: it's in play again.", nil
+		return "Reopened.", nil
 	case "hand-on":
 		to := ""
 		if len(req.To) > 0 {
@@ -145,7 +145,7 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 		}
 		return "Marked.", nil
 	}
-	return "", fmt.Errorf("%q isn't something a mission's page does", req.Verb)
+	return "", fmt.Errorf("unknown mission action %q", req.Verb)
 }
 
 // said is what an operation did, said, for the page.

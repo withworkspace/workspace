@@ -181,13 +181,13 @@ func PRFromNumber(org, repo string, number int) (*PR, error) {
 		"--json", "number,title,headRefName,state,reviewDecision,url,statusCheckRollup,author,isDraft,mergeable,mergeStateStatus,headRefOid,mergedAt",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("gh pr view %d for %s: %w", number, fullRepo, err)
+		return nil, fmt.Errorf("could not read pull request %d of %s: %w", number, fullRepo, err)
 	}
 
 	var pr PR
 	raw := stdOut.Bytes()
 	if err := json.Unmarshal(raw, &pr); err != nil {
-		return nil, fmt.Errorf("parsing gh output: %w", err)
+		return nil, fmt.Errorf("could not read GitHub's answer: %w", err)
 	}
 	pr.StatusRollup = deriveStatus(json.RawMessage(raw))
 	pr.Author = extractAuthor(json.RawMessage(raw))

@@ -144,7 +144,7 @@ func connect(ctx context.Context, r io.Reader, w io.Writer, cb Callbacks, watch 
 	}
 	// An agent that ends before it answers fails this with ErrClosed.
 	if err := cl.conn.Call(ctx, "initialize", params, &cl.Info); err != nil {
-		return nil, fmt.Errorf("initialize: %w", err)
+		return nil, fmt.Errorf("could not connect to the agent: %w", err)
 	}
 	return cl, nil
 }
@@ -287,7 +287,7 @@ func (p SessionParams) params() map[string]any {
 // NewSession starts a session.
 func (cl *Client) NewSession(ctx context.Context, p SessionParams) (Session, error) {
 	if len(p.Dirs) > 0 && cl.Info.AgentCapabilities.SessionCapabilities.AdditionalDirectories == nil {
-		return Session{}, errors.New("the agent can't work in more than one folder")
+		return Session{}, errors.New("the agent cannot work in more than one folder")
 	}
 	var s Session
 	if err := cl.conn.Call(ctx, "session/new", p.params(), &s); err != nil {
@@ -301,7 +301,7 @@ func (cl *Client) NewSession(ctx context.Context, p SessionParams) (Session, err
 // it replays as session updates (OnUpdate) before answering.
 func (cl *Client) LoadSession(ctx context.Context, id string, p SessionParams) (Session, error) {
 	if !cl.Info.AgentCapabilities.LoadSession {
-		return Session{}, errors.New("the agent can't load sessions")
+		return Session{}, errors.New("the agent cannot load sessions")
 	}
 	return cl.reopen(ctx, "session/load", id, p)
 }
@@ -310,7 +310,7 @@ func (cl *Client) LoadSession(ctx context.Context, id string, p SessionParams) (
 // without replaying it: for a client that kept its own record.
 func (cl *Client) ResumeSession(ctx context.Context, id string, p SessionParams) (Session, error) {
 	if cl.Info.AgentCapabilities.SessionCapabilities.Resume == nil {
-		return Session{}, errors.New("the agent can't resume sessions")
+		return Session{}, errors.New("the agent cannot resume sessions")
 	}
 	return cl.reopen(ctx, "session/resume", id, p)
 }

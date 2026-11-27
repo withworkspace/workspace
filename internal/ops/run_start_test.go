@@ -241,7 +241,7 @@ run = "b"
 		"a":        "frontend/cache/a needs itself: frontend/cache/a, which needs frontend/cache/b, which needs frontend/cache/a",
 		"lost":     "the workspace has no repo nowhere",
 		"norecipe": "backend/ground has no recipe worker ([run.service.worker] in its ws.repo.toml)",
-		"port":     "a need's name is lower case letters, numbers, - and _, and not port",
+		"port":     "need names use lower case letters, numbers, - and _, and cannot be port",
 		"nope":     "frontend/cache has no recipe nope",
 	} {
 		if _, err := w.StartRun(runAsk(front, recipe)); err == nil || !strings.Contains(err.Error(), want) {

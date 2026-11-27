@@ -67,7 +67,7 @@ type Answer struct {
 
 // ErrNotOnScreen is an answer refused because what crew are asking isn't
 // what it answers: nothing was sent.
-var ErrNotOnScreen = errors.New("its screen isn't showing that prompt")
+var ErrNotOnScreen = errors.New("prompt not on screen")
 
 // Frame is a crew's screen as it's drawn: its text (with its colours, as
 // ANSI escapes), where it's scrolled to, the cursor, and its size.
@@ -129,7 +129,7 @@ func (r TermRun) SwitchModel(model string) (string, error) {
 	}
 	sw, ok := h.(harness.ModelSwitcher)
 	if !ok {
-		return "", fmt.Errorf("%s's model can't be changed while it runs", r.S.Harness)
+		return "", fmt.Errorf("%s cannot switch models while running", r.S.Harness)
 	}
 	lines, err := sw.SwitchModel(model)
 	if err != nil {
@@ -182,35 +182,35 @@ func (r TermRun) Answer(c mission.Crew, a Answer) (string, error) {
 	}
 	p, found := harness.ReadPrompt(r.T.RenderScrolled(0))
 	if !found {
-		return "", fmt.Errorf("%w: there's no menu on it. Answer in the terminal", ErrNotOnScreen)
+		return "", fmt.Errorf("%w: no menu showing. Answer in the terminal", ErrNotOnScreen)
 	}
 	choice := -1
 	var words string
 	switch {
 	case a.Permission != "":
 		if c.Activity != mission.ActivityPermission || !p.IsPermission() {
-			return "", fmt.Errorf("%w: it isn't asking for a permission (%q). Answer in the terminal", ErrNotOnScreen, p.Title)
+			return "", fmt.Errorf("%w: not asking for a permission (%q). Answer in the terminal", ErrNotOnScreen, p.Title)
 		}
 		choice = p.PermissionChoice(a.Permission)
-		words = map[string]string{"allow": "Allowed it once", "always": "Allowed it from now on", "deny": "Denied it"}[a.Permission]
+		words = map[string]string{"allow": "Allowed once", "always": "Allowed from now on", "deny": "Denied"}[a.Permission]
 		if choice < 0 && a.Permission == "deny" {
 			// No "No" to pick: Escape declines.
 			send(uv.KeyEscape)
-			return "Denied it.", nil
+			return "Denied.", nil
 		}
 	case a.Option != "":
 		if !questionOnScreen(c, p) {
-			return "", fmt.Errorf("%w: its question isn't the one on screen. Answer in the terminal", ErrNotOnScreen)
+			return "", fmt.Errorf("%w: a different question is on screen. Answer in the terminal", ErrNotOnScreen)
 		}
 		choice, words = p.Option(a.Option), "Answered “"+a.Option+"”"
 	case strings.TrimSpace(a.Text) != "":
 		if !questionOnScreen(c, p) {
-			return "", fmt.Errorf("%w: its question isn't the one on screen. Answer in the terminal", ErrNotOnScreen)
+			return "", fmt.Errorf("%w: a different question is on screen. Answer in the terminal", ErrNotOnScreen)
 		}
 		choice, words = p.FreeText(), "Answered in your own words"
 	}
 	if choice < 0 {
-		return "", fmt.Errorf("%w: the menu has no such choice (%s). Answer in the terminal", ErrNotOnScreen, strings.Join(p.Options, "; "))
+		return "", fmt.Errorf("%w: no such choice (%s). Answer in the terminal", ErrNotOnScreen, strings.Join(p.Options, "; "))
 	}
 	move := uv.KeyDown
 	n := p.Moves(choice)
@@ -269,7 +269,7 @@ func (r AgentRun) Say(text string) (string, error) {
 	}
 	execlog.Note(r.Root, "crew "+r.S.Key(), "sent (%d chars):\n%s", len(text), text)
 	if busy {
-		return "Sent: " + r.S.CrewID + " gets it when its turn ends.", nil
+		return "Sent: " + r.S.CrewID + " gets it after this turn.", nil
 	}
 	return "Sent to " + r.S.CrewID + ".", nil
 }
@@ -283,7 +283,7 @@ func (r AgentRun) SwitchModel(model string) (string, error) {
 	}
 	name, settings, ok := harness.ACPModel(h, model)
 	if !ok {
-		return "", fmt.Errorf("%s's model can't be changed while it runs", r.S.Harness)
+		return "", fmt.Errorf("%s cannot switch models while running", r.S.Harness)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -305,7 +305,7 @@ func (r AgentRun) Asking() (Prompt, bool) {
 	v := Prompt{Context: []string{}}
 	switch {
 	case a.Permission != nil:
-		v.Title = "Do you want it to " + harness.AskedFor(*a.Permission) + "?"
+		v.Title = "Permission to " + harness.AskedFor(*a.Permission) + "?"
 		tc := a.Permission.ToolCall
 		for _, c := range tc.ToolContent() {
 			switch {
@@ -352,7 +352,7 @@ func (r AgentRun) Answer(_ mission.Crew, a Answer) (string, error) {
 		if a.Permission != "" {
 			what = "a permission"
 		}
-		return "", fmt.Errorf("%w: %s isn't waiting on %s now", ErrNotOnScreen, id, what)
+		return "", fmt.Errorf("%w: %s is no longer waiting on %s", ErrNotOnScreen, id, what)
 	}
 	var ans acp.Answer
 	var err error
@@ -360,7 +360,7 @@ func (r AgentRun) Answer(_ mission.Crew, a Answer) (string, error) {
 	switch {
 	case a.Permission != "":
 		ans, err = harness.PermissionAnswer(*ask.Permission, a.Permission)
-		words = map[string]string{"allow": "Allowed it once", "always": "Allowed it from now on", "deny": "Denied it"}[a.Permission]
+		words = map[string]string{"allow": "Allowed once", "always": "Allowed from now on", "deny": "Denied"}[a.Permission]
 	case a.Option != "":
 		ans, err = harness.QuestionAnswer(ask, a.Option, "")
 		words = "Answered “" + a.Option + "”"

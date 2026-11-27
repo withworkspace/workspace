@@ -75,7 +75,7 @@ func (r Repo) Init(ctx context.Context) error {
 		"GIT_CONFIG_GLOBAL=" + os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
 	}}.Output()
 	if err != nil {
-		return fmt.Errorf("making %s: %w", string(r), err)
+		return fmt.Errorf("could not create %s: %w", string(r), err)
 	}
 	_, err = r.out(ctx, nil, "config", "gc.auto", "0")
 	return err
@@ -134,7 +134,7 @@ func (r Repo) Commit(ctx context.Context, ref, from string, files Files, message
 	}
 	in.WriteString("done\n")
 	if _, err := r.out(ctx, &in, "fast-import", "--quiet", "--done", "--date-format=raw"); err != nil {
-		return "", fmt.Errorf("committing %s: %w", ref, err)
+		return "", fmt.Errorf("could not commit %s: %w", ref, err)
 	}
 	out, err := r.out(ctx, nil, "rev-parse", "--verify", ref+"^{commit}")
 	return strings.TrimSpace(string(out)), err
@@ -277,7 +277,7 @@ func (r Repo) blobs(ctx context.Context, names []string) ([]blob, error) {
 	for range names {
 		head, err := rd.ReadString('\n')
 		if err != nil {
-			return nil, fmt.Errorf("reading %s: git said less than was asked", string(r))
+			return nil, fmt.Errorf("could not read %s: git output was cut short", string(r))
 		}
 		head = strings.TrimSuffix(head, "\n")
 		if strings.HasSuffix(head, " missing") || strings.HasSuffix(head, " ambiguous") {
@@ -286,11 +286,11 @@ func (r Repo) blobs(ctx context.Context, names []string) ([]blob, error) {
 		}
 		f := strings.Fields(head)
 		if len(f) != 3 {
-			return nil, fmt.Errorf("reading %s: git said %q", string(r), head)
+			return nil, fmt.Errorf("could not read %s: git said %q", string(r), head)
 		}
 		size, err := strconv.Atoi(f[2])
 		if err != nil {
-			return nil, fmt.Errorf("reading %s: git said %q", string(r), head)
+			return nil, fmt.Errorf("could not read %s: git said %q", string(r), head)
 		}
 		data := make([]byte, size)
 		if _, err := io.ReadFull(rd, data); err != nil {

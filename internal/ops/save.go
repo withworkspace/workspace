@@ -90,7 +90,7 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 	if nowV != base {
 		was, err := store.VersionText(base)
 		if errors.Is(err, conversation.ErrNotFound) {
-			return nil, fmt.Errorf("%s has changed since you started, and the version you started from isn't kept to merge your edit with: copy your edit, reload, and make it again", ref)
+			return nil, fmt.Errorf("%s changed since you started and could not be merged: copy your edit, reload, and make it again", ref)
 		}
 		if err != nil {
 			return nil, err
@@ -108,14 +108,14 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 	}
 	if string(out) == string(now) {
 		d.drop()
-		return &DocSaved{Message: "Nothing to save: it's as it was", Version: nowV}, nil
+		return &DocSaved{Message: "Nothing to save: no changes", Version: nowV}, nil
 	}
 
 	commitIt := false
 	if place.CapsuleDir != "" {
 		st, err := git.Line(place.CapsuleDir, "status", "--porcelain", "--", place.Rel)
 		if err != nil {
-			return nil, fmt.Errorf("checking %s in %s: %w", place.Rel, place.Capsule, err)
+			return nil, fmt.Errorf("could not check %s in %s: %w", place.Rel, place.Capsule, err)
 		}
 		commitIt = st == ""
 	}
@@ -133,17 +133,17 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 		}
 		if cmd, err := git.Combined(place.CapsuleDir, "commit", "-q", "-m", subject, "-m", body, "--", place.Rel); err != nil {
 			_ = os.WriteFile(place.File, now, info.Mode().Perm()) // as it was
-			return nil, fmt.Errorf("committing it in %s: %v: %s", place.Capsule, err, clipString(cmd, 300))
+			return nil, fmt.Errorf("could not commit in %s: %v: %s", place.Capsule, err, clipString(cmd, 300))
 		}
 		saved.Commit, _ = git.Line(place.CapsuleDir, "rev-parse", "HEAD")
 		saved.Message = fmt.Sprintf("Saved: committed %s in %s", shortSHA(saved.Commit), place.Capsule)
 	case place.CapsuleDir != "":
-		saved.Message = fmt.Sprintf("Saved, not committed: %s already had uncommitted changes in %s, so it's left for whoever commits those", rel, place.Capsule)
+		saved.Message = fmt.Sprintf("Saved, not committed: %s already had uncommitted changes in %s", rel, place.Capsule)
 	default:
 		saved.Message = "Saved"
 	}
 	if merged {
-		saved.Message += ", merged with the changes made while you edited"
+		saved.Message += ", merged with changes made while you edited"
 	}
 	saved.Version, _ = store.KeepVersion(out)
 	d.drop()
@@ -203,10 +203,10 @@ func (w *Workspace) saveWorkspaceDoc(ref, base, text, subject, body string, drop
 		return nil, err
 	}
 	if m, mref, ok := w.RecordedBy(d); ok {
-		return nil, fmt.Errorf("mission %s records it (%s): edit it there", m.Slug, mref)
+		return nil, fmt.Errorf("recorded by mission %s (%s): edit it there", m.Slug, mref)
 	}
 	if !isMarkdown(d.Path) {
-		return nil, fmt.Errorf("%s isn't a document to edit: only markdown is", d.Ref)
+		return nil, fmt.Errorf("%s cannot be edited: only markdown can", d.Ref)
 	}
 	store := conversation.ForWorkspace(w.WS().Root)
 	drop := func() { logFailed(doc.Drafts{Root: w.WS().Root, Scope: doc.Workspace}.Drop(d.Ref)) }
@@ -238,7 +238,7 @@ func (w *Workspace) saveOnDefaultBranch(d *DocFile, store conversation.Store, ba
 	info, err := os.Stat(file)
 	if err != nil {
 		l.undo()
-		return nil, fmt.Errorf("%s isn't on %s any more: it's been moved or removed there since the ground was last brought up to it", d.Rel, onto)
+		return nil, fmt.Errorf("%s is no longer on %s: moved or removed", d.Rel, onto)
 	}
 	now, err := os.ReadFile(file)
 	if err != nil {
@@ -251,7 +251,7 @@ func (w *Workspace) saveOnDefaultBranch(d *DocFile, store conversation.Store, ba
 		was, err := store.VersionText(base)
 		if err != nil {
 			l.undo()
-			return nil, fmt.Errorf("%s has changed on %s since you started, and the version you started from isn't kept to merge your edit with: copy your edit, reload, and make it again", d.Ref, onto)
+			return nil, fmt.Errorf("%s changed on %s since you started and could not be merged: copy your edit, reload, and make it again", d.Ref, onto)
 		}
 		got, clashes, err := mergeText(was, []byte(text), now)
 		if err != nil {
@@ -268,7 +268,7 @@ func (w *Workspace) saveOnDefaultBranch(d *DocFile, store conversation.Store, ba
 	if string(out) == string(now) {
 		l.undo()
 		drop()
-		return &DocSaved{Message: "Nothing to save: it's as it is on " + onto, Version: nowV}, nil
+		return &DocSaved{Message: "Nothing to save: same as on " + onto, Version: nowV}, nil
 	}
 	if err := os.WriteFile(file, out, info.Mode().Perm()); err != nil {
 		l.undo()
@@ -284,7 +284,7 @@ func (w *Workspace) saveOnDefaultBranch(d *DocFile, store conversation.Store, ba
 	}
 	saved.Merged = merged
 	if merged {
-		saved.Message += ", merged with what changed on " + onto + " meanwhile"
+		saved.Message += ", merged with changes on " + onto + " meanwhile"
 	}
 	saved.Version, _ = store.KeepVersion(out)
 	drop()
@@ -316,7 +316,7 @@ type lifted struct {
 func (w *Workspace) liftForDefaultBranch(repo, branch string) (*lifted, error) {
 	c, err := w.Lift(repo, branch, "", CapsuleOptions{Bare: true, By: AsYou})
 	if err != nil {
-		return nil, fmt.Errorf("lifting a capsule of %s for it: %w", repo, err)
+		return nil, fmt.Errorf("could not lift a capsule of %s: %w", repo, err)
 	}
 	return &lifted{w: w, repo: repo, branch: branch, capsule: c.Name, dir: c.Path, land: workspace.LandOptions{Quiet: true}}, nil
 }
@@ -336,24 +336,24 @@ func (l *lifted) commitAndLand(rel, subject, body, what string, add bool) (*DocS
 	if add {
 		if cmd, err := git.Combined(l.dir, "add", "--", path); err != nil {
 			l.undo()
-			return nil, fmt.Errorf("adding it: %v: %s", err, clipString(cmd, 300))
+			return nil, fmt.Errorf("could not add: %v: %s", err, clipString(cmd, 300))
 		}
 	}
 	if cmd, err := git.Combined(l.dir, "commit", "-q", "-m", subject, "-m", body, "--", path); err != nil {
 		l.undo()
-		return nil, fmt.Errorf("committing it: %v: %s", err, clipString(cmd, 300))
+		return nil, fmt.Errorf("could not commit: %v: %s", err, clipString(cmd, 300))
 	}
 	saved := &DocSaved{Commit: workspace.GitRevParse(l.dir, "HEAD")}
 	if !w.WS().Direct(l.repo) {
 		saved.Ref = l.repo + "/" + l.capsule + ":" + rel
-		saved.Message = fmt.Sprintf("%s in a new capsule, %s/%s (%s): it's yours, to add to or open a pull request from", what, l.repo, l.capsule, shortSHA(saved.Commit))
+		saved.Message = fmt.Sprintf("%s in a new capsule, %s/%s (%s): add to it or open a pull request", what, l.repo, l.capsule, shortSHA(saved.Commit))
 		return saved, nil
 	}
 	res, err := w.land(l.repo, l.capsule, AsYou, l.land, true)
 	if err != nil {
 		l.undo()
 		if stopped, ok := errors.AsType[*workspace.LandError](err); ok {
-			msg := fmt.Sprintf("it wasn't %s, and nothing was pushed: %s", strings.ToLower(what), stopped.Msg)
+			msg := fmt.Sprintf("not %s, nothing pushed: %s", strings.ToLower(what), stopped.Msg)
 			if stopped.Output != "" {
 				msg += "\n" + clipString(stopped.Output, 600)
 			}
@@ -366,10 +366,10 @@ func (l *lifted) commitAndLand(rel, subject, body, what string, add bool) (*DocS
 	saved.Commit, saved.Ref = res.Landed.Head, l.repo+":"+rel
 	saved.Message = fmt.Sprintf("%s: landed on %s (%s)", what, onto, shortSHA(saved.Commit))
 	if res.Landed.Ground != nil {
-		saved.Message += fmt.Sprintf("; the ground wasn't brought up to it (%v)", res.Landed.Ground)
+		saved.Message += fmt.Sprintf("; could not update the ground (%v)", res.Landed.Ground)
 	}
 	if res.BurnErr != nil {
-		saved.Message += fmt.Sprintf("; the capsule %s/%s is still there (%v)", l.repo, l.capsule, res.BurnErr)
+		saved.Message += fmt.Sprintf("; capsule %s/%s was not removed (%v)", l.repo, l.capsule, res.BurnErr)
 	}
 	return saved, nil
 }
@@ -412,13 +412,13 @@ func mergeText(base, ours, theirs []byte) (merged []byte, clashes int, err error
 			return nil, 0, err
 		}
 	}
-	out, err := git.Cmd{Args: []string{"merge-file", "-p", "-L", "your edit", "-L", "as you started", "-L", "the document now", paths[0], paths[1], paths[2]}}.Output()
+	out, err := git.Cmd{Args: []string{"merge-file", "-p", "-L", "your edit", "-L", "original", "-L", "current", paths[0], paths[1], paths[2]}}.Output()
 	switch code := git.ExitCode(err); {
 	case err == nil:
 		return out, 0, nil
 	case code > 0 && code < 128: // how many clashes
 		return out, code, nil
 	default:
-		return nil, 0, fmt.Errorf("merging: %w", err)
+		return nil, 0, fmt.Errorf("could not merge: %w", err)
 	}
 }

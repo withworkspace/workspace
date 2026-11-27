@@ -87,13 +87,13 @@ func (s Store) ClearChecking(slug string, n int) error {
 // now, when it's known, or that it's checking.
 func checkingHeadline(st StageState, id string, c *Checking, now time.Time) Headline {
 	h := Headline{Court: CourtAgent, Kind: KindChecking, Label: "… checking", By: "ws",
-		Text:   fmt.Sprintf("ws is checking step %d: what %s reported done, against what has to be true for it to be done", st.N, id),
+		Text:   fmt.Sprintf("Checking step %d: %s reported done", st.N, id),
 		Action: Action{Label: "nothing to do"}}
 	if !c.liveFor(st.N, id, now) {
 		return h
 	}
 	h.Since, h.Checking = c.Since, c
-	so := fmt.Sprintf("%s so far (stopped at %s)", Elapsed(now.Sub(c.Since)), FormatLimit(c.Timeout()))
+	so := fmt.Sprintf("%s so far (limit %s)", Elapsed(now.Sub(c.Since)), FormatLimit(c.Timeout()))
 	if c.Judging() {
 		h.Label = "… judging"
 		who := firstNonEmpty(c.Judge, "the judge")

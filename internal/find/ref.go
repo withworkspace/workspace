@@ -62,7 +62,7 @@ func exactPull(repo string, number int, snap *snapshot, pulls []Pull) *Result {
 		}
 	}
 	ref := repo + "#" + strconv.Itoa(number)
-	return &Result{Kind: KindPull, Ref: ref, Title: "Open " + ref, Hint: "not among the open ones here: GitHub's asked", Repo: repo, Number: number, Asks: true}
+	return &Result{Kind: KindPull, Ref: ref, Title: "Open " + ref, Hint: "looked up on GitHub", Repo: repo, Number: number, Asks: true}
 }
 
 // exactURL reads an address on GitHub: a pull request's, or a file's or a

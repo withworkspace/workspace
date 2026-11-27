@@ -29,7 +29,7 @@ type AskedPlanner struct {
 }
 
 func (a AskedPlanner) String() string {
-	return "Asked the planner, in " + a.Conversation + ": it revises the plan, or says why not."
+	return "Asked the planner to revise the plan, in " + a.Conversation + "."
 }
 
 // OrchestratorReplans is how many times the orchestrator may ask the
@@ -45,7 +45,7 @@ const OrchestratorReplans = 1
 func (w *Workspace) AskPlanner(slug, why string, by Actor) (AskedPlanner, error) {
 	why = strings.TrimSpace(why)
 	if why == "" {
-		return AskedPlanner{}, invalid("say what doesn't fit, or what to change")
+		return AskedPlanner{}, invalid("say what to change")
 	}
 	if by.Kind == Crew {
 		return AskedPlanner{}, refused("not-yours", "the planner is asked by the orchestrator or the user: say what doesn't fit the plan in your handoff")
@@ -99,11 +99,11 @@ func (w *Workspace) MayAskPlanner(slug string) error {
 func plannerMay(m *mission.Mission) error {
 	switch {
 	case m.ToBrief():
-		return refused("briefing", "it's being briefed: the planner writes its plan with the brief")
+		return refused("briefing", "still being briefed: the planner writes the plan with the brief")
 	case m.Ending != nil || m.State == mission.Archived:
-		return refused("ended", "it's ended: reopen it first (ws mission reopen)")
+		return refused("ended", "the mission has ended: reopen it first (ws mission reopen)")
 	case m.Plan == nil:
-		return refused("no-plan", "it has no plan to revise: it works from its brief's stages (ws mission plan --set - gives it one)")
+		return refused("no-plan", "no plan to revise: the mission works from its brief's stages (ws mission plan --set - adds one)")
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func (w *Workspace) plannerAtStep(m *mission.Mission, done string, st mission.St
 		return "", err
 	}
 	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("asked the planner at step %d, in %s: write the steps after it", st.N, c.ID)})
-	return fmt.Sprintf("step %d is the planner's: it's asked, in %s, to write the steps after it, and ws moves on once it has", st.N, c.ID), nil
+	return fmt.Sprintf("step %d is the planner's: asked in %s to write the next steps, then the mission moves on", st.N, c.ID), nil
 }
 
 // Revised is a plan the planner wrote again: applied (and, at its own
@@ -352,7 +352,7 @@ func (w *Workspace) liftForPlan(slug string, p *mission.Plan, fixed int) []strin
 		}
 		joined, err := w.liftOrJoin(slug, r, name)
 		if err != nil {
-			said = append(said, fmt.Sprintf("couldn't lift %s/%s for step %d (%v): ws lift %s %s", r, name, st.N, err, r, name))
+			said = append(said, fmt.Sprintf("could not lift %s/%s for step %d (%v): ws lift %s %s", r, name, st.N, err, r, name))
 			continue
 		}
 		if joined {

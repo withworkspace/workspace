@@ -143,7 +143,7 @@ func TestATaskStoppedIsKeptAsStopped(t *testing.T) {
 		t.Fatalf("swept %q, %v: its owner has gone", names(swept), err)
 	}
 	now := waitState(t, s, r, Gone)
-	if now.Result() != "stopped" || !strings.Contains(now.Why, "has gone") {
+	if now.Result() != "stopped" || !strings.Contains(now.Why, ") exited") {
 		t.Errorf("result %q, why %q: want stopped, as its owner went", now.Result(), now.Why)
 	}
 	// And a recipe's task that's running is the one run of it.

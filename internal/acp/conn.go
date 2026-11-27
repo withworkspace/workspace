@@ -149,7 +149,7 @@ func (c *Conn) Err() error {
 }
 
 // ErrClosed is a request's answer once the connection's gone.
-var ErrClosed = errors.New("the agent's connection closed")
+var ErrClosed = errors.New("lost connection to the agent")
 
 func (c *Conn) read(r io.Reader) {
 	sc := bufio.NewScanner(r)

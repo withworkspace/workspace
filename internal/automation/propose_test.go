@@ -101,11 +101,11 @@ func TestPropose_WaitsForYou(t *testing.T) {
 
 func TestPropose_Refused(t *testing.T) {
 	for input, want := range map[string]string{
-		`"mission", {"brief": "x"}`:              "a mission has a title",
+		`"mission", {"brief": "x"}`:              "a mission needs a title",
 		`"mission", {"title": "x", "slug": "y"}`: "a mission has no slug",
-		`"decision", {"what": 3}`:                "a decision's what is words",
-		`"plan", {"plan": "x"}`:                  `"plan" isn't something an automation proposes`,
-		`"mission", "Fix it"`:                    "what's proposed is a dict",
+		`"decision", {"what": 3}`:                "a decision's what must be text",
+		`"plan", {"plan": "x"}`:                  `"plan" is not something an automation can propose`,
+		`"mission", "Fix it"`:                    "the proposal is a dict",
 	} {
 		e, _ := engine(t)
 		(&fakeProposals{}).hooks(e)

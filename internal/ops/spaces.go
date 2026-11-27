@@ -121,7 +121,7 @@ func (w *Workspace) SpaceList(ctx context.Context) ([]SpaceView, error) {
 func (w *Workspace) SpaceDocs(ctx context.Context, repo string) (*SpaceView, []SpaceDoc, error) {
 	name, ok := w.WS().ResolveAlias(repo)
 	if !ok {
-		return nil, nil, fmt.Errorf("%w: the workspace has no repo %s", ErrNotFound, repo)
+		return nil, nil, fmt.Errorf("%w: no repo %s", ErrNotFound, repo)
 	}
 	list, err := w.SpaceList(ctx)
 	if list == nil {
@@ -152,7 +152,7 @@ func (w *Workspace) SpaceDocs(ctx context.Context, repo string) (*SpaceView, []S
 		}
 		return &list[i], out, err
 	}
-	return nil, nil, fmt.Errorf("%w: %s isn't a space of documents", ErrNotFound, name)
+	return nil, nil, fmt.Errorf("%w: %s is not a space of documents", ErrNotFound, name)
 }
 
 // DocHit is a document a search found: where it is, the section it's led

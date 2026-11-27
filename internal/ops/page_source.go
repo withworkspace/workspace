@@ -25,7 +25,7 @@ import (
 
 // errFileMoved is a save refused because the file has changed since the
 // page last took it in.
-var errFileMoved = errors.New("changed since the page last took it in")
+var errFileMoved = errors.New("changed since you opened it")
 
 // openFilePage is the page a file is edited in: the one tied to it
 // already, or a new one with its text. A file a mission records is that
@@ -39,7 +39,7 @@ func (w *Workspace) openFilePage(ref string, at time.Time) (id string, m *DocMis
 		return "", &DocMission{Slug: mm.Slug, Title: mm.Title, Ref: mref}, nil
 	}
 	if !isMarkdown(d.Path) {
-		return "", nil, fmt.Errorf("%s isn't a document to edit: only markdown is", d.Ref)
+		return "", nil, fmt.Errorf("%s cannot be edited: only markdown can", d.Ref)
 	}
 	ps := page.Store{Root: w.WS().Root}
 	if id := ps.TiedTo(d.Ref); id != "" {
@@ -98,10 +98,10 @@ func (w *Workspace) savePageToFile(id, message string, at time.Time) (*DocSaved,
 		return nil, err
 	}
 	if p.Source == nil {
-		return nil, fmt.Errorf("%s isn't tied to a file: File as… files it as one", id)
+		return nil, fmt.Errorf("%s is not linked to a file: use File as…", id)
 	}
 	if busy := w.cellBeingWritten(id); busy != "" {
-		return nil, fmt.Errorf("a cell of %s is still being written (%s): save it once that's done", id, busy)
+		return nil, fmt.Errorf("a cell of %s is still being written (%s): save once done", id, busy)
 	}
 	d, err := w.FindDoc(p.Source.Ref)
 	if err != nil {
@@ -112,7 +112,7 @@ func (w *Workspace) savePageToFile(id, message string, at time.Time) (*DocSaved,
 		return nil, err
 	}
 	if doc.Version(now) != p.Source.Version {
-		return nil, fmt.Errorf("%s has %w: bring in what changed, then save", d.Rel, errFileMoved)
+		return nil, fmt.Errorf("%s has %w: bring in the changes, then save", d.Rel, errFileMoved)
 	}
 	body := page.AsText(text)
 	saved, err := w.SaveWorkspaceDoc(d.Ref, p.Source.Version, string(body), message, fmt.Sprintf("Saved from page %s in ws's web UI.", id))
@@ -120,7 +120,7 @@ func (w *Workspace) savePageToFile(id, message string, at time.Time) (*DocSaved,
 		return nil, err
 	}
 	if saved.Conflict != nil {
-		return nil, fmt.Errorf("%s has %w, where the page changed it too: bring in what changed, settle it on the page, and save again", d.Rel, errFileMoved)
+		return nil, fmt.Errorf("%s has %w, and clashes with the page: bring in the changes, resolve them on the page, and save again", d.Rel, errFileMoved)
 	}
 	// What was written is what the page agrees with now (a save merged with
 	// what landed meanwhile leaves the file ahead of it: brought in next).
@@ -131,7 +131,7 @@ func (w *Workspace) savePageToFile(id, message string, at time.Time) (*DocSaved,
 	meta := ps.Meta(id)
 	meta.Source = &page.Source{Ref: cmp.Or(saved.Ref, d.Ref), Version: v, At: at}
 	if err := ps.SetMeta(id, meta); err != nil {
-		saved.Message += fmt.Sprintf("; the page couldn't keep where it saved to (%v)", err)
+		saved.Message += fmt.Sprintf("; could not save the file location on the page (%v)", err)
 	}
 	return saved, nil
 }
@@ -147,7 +147,7 @@ func (w *Workspace) bringIn(id string, at time.Time) (*PageBroughtIn, error) {
 		return nil, err
 	}
 	if p.Source == nil {
-		return nil, fmt.Errorf("%s isn't tied to a file", id)
+		return nil, fmt.Errorf("%s is not linked to a file", id)
 	}
 	d, err := w.FindDoc(p.Source.Ref)
 	if err != nil {
@@ -163,7 +163,7 @@ func (w *Workspace) bringIn(id string, at time.Time) (*PageBroughtIn, error) {
 	if nowV != p.Source.Version {
 		was, err := store.VersionText(p.Source.Version)
 		if err != nil {
-			return nil, fmt.Errorf("the version of %s the page last agreed with isn't kept, so what changed can't be told from what you wrote: copy what you need, and open the file again", d.Rel)
+			return nil, fmt.Errorf("could not compare changes to %s: the earlier version is gone. Copy what you need and open the file again", d.Rel)
 		}
 		merged, clashes, err := mergeText(was, text, now)
 		if err != nil {

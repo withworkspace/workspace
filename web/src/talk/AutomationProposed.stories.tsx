@@ -54,7 +54,7 @@ export const Workflow: Story = {
         since: "2026-10-27T10:00:00Z", events: 412, matched: 3, ran: 3, waiting: 1,
         lines: [
           { event: "e1150", at: "2026-11-20T11:00:00Z", says: "api#205 merged", waited: ["waited 14m for e1153 (passed)"], did: ["notify: deployed api#205"] },
-          { event: "e1188", at: "2026-11-22T15:30:00Z", says: "web#97 merged", waited: ["waited 2h for run.ended run=deploy, and its time was up"], did: ["notify: web#97 merged but its deploy didn't pass"] },
+          { event: "e1188", at: "2026-11-22T15:30:00Z", says: "web#97 merged", waited: ["waited 2h for run.ended run=deploy, then timed out"], did: ["notify: web#97 merged but its deploy didn't pass"] },
           { event: "e1290", at: "2026-11-26T18:40:00Z", says: "api#212 merged", waited: ["would be waiting still, for run.ended run=deploy"] },
         ],
       },
@@ -104,6 +104,6 @@ export const NothingYet: Story = {
 export const SetsOthersOff: Story = {
   args: {
     script: drawing,
-    a: base({ setsOff: ["triage"], setOffBy: ["ci-red"], dryRun: { since: "2026-10-27T10:00:00Z", events: 412, matched: 3, ran: 2, held: 1, lines: [{ event: "e40", at: "2026-11-20T10:00:00Z", says: "triage answered in w14", held: "it'd loop: ci-red → triage → ci-red" }] } }),
+    a: base({ setsOff: ["triage"], setOffBy: ["ci-red"], dryRun: { since: "2026-10-27T10:00:00Z", events: 412, matched: 3, ran: 2, held: 1, lines: [{ event: "e40", at: "2026-11-20T10:00:00Z", says: "triage answered in w14", held: "would loop: ci-red → triage → ci-red" }] } }),
   },
 };
