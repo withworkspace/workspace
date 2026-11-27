@@ -1,6 +1,6 @@
 import type { Command, Scope } from "./commands";
 import { boundNow } from "./dispatch";
-import { keyOf } from "./keymap";
+import { keyOf, keysOf } from "./keymap";
 
 // What the Keys dialog says: the keys of what's open, a group for each
 // scope that's bound (the page's, then those of the parts in it), then
@@ -14,13 +14,16 @@ export interface HelpGroup {
 }
 
 // rowsOf is commands as the dialog's lines: a key and what it does. Those
-// that share a row are one line, their keys side by side ("j / k",
-// "Next / previous"). One with no key now isn't said.
+// that share a row are one line, their first keys side by side ("j / k",
+// "Next / previous"); one alone says all its keys ("⏎ / o", "Open"). One
+// with no key now isn't said.
 export function rowsOf(commands: readonly Command[], map?: Record<string, string[]>): [string, string][] {
   const rows: { what: string; keys: string[] }[] = [];
   const byRow = new Map<string, { what: string; keys: string[] }>();
   for (const c of commands) {
-    const k = keyOf(c, map);
+    // Alone, a command says each of its keys (⏎ / o); in a row with
+    // others, its first (j / k).
+    const k = c.row ? keyOf(c, map) : keysOf(c, map).join(" / ");
     if (!k) continue;
     const name = c.row ?? c.title;
     const had = c.row ? byRow.get(name) : undefined;

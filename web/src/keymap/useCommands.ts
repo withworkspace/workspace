@@ -11,7 +11,8 @@ export interface BindOpts {
 }
 
 // What a scope's commands are bound to: a handler for each that's bound
-// now. One that's undefined or false isn't, now.
+// now. One that's undefined or false isn't, now; one that gives back
+// pass (keymap/dispatch.ts) leaves the key to the next.
 export type Handlers<D extends Record<string, CommandDef>> = { [K in keyof D]?: Handler | false | undefined };
 
 // useCommands binds a scope's commands to what does them, for as long as

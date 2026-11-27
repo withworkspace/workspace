@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useChromeStore } from "../chrome/store";
 import { codeSearchKey } from "../keys";
+import { pass } from "../keymap/dispatch";
 import { useCommands } from "../keymap/useCommands";
 import { scopePrefix } from "./find";
 import { everywhereKeys } from "./keys";
@@ -19,7 +20,7 @@ export function useGlobalKeys() {
   const overlay = () => !!document.querySelector("[data-overlay]");
   // Going somewhere: not while something's open over the page.
   const go = (to: string) => () => {
-    if (overlay()) return false;
+    if (overlay()) return pass;
     navigate(to);
   };
   const g = everywhereKeys;
@@ -30,10 +31,10 @@ export function useGlobalKeys() {
       find: (e) => {
         // In a document being edited, ⌘K with words selected is a link, as
         // in any editor. With nothing selected, it's Find.
-        if (e.target instanceof HTMLElement && e.target.closest(".pm") && !window.getSelection()?.isCollapsed) return false;
+        if (e.target instanceof HTMLElement && e.target.closest(".pm") && !window.getSelection()?.isCollapsed) return pass;
         // With Find open, ⌘K is Find's own: it acts on what the cursor's
         // on there (shell/Palette/Palette.tsx).
-        if (useChromeStore.getState().find !== undefined) return false;
+        if (useChromeStore.getState().find !== undefined) return pass;
         openPalette();
       },
       findCode: (e) => {
@@ -43,7 +44,7 @@ export function useGlobalKeys() {
         if (does.to === "nothing") {
           // Something's open: the key's its, or nobody's (not the browser's).
           e.preventDefault();
-          return false;
+          return pass;
         }
         if (does.to === "own") does.open();
         else openPalette(scopePrefix.code);
@@ -51,16 +52,16 @@ export function useGlobalKeys() {
       findFile: (e) => {
         // ⌘P is Find, for files: except where a page has a file finder of
         // its own (a capsule's files, a review's), which is nearer.
-        if (ownsFileFinder(window.location.pathname)) return false;
+        if (ownsFileFinder(window.location.pathname)) return pass;
         if (overlay()) {
           // Something's open: not the browser's print, either.
           e.preventDefault();
-          return false;
+          return pass;
         }
         openPalette("/");
       },
       help: () => {
-        if (overlay()) return false;
+        if (overlay()) return pass;
         openHelp();
       },
       // g then a letter goes somewhere, on every page: the sidebar's

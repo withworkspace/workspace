@@ -26,8 +26,13 @@ import { keysOf } from "./keymap";
 // it does something by itself: on a list, g is the first row, and g then
 // m is Missions. One then another is read before the second by itself.
 
-// A command's handler. One that gives back false didn't take the key:
-// it's left to the next, and to the browser.
+// pass is what a handler gives back when the key isn't its, now: it's
+// left to the next, and to the browser (⌘K in an editor, with words
+// selected, is a link). Anything else it gives back (false from a && b())
+// is the key taken, as it was.
+export const pass: unique symbol = Symbol("pass");
+
+// A command's handler.
 export type Handler = (e: KeyboardEvent) => unknown;
 
 export interface Bound {
@@ -105,7 +110,7 @@ function done(bs: Bound[], key: string, e: KeyboardEvent, field: boolean, did: (
       if (!h || c.fixed) continue;
       if (field && !c.fields && key !== "Escape") continue;
       if (!keysOf(c).includes(key)) continue;
-      if (h(e) === false) continue;
+      if (h(e) === pass) continue;
       e.preventDefault();
       did(c);
       return true;
@@ -114,9 +119,31 @@ function done(bs: Bound[], key: string, e: KeyboardEvent, field: boolean, did: (
   return false;
 }
 
+// While a key's being set (Settings › Keyboard), every key pressed is
+// its: none does what it does.
+let held: ((e: KeyboardEvent) => void) | undefined;
+
+// holdKeys gives every key pressed to fn, and only to it, until what it
+// gives back is called.
+export function holdKeys(fn: (e: KeyboardEvent) => void): () => void {
+  held = fn;
+  pending = undefined;
+  listen();
+  return () => {
+    if (held === fn) held = undefined;
+  };
+}
+
 // press is a key pressed, in the capture (first) or after the focus has
 // had it.
 export function press(e: KeyboardEvent, first: boolean): Command | undefined {
+  if (held) {
+    if (!first) return undefined;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.isComposing && !plain.has(e.key)) held(e);
+    return undefined;
+  }
   if (e.isComposing || plain.has(e.key)) return undefined;
   const r = read(e);
   if (!first && e.defaultPrevented) return undefined;
@@ -158,4 +185,5 @@ export function isBound(c: Command): boolean {
 export function forgetAll() {
   bound.length = 0;
   pending = undefined;
+  held = undefined;
 }

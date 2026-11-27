@@ -1,3 +1,4 @@
+import { type KeyLike, useSaid } from "../keymap/keymap";
 import css from "./Keys.module.css";
 import { cx } from "./cx";
 
@@ -25,7 +26,11 @@ export function keysSaid(k: string): string[] {
 
 // Keys shows a key or a chord (keysSaid). Each key is a kbd, whose look
 // is the element's (styles.css), as it is in a document that writes one.
-export function Keys({ k, className }: { k: string; className?: string }) {
+// Given a command, it's the command's key now (yours, where you've set
+// one), and nothing where it has none.
+export function Keys({ k: given, className }: { k: KeyLike; className?: string }) {
+  const k = useSaid(given);
+  if (!k) return null;
   return (
     <span className={cx(css.keys, className)}>
       {keysSaid(k).map((p, i) => (

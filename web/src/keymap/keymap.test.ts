@@ -3,7 +3,7 @@ import { keyName } from "../keys";
 import { setPref } from "../prefs";
 import { everywhereKeys } from "../shell/keys";
 import { scope, scopeOf } from "./commands";
-import { bind, forgetAll, press } from "./dispatch";
+import { bind, forgetAll, holdKeys, pass, press } from "./dispatch";
 import { frameKeys } from "./frame";
 import { rowsOf } from "./help";
 import { clashesOf, isOwn, keyOf, keysOf, resetKeys, setKeys } from "./keymap";
@@ -27,6 +27,7 @@ function key(k: Partial<KeyboardEvent>): KeyboardEvent {
     preventDefault() {
       prevented = true;
     },
+    stopPropagation() {},
   } as unknown as KeyboardEvent;
 }
 // pressed is a key pressed, as the window hears it: the capture, then
@@ -100,13 +101,21 @@ describe("the dispatcher", () => {
     expect(got).toEqual(["next"]);
   });
 
-  it("leaves one that isn't bound now, and one that gives back false, to the next", () => {
+  it("leaves one that isn't bound now, and one that gives back pass, to the next", () => {
     const { got, h } = did();
-    bind({ scope: scopeOf(list), handlers: () => ({ next: () => false, open: undefined }), modal: false, first: false });
+    bind({ scope: scopeOf(list), handlers: () => ({ next: () => pass, open: undefined }), modal: false, first: false });
     bind({ scope: scopeOf(list), handlers: () => ({ next: h("outer"), open: h("open") }), modal: false, first: false });
     pressed({ key: "j" });
     pressed({ key: "Enter" });
     expect(got).toEqual(["outer", "open"]);
+  });
+
+  it("takes the key from one that gives back false: it's done", () => {
+    const { got, h } = did();
+    bind({ scope: scopeOf(list), handlers: () => ({ next: () => false }), modal: false, first: false });
+    bind({ scope: scopeOf(list), handlers: () => ({ next: h("outer") }), modal: false, first: false });
+    expect(pressed({ key: "j" }).defaultPrevented).toBe(true);
+    expect(got).toEqual([]);
   });
 
   it("does the one bound first: a part's before its page's", () => {
@@ -159,6 +168,19 @@ describe("the dispatcher", () => {
     e.preventDefault();
     press(e, false);
     expect(got).toEqual([]);
+  });
+
+  it("gives every key to what's holding them, while it is", () => {
+    const { got, h } = did();
+    bind({ scope: scopeOf(go), handlers: () => ({ send: h("send") }), modal: false, first: true });
+    const heard: string[] = [];
+    const release = holdKeys((e) => heard.push(keyName(e)));
+    expect(pressed({ key: "Enter", metaKey: true }).defaultPrevented).toBe(true);
+    pressed({ key: "Shift" });
+    release();
+    pressed({ key: "Enter", metaKey: true });
+    expect(heard).toEqual(["mod+Enter"]);
+    expect(got).toEqual(["send"]);
   });
 
   it("doesn't do a fixed one: it's its part's", () => {

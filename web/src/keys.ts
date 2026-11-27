@@ -1,7 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
-
-// KeyMap is the old way of binding keys (useKeys), going.
-export type KeyMap = Record<string, (e: KeyboardEvent) => void>;
+import { useEffect, useRef } from "react";
 
 // keyName is how a key press is named in a keymap: "j", "J", "Enter",
 // "Escape", "mod+d" (⌘ on macOS, ctrl elsewhere), "mod+shift+f",
@@ -40,77 +37,10 @@ export function typing(target: EventTarget | null): boolean {
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.closest("[data-field]") !== null;
 }
 
-// While a modal (help, a finder) is open, only its keys work.
-let modals = 0;
-
-// useKeys binds keys for as long as the component is mounted. Keys typed
-// into a field are the field's, apart from Escape. A modal's keys work
-// while it's open, and nobody else's do.
-export function useKeys(keys: KeyMap, opts: { modal?: boolean } = {}) {
-  const current = useRef(keys);
-  current.current = keys;
-  const modal = !!opts.modal;
-  useEffect(() => {
-    if (modal) modals++;
-    const onKey = (e: KeyboardEvent) => {
-      // Handled already (an editor's own Escape, say, which may have closed
-      // it, and with it the modal that kept this one quiet).
-      if (e.defaultPrevented) return;
-      if (e.isComposing || (typing(e.target) && e.key !== "Escape")) return;
-      if (!modal && modals > 0) return;
-      const fn = current.current[keyName(e)];
-      if (fn) {
-        e.preventDefault();
-        fn(e);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      if (modal) modals--;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [modal]);
-}
-
-// A Keyed function is one a key calls too, and says which: what
-// useShortcut gives back. A button given it to press (ui/Button.tsx)
-// reads the key off it, for its tooltip, and for the hint that there was
-// a key when it's pressed with the pointer (ui/keyHint.ts).
-export type Keyed<F> = F & { readonly keys?: string };
-
-// keysOf is the key a function says calls it, if it's a Keyed one that's
-// bound now.
+// keysOf is the key a function says does it: what useCommand gave back
+// (keymap/useCommands.ts), while its command's bound.
 export function keysOf(fn: unknown): string | undefined {
-  return typeof fn === "function" ? (fn as Keyed<() => void>).keys || undefined : undefined;
-}
-
-// useShortcut binds a key to fn, as useKeys does, and gives fn back
-// saying the key, to hand to the button that does the same: the key's
-// written once, and the button knows it.
-//
-//   const close = useShortcut("Escape", () => setOpen(false));
-//   <Button onClick={close} title="Close">
-//
-// Given several keys, each calls fn, and the first is the one it says
-// (["+", "="]: + in the tooltip, and = does it too). While enabled is
-// false the key isn't bound and the function says none, though it still
-// does what it does when called. It's the same function for as long as
-// its key is, so it can be a prop or a dependency.
-//
-// It has to reach the button as it is: () => close() around it has no
-// key to read. A button whose press isn't what the key does (the key
-// acts on the row the cursor's on, the button on its own) is told the
-// key itself: <Button keys="v">.
-export function useShortcut(key: string | string[], fn: () => void, opts: { enabled?: boolean; modal?: boolean } = {}): Keyed<() => void> {
-  const current = useRef(fn);
-  current.current = fn;
-  const all = typeof key === "string" ? [key] : key;
-  const on = opts.enabled !== false;
-  const map: KeyMap = {};
-  if (on) for (const k of all) map[k] = () => current.current();
-  useKeys(map, { modal: opts.modal });
-  const said = on ? all[0] : undefined;
-  return useMemo(() => Object.assign(() => current.current(), { keys: said }), [said]);
+  return typeof fn === "function" ? (fn as { keys?: string }).keys || undefined : undefined;
 }
 
 // A search box of a page's own (the explorer's, in a capsule) is nearer
