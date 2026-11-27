@@ -358,8 +358,9 @@ func TestCursor_ModelAndOrchestratorDefault(t *testing.T) {
 	}
 }
 
-// Cursor's orchestrator is limited as its conversations are: ask mode, no
-// --force, and a cli.json of ws's allowing the orchestrator's commands.
+// Cursor's orchestrator is limited as its conversations are: agent mode
+// (ask mode runs no mission commands), no --force, and a cli.json of ws's
+// allowing the orchestrator's commands.
 func TestCursor_Orchestrate(t *testing.T) {
 	c := fakeCursor(map[string]string{"cursor-agent": "/bin/ca"}, "", nil)
 	scratch := t.TempDir()
@@ -369,7 +370,7 @@ func TestCursor_Orchestrate(t *testing.T) {
 	}
 	// The whole prompt, on stdin: a long command line gets cursor-agent
 	// killed where an endpoint-security agent reads command lines.
-	if got := strings.Join(l.Args, " "); got != "/bin/ca -p --trust --mode ask --output-format stream-json --model auto" || l.Stdin != "the whole prompt" || l.Stream != StreamCursor || filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") {
+	if got := strings.Join(l.Args, " "); got != "/bin/ca -p --trust --output-format stream-json --model auto" || l.Stdin != "the whole prompt" || l.Stream != StreamCursor || filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") {
 		t.Errorf("launch = %q, stdin %q, in %s", got, l.Stdin, l.Dir)
 	}
 	data, _ := os.ReadFile(filepath.Join(l.Dir, ".cursor", "cli.json"))
@@ -900,7 +901,7 @@ func TestConverseCommands(t *testing.T) {
 	}
 }
 
-// Cursor holds a conversation in ask mode (read-only) without --force, in
+// Cursor holds a conversation in agent mode without --force, in
 // a folder of ws's whose .cursor/cli.json allows exactly the commands.
 func TestCursor_Converse(t *testing.T) {
 	c := fakeCursor(map[string]string{"cursor-agent": "/bin/cursor-agent"}, "", nil)
@@ -910,7 +911,7 @@ func TestCursor_Converse(t *testing.T) {
 		t.Fatal(err)
 	}
 	args := strings.Join(l.Args, " ")
-	if args != "/bin/cursor-agent -p --trust --mode ask --output-format stream-json --model auto" || l.Stdin != "Answer t3." {
+	if args != "/bin/cursor-agent -p --trust --output-format stream-json --model auto" || l.Stdin != "Answer t3." {
 		t.Errorf("args: %s, stdin %q", args, l.Stdin)
 	}
 	if filepath.Dir(l.Dir) != filepath.Join(scratch, "cursor") || l.Stream != StreamCursor {
