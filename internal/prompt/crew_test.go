@@ -35,7 +35,7 @@ func golden(t *testing.T, name, got string) {
 func TestCrew_Golden(t *testing.T) {
 	golden(t, "crew-work", Crew(CrewBrief{Slug: "cache", Title: "Cache lookups", Brief: "## Goal\nCache the lookup.\n",
 		Dispatch: "Add eviction", Stage: "Build it in `api/cache`.", StageN: 2, StageOf: 3,
-		LeftOff: "## Where earlier crew left off\n\nc1's handoff", Guide: "Read GUIDE.md first."}))
+		LeftOff: "## Where earlier crew left off\n\nc1's handoff", Guide: "Read GUIDE.md first.", RunChecks: []string{"go test ./...", "cd web && pnpm test"}}))
 	golden(t, "crew-briefing", Crew(CrewBrief{Slug: "fe-issue-45", Role: "briefing", Request: "fe issue 45", Org: "acme", Conversation: "t3"}))
 	golden(t, "crew-answer", Crew(CrewBrief{Slug: "cache", Title: "Cache lookups", Role: "answer",
 		Question: "Redis or in memory?", Options: []string{"Redis", "In memory"}}))

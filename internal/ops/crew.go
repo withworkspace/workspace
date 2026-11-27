@@ -395,6 +395,13 @@ func (w *Workspace) prepare(m *mission.Mission, h harness.Harness, d Dispatch, p
 	}
 	cb := crewBrief(b)
 	cb.Recipes = capsuleRecipes(place.Dir)
+	if st.Step != nil && st.Step.Type == mission.StepWork {
+		for _, c := range st.Step.Checks {
+			if c.Run() {
+				cb.RunChecks = append(cb.RunChecks, c.Command)
+			}
+		}
+	}
 	b.Prompt = prompt.Crew(cb)
 	if st.Step != nil && st.Step.Type == mission.StepVerify {
 		// Crew at a Verify step are its verifier: told their step and

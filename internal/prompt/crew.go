@@ -47,6 +47,10 @@ type CrewBrief struct {
 	// Recipes are the recipes of the repo the crew work in (its
 	// ws.repo.toml), which they're told to run with ws run.
 	Recipes []Recipe
+	// RunChecks are the commands of the step's checks (`go test ./...`),
+	// which ws runs itself once they report done: they're told so, so
+	// they don't run them again just before.
+	RunChecks []string
 	// LeftOff is where earlier crew left off.
 	LeftOff string
 	// Planning is the process the planner works from (briefing).
@@ -114,6 +118,13 @@ func Crew(b CrewBrief) string {
 	s.WriteString("- When you need a decision from the user, ask in your reply and also run `ws mission ask \"<the question>\"`, then wait for their answer: don't report done while a question is open.\n")
 	s.WriteString("- When you make something the next crew or the user will need (a proposal, an ADR, notes, a doc), record it as you go: `ws mission artifact add <file> --kind <proposal|adr|note|doc> \"<label>\"` (a file in a capsule, in a .ground, or in the mission's private files folder; or a URL). `ws show -f llm` lists the mission's artifacts with where to read each, the private files folder, and the records repo for shared proposals and ADRs, if the workspace has one.\n")
 	s.WriteString("- When you check your work by using it (a page in a browser, light and dark; what a command prints; a terminal's screen), keep what you saw (a screenshot, a short recording as .webm or .mp4, a command's output as text) and, once your work is committed, hand it over as a verification bundle: `ws mission bundle --set - <<'EOF'`, the bundle, then `EOF`. It says, for each of your step's checks, what it came to and what shows it, how the user can try it themselves, and what you didn't verify: `ws mission bundle --format` says how it's written, with your step's checks by number. Keep it short, since ws refuses one that's over length: the outcome first, each check's finding in a sentence or two, and what you measured in a text file the check shows. Write it in short, plain sentences, one fact in each, with no idioms. The mission's Verify tab shows it, images and videos as they are, so the user sees what you saw. If you change the work afterwards, hand over another: it takes the first one's place.\n")
+	if len(b.RunChecks) > 0 {
+		cmds := make([]string, len(b.RunChecks))
+		for i, c := range b.RunChecks {
+			cmds[i] = "`" + c + "`"
+		}
+		fmt.Fprintf(&s, "- When you report done, ws runs your step's checks that are commands (%s) in your capsule, at your last commit, and sends the work back with what failed if one does: don't run them yourself just before you report done. While you work, run what covers the part you're changing (its package, its file), which is quicker, and leave a test runner's cache on (no `go test -count=1`) unless you're chasing a flaky test.\n", strings.Join(cmds, ", "))
+	}
 	s.WriteString(runRules(b.Recipes))
 	s.WriteString("- When the work calls for something to look at and use rather than read (a mock-up of a page, two takes on a design, a diagram to click through), make it an artifact: a page, as one HTML file with its CSS and JS inline, or as a folder with `index.html` at its top and the files it loads beside it (stylesheets, scripts, images). Add it with `ws artifact add <file|folder> --title \"…\" --note \"<what it tries out>\"`, and its next version with `ws artifact add <file|folder> --to a3 --note \"<what changed, and why>\"`; `ws artifact checkout a3` puts a version's files in a folder to work on. `ws artifact url a3.v2` prints the address a version runs at, to look at it in a browser if you have one. Write it outside your capsule, in a temp folder: it isn't the repo's. Where there's something to choose between (a density, a colour, two takes on a layout), don't draw controls for it in the page: declare it as tweaks, and ws draws them beside the page, with your presets as buttons (`ws artifact tweaks` says how). ws records it on the mission, and keeps it on this machine: there's nothing of it to commit. Name it in your handoff (`a3`, `a3.v2`), and `ws show a3` says what each version is. Promoting, discarding and restoring one are the user's: say in your handoff which you'd keep, and which drop, and why.\n")
 	s.WriteString("- If the user has reviewed this work, `ws show -f llm` lists the review, and `ws review show -f llm` prints the latest: each comment with the lines it's on, and what to do. Address it as it says, and answer each comment by its id once you've committed: `ws review addressed <id> \"what you did\"` (it records the commit), `ws review wontfix <id> \"why\"`, or `ws review reply <id> \"your answer\"` for a question. The user re-reviews what changed and resolves them.\n")
