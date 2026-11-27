@@ -54,6 +54,10 @@ what it came to. And when can pace it:
   event("pr.checks_failed", at_most = "1/h", per = "pr")
       at most once an hour each pull request; what's past it is held
 
+Or it runs by the clock: when = every("day 03:00") (or "1h", "weekday
+09:00", "mon,thu 17:30"), on its own schedule.due; a time missed while the
+daemon was away is run once when it's back.
+
 It runs in the daemon, from the next event after it's added: once an
 event, each step that reaches outside it (notify, converse) done once
 even if the run's run again. You're told once when one can't run.
@@ -63,13 +67,14 @@ even if the run's run again. You're told once when one can't run.
   ws automation kinds                how one's written: every kind of event, and the builtins
   ws automation list                 each, what it's for and may do, and how its last run went
   ws automation runs [name]          its runs, the latest first
+  ws automation run <name>           run one that's on a schedule now, as if its time had come
   ws automation off <name>           stop it (on starts it again, from the next event)
   ws automation rm <name>            take it away`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error { return listAutomations(false) },
 	}
 	cmd.AddCommand(newAutomationAddCmd(), newAutomationCheckCmd(), newAutomationKindsCmd(), newAutomationListCmd(), newAutomationRunsCmd(),
-		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd())
+		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd(), newAutomationRunNowCmd())
 	return cmd
 }
 
@@ -172,8 +177,22 @@ func proposeAutomation(w *ops.Workspace, name string, src []byte) error {
 		return fmt.Errorf("not proposed: its dry run: %w", err)
 	}
 	_, had := os.Stat(automation.Path(w.Root(), name))
+	var outline *automation.Outline
+	if o, err := automation.OutlineOf(a); err == nil {
+		outline = &o
+	}
+	mine, _ := automation.List(w.Root())
+	states, _ := automation.States(w.Root())
+	var on []*automation.Automation
+	for _, b := range mine {
+		if states[b.Name].On {
+			on = append(on, b)
+		}
+	}
+	setsOff, setOffBy := automation.Linked(a, on)
 	p := conversation.Proposal{Kind: conversation.ProposeAutomation, Title: name, Text: string(src), Note: a.About,
-		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil}}
+		Automation: &automation.Proposed{Name: name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), DryRun: dr, Replaces: had == nil, Outline: outline,
+			SetsOff: setsOff, SetOffBy: setOffBy}}
 	if err := propose(w, p); err != nil {
 		return err
 	}
@@ -188,6 +207,12 @@ func proposeAutomation(w *ops.Workspace, name string, src []byte) error {
 		said += fmt.Sprintf(", %d settling still", dr.Settling)
 	}
 	fmt.Fprintf(ui.Stderr, "  %s %s: the user reads it on the card\n", ui.Dim.Render("·"), said)
+	if len(setsOff) > 0 {
+		fmt.Fprintf(ui.Stderr, "  %s the conversations it starts would set off %s (a chain stops %d deep, and at a loop)\n", ui.Orange.Render("⚠"), strings.Join(setsOff, ", "), automation.MaxChain)
+	}
+	if len(setOffBy) > 0 {
+		fmt.Fprintf(ui.Stderr, "  %s it'd be set off by the conversations %s starts\n", ui.Orange.Render("⚠"), strings.Join(setOffBy, ", "))
+	}
 	for _, l := range dr.Lines {
 		if l.Error != "" {
 			fmt.Fprintf(ui.Stderr, "  %s %s failed: %s\n", ui.Orange.Render("⚠"), l.Event, firstLineOf(l.Error))
@@ -425,4 +450,25 @@ func maySaid(a *automation.Automation) string {
 func firstLineOf(s string) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(s), "\n")
 	return line
+}
+
+func newAutomationRunNowCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "run <name>",
+		Short: "Run an automation that's on a schedule now, as if its time had come",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			ev, err := w.RunAutomationNow(args[0])
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stderr, "%s %s: its time, now (%s); the daemon runs it\n", ui.Green.Render("✓"), args[0], ev.Ref())
+			return nil
+		},
+	}
 }

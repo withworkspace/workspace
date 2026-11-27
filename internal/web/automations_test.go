@@ -1,7 +1,9 @@
 package web
 
 import (
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,6 +66,11 @@ func TestAutomations_Page(t *testing.T) {
 		t.Errorf("its run: %+v", r)
 	}
 
+	if page.Outline == nil || len(page.Outline.Steps) != 1 || page.Outline.Steps[0].Kind != "notify" ||
+		len(page.Steps) != 1 || page.Steps[0].At != page.Outline.Steps[0].At || page.Steps[0].Done != 1 {
+		t.Errorf("its outline %+v, counted %+v", page.Outline, page.Steps)
+	}
+
 	if res := asks(t, s, "POST", "/api/automations/drawing/on", AutomationOn{On: false}, nil); res.StatusCode != http.StatusOK {
 		t.Errorf("turning it off: %d", res.StatusCode)
 	}
@@ -86,5 +93,50 @@ func TestAutomations_Page(t *testing.T) {
 	asks(t, s, "GET", "/api/automations", nil, &info)
 	if len(info.Automations) != 0 {
 		t.Errorf("removed, still listed: %+v", info.Automations)
+	}
+}
+
+// An automation's output is served as written, a version at a time; an
+// HTML one isn't sent, it's served as a frame's page under the frame's
+// policy.
+func TestAutomations_Output(t *testing.T) {
+	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
+	e := &automation.Engine{Root: s.Root}
+	for name, out := range map[string]string{"md": `output("# Hello\n\n" + chart([("2026-11-26T03:00:00Z", 50)]))`, "page": `output(html = "<h1>Hi</h1>")`} {
+		src := "when = every(\"1h\")\nmay = [\"output\"]\n\ndef run(e):\n    " + out + "\n"
+		if _, err := e.Add(name, []byte(src)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := automation.RunNow(s.Root, name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e.RunDue()
+
+	var md AutomationOutputInfo
+	asks(t, s, "GET", "/api/automations/md/output", nil, &md)
+	if md.Output == nil || md.Output.Format != automation.OutputMarkdown || !strings.HasPrefix(md.Output.Body, "# Hello\n\n```chart\n") || len(md.Versions) != 1 {
+		t.Errorf("markdown: %+v", md)
+	}
+	var page AutomationOutputInfo
+	asks(t, s, "GET", "/api/automations/page/output", nil, &page)
+	if page.Output == nil || page.Output.Format != automation.OutputHTML || page.Output.Body != "" {
+		t.Fatalf("html: %+v", page)
+	}
+	res := do(t, s, "GET", "/frame/automations/page/output/1", true, nil)
+	body, _ := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK || !strings.Contains(string(body), "<h1>Hi</h1>") || res.Header.Get("Content-Security-Policy") == "" {
+		t.Errorf("frame %d %q %q", res.StatusCode, body, res.Header.Get("Content-Security-Policy"))
+	}
+	if res := do(t, s, "GET", "/frame/automations/md/output/1", true, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("a markdown one's frame: %d", res.StatusCode)
+	}
+
+	var list AutomationsInfo
+	asks(t, s, "GET", "/api/automations", nil, &list)
+	for _, a := range list.Automations {
+		if a.Output != 1 || !a.Scheduled {
+			t.Errorf("listed %s: output %d, scheduled %v", a.Name, a.Output, a.Scheduled)
+		}
 	}
 }

@@ -9,3 +9,23 @@
 .about {
   margin: 0;
 }
+
+/* What its page would say now, from its dry run's last run. */
+.preview summary {
+  cursor: pointer;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.previewBody {
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.html {
+  margin: 6px 0 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

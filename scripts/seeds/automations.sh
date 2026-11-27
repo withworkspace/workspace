@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Three automations, on: a sketch Brendan draws, a decision changing in records, a sketch's saves once it's settled; and Brendan landing them.
+# Four automations, on: a sketch Brendan draws, a decision changing in records, a sketch's saves once it's settled, a sketch picked up (a wait); and Brendan and Ana landing what they're for.
 #
 # For looking at automations (ws automation) and what they tell you:
 #
@@ -7,7 +7,10 @@
 #
 # It adds drawing.star (notify me if Brendan pushes a new drawing),
 # doc-changes.star (tell me when a decision changes in records) and
-# settled.star (a sketch's saves, once it's been quiet a minute), then
+# settled.star (a sketch's saves, once it's been quiet a minute) and
+# picked-up.star (Brendan's new sketch, waiting for Ana to change it), and
+# coverage-trend.star (demo's coverage task each day, kept and charted on
+# its page; run once now), then
 # lands Brendan's sketch and decision on records, and Ana's two saves. The daemon hears the
 # landing, and runs both: two notifications, from Automations, in the
 # feed (the bell; ws notifications). ws automation list and ws automation
@@ -36,6 +39,18 @@ cp "$here"/agent/*.md "$dir/.try/agent/"
 "$ws" automation add "$here/drawing.star" >/dev/null
 "$ws" automation add "$here/doc-changes.star" >/dev/null
 "$ws" automation add "$here/settled.star" >/dev/null
+"$ws" automation add "$here/picked-up.star" >/dev/null
+
+# demo's coverage, as a task with a report (on its ground, as a team's
+# ws.repo.toml would have it), and coverage-trend, which runs it each day
+# and shows the trend: run once now, so the daemon runs it as it's up.
+cat >"$dir/repos/demo/.ground/ws.repo.toml" <<'TOML'
+[run.task.coverage]
+command = "go test -coverprofile=coverage.out ./..."
+reports.coverage = { path = "coverage.out", format = "gocover" }
+TOML
+"$ws" automation add "$here/coverage-trend.star" >/dev/null
+"$ws" automation run coverage-trend >/dev/null 2>&1 || true
 
 "$ws" lift records release-flow >/dev/null 2>&1
 c="$dir/repos/records/release-flow"
@@ -68,10 +83,11 @@ done
 "$ws" talk "Tell me when Ana's done changing a sketch" --print >/dev/null 2>&1 || true
 
 cat <<OUT
-automations: drawing, doc-changes and settled, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
+automations: drawing, doc-changes, settled, picked-up and coverage-trend, on; Brendan landed a sketch and a decision, Ana saved it twice (settled tells of it a minute on).
 
   ws automation list      each, and how its last run went
   ws automation runs      what each did
   ws notifications        what they told you (the bell, in the web UI)
   /conversations/w1       an automation proposed in words, with its dry run, to turn on
+  /automations/coverage-trend/output   demo's coverage, charted (ws automation run coverage-trend for another point)
 OUT

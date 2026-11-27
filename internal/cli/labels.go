@@ -63,6 +63,7 @@ var labels = map[string]string{
 	"automation on":    "Turning {1} on",
 	"automation off":   "Turning {1} off",
 	"automation rm":    "Taking {1} away",
+	"automation run":   "Running {1} now",
 
 	"notifications":         "Reading notifications",
 	"notifications dismiss": "Dismissing notifications",

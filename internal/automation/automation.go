@@ -49,10 +49,12 @@ import (
 const (
 	MayNotify   = "notify"
 	MayConverse = "converse"
+	// MayRun is starting a repo's task (run_task): this machine's time.
+	MayRun = "run"
 )
 
 // Mays is every may there is.
-var Mays = []string{MayNotify, MayConverse}
+var Mays = []string{MayNotify, MayConverse, MayRun, MayOutput}
 
 // Automation is one automation, as its file says it.
 type Automation struct {
@@ -65,6 +67,8 @@ type Automation struct {
 	May   []string
 	// Source is its file, as read.
 	Source []byte
+	// schedules are When's every()s, by place (nil for an event()).
+	schedules []*Schedule
 	// run is its run, nil for none (the event's notified as it is).
 	run starlark.Callable
 }
@@ -111,6 +115,9 @@ func (a *Automation) WhenSaid() string {
 	var out []string
 	for i, m := range a.When {
 		said := m.String()
+		if s := a.scheduleAt(i); s != nil {
+			said = "every " + s.Said
+		}
 		if i < len(a.Paces) {
 			if p := a.Paces[i].String(); p != "" {
 				said += " (" + p + ")"
@@ -157,7 +164,10 @@ func Check(name string, src []byte) (*Automation, error) {
 		return nil, err
 	}
 	for _, m := range ms {
-		a.When, a.Paces = append(a.When, m.m), append(a.Paces, m.pace)
+		if m.schedule != nil {
+			m.m.Fields = []events.MatchField{{Key: "automation", Value: name}}
+		}
+		a.When, a.Paces, a.schedules = append(a.When, m.m), append(a.Paces, m.pace), append(a.schedules, m.schedule)
 	}
 	if may, ok := globals["may"]; ok {
 		if a.May, err = maysOf(may); err != nil {
@@ -257,9 +267,16 @@ func shortDuration(d time.Duration) string {
 type matchValue struct {
 	m    events.Match
 	pace Pace
+	// schedule is an every()'s: its own schedule.due, by the clock.
+	schedule *Schedule
 }
 
-func (v matchValue) String() string        { return "event(" + v.m.String() + ")" }
+func (v matchValue) String() string {
+	if v.schedule != nil {
+		return "every(" + strconv.Quote(v.schedule.Said) + ")"
+	}
+	return "event(" + v.m.String() + ")"
+}
 func (v matchValue) Type() string          { return "event" }
 func (v matchValue) Freeze()               {}
 func (v matchValue) Truth() starlark.Bool  { return true }
@@ -408,13 +425,13 @@ func scriptError(err error) error {
 }
 
 // builtinNames are every builtin a run's given (run.builtins).
-var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait"}
+var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait", "wait_all", "wait_any", "run_task", "repos", "keep", "kept", "output", "chart", "things"}
 
 // checkBuiltins are what a file's top level is read with: event, and
 // every other builtin's name, so run can use them, refusing to be called
 // before there's an event to run on.
 func checkBuiltins() starlark.StringDict {
-	d := starlark.StringDict{"event": starlark.NewBuiltin("event", eventBuiltin)}
+	d := starlark.StringDict{"event": starlark.NewBuiltin("event", eventBuiltin), "every": starlark.NewBuiltin("every", everyBuiltin)}
 	for _, name := range builtinNames {
 		d[name] = starlark.NewBuiltin(name, func(_ *starlark.Thread, b *starlark.Builtin, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
 			return nil, fmt.Errorf("%s is for run, called with each event: not for the file's top level", b.Name())

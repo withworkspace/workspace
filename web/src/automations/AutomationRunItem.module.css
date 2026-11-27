@@ -59,6 +59,13 @@
   overflow-wrap: anywhere;
 }
 
+/* Why a run was held back (at_most, a loop): said, not an error. */
+.why {
+  font-size: var(--text-sm);
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
 .log {
   margin: 4px 0 0;
   padding: 6px 10px;

@@ -551,3 +551,22 @@ func TestConversationEvents(t *testing.T) {
 		t.Errorf("answered: %q", got[0].Text)
 	}
 }
+
+// A conversation an automation started says so in its events: the
+// automations that led to it, so what they set off can't loop.
+func TestConversationEvents_Chained(t *testing.T) {
+	root := owned(t)
+	ws := ForWorkspace(root)
+	c, err := ws.OpenTalkChained("automation:triage", []string{"ci-red", "triage"}, Turn{By: You, Body: "Why did CI fail?", At: at})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := ws.Load(c.ID); strings.Join(c.Chain, ",") != "ci-red,triage" {
+		t.Errorf("kept chain %q", c.Chain)
+	}
+	ws.Say(c.ID, Turn{By: Agent, Body: "A flaky test.", At: at})
+	got, _ := events.List(root, events.Filter{Kinds: []string{events.ConversationAnswered}})
+	if len(got) != 1 || strings.Join(got[0].Chain, ",") != "ci-red,triage" {
+		t.Errorf("events %+v", got)
+	}
+}

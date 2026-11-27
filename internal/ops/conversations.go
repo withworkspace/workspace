@@ -217,6 +217,12 @@ func (w *Workspace) StartTalk(sc doc.Scope, body string, by Actor) (*conversatio
 // a plugin, with what it has you say first, and has its agent answer:
 // what a plugin's app does to hand something on to be talked over.
 func (w *Workspace) StartTalkVia(plugin, body string) (*conversation.Conversation, error) {
+	return w.StartTalkChained(plugin, body, nil)
+}
+
+// StartTalkChained is StartTalkVia for an automation: chain is the
+// automations that led to it (it last), which its events carry.
+func (w *Workspace) StartTalkChained(plugin, body string, chain []string) (*conversation.Conversation, error) {
 	store, err := w.Conversations(doc.Workspace)
 	if err != nil {
 		return nil, err
@@ -226,7 +232,7 @@ func (w *Workspace) StartTalkVia(plugin, body string) (*conversation.Conversatio
 	// once, not from the agent's first reply.
 	first := conversation.Turn{By: AsYou.By(), At: w.now(), Body: body}
 	w.pinTurn(&first)
-	c, err := store.OpenTalkVia(plugin, first)
+	c, err := store.OpenTalkChained(plugin, chain, first)
 	if err != nil {
 		return nil, &Invalid{Reason: err.Error()}
 	}

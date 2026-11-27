@@ -92,6 +92,7 @@ import type {
   AutomationPage,
   AutomationProposed,
   AutomationsInfo,
+  AutomationOutputInfo,
 } from "./wire.gen";
 export type {
   CommandLabel,
@@ -1214,6 +1215,12 @@ export type ProposedAutomation = AutomationProposed;
 export type {
   AutomationDryLine,
   AutomationDryRun,
+  AutomationOutline,
+  AutomationOutlineBranch,
+  AutomationOutput,
+  AutomationOutputInfo,
+  AutomationOutlineStep,
+  AutomationStepCount,
   AutomationPage,
   AutomationsInfo,
   AutomationTally,
@@ -1232,6 +1239,15 @@ export const setAutomationOn = (name: string, on: boolean) =>
 // removeAutomation takes one away: its file and its runs.
 export const removeAutomation = (name: string) =>
   send<{ removed: string }>("DELETE", `/api/automations/${encodeURIComponent(name)}`);
+// getAutomationOutput is a version of what one shows (the latest without
+// one), and every version kept; an HTML one's body isn't sent, it's shown
+// from automationOutputFrameURL.
+export const getAutomationOutput = (name: string, version?: number) =>
+  getJSON<AutomationOutputInfo>(`/api/automations/${encodeURIComponent(name)}/output${version ? `?version=${version}` : ""}`);
+export const automationOutputFrameURL = (name: string, version: number) => `/frame/automations/${encodeURIComponent(name)}/output/${version}`;
+// runAutomationNow runs one that's on a schedule now, as if its time had
+// come.
+export const runAutomationNow = (name: string) => send<{ event: string }>("POST", `/api/automations/${encodeURIComponent(name)}/run`);
 // dryRunAutomation is what one would have done over the last 30 days,
 // done again now.
 export const dryRunAutomation = (name: string) =>

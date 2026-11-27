@@ -629,6 +629,18 @@ export interface AutomationDryRun {
      * Lines are its runs, the latest last: at most DryLines of them.
      */
     lines: AutomationDryLine[];
+    /**
+     * Steps are how each step of its script would have gone, and Failures
+     * where its runs would have failed (line:col, how many), for its
+     * outline.
+     */
+    steps?: AutomationStepCount[];
+    failures?: Record<string, number>;
+    /**
+     * Output is what it'd show now (output()): its last run's, the card's
+     * preview of it.
+     */
+    output?: AutomationOutput;
 }
 
 // From web/automations.go
@@ -637,6 +649,89 @@ export interface AutomationDryRun {
  */
 export interface AutomationOn {
     on: boolean;
+}
+
+// From automation/outline.go
+/**
+ * Outline is an automation's script, drawn.
+ */
+export interface AutomationOutline {
+    /**
+     * When is what it runs on: each event() of its when, with its pace.
+     */
+    when: AutomationOutlineWhen[];
+    /**
+     * Steps are its run's, in order; none with no run, when the event's
+     * notified as it is (Default).
+     */
+    steps: AutomationOutlineStep[];
+    default?: boolean;
+}
+
+// From automation/outline.go
+/**
+ * OutlineBranch is one way a step goes: its label (else, met, for each
+ * x in e.batch) and its steps.
+ */
+export interface AutomationOutlineBranch {
+    label: string;
+    steps: AutomationOutlineStep[];
+}
+
+// From automation/outline.go
+/**
+ * OutlineStep is one step of a run. Kind is notify, converse, wait, read
+ * (show, events, refs_in), log, if, for, stop (a return) or code. At is
+ * where it is in the script (line:col): for a builtin, where it's called,
+ * which is what its runs' steps are kept by, so they can be counted on
+ * it. Text is what it says (a notification's words, with what's filled in
+ * as it runs in braces; a wait's event; an if's condition), and Detail
+ * the rest (a wait's timeout; what a read's assigned to). Branches are
+ * what it splits into: an if's (if, elif, else), a for's body, a wait's
+ * met and time's up.
+ */
+export interface AutomationOutlineStep {
+    kind: string;
+    at: string;
+    line: number;
+    text?: string;
+    detail?: string;
+    branches?: AutomationOutlineBranch[];
+}
+
+// From automation/outline.go
+/**
+ * OutlineWhen is one event() of a when: what it matches, and its pace.
+ */
+export interface AutomationOutlineWhen {
+    match: string;
+    pace?: string;
+}
+
+// From automation/output.go
+/**
+ * Output is a version of what an automation shows.
+ */
+export interface AutomationOutput {
+    name: string;
+    version: number;
+    at: string;
+    event: number;
+    format: string;
+    body: string;
+}
+
+// From web/automations.go
+/**
+ * AutomationOutputInfo is what GET /api/automations/{name}/output serves:
+ * a version of what it shows (?version=, the latest without), and every
+ * version kept, the latest first, without their bodies. An HTML one's
+ * body isn't sent: it's shown from its frame
+ * (/frame/automations/{name}/output/{version}).
+ */
+export interface AutomationOutputInfo {
+    output?: AutomationOutput;
+    versions: AutomationOutput[];
 }
 
 // From web/automations.go
@@ -648,6 +743,13 @@ export interface AutomationPage {
     automation: OpsAutomationItem;
     source: string;
     runs: OpsAutomationRun[];
+    /**
+     * Outline is its script, drawn, with how each step's gone over its
+     * runs (Steps) and where they failed (Failures: line:col, how many).
+     */
+    outline?: AutomationOutline;
+    steps: AutomationStepCount[];
+    failures?: Record<string, number>;
 }
 
 // From automation/dryrun.go
@@ -667,6 +769,34 @@ export interface AutomationProposed {
      * it replaces.
      */
     replaces?: boolean;
+    /**
+     * Outline is its script, drawn: its dry run's Steps counted on it.
+     */
+    outline?: AutomationOutline;
+    /**
+     * SetsOff are your automations that what it does would set off (the
+     * conversations it starts answering), and SetOffBy those whose doings
+     * would set it off: where a chain can start, which MaxChain stops.
+     */
+    setsOff?: string[];
+    setOffBy?: string[];
+}
+
+// From automation/store.go
+/**
+ * StepCount is how a step of a script has gone, over its runs: where it
+ * is (At, line:col, as an outline's steps are), its builtin, and how many
+ * times it was done, begun and never said done (Started), is waiting
+ * still, and, for a wait, was met or had its time up.
+ */
+export interface AutomationStepCount {
+    at: string;
+    builtin: string;
+    done?: number;
+    started?: number;
+    waiting?: number;
+    met?: number;
+    timedOut?: number;
 }
 
 // From automation/store.go
@@ -1124,6 +1254,12 @@ export interface ConversationConversation {
      * first message. "" for one you started yourself.
      */
     via?: string;
+    /**
+     * Chain is the automations that led to it being started (an
+     * automation's converse, and any that set that one off): what it does
+     * says so in its events, so what it sets off can't loop.
+     */
+    chain?: string[];
     status: string;
     /**
      * StatusBy and StatusAt are who resolved or reopened it, and when.
@@ -2918,6 +3054,13 @@ export interface OpsAutomationItem {
     broken?: string;
     tally: AutomationTally;
     last?: OpsAutomationRun;
+    /**
+     * Output is the version of its output that's shown (0 for none), and
+     * Scheduled whether it runs by the clock (every()), which can be run
+     * now.
+     */
+    output?: number;
+    scheduled?: boolean;
 }
 
 // From ops/automations.go

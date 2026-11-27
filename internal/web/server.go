@@ -565,6 +565,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/automations/{name}", s.automationDetail)
 	mux.HandleFunc("POST /api/automations/{name}/on", s.automationOn)
 	mux.HandleFunc("POST /api/automations/{name}/dry-run", s.automationDryRun)
+	mux.HandleFunc("POST /api/automations/{name}/run", s.automationRunNow)
+	mux.HandleFunc("GET /api/automations/{name}/output", s.automationOutput)
 	mux.HandleFunc("DELETE /api/automations/{name}", s.automationRemove)
 	mux.HandleFunc("GET /api/runs", s.allRuns)
 	mux.HandleFunc("POST /api/runs/stop", s.endRun)
@@ -722,6 +724,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /frame/{id}/{version}", s.frame)
 	mux.HandleFunc("GET /frame/in/{repo}/tree/{tree}", s.foundFrame)
 	mux.HandleFunc("GET /frame/{id}/proposals/{n}", s.proposalFrame)
+	mux.HandleFunc("GET /frame/automations/{name}/output/{version}", s.automationOutputFrame)
 	mux.HandleFunc("GET /frame/missions/{slug}/{id}/proposals/{n}", s.proposalFrame)
 	mux.HandleFunc("GET "+framedRoot+"{rest...}", s.framedFile)
 	// Plugins: what they add, the page ws serves for one's app (the
