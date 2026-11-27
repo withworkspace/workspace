@@ -18,6 +18,16 @@ import (
 type Planning struct {
 	Text       string
 	Guarantees []string
+	// Tasks are each repo's own tasks (its ws.repo.toml recipes that end
+	// by themselves), for checks: what a repo runs to test itself is
+	// what its checks should run, not a command made up for the step.
+	Tasks []RepoTasks
+}
+
+// RepoTasks are a repo's own tasks, as its ws.repo.toml names them.
+type RepoTasks struct {
+	Repo  string
+	Tasks []Recipe
 }
 
 // processFor is the process, and the guarantees, as the planner reads
@@ -29,6 +39,21 @@ func processFor(p Planning) string {
 	} else {
 		b.WriteString("The workspace's process says how work goes here: the steps work takes, whose turn each is, what done means, and when it's the user's. It's the team's, and you plan by it:\n\n")
 		b.WriteString("````markdown\n" + strings.TrimRight(p.Text, "\n") + "\n````\n\n")
+	}
+	if len(p.Tasks) > 0 {
+		b.WriteString("The repos' own tasks, which ws runs by name (`ws run <task>`, in the step's capsule). They're how each repo tests and checks itself, so a check that's a command uses one where it can (`ws run test` passes) rather than a command made up for the step: a narrower one can pass what the repo's CI then fails.\n\n")
+		for _, r := range p.Tasks {
+			var tasks []string
+			for _, t := range r.Tasks {
+				s := "`" + t.Name + "`"
+				if d := strings.TrimSpace(t.Description); d != "" {
+					s += " (" + strings.TrimRight(d, ".") + ")"
+				}
+				tasks = append(tasks, s)
+			}
+			fmt.Fprintf(&b, "- %s: %s\n", r.Repo, strings.Join(tasks, ", "))
+		}
+		b.WriteString("\n")
 	}
 	if len(p.Guarantees) > 0 {
 		b.WriteString("What ws holds for every mission, whatever a plan says (so a plan follows it too):\n\n")
@@ -48,7 +73,7 @@ func planWriting(capsuleWord string) string {
 	b.WriteString("- Say which of the process's kinds of work this is, to yourself (it's your call: ws has none built in), and follow its route, fitted to this mission. Don't add steps the process and the brief don't call for.\n")
 	b.WriteString("- Z comes from the brief's Acceptance: each item something that can be checked at the end.\n")
 	b.WriteString("- Work is crew's, `- in:` a repo of the workspace (`api`: ws lifts a capsule there for the mission if it hasn't one) or one of the mission's capsules (" + capsuleWord + "). One step is one crew's session, so make each a piece of work that ends in something to look at. Put a Review wherever the process says people check, and wherever the user wants to look before the work goes on (ask them where); a Decide where only they can settle something. What can't be written until earlier steps have run (the fix, once the cause is found) goes after a Plan step.\n")
-	b.WriteString("- Give each Work step its checks: what has to be true for it to be done, a line each, a command where one shows it (`go test ./...` passes; a reproduction `fails`), words where it takes judgement. ws runs and has them judged once crew report done, passes the step when all are met, and otherwise the orchestrator sends it back as the process says. A step that carries on what an earlier one found (fixing what it reproduced, in the same capsule) says `- carrying on from:` that step, and its crew start fresh there with the earlier crew's handoff; one with a time box, as the process asks, says `- limit:`.\n")
+	b.WriteString("- Give each Work step its checks: what has to be true for it to be done, a line each, a command where one shows it (the repo's own task, `ws run test` passes, where it has one; a reproduction `fails`), words where it takes judgement. Each check is one the judge can settle once, from the diff and what ws ran: name the behaviours, cases or files it's about, never \"every change\" or \"all of\", which has no end and comes back unmet round after round. Where a step says to use something already in the code (a function, a type, a cache), read what it does first: the step's words and its checks have to be able to hold together (one that fetches can't meet \"makes no network call\"). ws runs and has them judged once crew report done, passes the step when all are met, and otherwise the orchestrator sends it back as the process says. A step that carries on what an earlier one found (fixing what it reproduced, in the same capsule) says `- carrying on from:` that step, and its crew start fresh there with the earlier crew's handoff; one with a time box, as the process asks, says `- limit:`.\n")
 	b.WriteString("- Where the process wants work shown to be right by using it, or by someone who didn't do it (a change you can see, an API against the running stack), put a Verify step after the Work it verifies, `- in:` the same repo. Its checks are what's to be shown, in words or as commands; one the process keeps for the user's own judgement is a `- yours:`. The verifier isn't given the process, so copy into the step's words how the process says it's shown (a script to run, what to capture), and have the Work step make what the verifier needs (`- makes:` the script, and a decision saying where it is and how it's run). What the verifier hands over is a bundle the user approves at a Review step: put one after it wherever the process says they look.\n")
 	b.WriteString("- Where the work leaves by pull request, an Open Pull Request step comes after the Work that makes the change: ws opens it, and it's done when it merges. Crew don't open one. Put a Review before it where the process wants the user's review first. A repo with no pull requests is landed by the user instead: a Land step.\n")
 	b.WriteString("- Where a step carries out the process, end it with the process's words, in double quotes, so a change to the process shows which steps it touches.\n\n")

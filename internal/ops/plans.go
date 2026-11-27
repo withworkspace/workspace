@@ -297,6 +297,17 @@ func (w *Workspace) planning() prompt.Planning {
 	for _, g := range w.Guarantees() {
 		p.Guarantees = append(p.Guarantees, g.What)
 	}
+	for _, repo := range w.WS().RepoNames {
+		var tasks []prompt.Recipe
+		for _, r := range capsuleRecipes(w.WS().MainWorktree(repo)) {
+			if r.Type == "task" {
+				tasks = append(tasks, r)
+			}
+		}
+		if len(tasks) > 0 {
+			p.Tasks = append(p.Tasks, prompt.RepoTasks{Repo: repo, Tasks: tasks})
+		}
+	}
 	return p
 }
 
