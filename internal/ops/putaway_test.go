@@ -187,8 +187,9 @@ func TestResolveBehind(t *testing.T) {
 	if _, err := w.SetTalkStatus(sc, c.ID, conversation.Resolved, AsYou); err != nil {
 		t.Fatal(err)
 	}
+	// Burned, then the conversation told: both, before it's done.
 	for range 400 {
-		if !exists(path) {
+		if c, _ = store.Load(c.ID); !exists(path) && len(c.PutAway()) == 1 {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -196,7 +197,7 @@ func TestResolveBehind(t *testing.T) {
 	if exists(path) {
 		t.Fatal("never put away")
 	}
-	if c, _ = store.Load(c.ID); len(c.Lifted()) != 0 || len(c.PutAway()) != 1 {
+	if len(c.Lifted()) != 0 || len(c.PutAway()) != 1 {
 		t.Errorf("the conversation's after: %+v", c.Capsules)
 	}
 }
