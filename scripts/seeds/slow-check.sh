@@ -81,7 +81,7 @@ done
 # What c1 hands off each time it reports done.
 handoff="$dir/.ws/missions/$slug/files/seed-handoff.md"
 mkdir -p "$(dirname "$handoff")"
-printf '## Done\n- Nothing: the step is for its slow check.\n## Learned\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' >"$handoff"
+printf '## Done\n- Nothing: the step is for its slow check.\n## Learned\n- Nothing.\n## Environment\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' >"$handoff"
 done_again="(cd '$capsule' && '$ws' WS_MISSION=$slug WS_CREW=c1 mission done 'Nothing to change' --handoff '$handoff')"
 (cd "$capsule" && "$ws" WS_MISSION="$slug" WS_CREW=c1 mission done "Nothing to change" --handoff "$handoff" >/dev/null)
 

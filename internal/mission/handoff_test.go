@@ -67,6 +67,46 @@ func TestParseHandoff_NothingAndRefusals(t *testing.T) {
 	}
 }
 
+// Environment is read where it's there, and asked for of a handoff being
+// handed in (Complete); one kept from before it was asked for has none,
+// and still reads.
+func TestParseHandoff_Environment(t *testing.T) {
+	h, err := ParseHandoff(goodHandoff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.Environment != "" || h.EnvironmentSays() != "" {
+		t.Errorf("environment = %q", h.Environment)
+	}
+	if err := h.Complete(); err == nil || !strings.Contains(err.Error(), `no "Environment" section`) {
+		t.Errorf("complete = %v", err)
+	}
+
+	with := strings.Replace(goodHandoff, "### Left", "## Environment\n- `just test` fails for crew: run it as `env -u WS_CREW just test`.\n\n### Left", 1)
+	h, err = ParseHandoff(with)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := h.Complete(); err != nil {
+		t.Errorf("complete = %v", err)
+	}
+	if !strings.Contains(h.EnvironmentSays(), "env -u WS_CREW") || strings.Contains(h.Learned, "WS_CREW") {
+		t.Errorf("environment = %q, learned = %q", h.Environment, h.Learned)
+	}
+	if r := h.Render("Added the cache", Crew{ID: "c1"}, time.Now()); !strings.Contains(r, "## Learned\n\n- Tokens are looked up twice per request.\n\n## Environment\n\n- `just test`") {
+		t.Errorf("render:\n%s", r)
+	}
+
+	nothingThere, _ := ParseHandoff(strings.Replace(goodHandoff, "### Left", "## Environment\nNothing.\n\n### Left", 1))
+	if err := nothingThere.Complete(); err != nil || nothingThere.EnvironmentSays() != "" {
+		t.Errorf("nothing: complete = %v, says %q", err, nothingThere.EnvironmentSays())
+	}
+	empty, _ := ParseHandoff(strings.Replace(goodHandoff, "### Left", "## Environment\n\n### Left", 1))
+	if err := empty.Complete(); err == nil || !strings.Contains(err.Error(), `"Environment" says nothing`) {
+		t.Errorf("empty: complete = %v", err)
+	}
+}
+
 func TestReportDone_KeepsTheHandoff(t *testing.T) {
 	s := owned(t)
 	m, _ := s.Create("Cache")

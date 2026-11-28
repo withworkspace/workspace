@@ -41,6 +41,7 @@ type App interface {
 	Plugging
 	Notifying
 	Automating
+	Lessoning
 	Picturing
 }
 

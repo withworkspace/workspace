@@ -311,7 +311,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | "automations" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | "automations" | "lessons" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -2173,3 +2173,18 @@ async function base64Of(blob: Blob): Promise<string> {
   });
   return url.slice(url.indexOf(",") + 1);
 }
+
+// What crew keep running into where they work, read from their handoffs
+// (internal/lessons): the Lessons page's. Mirrors internal/web/lessons.go.
+import type { LessonMissionMade, LessonsInfo, LessonsLesson, LessonsSighting } from "./wire.gen";
+export type { LessonsInfo };
+export type Lesson = LessonsLesson;
+export type LessonSighting = LessonsSighting;
+export type LessonStateName = "open" | "fixed" | "dismissed";
+export const getLessons = () => getJSON<LessonsInfo>("/api/lessons");
+// setLessonState marks one fixed (crew running into it again open it
+// again), dismissed (never raised again), or open again.
+export const setLessonState = (id: number, state: LessonStateName) => send<{ state: string }>("POST", `/api/lessons/${id}/state`, { state });
+// makeLessonMission makes a mission of one, waiting to be briefed (one it
+// has already, it answers with).
+export const makeLessonMission = (id: number) => send<LessonMissionMade>("POST", `/api/lessons/${id}/mission`);

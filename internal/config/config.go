@@ -35,6 +35,10 @@ type Config struct {
 	// pull request ws opens, from the step it's for and PR.md: unset,
 	// conversations' agent, on the model it orchestrates on.
 	PRWriter PRWriterConfig `toml:"pr_writer"`
+	// Lessons is the agent that reads crew's handoffs for what they keep
+	// running into where they work ([lessons]): unset, conversations'
+	// agent, on its small model.
+	Lessons LessonsConfig `toml:"lessons"`
 	// Automations is how your automations' asks are answered: the agent,
 	// and how many tokens a day each may spend ([automations]).
 	Automations AutomationsConfig `toml:"automations"`
@@ -93,6 +97,7 @@ type LocalConfig struct {
 	Conversation ConversationConfig     `toml:"conversation,omitempty"`
 	Judge        AgentConfig            `toml:"judge,omitempty"`
 	PRWriter     PRWriterConfig         `toml:"pr_writer,omitempty"`
+	Lessons      LessonsConfig          `toml:"lessons,omitempty"`
 	Automations  AutomationsConfig      `toml:"automations,omitempty"`
 	Missions     MissionsConfig         `toml:"missions,omitempty"`
 	Artifacts    LocalArtifactsConfig   `toml:"artifacts,omitempty"`
@@ -536,6 +541,33 @@ type PRWriterConfig struct {
 	Enabled *bool  `toml:"enabled,omitempty"`
 }
 
+// LessonsConfig is [lessons]: the agent reading crew's handoffs for what
+// they keep running into where they work (internal/lessons), one turn
+// with no tools for each handoff, and whether one does (enabled, default
+// on: false for a workspace with no agent to run, a seed's).
+type LessonsConfig struct {
+	Harness string `toml:"harness,omitempty"`
+	Model   string `toml:"model,omitempty"`
+	Enabled *bool  `toml:"enabled,omitempty"`
+}
+
+// LessonsEnabled is whether crew's handoffs are read for lessons.
+func (c *Config) LessonsEnabled() bool {
+	return c.Lessons.Enabled == nil || *c.Lessons.Enabled
+}
+
+func (c *LessonsConfig) merge(local LessonsConfig) {
+	if local.Harness != "" {
+		c.Harness = local.Harness
+	}
+	if local.Model != "" {
+		c.Model = local.Model
+	}
+	if local.Enabled != nil {
+		c.Enabled = local.Enabled
+	}
+}
+
 // AutomationsConfig is [automations]: who answers an automation's ask
 // (an agent with no tools, one turn), on what model, and how many tokens
 // a day each automation's asks may spend (ask_budget: 0 is ws's default,
@@ -812,6 +844,8 @@ type NotificationsConfig struct {
 	// Automations is what your automations say, and that one couldn't
 	// run.
 	Automations string `toml:"automations,omitempty"`
+	// Lessons is a lesson becoming a recommendation.
+	Lessons string `toml:"lessons,omitempty"`
 	// Plugin is where each plugin's kinds of notification are sent, by the
 	// plugin's name and the kind's id ([notifications.plugin.jira]
 	// assigned = "desktop"). A kind it doesn't say goes where the plugin
@@ -829,7 +863,7 @@ const (
 // Route is where source is sent: the feed, unless the file says desktop
 // or off.
 func (n NotificationsConfig) Route(source string) string {
-	said := map[string]string{"missions": n.Missions, "pulls": n.Pulls, "plugins": n.Plugins, "ws": n.WS, "automations": n.Automations}[source]
+	said := map[string]string{"missions": n.Missions, "pulls": n.Pulls, "plugins": n.Plugins, "ws": n.WS, "automations": n.Automations, "lessons": n.Lessons}[source]
 	if said == NotifyDesktop || said == NotifyOff {
 		return said
 	}
@@ -1388,6 +1422,7 @@ func Merge(base, local *Config) *Config {
 		Conversation: base.Conversation,
 		Judge:        base.Judge,
 		PRWriter:     base.PRWriter,
+		Lessons:      base.Lessons,
 		Automations:  base.Automations,
 		Missions:     base.Missions,
 		Agents:       base.Agents,
@@ -1578,6 +1613,7 @@ func Load(startDir string) (*Config, string, error) {
 		cfg.Conversation.merge(local.Conversation)
 		cfg.Judge.merge(local.Judge)
 		cfg.PRWriter.merge(local.PRWriter)
+		cfg.Lessons.merge(local.Lessons)
 		cfg.Automations.merge(local.Automations)
 		if local.Orchestrator.Harness != "" {
 			cfg.Orchestrator.Harness = local.Orchestrator.Harness

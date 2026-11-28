@@ -121,6 +121,10 @@ func notificationPlace(n notification.Notification) string {
 		return "/settings/plugins"
 	case notification.WSUpgraded:
 		return "/settings/about"
+	case ops.LessonRecommended:
+		if id, ok := ops.LessonOf(first); ok {
+			return "/lessons#" + ops.LessonRef(id)
+		}
 	}
 	// An automation's opens its output (open = "output"), or it.
 	if name, ok := strings.CutPrefix(n.Kind, "automation:"); ok {

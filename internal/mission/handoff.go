@@ -12,9 +12,14 @@ import (
 )
 
 // A handoff is what crew leave for whoever comes next when they report
-// done: what they did, what they learned, what's left and what to read
-// first. It's a private mission file (HandoffRef), recorded as an artifact
-// of kind "handoff", and new crew and the orchestrator are given it.
+// done: what they did, what they learned of the work, what they learned
+// of where it's done (Environment: setting up, building, testing, tools,
+// this machine, whatever the work), what's left and what to read first.
+// It's a private mission file (HandoffRef), recorded as an artifact of
+// kind "handoff", and new crew and the orchestrator are given it. What's
+// under Environment is read for the lessons crew keep learning again
+// (internal/lessons): crew sort it out from Learned, as they know which is
+// which.
 
 // HandoffKind is the artifact kind handoffs are recorded as.
 const HandoffKind = "handoff"
@@ -22,9 +27,16 @@ const HandoffKind = "handoff"
 // Handoff is a parsed handoff.
 type Handoff struct {
 	Done, Learned, Left string // each section's markdown
-	ReadFirst           []ReadItem
+	// Environment is what anyone working there would need, whatever
+	// the work. Crew hand it in (Complete), but a handoff kept before
+	// it was asked for has none.
+	Environment string
+	ReadFirst   []ReadItem
 	// Other is anything under headings beyond the four, kept as written.
 	Other string
+	// lacks is what Complete says: Environment not there, or saying
+	// nothing; "" for neither.
+	lacks string
 }
 
 // ReadItem is one entry under Read first: a reference (an artifact
@@ -37,7 +49,9 @@ type ReadItem struct {
 const HandoffTemplate = `## Done
 - What you did, and where it is (files, commits, PRs).
 ## Learned
-- Where things live, what you tried that didn't work and why, surprises.
+- About this work: where things live, what you tried that didn't work and why, surprises.
+## Environment
+- What anyone working in this repo or on this machine would need, whatever the work: setting up, building, testing, a tool or script that failed or needed a workaround, and the command that worked. Or "Nothing."
 ## Left
 - What's still to do, or "Nothing."
 ## Read first
@@ -49,6 +63,8 @@ var handoffHeading = regexp.MustCompile(`^#{1,3}\s+(.+?)\s*#*\s*$`)
 // (Done, Learned, Left, Read first) must each be there, under headings of
 // any level, in any order, and say something: "Nothing." will do. Read
 // first lists its entries as a list, "- <reference> — <what for>".
+// Environment is read where it's there; what crew hand in must have it
+// too (Complete), but a handoff kept from before may not.
 func ParseHandoff(text string) (*Handoff, error) {
 	sections := map[string]*strings.Builder{}
 	var other strings.Builder
@@ -60,7 +76,7 @@ func ParseHandoff(text string) (*Handoff, error) {
 				name = "read first"
 			}
 			switch name {
-			case "done", "learned", "left", "read first":
+			case "done", "learned", "environment", "left", "read first":
 				if sections[name] == nil {
 					sections[name] = &strings.Builder{}
 				}
@@ -100,13 +116,36 @@ func ParseHandoff(text string) (*Handoff, error) {
 		}
 		return nil, errors.New(strings.Join(why, "; "))
 	}
-	h := &Handoff{Done: body("done"), Learned: body("learned"), Left: body("left"), Other: strings.TrimSpace(other.String())}
+	h := &Handoff{Done: body("done"), Learned: body("learned"), Environment: body("environment"), Left: body("left"), Other: strings.TrimSpace(other.String())}
+	switch {
+	case sections["environment"] == nil:
+		h.lacks = `no "Environment" section`
+	case h.Environment == "":
+		h.lacks = `"Environment" says nothing (write "Nothing." if there's nothing)`
+	}
 	items, err := parseReadFirst(body("read first"))
 	if err != nil {
 		return nil, err
 	}
 	h.ReadFirst = items
 	return h, nil
+}
+
+// Complete says what a handoff being handed in lacks that one kept from
+// before may: its Environment section, which crew sort out from Learned.
+func (h *Handoff) Complete() error {
+	if h.lacks != "" {
+		return errors.New(h.lacks)
+	}
+	return nil
+}
+
+// EnvironmentSays is what Environment says, "" for nothing (or none).
+func (h *Handoff) EnvironmentSays() string {
+	if e := strings.TrimSpace(h.Environment); !nothing(e) {
+		return e
+	}
+	return ""
 }
 
 func sectionList(names []string) string {
@@ -221,7 +260,11 @@ func (h *Handoff) Render(summary string, c Crew, at time.Time) string {
 		fmt.Fprintf(&b, ", in %s", c.Capsule)
 	}
 	fmt.Fprintf(&b, ", %s.\n\n", at.Local().Format("2006-01-02 15:04"))
-	fmt.Fprintf(&b, "## Done\n\n%s\n\n## Learned\n\n%s\n\n## Left\n\n%s\n\n## Read first\n\n", h.Done, h.Learned, h.Left)
+	fmt.Fprintf(&b, "## Done\n\n%s\n\n## Learned\n\n%s\n\n", h.Done, h.Learned)
+	if e := strings.TrimSpace(h.Environment); e != "" {
+		fmt.Fprintf(&b, "## Environment\n\n%s\n\n", e)
+	}
+	fmt.Fprintf(&b, "## Left\n\n%s\n\n## Read first\n\n", h.Left)
 	if len(h.ReadFirst) == 0 {
 		b.WriteString("Nothing.\n")
 	}

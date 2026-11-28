@@ -49,6 +49,8 @@ type Roles struct {
 	Judge Pick
 	// PRWriter is who writes the pull requests ws opens, from [pr_writer].
 	PRWriter Pick
+	// Lessons is who reads crew's handoffs for lessons, from [lessons].
+	Lessons Pick
 	// Automation is who answers an automation's ask, from [automations].
 	Automation Pick
 	// CrewAllowed are the other picks crew may be launched on from a
@@ -309,6 +311,25 @@ func (r Roles) ForAutomation() (Pick, Converser, error) {
 		name = p.Harness
 	}
 	return pickOn(name, r.Automation.Model, smallModel)
+}
+
+// ForLessons picks who reads a crew's handoff for what crew keep running
+// into where they work (internal/lessons): one turn, no tools, fresh
+// context. [lessons] harness, else conversations' (ForConversation). The
+// model is [lessons] model, else the harness's small one (smallModel):
+// it sorts a few lines against what's known, once for each handoff, and
+// ws's offline pass over recorded handoffs found the small models find
+// the same lessons the large do.
+func (r Roles) ForLessons() (Pick, Converser, error) {
+	name := r.Lessons.Harness
+	if name == "" {
+		p, _, err := r.ForConversation()
+		if err != nil {
+			return Pick{}, nil, err
+		}
+		name = p.Harness
+	}
+	return pickOn(name, r.Lessons.Model, smallModel)
 }
 
 // pickOn is the named harness, on model, else on the one dflt gives it.

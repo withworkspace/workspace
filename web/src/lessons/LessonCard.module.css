@@ -1,0 +1,84 @@
+/* One lesson on the Lessons page (LessonCard.tsx): its head (title and
+   chips), facts, the change, why, what crew said, and its actions at the
+   right. */
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding: 12px 8px;
+  scroll-margin-top: 80px;
+}
+
+.settled {
+  opacity: 0.72;
+}
+
+.main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--text-sm);
+}
+
+.repo {
+  font-family: var(--mono);
+}
+
+.mission {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.mission:hover {
+  text-decoration: underline;
+}
+
+.change {
+  max-width: 72ch;
+  overflow-wrap: anywhere;
+}
+
+.why {
+  max-width: 72ch;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}

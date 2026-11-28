@@ -2618,6 +2618,76 @@ export interface Landing {
     landed?: Landed;
 }
 
+// From web/lessons.go
+/**
+ * LessonMissionMade is what POST /api/lessons/{id}/mission answers: the
+ * mission made of it (or made before), waiting to be briefed.
+ */
+export interface LessonMissionMade {
+    mission: string;
+}
+
+// From web/lessons.go
+/**
+ * LessonState is what POST /api/lessons/{id}/state takes: open, fixed or
+ * dismissed.
+ */
+export interface LessonState {
+    state: string;
+}
+
+// From web/lessons.go
+/**
+ * LessonsInfo is what GET /api/lessons serves: every lesson,
+ * recommendations first, and how reading handoffs for them stands.
+ */
+export interface LessonsInfo extends OpsLessonsInfo {
+}
+
+// From lessons/lessons.go
+/**
+ * Lesson is one thing crew keep running into.
+ */
+export interface LessonsLesson {
+    id: number;
+    title: string;
+    fix: string;
+    change: string;
+    why: string;
+    repo?: string;
+    state: string;
+    stateAt: string;
+    /**
+     * Again is when crew ran into it after it was marked fixed.
+     */
+    again?: string;
+    mission?: string;
+    created: string;
+    /**
+     * Seen is each crew that ran into it, the latest first.
+     */
+    seen: LessonsSighting[];
+    /**
+     * Crew and Missions are how many ran into it, LastSeen when one last
+     * did: worked out from Seen.
+     */
+    crew: number;
+    missions: number;
+    lastSeen: string;
+}
+
+// From lessons/lessons.go
+/**
+ * Sighting is a crew that ran into a lesson, and what it said of it.
+ */
+export interface LessonsSighting {
+    mission: string;
+    crew: string;
+    repo?: string;
+    said: string;
+    at: string;
+}
+
 // From web/api.go
 /**
  * Look is one thing a step of yours looks at: a verification bundle (b3),
@@ -3260,6 +3330,26 @@ export interface OpsAutomationRun {
  * DocChange is what a commit or a capsule did to a document.
  */
 export type OpsDocChange = "added" | "changed" | "removed";
+
+// From ops/lessons.go
+/**
+ * LessonsInfo is the lessons as the Lessons page shows them, and how
+ * reading handoffs for them stands.
+ */
+export interface OpsLessonsInfo {
+    lessons: LessonsLesson[];
+    /**
+     * On is whether handoffs are read ([lessons] enabled).
+     */
+    on: boolean;
+    /**
+     * Read is how many handoffs have been read, Failed how many of them
+     * couldn't be, and Waiting how many are still to read.
+     */
+    read: number;
+    failed: number;
+    waiting: number;
+}
 
 // From ops/reviewpasses.go
 /**

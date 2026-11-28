@@ -215,6 +215,25 @@ var settingRoles = []roleDef{
 		},
 	},
 	{
+		id: "lessons", title: "Lessons", about: "Reads each crew's handoff for what crew keep running into where they work, and drafts what would fix it. One turn, no tools.",
+		names: converserNames,
+		team:  func(c *config.Config) (*string, *string) { return &c.Lessons.Harness, &c.Lessons.Model },
+		local: func(l *config.LocalConfig) (*string, *string) { return &l.Lessons.Harness, &l.Lessons.Model },
+		resolve: func(c *config.Config) (harness.Pick, error) {
+			p, _, err := Roles(c).ForLessons()
+			return p, err
+		},
+		note: func(c *config.Config) string {
+			if !c.LessonsEnabled() {
+				return "Off ([lessons] enabled = false): handoffs are not read."
+			}
+			if c.Lessons.Harness == "" {
+				return "It follows conversations' agent, as none is set here, on that agent's small model unless one is set."
+			}
+			return ""
+		},
+	},
+	{
 		id: "team", title: "Team", about: "The agent writing the Team page's gist of each change.",
 		names: converserNames,
 		team:  func(c *config.Config) (*string, *string) { return &c.Team.Harness, &c.Team.Model },
@@ -429,6 +448,11 @@ func settingDefs(root string) []struct {
 				maxDispatchesSetting())
 		case "conversation":
 			defs = append(defs, turnMinutesSetting())
+		case "lessons":
+			defs = append(defs,
+				boolSetting("lessons", "enabled", "Reads handoffs", "Whether each crew's handoff is read for lessons, once, when it's handed off. Off, the Lessons page keeps what it has.", true,
+					func(c *config.Config) **bool { return &c.Lessons.Enabled },
+					func(l *config.LocalConfig) **bool { return &l.Lessons.Enabled }))
 		case "team":
 			defs = append(defs,
 				boolSetting("team", "narrative", "Gists", "Whether an agent writes a gist of each change, and what's worth knowing of it. Off, the page is the facts alone.", true,
@@ -500,6 +524,8 @@ func settingDefs(root string) []struct {
 			func(l *config.LocalConfig) *string { return &l.Notifications.WS }),
 		notifySetting("automations", "Automations", "What an automation of yours says, or that one couldn't run.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.Automations }),
+		notifySetting("lessons", "Lessons", "Two crew have run into the same thing where they work, and there's a change that would stop it.",
+			func(l *config.LocalConfig) *string { return &l.Notifications.Lessons }),
 	}})
 	// Each plugin that tells of things, as it registered its kinds when it
 	// last started: a group of its own, by its name.

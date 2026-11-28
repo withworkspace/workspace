@@ -138,6 +138,7 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
     { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
     { id: "automations", to: "/automations", icon: "bolt", label: "Automations", match: (p) => p === "/automations" || p.startsWith("/automations/"), home: "menu" },
+    { id: "lessons", to: "/lessons", icon: "tool", label: "Lessons", match: (p) => p === "/lessons", home: "menu" },
   ];
   const own = places.map((p) => (Object.hasOwn(goes, p.to) ? { ...p, keys: goes[p.to] } : p));
 

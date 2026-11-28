@@ -257,6 +257,11 @@ model = "haiku"
 [pr_writer]
 enabled = false
 
+# No agent reads crew's handoffs for lessons: the stand-in can't, and the
+# seed puts Sorrel's lessons as they'd be (lessons.json).
+[lessons]
+enabled = false
+
 [github]
 fixture = ".remotes/github.json"
 EOF
@@ -469,7 +474,7 @@ pr_is() {
 
 # handoff <done> <learned> <left>: a handoff's four sections, short, for
 # done_with to read.
-handoff() { printf '## Done\n- %s\n\n## Learned\n- %s\n\n## Left\n- %s\n\n## Read first\n- Nothing.\n' "$1" "$2" "$3"; }
+handoff() { printf '## Done\n- %s\n\n## Learned\n- %s\n\n## Environment\n- Nothing.\n\n## Left\n- %s\n\n## Read first\n- Nothing.\n' "$1" "$2" "$3"; }
 
 # -- Up next: one to brief, one ready, one parked.
 
@@ -693,6 +698,9 @@ done_with "$slug" c1 api/tax-rounding "Reproduced: tax is rounded on each line, 
 - It isn't a float: every amount is `Money`, whole minor units.
 - Nothing a customer sees uses a line's own tax.
 
+## Environment
+- `just test` runs the PDF snapshot tests too, which need `wkhtmltopdf`: it isn't installed here, so they fail. `go test ./internal/...` runs the rest.
+
 ## Left
 - The fix: work the tax out for each rate on what its lines come to together, and round once.
 
@@ -712,6 +720,9 @@ done_with "$slug" c1 api/tax-rounding "Fixed: tax is worked out for each rate on
 
 ## Learned
 - Invoices already sent keep the total they were sent with (ADR 0003). The three support has are a penny over, and stay so.
+
+## Environment
+- Nothing.
 
 ## Left
 - Whether support writes to those three studios is theirs to say.
@@ -920,6 +931,17 @@ talk w2 "Where do we round money, and is it the same everywhere?" "half away fro
 "$ws" artifact add "$from/artifacts/export-v2.html" --to a1 \
 	--note "Export under the list, beside the count it exports, so the button says how many." >/dev/null
 
+# -- Lessons: what Sorrel's crew keep running into where they work, as the
+# daemon would have read them from their handoffs (lessons.json, its times
+# hours ago, made now).
+
+hours() { date -u -v-"$1"H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "$1 hours ago" +%Y-%m-%dT%H:%M:%SZ; }
+lessons="$(cat "$from/lessons.json")"
+for h in $(grep -o '"@[0-9]*"' "$from/lessons.json" | tr -d '"@' | sort -un); do
+	lessons="${lessons//\"@$h\"/\"$(hours "$h")\"}"
+done
+printf '%s' "$lessons" | "$ws" lessons put
+
 cat <<EOF
 marketing: Sorrel's workspace, with eleven missions.
 
@@ -931,6 +953,7 @@ marketing: Sorrel's workspace, with eleven missions.
   /documents                                   records: ADRs, proposals and notes
   /conversations/w1                            a conversation, whose agent proposed a mission
   /artifacts/a1                                a prototype, in two versions
+  /lessons                                     what crew keep running into where they work
 
 Needs you: a review, a bundle to verify, a question from crew, a pull
 request to merge. In progress: crew at work on two. Waiting: a pull

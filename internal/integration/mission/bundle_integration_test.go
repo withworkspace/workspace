@@ -213,7 +213,7 @@ func TestBundle_AVerifiersIsItsDone(t *testing.T) {
 	os.WriteFile(proof, []byte("hit\n"), 0o644)
 
 	t.Setenv(mission.EnvCrew, "c2")
-	testutil.WithStdin(t, "## Done\n- x\n## Learned\n- x\n## Left\n- Nothing.\n## Read first\n- Nothing.\n")
+	testutil.WithStdin(t, "## Done\n- x\n## Learned\n- x\n## Environment\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n")
 	if r := testutil.RunCommand(t, w.Root, nil, "mission", "done", "verified", "--handoff", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "you're verifying this step: your done is your bundle") {
 		t.Errorf("a verifier reported done with a handoff: %v", r.Err)
 	}

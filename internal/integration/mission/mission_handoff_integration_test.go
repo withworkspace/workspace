@@ -14,7 +14,7 @@ import (
 func writeHandoff(t *testing.T, readFirst string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "handoff.md")
-	text := "## Done\n- Cache in api/cache.go.\n## Learned\n- Lookups happen twice per request.\n## Left\n- Eviction on revocation.\n## Read first\n" + readFirst + "\n"
+	text := "## Done\n- Cache in api/cache.go.\n## Learned\n- Lookups happen twice per request.\n## Environment\n- Nothing.\n## Left\n- Eviction on revocation.\n## Read first\n" + readFirst + "\n"
 	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -39,6 +39,9 @@ func TestDone_KeepsAHandoffForWhoeverComesNext(t *testing.T) {
 	bad := filepath.Join(t.TempDir(), "bad.md")
 	os.WriteFile(bad, []byte("## Done\nx\n"), 0o644)
 	refused([]string{"--handoff", bad}, `no "Learned", "Left", "Read first" section`)
+	old := filepath.Join(t.TempDir(), "old.md") // as handoffs were before Environment
+	os.WriteFile(old, []byte("## Done\nx\n## Learned\ny\n## Left\nNothing.\n## Read first\nNothing.\n"), 0o644)
+	refused([]string{"--handoff", old}, `no "Environment" section`)
 	refused([]string{"--handoff", writeHandoff(t, "- docs/nowhere.md — the plan")}, `"Read first" names what ws can't find`)
 	if got, _ := store.Load("cache"); got.Crew[0].Status != "" {
 		t.Fatalf("a refused done still marked the crew: %+v", got.Crew[0])

@@ -41,11 +41,14 @@ const (
 	// SourceAutomations is what your automations say, and that one
 	// couldn't run.
 	SourceAutomations = "automations"
+	// SourceLessons is a lesson becoming a recommendation: two crew have
+	// run into the same thing where they work (internal/lessons).
+	SourceLessons = "lessons"
 )
 
 // Sources is every source of ws's own, in the order they're listed. Each
 // plugin that notifies is a source of its own besides (PluginSource).
-var Sources = []string{SourceMissions, SourcePulls, SourcePlugins, SourceWS, SourceAutomations}
+var Sources = []string{SourceMissions, SourcePulls, SourcePlugins, SourceWS, SourceAutomations, SourceLessons}
 
 // PluginSource is the source of what the plugin name tells of: plugin:jira.
 func PluginSource(name string) string { return "plugin:" + name }

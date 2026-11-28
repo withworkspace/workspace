@@ -100,7 +100,7 @@ for _ in $(seq 1 50); do
 done
 handoff="$dir/.ws/missions/$slug/files/seed-handoff.md"
 mkdir -p "$(dirname "$handoff")"
-printf '## Done\n- Nothing: the step is for its checks.\n## Learned\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' >"$handoff"
+printf '## Done\n- Nothing: the step is for its checks.\n## Learned\n- Nothing.\n## Environment\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' >"$handoff"
 (cd "$capsule" && "$ws" WS_MISSION="$slug" WS_CREW=c1 mission done "Nothing to change" --handoff "$handoff" >/dev/null)
 
 cat <<EOF

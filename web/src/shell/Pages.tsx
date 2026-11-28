@@ -22,6 +22,7 @@ import { PluginPage } from "../plugins/PluginPage";
 import { Review } from "../review/Review";
 import { PRReviewPage } from "../reviews/PRReview";
 import { ReviewsPage } from "../reviews/Reviews";
+import { LessonsPage } from "../lessons/LessonsPage";
 import { RunsPage } from "../runs/Runs";
 import { AutomationOutputPage } from "../automations/AutomationOutputPage";
 import { AutomationPage } from "../automations/AutomationPage";
@@ -50,6 +51,7 @@ export const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof
       <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage />} />
       <Route path="/orchestrator" element={<OrchestratorPage />} />
       <Route path="/runs" element={<RunsPage />} />
+      <Route path="/lessons" element={<LessonsPage />} />
       <Route path="/automations" element={<AutomationsPage />} />
       <Route path="/automations/:name" element={<AutomationPage />} />
       <Route path="/automations/:name/output" element={<AutomationOutputPage />} />

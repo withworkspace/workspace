@@ -36,6 +36,7 @@ var referenced = []string{
 	"github.com/withworkspace/workspace/internal/artifact",
 	"github.com/withworkspace/workspace/internal/conversation",
 	"github.com/withworkspace/workspace/internal/harness",
+	"github.com/withworkspace/workspace/internal/lessons",
 	"github.com/withworkspace/workspace/internal/mission",
 	"github.com/withworkspace/workspace/internal/ops",
 	"github.com/withworkspace/workspace/internal/page",

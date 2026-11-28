@@ -1,0 +1,48 @@
+/* Each crew that ran into a lesson (LessonSightings.tsx): a toggle, then
+   a list, each mission and crew over what it said. */
+
+.sightings {
+  display: grid;
+  gap: 6px;
+}
+
+.toggle {
+  justify-self: start;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+
+.item {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+
+.mission {
+  color: var(--fg);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.mission:hover {
+  text-decoration: underline;
+}
+
+.said {
+  overflow-wrap: anywhere;
+}

@@ -62,6 +62,7 @@ const (
 	Team        = "team"       // a gist or an account on the Team page
 	Eval        = "eval"       // the judge, on an eval's fixture
 	Automation  = "automation" // an automation's ask: its subject is the automation
+	Lessons     = "lessons"    // a handoff read for lessons: its subject is the crew
 )
 
 // For is who it was spent for: what's kept with it, so it can be added up

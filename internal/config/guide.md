@@ -103,7 +103,7 @@ Signs: more than a handful of repos; shared prefixes or suffixes (svc-, lib-, -i
 
 ### Agents for each role: `[crew]`, `[orchestrator]`, `[conversation]` and the rest
 
-These set which harness (claude, cursor-acp, cursor, codex, opencode, pi) and model runs each role: crew, the planner (`[briefing]`), the orchestrator, conversations, the judge, the PR writer, the Team page's writer, automations. Leave them unset to use ws's defaults. Most have a row in Settings › Agents. `[crew.levels]` puts rote steps on a small model, `[crew] allowed` lists what else crew may be started on, and `[orchestrator] dispatch = "ask"` holds crew until the user starts them.
+These set which harness (claude, cursor-acp, cursor, codex, opencode, pi) and model runs each role: crew, the planner (`[briefing]`), the orchestrator, conversations, the judge, the PR writer, the Team page's writer, automations, and what reads crew's handoffs for lessons (`[lessons]`). Leave them unset to use ws's defaults. Most have a row in Settings › Agents. `[crew.levels]` puts rote steps on a small model, `[crew] allowed` lists what else crew may be started on, and `[orchestrator] dispatch = "ask"` holds crew until the user starts them.
 
 Signs: which harnesses are installed, what the team pays for, and whether spend matters.
 
@@ -254,6 +254,9 @@ A repo only in ws.local.toml is the user's own and isn't in a teammate's workspa
 - `pr_writer.harness`: what writes the pull requests ws opens. Unset, conversations'.
 - `pr_writer.model`: its model.
 - `pr_writer.enabled`: `false` titles a pull request as its mission is, with no agent.
+- `lessons.harness`: what reads each crew's handoff for lessons (what crew keep running into where they work). Unset, conversations'.
+- `lessons.model`: its model. Unset, that harness's small one.
+- `lessons.enabled`: `false` reads no handoffs; the Lessons page keeps what it has.
 - `automations.harness`: what answers an automation's ask.
 - `automations.model`: its model.
 - `automations.ask_budget`: tokens a day each automation's asks may spend (0 is ws's default, below 0 no limit).
@@ -363,5 +366,6 @@ A pass in ws.local.toml is added to the team's, and replaces one of the same nam
 - `notifications.plugins`: for a plugin's update.
 - `notifications.ws`: for ws being upgraded.
 - `notifications.automations`: for what automations say.
+- `notifications.lessons`: for a lesson two crew have run into.
 - `notifications.plugin`: each plugin's kinds of notification, under `[notifications.plugin.<name>]`.
 - `github.fixture`: a JSON file standing in for GitHub, for a test workspace.
