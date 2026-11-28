@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/crew"
+	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 )
 
@@ -49,7 +50,7 @@ func stepRecord(t *testing.T, w *Workspace, n int) mission.StageState {
 
 // Crew report done at a Work step with checks: ws runs the command, has
 // the judge judge the rest, keeps the round, and with all met, passes the
-// step; the next carries on with the same crew.
+// step; fresh crew carry on at the next from its crew's handoff.
 func TestChecks_AllMetPassesTheStep(t *testing.T) {
 	w, runs, dir := workFixture(t, "1. met: cache.go keeps each lookup")
 	if st := stepRecord(t, w, 1); st.Record.Deadline == nil || st.Record.Deadline.Sub(*st.Record.Started) != time.Hour {
@@ -254,6 +255,8 @@ func TestChecks_CarryingOnStartsFreshCrew(t *testing.T) {
 	w, _, dir := workFixture(t, "1. met: cache.go keeps each lookup")
 	host := &listeningHost{}
 	w.opts.Host = host
+	harness.Register(fakeHarness{}) // crew launched on no harness of this machine's
+	w.Config().Crew.Harness = "fake-crew"
 	os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n"), 0o644)
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
 	if said := w.CrewDone("cache", "c1"); !strings.Contains(said, "started c2 in frontend/one to carry on at step 2, with handoff") {
