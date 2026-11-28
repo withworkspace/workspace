@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/outbox"
 )
 
 // In the daemon, a pull request you wrote is opened behind the answer: the
@@ -19,6 +20,7 @@ import (
 // once.
 func TestOpenPRBehind(t *testing.T) {
 	w := liftWorld(t)
+	w.opts.Outbox = &outbox.Queue{Root: w.Root()} // the daemon's
 	var created []github.NewPR
 	w.opts.GitHub = &github.Stub{CreatePRFn: func(_, _ string, n github.NewPR) (*github.PR, error) {
 		created = append(created, n)

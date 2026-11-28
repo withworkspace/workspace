@@ -129,7 +129,7 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	// writer's turn, or for one you wrote, the fetch, push and GitHub's
 	// seconds. What's asked here is only what's at hand; the job asks the
 	// rest (inJob) and puts what stops it to you.
-	behind := !o.inJob && w.takes(job.PR) && (by.IsYou() || o.Title == "" && w.Config().PRWriterEnabled())
+	behind := !o.inJob && w.takes(job.PR) && (by.IsYou() && w.opts.Outbox != nil || o.Title == "" && w.Config().PRWriterEnabled())
 	if behind {
 		if pr := w.keptOpenPR(c.Repo, branch, c.Name); pr != nil {
 			return PROpened{}, refused("pr-open", "%s#%d is already open from %s (%s): push to the branch to update it", c.Repo, pr.Number, out.Capsule, pr.URL)
