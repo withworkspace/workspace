@@ -42,6 +42,9 @@ export interface Bound {
   handlers: () => Partial<Record<string, Handler | false | undefined>>;
   modal: boolean;
   first: boolean;
+  // Read after the rest (a plugin's actions): a page's own key is the
+  // page's, whatever was bound first.
+  late?: boolean;
 }
 
 const bound: Bound[] = [];
@@ -98,7 +101,8 @@ function asked(first: boolean): Bound[] {
   // itself when it isn't its key (Find's open, say).
   if (first) return bound.filter((b) => b.first);
   const rest = bound.filter((b) => !b.first);
-  return modal ? rest.filter((b) => b.modal) : rest;
+  const ordered = [...rest.filter((b) => !b.late), ...rest.filter((b) => b.late)];
+  return modal ? ordered.filter((b) => b.modal) : ordered;
 }
 
 // done does the first command bound to key among bs, and says whether one took it.

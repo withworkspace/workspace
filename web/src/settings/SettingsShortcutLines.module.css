@@ -1,0 +1,18 @@
+/* What's said under a shortcut of its keys (SettingsShortcutLines.tsx):
+   clashes, marked, then notes, quieter. */
+
+.lines {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.clash {
+  color: var(--attention);
+}
+
+.note {
+  color: var(--dim);
+}

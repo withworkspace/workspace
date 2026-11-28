@@ -3804,24 +3804,27 @@ export interface Plugin {
  * PluginActRequest is POST /api/plugins/{name}/actions/{id}: an action
  * chosen in Find. Kind and Ref are for one of a kind's, on one of its
  * things; neither is for one of the plugin's own. Answers are what's been
- * answered so far to what the action asked.
+ * answered so far to what the action asked. Here is what was open when it
+ * was asked for (a key pressed on a mission's page), if anything was.
  */
 export interface PluginActRequest {
     kind?: string;
     ref?: string;
     answers: string[];
+    here?: ProtocolHere;
 }
 
 // From web/plugins.go
 /**
  * PluginActed is what came of an action: Ask, when it wants something
  * answered first and has done nothing yet; else a line to say, and where
- * in ws to go.
+ * in ws to go: as the page, or beside it (Where).
  */
 export interface PluginActed {
     ask?: ProtocolAsk;
     say?: string;
     open?: string;
+    where?: string;
 }
 
 // From web/plugins.go
@@ -4027,6 +4030,28 @@ export interface ProtocolAction {
      */
     icon?: string;
     hint?: string;
+    /**
+     * Keys are the keys the plugin suggests for its own action, as ws names
+     * a key press ("n", "mod+shift+i"; one then another with a space).
+     * They're a suggestion, never bound by ws: the person sees them in
+     * Settings › Keyboard, with what they'd clash with, and takes them or
+     * gives the action keys of their own. Two plugins may suggest the same.
+     */
+    keys?: string[];
+    /**
+     * Opens is a path in the plugin's app the action goes to, with nothing
+     * to run: ws goes there at once, without asking the plugin. Where says
+     * where it's opened.
+     */
+    opens?: string;
+    where?: string;
+    /**
+     * On is the kinds of what's open that the action is for (mission, pr,
+     * conversation, document, artifact, file, repo, or a plugin's kind of
+     * thing, jira:issue): offered, and done by its keys, only there. None is
+     * everywhere.
+     */
+    on?: string[];
 }
 
 // From protocol/protocol.gen.go
@@ -4079,6 +4104,19 @@ export interface ProtocolField {
      * LinkMentions.
      */
     link?: string;
+}
+
+// From protocol/protocol.gen.go
+/**
+ * Here is what was open when an action was asked for: its ref (a mission's
+ * slug, a Jira issue's RAM-12), its kind (as Action.On names kinds), what
+ * it's called, and the words picked out in it, if any.
+ */
+export interface ProtocolHere {
+    ref: string;
+    kind: string;
+    title?: string;
+    selection?: string;
 }
 
 // From protocol/protocol.gen.go

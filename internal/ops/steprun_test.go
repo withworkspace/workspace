@@ -254,8 +254,8 @@ func TestStepRun_PullRequestInEachRepo(t *testing.T) {
 }
 
 // A step that carries on from one that ran in several repos runs in the
-// same repos, each run's crew carrying on (fresh, where they can't be
-// reached, told to read their handoff).
+// same repos, fresh crew in each run's capsule told to read the handoff
+// of the crew before them.
 func TestStepRun_CarryingOnInEachRepo(t *testing.T) {
 	plan := "## Z\n- Updated.\n## Stops early\n- None.\n## Steps\n" +
 		"1. Work: update.\n   - in each: repo of the workspace\n" +
@@ -268,7 +268,7 @@ func TestStepRun_CarryingOnInEachRepo(t *testing.T) {
 		w.CrewDone("cache", c)
 	}
 	acc, err := w.AcceptStage("cache", AsOrchestrator, "updated in both")
-	if err != nil || !strings.Contains(acc.Next, "c1 could not be resumed: started c3 in frontend/one") || !strings.Contains(acc.Next, "c2 could not be resumed: started c4 in backend/two") {
+	if err != nil || !strings.Contains(acc.Next, "started c3 in frontend/one") || !strings.Contains(acc.Next, "started c4 in backend/two") {
 		t.Fatalf("accept: %+v, %v", acc, err)
 	}
 	m, _ := w.Missions.Load("cache")

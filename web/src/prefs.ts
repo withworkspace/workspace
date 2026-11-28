@@ -15,7 +15,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface Prefs {
   // Desktop notifications of what newly needs you, once the browser
-  // allows them (shell/notify.ts).
+  // allows them (shell/notify.ts). On unless turned off: asking the
+  // browser is what's left, and the page offers it.
   notify: boolean;
   // How many of the file explorer's panes are shown while a file's open:
   // 3 is the repos, the tree and the file; 2 drops the repos; 1 is the
@@ -62,7 +63,7 @@ export interface Prefs {
 }
 
 const defaults: Prefs = {
-  notify: false,
+  notify: true,
   filePanes: 3,
   missionSide: true,
   workDone: false,
@@ -142,7 +143,23 @@ function old(): Partial<Prefs> {
 }
 const was = old();
 
-export const usePrefs = create<Prefs>()(persist(() => ({ ...defaults, ...was }), { name: entry, version: 1, storage: createJSONStorage(() => localStorage) }));
+// migratePrefs is what was kept, at version, as this version has it.
+// Version 2 turned desktop notifications on by default: they were off
+// until turned on in each browser, and nothing said so, so what needed
+// you went untold. A browser that kept the old default has them on.
+export function migratePrefs(kept: unknown, version: number): Prefs {
+  const was = kept as Prefs;
+  return version < 2 ? { ...was, notify: true } : was;
+}
+
+export const usePrefs = create<Prefs>()(
+  persist(() => ({ ...defaults, ...was }), {
+    name: entry,
+    version: 2,
+    storage: createJSONStorage(() => localStorage),
+    migrate: migratePrefs,
+  }),
+);
 
 // The old keys go once what they said is in the one entry (which, if
 // it's already there, has what's newer, and has been read over them).

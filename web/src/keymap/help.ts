@@ -45,6 +45,9 @@ export function helpGroups(everywhere: Scope, map?: Record<string, string[]>): H
   // A page binds after the parts in it: the page's own come first.
   const scopes: Scope[] = [];
   for (const b of [...bound].reverse()) if (b.scope !== everywhere && !scopes.includes(b.scope)) scopes.push(b.scope);
+  // Plugins' actions are bound wherever they're for: said after the
+  // page's own, as they're not the page's.
+  scopes.sort((a, b) => Number(a.id.startsWith("plugin-")) - Number(b.id.startsWith("plugin-")));
   const on = (s: Scope) => s.commands.filter((c) => c.fixed || bound.some((b) => b.scope === s && !!b.handlers()[c.name]));
   const groups = scopes.map((s) => ({ title: s.title, keys: rowsOf(on(s), map) })).filter((g) => g.keys.length > 0);
   // Everywhere's are said whether bound or not: some are bound only where

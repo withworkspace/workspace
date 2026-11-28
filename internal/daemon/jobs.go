@@ -63,6 +63,11 @@ func (d *daemon) runJob(j job.Job) error {
 			execlog.Note(root, "checks "+j.Mission, "%s", said)
 		}
 		return err
+	case job.Verify:
+		if said := ctx.VerifyAgain(j.Mission, j.ID); said != "" {
+			execlog.Note(root, "verify "+j.Mission, "%s", said)
+		}
+		return nil
 	case job.PR:
 		if said := ctx.OpenWrittenPR(j.Mission, j.ID); said != "" {
 			execlog.Note(root, "pr-writer "+j.Mission, "%s", said)

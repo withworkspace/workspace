@@ -679,7 +679,7 @@ func TestKitActionsAreRunFromWS(t *testing.T) {
 	}
 	addKit(t, root)
 	st, err := h.Refresh("kit")
-	if err != nil || len(st.Registration.Actions) != 1 || st.Registration.Actions[0].ID != "ping" || len(st.Registration.Refs[0].Actions) != 1 {
+	if err != nil || len(st.Registration.Actions) != 3 || st.Registration.Actions[0].ID != "ping" || len(st.Registration.Refs[0].Actions) != 1 {
 		t.Fatalf("started: %+v, %v", st.Registration, err)
 	}
 	waitFor(t, func() bool { return len(thingsIn(t, db, "kit")) == 1 })

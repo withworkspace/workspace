@@ -2,6 +2,7 @@ import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/Keys";
 import css from "./SettingsShortcut.module.css";
+import { SettingsShortcutLines } from "./SettingsShortcutLines";
 
 export type SettingsShortcutProps = {
   // What the command does.
@@ -14,7 +15,16 @@ export type SettingsShortcutProps = {
   // nothing yet).
   setting?: readonly string[];
   // What else its keys do, where that's yours: "j also does Open (Team)".
+  // Notes are what's so but no trouble: the pages where a plugin's key is
+  // the page's own.
   clashes?: readonly string[];
+  notes?: readonly string[];
+  // Keys it's suggested and hasn't (a plugin's), with what taking them
+  // would clash with, to see before Use.
+  suggested?: readonly string[];
+  suggestedClashes?: readonly string[];
+  suggestedNotes?: readonly string[];
+  onUseSuggested?: () => void;
   onAdd: () => void;
   onRemove: (key: string) => void;
   onReset: () => void;
@@ -24,8 +34,9 @@ export type SettingsShortcutProps = {
 // SettingsShortcut is a command in Settings › Keyboard: what it does, its
 // keys (each taken off with its ×), a key added by pressing it, and its
 // own keys back where you've set others. What its keys clash with is said
-// under it.
-export function SettingsShortcut({ title, keys, yours, setting, clashes, onAdd, onRemove, onReset, onCancel }: SettingsShortcutProps) {
+// under it, and so are keys it's suggested (a plugin's), with Use to take
+// them, and what they'd clash with.
+export function SettingsShortcut({ title, keys, yours, setting, clashes, notes, suggested, suggestedClashes, suggestedNotes, onUseSuggested, onAdd, onRemove, onReset, onCancel }: SettingsShortcutProps) {
   return (
     <div className={css.shortcut} data-yours={yours || undefined}>
       <div className={css.title}>{title}</div>
@@ -58,15 +69,18 @@ export function SettingsShortcut({ title, keys, yours, setting, clashes, onAdd, 
           </Button>
         )}
       </div>
-      {clashes && clashes.length > 0 && (
-        <ul className={css.clashes}>
-          {clashes.map((c) => (
-            <li key={c}>
-              <Icon name="alert" /> {c}
-            </li>
+      {suggested && suggested.length > 0 && !setting && (
+        <div className={css.suggested}>
+          Suggested{" "}
+          {suggested.map((k) => (
+            <Keys key={k} k={k} />
           ))}
-        </ul>
+          <Button variant="link" onClick={onUseSuggested}>
+            Use
+          </Button>
+        </div>
       )}
+      <SettingsShortcutLines clashes={[...(clashes ?? []), ...(!setting ? (suggestedClashes ?? []) : [])]} notes={[...(notes ?? []), ...(!setting ? (suggestedNotes ?? []) : [])]} />
     </div>
   );
 }

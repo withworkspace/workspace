@@ -204,3 +204,32 @@ export function nearIds(items: Item[], near: Near[]): Set<string> {
   for (const n of near) ids.add(`said:${n.scope ?? ""}/${n.ref}`);
   return ids;
 }
+
+// hereKindOf is what kind of thing Here is, as a plugin's action names
+// the kinds it's for (Action.on): mission, conversation, document,
+// artifact, pr, file, or a plugin's kind of thing (jira:issue). Settings'
+// repos is of no kind.
+export function hereKindOf(h: Here): string | undefined {
+  if (h.thing) return `${h.thing.plugin}:${h.thing.what}`;
+  const kind = h.id.slice(0, h.id.indexOf(":"));
+  const kinds: Record<string, string> = { mission: "mission", talk: "conversation", page: "document", document: "document", artifact: "artifact", pr: "pr", file: "file" };
+  return kinds[kind];
+}
+
+// HereSaid is Here as a plugin's action is told it: its ref, its kind,
+// what it's called, and the words picked out on the page, if any.
+export interface HereSaid {
+  ref: string;
+  kind: string;
+  title?: string;
+  selection?: string;
+}
+
+// hereSaid is what's told of Here, with selection the words picked out
+// (cut to what a plugin needs to start from).
+export function hereSaid(h: Here | undefined, selection?: string): HereSaid | undefined {
+  const kind = h && hereKindOf(h);
+  if (!h || !kind) return undefined;
+  const picked = selection?.trim().slice(0, 2000);
+  return { ref: h.ref, kind, ...(h.title ? { title: h.title } : {}), ...(picked ? { selection: picked } : {}) };
+}

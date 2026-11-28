@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 )
 
@@ -252,5 +253,54 @@ func TestVerify_AVerifierChangesNothing(t *testing.T) {
 	git("reset", "-q", "--hard", "HEAD~1")
 	if h, err := w.HandOver("cache", "c2", verifierBundle("met"), dir); err != nil || !strings.Contains(h.Next, "passed step 2") {
 		t.Errorf("as it was: %q, %v", h.Next, err)
+	}
+}
+
+// Crew sent back by a Verify step report done from their own session, and
+// starting the verifier in their capsule ends that session: so the
+// verifier is started in the daemon, as a job, not by the command that
+// reported done, which would be ended under it with the launch unmade.
+func TestVerify_AgainIsTheDaemonsToStart(t *testing.T) {
+	w, host, dir := verifyFixture(t)
+	os.WriteFile(filepath.Join(dir, "shot.png"), []byte("\x89PNG\r\n"), 0o644)
+	if _, err := w.HandOver("cache", "c2", verifierBundle("unmet"), dir); err != nil {
+		t.Fatal(err)
+	}
+	var started []job.Job
+	w.opts.Jobs = JobsOf(func(j job.Job) { started = append(started, j) }, job.Verify)
+	launched := len(host.specs)
+	w.Missions.SetCrewStatus("cache", "c3", mission.CrewDone, "fixed, again")
+	if said := w.CrewDone("cache", "c3"); said != "step 2 verifies it again: ws starts its verifier" {
+		t.Fatalf("CrewDone said %q", said)
+	}
+	if len(started) != 1 || started[0] != (job.Job{Kind: job.Verify, Mission: "cache", ID: "c3"}) || len(host.specs) != launched {
+		t.Fatalf("jobs %+v, %d launched", started, len(host.specs)-launched)
+	}
+	// The daemon's job starts it, once.
+	if said := w.VerifyAgain("cache", "c3"); !strings.Contains(said, "step 2 verifies it again: started step 2: c4 in frontend/one") {
+		t.Fatalf("the job said %q", said)
+	}
+	if said := w.VerifyAgain("cache", "c3"); said != "" {
+		t.Errorf("started again: %q", said)
+	}
+}
+
+// New crew starting in a capsule end the sessions of crew who handed their
+// work back there, but never the one the launch is made from: that would
+// end the launch with it. ws closes it once its turn ends.
+func TestEndHandedBack_NotTheCallersOwnSession(t *testing.T) {
+	w, _, _ := verifyFixture(t)
+	host := &stopHost{}
+	w.opts.Host = host
+	w.Missions.SetCrewProcess("cache", "c1", os.Getpid(), "frontend/one") // alive, so it's there to end
+	m, _ := w.Missions.Load("cache")
+	t.Setenv(mission.EnvMission, "cache")
+	t.Setenv(mission.EnvCrew, "c1")
+	if ended, _ := w.endHandedBack(m, "frontend/one"); len(ended) != 0 || len(host.stopped) != 0 {
+		t.Errorf("ended %v, stopped %v", ended, host.stopped)
+	}
+	t.Setenv(mission.EnvCrew, "c9")
+	if ended, _ := w.endHandedBack(m, "frontend/one"); len(ended) != 1 || len(host.stopped) != 1 || host.stopped[0] != "cache/c1" {
+		t.Errorf("ended %v, stopped %v", ended, host.stopped)
 	}
 }

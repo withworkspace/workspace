@@ -498,7 +498,7 @@ func TestPluginRefsAndAThing(t *testing.T) {
 	// What it can do is served for Find: its own, and what's done to one
 	// of its things. Run, one asks first, and is run again with the answer.
 	host.Refresh("kit") //nolint:errcheck // it was stopped above
-	if got := list(); len(got.Actions) != 1 || got.Actions[0].ID != "ping" || got.Actions[0].Hint != "It answers" || len(got.Refs[0].Actions) != 1 || got.Refs[0].Actions[0].Title != "Move to…" {
+	if got := list(); len(got.Actions) != 3 || got.Actions[0].ID != "ping" || got.Actions[0].Hint != "It answers" || got.Actions[1].Opens != "/notes/new" || got.Actions[1].Where != "beside" || len(got.Actions[1].Keys) != 1 || got.Actions[1].On[0] != "mission" || len(got.Refs[0].Actions) != 1 || got.Refs[0].Actions[0].Title != "Move to…" {
 		t.Errorf("actions: %+v, a thing's %+v", got.Actions, got.Refs[0].Actions)
 	}
 	post := func(path, body string) (*http.Response, PluginActed) {
@@ -518,6 +518,13 @@ func TestPluginRefsAndAThing(t *testing.T) {
 	// Done, it says so, and where it opens is its page in ws.
 	if res, acted := post("/api/plugins/kit/actions/move", `{"kind":"thing","ref":"KIT-1","answers":["Closed"]}`); res.StatusCode != http.StatusOK || acted.Say != "KIT-1 is Closed" || acted.Open != "/x/kit/thing/KIT-1" {
 		t.Errorf("move, answered: %d %+v", res.StatusCode, acted)
+	}
+	// What was open is told; where it opens, beside or not, is said.
+	if res, acted := post("/api/plugins/kit/actions/about", `{"answers":[],"here":{"ref":"fix-it","kind":"mission","title":"Fix it"}}`); res.StatusCode != http.StatusOK || acted.Say != "About Fix it" || acted.Open != "/x/kit/notes/new?about=fix-it" || acted.Where != "beside" {
+		t.Errorf("about, here: %d %+v", res.StatusCode, acted)
+	}
+	if res, acted := post("/api/plugins/kit/actions/note", `{"answers":[]}`); res.StatusCode != http.StatusOK || acted.Open != "/x/kit/notes/new" || acted.Where != "beside" {
+		t.Errorf("note: %d %+v", res.StatusCode, acted)
 	}
 	if res, acted := post("/api/plugins/kit/actions/ping", `{"answers":["ws"]}`); res.StatusCode != http.StatusOK || acted.Say != "pong, ws" {
 		t.Errorf("ping: %d %+v", res.StatusCode, acted)

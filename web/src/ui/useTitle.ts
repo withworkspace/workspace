@@ -16,9 +16,12 @@ export function setTitleContext(name: string, waiting: number) {
   applyTitle();
 }
 
-export function useTitle(title: string | undefined) {
+// It names it only while on: a part that's drawn as a page or beside one
+// (a plugin's frame) names the tab only as the page.
+export function useTitle(title: string | undefined, on = true) {
   useEffect(() => {
+    if (!on) return;
     pageTitle = title ?? "";
     applyTitle();
-  }, [title]);
+  }, [title, on]);
 }

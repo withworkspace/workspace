@@ -21,6 +21,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -182,8 +183,15 @@ func main() {
 					// What can be done to one, from Find.
 					"actions": []map[string]string{{"id": "move", "title": "Move to…"}},
 				}},
-				// What it can do, from Find.
-				"actions": []map[string]string{{"id": "dust", "title": "Dust the shelf", "icon": "sparkle", "hint": "Every thing on it"}},
+				// What it can do, from Find, and by the keys it suggests
+				// (under your plugin key): a note opened beside a
+				// mission's page, with nothing run; and a note about
+				// whatever's open, which asks what about where nothing is.
+				"actions": []map[string]any{
+					{"id": "dust", "title": "Dust the shelf", "icon": "sparkle", "hint": "Every thing on it"},
+					{"id": "note", "title": "New fixture note", "icon": "pencil", "keys": []string{"n"}, "opens": "/notes/new", "where": "beside", "on": []string{"mission"}},
+					{"id": "about", "title": "Fixture note about this", "icon": "pencil", "keys": []string{"a"}},
+				},
 				// What a conversation's agent may propose of it.
 				// Its things aren't vouched for with nobody looking: it
 				// cautions why, for whoever lets an automation do them
@@ -194,6 +202,7 @@ func main() {
 			var p struct {
 				ID, Kind, Ref string
 				Answers       []string
+				Here          *struct{ Ref, Kind, Title, Selection string }
 			}
 			if err := json.Unmarshal(params, &p); err != nil {
 				return nil, err
@@ -201,6 +210,21 @@ func main() {
 			switch {
 			case p.Kind == "" && p.ID == "dust":
 				return map[string]any{"say": "Dusted " + itoa(int64(len(things))) + " things"}, nil
+			case p.Kind == "" && p.ID == "about":
+				// What was open is what it's about; with nothing open, it
+				// asks.
+				about := ""
+				if p.Here != nil {
+					about = p.Here.Kind + " " + p.Here.Ref
+					if p.Here.Selection != "" {
+						about += ": " + p.Here.Selection
+					}
+				} else if len(p.Answers) == 0 {
+					return map[string]any{"ask": map[string]any{"title": "What's the note about?", "type": "text", "placeholder": "A line"}}, nil
+				} else {
+					about = p.Answers[0]
+				}
+				return map[string]any{"say": "A note about " + about, "open": "/notes/new?about=" + url.QueryEscape(about), "where": "beside"}, nil
 			case p.Kind == "thing" && p.ID == "move":
 				// It asks where to before it does anything: ws asks, and
 				// runs it again with the answer.

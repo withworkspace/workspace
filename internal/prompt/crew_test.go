@@ -35,7 +35,7 @@ func golden(t *testing.T, name, got string) {
 func TestCrew_Golden(t *testing.T) {
 	golden(t, "crew-work", Crew(CrewBrief{Slug: "cache", Title: "Cache lookups", Brief: "## Goal\nCache the lookup.\n",
 		Dispatch: "Add eviction", Stage: "Build it in `api/cache`.", StageN: 2, StageOf: 3,
-		LeftOff: "## Where earlier crew left off\n\nc1's handoff", Guide: "Read GUIDE.md first."}))
+		LeftOff: "## Where earlier crew left off\n\nc1's handoff", Guide: "Read GUIDE.md first.", RunChecks: []string{"go test ./...", "cd web && pnpm test"}}))
 	golden(t, "crew-briefing", Crew(CrewBrief{Slug: "fe-issue-45", Role: "briefing", Request: "fe issue 45", Org: "acme", Conversation: "t3"}))
 	golden(t, "crew-answer", Crew(CrewBrief{Slug: "cache", Title: "Cache lookups", Role: "answer",
 		Question: "Redis or in memory?", Options: []string{"Redis", "In memory"}}))
@@ -168,8 +168,22 @@ func TestBriefingPrompt_WritesAPlan(t *testing.T) {
 		}
 	}
 	none := Crew(CrewBrief{Slug: "b", Role: "briefing", Request: "x"})
-	if !strings.Contains(none, "has no process written down") {
+	if !strings.Contains(none, "has no process written down") || strings.Contains(none, "The repos' own tasks") {
 		t.Errorf("a workspace without a process:\n%s", none)
+	}
+}
+
+// The planner is told each repo's own tasks, so a check that's a command
+// runs what the repo runs to test itself, not one made up for the step,
+// and that checks are ones the judge can settle once.
+func TestBriefingPrompt_ChecksUseTheReposTasks(t *testing.T) {
+	b := Crew(CrewBrief{Slug: "b", Role: "briefing", Request: "x", Planning: Planning{Tasks: []RepoTasks{
+		{Repo: "api", Tasks: []Recipe{{Name: "test", Type: "task", Command: "just test", Description: "Go's tests, then the web UI's."}, {Name: "lint", Type: "task"}}},
+	}}})
+	for _, want := range []string{"The repos' own tasks", "- api: `test` (Go's tests, then the web UI's), `lint`", "`ws run test` passes", `never "every change"`, "read what it does first"} {
+		if !strings.Contains(b, want) {
+			t.Errorf("briefing prompt missing %q:\n%s", want, b)
+		}
 	}
 }
 

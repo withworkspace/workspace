@@ -17,6 +17,13 @@ describe("what has a pane", () => {
     expect(paneAt(talkAt("w1"))).toEqual({ kind: "conversation", slug: "", id: "w1" });
   });
 
+  it("is a plugin's app, at a path in it and its query", () => {
+    expect(paneAt("/x/jira")).toEqual({ kind: "plugin", name: "jira", at: "/" });
+    expect(paneAt("/x/jira/new?about=fix-it")).toEqual({ kind: "plugin", name: "jira", at: "/new?about=fix-it" });
+    expect(paneAt("/x/jira/issue/RAM-1#top")).toEqual({ kind: "plugin", name: "jira", at: "/issue/RAM-1" });
+    expect(paneAt("/x/Bad Name/new")).toBeUndefined();
+  });
+
   it("is a mission, whichever of its tabs the address names", () => {
     expect(paneAt("/missions/dark-mode")).toEqual({ kind: "mission", slug: "dark-mode" });
     expect(paneAt("/missions/dark-mode?tab=work")).toEqual({ kind: "mission", slug: "dark-mode" });

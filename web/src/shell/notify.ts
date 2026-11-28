@@ -77,8 +77,20 @@ export function useFaviconBadge(on: boolean) {
 
 const supported = typeof Notification !== "undefined";
 
-// useNotifications notifies of what's newly waiting while the page is
-// hidden, once you've turned them on; it returns whether they're on and a
+// away is whether you're not looking at this page: its tab hidden, or its
+// window not the one in front. A window behind another app's is still
+// "visible" to the browser while any of it shows, and what's told in it
+// then (a toast in its corner) goes unseen.
+export function away(): boolean {
+  return document.visibilityState === "hidden" || !document.hasFocus();
+}
+
+// asked is whether this page has offered to ask the browser already:
+// once a load.
+let asked = false;
+
+// useNotifications notifies of what's newly waiting while you're away from
+// the page (away), with them on and the browser allowing them; it returns whether they're on and a
 // switch. What's been told of is the daemon's to remember, by each need's
 // key: this page only knows what's new to it.
 export function useNotifications(waiting: Waiting[], open: (path: string) => void): { supported: boolean; on: boolean; toggle: () => void } {
@@ -88,9 +100,38 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
   const on = wanted && allowed;
   const seen = useRef<Set<string> | null>(null);
 
+  // The browser's answer can change outside the page (its own settings):
+  // read again whenever you come back to it.
+  useEffect(() => {
+    if (!supported) return;
+    const look = () => setAllowed(Notification.permission === "granted");
+    window.addEventListener("focus", look);
+    document.addEventListener("visibilitychange", look);
+    return () => {
+      window.removeEventListener("focus", look);
+      document.removeEventListener("visibilitychange", look);
+    };
+  }, []);
+
+  // Wanted, and the browser never asked: offer to ask it, once a load. Its
+  // question needs a press (browsers refuse one asked unprompted). Not
+  // in a browser something's driving (shotta's pictures, a test's): it
+  // would be in every picture.
+  useEffect(() => {
+    if (!supported || !wanted || asked || navigator.webdriver || Notification.permission !== "default") return;
+    asked = true;
+    toast("ws can tell you on the desktop when something needs you, while you're elsewhere.", {
+      ms: 60_000,
+      action: {
+        label: "Allow",
+        run: () => void Notification.requestPermission().then((p) => setAllowed(p === "granted")),
+      },
+    });
+  }, [wanted]);
+
   useEffect(() => {
     const keys = new Set(waiting.map((w) => w.key));
-    if (seen.current && on && document.visibilityState === "hidden") {
+    if (seen.current && on && away()) {
       const fresh = waiting.filter((w) => !seen.current!.has(w.key));
       const tell = (which: Waiting[]) => {
         for (const w of which) {
@@ -135,9 +176,9 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
 
 // useFeedNotifications tells of what happened (the feed's notifications)
 // as it happens, for the sources and kinds you've asked to be told of
-// ("Feed, and tell me": desktop in ws.local.toml): in a toast while the
-// page is in front, on the desktop while it's hidden and desktop
-// notifications are on. latest is the newest notification's number, as
+// ("Feed, and tell me": desktop in ws.local.toml): in a toast while
+// you're on the page, on the desktop while you're away from it (away)
+// and desktop notifications are on. latest is the newest notification's number, as
 // the workspace's view carries it: when it moves, what's new since is
 // read, and the daemon says which of it no page has told of yet, as it
 // does for needs, so it's told once, toast or desktop, however many pages
@@ -151,7 +192,7 @@ export function useFeedNotifications(latest: number | undefined, on: boolean, op
     // The first it hears of is where it starts: nothing's new to a page
     // that's just opened.
     if (was === undefined || latest <= was) return;
-    const hidden = document.visibilityState === "hidden";
+    const hidden = away();
     if (hidden && !on) return;
     void getNotifications()
       .then(async (feed) => {

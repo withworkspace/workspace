@@ -64,6 +64,8 @@ func opsOptions(root string) ops.Options {
 				checkSpawner(root, j.Mission, j.ID)
 			case job.PR:
 				prWriterSpawner(root, j.Mission, j.ID)
+			case job.Verify:
+				verifySpawner(root, j.Mission, j.ID)
 			case job.Thread:
 				threadSpawner(root, j.Mission, j.ID)
 			case job.Draft:

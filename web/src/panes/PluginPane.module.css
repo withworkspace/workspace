@@ -1,0 +1,6 @@
+/* A plugin's app beside the page (PluginPane.tsx): its frame fills the
+   pane, edge to edge, and scrolls itself. */
+.body {
+  position: relative;
+  overflow: hidden;
+}

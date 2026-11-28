@@ -186,7 +186,7 @@ const settingWords: Record<string, string> = {
 };
 
 // localItems is everything the page already holds that can be found.
-export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
+export function localItems(w: Workspace, plugins: Plugin[] = [], hereKind?: string): Item[] {
   const place = (to: string, title: string, icon: IconName, hint?: string): Item => ({
     id: `place:${to}`,
     group: "places",
@@ -383,10 +383,14 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       score: 0,
       doing: { help: true },
     },
-    ...pluginActionItems(plugins),
+    ...pluginActionItems(plugins, hereKind),
   );
   return out;
 }
+
+// actionHere is whether a plugin's own action is for what's open: one
+// that names no kinds is for anything.
+export const actionHere = (a: { on?: string[] }, hereKind: string | undefined) => !a.on?.length || (!!hereKind && a.on.includes(hereKind));
 
 // automationActionItems are your automations' actions as things to do,
 // on what on names (a ref: Here's) or on nothing in particular (Do's):
@@ -407,10 +411,12 @@ export function automationActionItems(actions: AutomationAction[], on?: string):
 }
 
 // pluginActionItems are the plugins' own actions as things to do: found
-// by their titles (and their hints), each saying whose it is.
-export function pluginActionItems(plugins: Plugin[]): Item[] {
+// by their titles (and their hints), each saying whose it is. One that's
+// for some kinds of what's open (on) is offered only on one (hereKind:
+// shell/here.ts, hereKindOf).
+export function pluginActionItems(plugins: Plugin[], hereKind?: string): Item[] {
   return plugins.flatMap((p) =>
-    (p.actions ?? []).map((a) => ({
+    (p.actions ?? []).filter((a) => actionHere(a, hereKind)).map((a) => ({
       id: `do:plugin:${p.name}/${a.id}`,
       group: "do" as const,
       kind: "Do",

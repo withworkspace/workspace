@@ -433,6 +433,14 @@ describe("what plugins do", () => {
     expect(localItems(workspace).some((it) => it.id.startsWith("do:plugin:"))).toBe(false);
   });
 
+  it("offers one that's for some kinds of what's open only on one", () => {
+    const onMission = { ...jira, actions: [{ id: "note", title: "Note on Jira", on: ["mission", "jira:issue"] }, { id: "any", title: "Anywhere" }] };
+    expect(pluginActionItems([onMission]).map((it) => it.id)).toEqual(["do:plugin:jira/any"]);
+    expect(pluginActionItems([onMission], "pr").map((it) => it.id)).toEqual(["do:plugin:jira/any"]);
+    expect(pluginActionItems([onMission], "mission").map((it) => it.id)).toEqual(["do:plugin:jira/note", "do:plugin:jira/any"]);
+    expect(pluginActionItems([onMission], "jira:issue").map((it) => it.id)).toEqual(["do:plugin:jira/note", "do:plugin:jira/any"]);
+  });
+
   it("lists what can be done to a thing: its kind's actions, then ws's own", () => {
     expect(actsOn(issue).map((a) => [a.id, a.ws ?? "its"])).toEqual([
       ["move", "its"],

@@ -7,11 +7,13 @@ import (
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/testgit"
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
 func TestMain(m *testing.M) {
+	mission.ClearCrewEnv()
 	ui.Profile = colorprofile.NoTTY
 	NoDaemon()
 	cleanup := testgit.NoSigning()
