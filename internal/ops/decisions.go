@@ -27,7 +27,29 @@ type Deciding struct {
 type Decided struct {
 	Slug     string
 	Decision mission.Decision
+	// HeldTo is what the work is held to, for crew to hold the decision
+	// they've made against as they make it: none for anyone else's.
+	HeldTo HeldTo
 }
+
+// HeldTo is what crew's work is held to: their step's checks, the checks
+// of the Work steps after it (a decision made now can rule one out), and
+// the user's decisions that stand, each as written.
+type HeldTo struct {
+	Step   int
+	Checks []string
+	Later  []LaterChecks
+	Yours  []string // "d1: what"
+}
+
+// LaterChecks are a later Work step's checks.
+type LaterChecks struct {
+	Step   int
+	Checks []string
+}
+
+// Any is whether there's anything the work is held to.
+func (h HeldTo) Any() bool { return len(h.Checks) > 0 || len(h.Later) > 0 || len(h.Yours) > 0 }
 
 func (d Decided) String() string {
 	if d.Decision.Supersedes != "" {
@@ -50,7 +72,49 @@ func (w *Workspace) RecordDecision(slug string, d Deciding, by Actor) (Decided, 
 		return Decided{}, notStanding(err)
 	}
 	w.youActed(slug, by)
-	return Decided{Slug: slug, Decision: rec}, nil
+	out := Decided{Slug: slug, Decision: rec}
+	if by.Kind == Crew {
+		out.HeldTo = w.heldTo(slug, rec)
+	}
+	return out, nil
+}
+
+// heldTo is what crew's decision d is to be held against: what's to
+// stay true of the work at d's step and after it, and what the user has
+// decided. A decision against a check otherwise comes to light when the
+// check's judged, a round of work later; one made at an early step can
+// rule out a later step's check.
+func (w *Workspace) heldTo(slug string, d mission.Decision) HeldTo {
+	h := HeldTo{Step: d.Step}
+	if all, err := w.Missions.Decisions(slug); err == nil {
+		for _, o := range all {
+			if o.State == mission.DecisionCurrent && o.By == AsYou.By() {
+				h.Yours = append(h.Yours, o.ID+": "+oneLine(o.What))
+			}
+		}
+	}
+	m, err := w.Missions.Load(slug)
+	if err != nil || d.Step == 0 {
+		return h
+	}
+	brief, _ := w.Missions.ReadBrief(slug)
+	states, _ := m.StageProgress(brief)
+	for _, st := range states {
+		if st.Step == nil || st.N < d.Step || len(st.Step.Checks) == 0 {
+			continue
+		}
+		var checks []string
+		for _, c := range st.Step.Checks {
+			checks = append(checks, c.Text)
+		}
+		switch {
+		case st.N == d.Step:
+			h.Checks = checks
+		case st.Step.Type == mission.StepWork:
+			h.Later = append(h.Later, LaterChecks{Step: st.N, Checks: checks})
+		}
+	}
+	return h
 }
 
 // DecisionWithdrawn is a decision taken back.
