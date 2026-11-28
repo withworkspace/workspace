@@ -409,19 +409,18 @@ func (g *keptGit) standingSoon(dir, base string) (standing, bool) {
 // known), and asked for behind the read.
 type soonGit struct{ g *keptGit }
 
-// headBranch is the capsule's head and branch as kept, or as git's own
-// files say (no process), or else asked of git behind the read: unknown
-// until then. Through kept it would run git there and then on a cold
-// cache where the files don't say (a ref that's neither loose nor
-// packed, a HEAD that isn't a branch's), and a page would wait on it.
+// headBranch is the capsule's head and branch as git's own files say now
+// (no process, and never stale), or else as kept, asked of git behind
+// the read: unknown until then. Through kept it would run git there and
+// then on a cold cache where the files don't say (a ref that's neither
+// loose nor packed, a HEAD that isn't a branch's), and a page would wait
+// on it.
 func (s soonGit) headBranch(dir string) (string, string) {
-	if hb, ok := soon(s.g, dir, "head", func() answer[headAndBranch] { return askHeadBranch(dir) }); ok {
-		return hb.head, hb.branch
-	}
 	if head, branch, ok := headOf(dir); ok {
 		return head, branch
 	}
-	return "", ""
+	hb, _ := soon(s.g, dir, "head", func() answer[headAndBranch] { return askHeadBranch(dir) })
+	return hb.head, hb.branch
 }
 func (s soonGit) hasUpstream(dir string) bool {
 	is, _ := soon(s.g, dir, "upstream", func() answer[bool] { return askUpstream(dir) })
