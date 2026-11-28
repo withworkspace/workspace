@@ -1069,6 +1069,55 @@
     ]
   },
   {
+    "name": "crew asked, then a restart ended them: still asking, a reply resumes them",
+    "cards": [
+      {
+        "kind": "crew-asks",
+        "court": "you",
+        "tone": "you",
+        "title": "c1 asked, then its session ended (a reply resumes it)",
+        "detail": "Re-run it or fix the race?",
+        "primary": {
+          "do": "reply",
+          "label": "Reply",
+          "icon": "message",
+          "target": "c1",
+          "field": "Reply to c1"
+        },
+        "more": [
+          {
+            "do": "crew",
+            "label": "Open c1",
+            "icon": "message",
+            "target": "c1",
+            "quiet": true
+          }
+        ],
+        "by": "c1",
+        "since": "2026-11-09T07:00:00Z"
+      }
+    ]
+  },
+  {
+    "name": "crew asked and ended, later crew took the capsule: theirs now",
+    "cards": [
+      {
+        "kind": "working",
+        "court": "agent",
+        "tone": "agent",
+        "title": "c2 is working in api/fix",
+        "primary": {
+          "do": "crew",
+          "label": "Watch c2",
+          "icon": "message",
+          "target": "c2"
+        },
+        "by": "c2",
+        "since": "2026-11-09T11:59:00Z"
+      }
+    ]
+  },
+  {
     "name": "crew asks, another works: you first",
     "cards": [
       {

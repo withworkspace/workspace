@@ -107,12 +107,8 @@ func notResuming(m *mission.Mission, i int) string {
 	case c.HandedBack(m):
 		return "it had handed its work back"
 	}
-	if c.Role == "" && c.Capsule != "" {
-		for _, later := range m.Crew[i+1:] {
-			if later.Role == "" && later.Capsule == c.Capsule {
-				return later.ID + " has worked in " + c.Capsule + " since"
-			}
-		}
+	if later, ok := m.TakenOver(i); ok {
+		return later.ID + " has worked in " + c.Capsule + " since"
 	}
 	return ""
 }

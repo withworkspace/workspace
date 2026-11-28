@@ -477,12 +477,21 @@ func Resolve(s Snapshot) []Headline {
 	var working, starting []Crew
 	var workingSince time.Time
 	busyIn := map[string]bool{} // capsules crew are at: their PRs are theirs
-	for _, c := range m.Crew {
+	for i, c := range m.Crew {
 		st, since := s.Crew(c)
 		if st != CrewEnded && st != CrewHandedBack && c.Capsule != "" {
 			busyIn[c.Capsule] = true
 		}
 		switch st {
+		case CrewEnded:
+			if m.endedAsking(i) {
+				// Their session ended under the question (a restart,
+				// say), but it's still theirs to have answered: a reply
+				// resumes them with it.
+				add(Headline{Court: CourtYou, Kind: KindCrewAsks, Label: "? asks", By: c.ID, Since: timeOr(c.StatusAt, since),
+					Text:   c.ID + " asked, then its session ended (a reply resumes it): " + c.Note,
+					Action: Action{Verb: VerbReply, Label: "answer " + c.ID, Target: c.ID}})
+			}
 		case CrewAsks:
 			question, options := c.Note, []string(nil)
 			if c.Status != CrewAsking { // its question tool

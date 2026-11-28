@@ -374,9 +374,10 @@ var ErrCrewRunning = errors.New("still running")
 
 // ResumeCrew reopens ended crew: the same crew, continuing its conversation,
 // rather than new crew. It clears the end and logs the resume. Resumed by
-// ws or the orchestrator (by), or by you with a message one of them left
-// (to carry on, to put something right), they've more to do, so what
-// they'd said of themselves is taken back. Resumed by you to talk to,
+// ws or the orchestrator (by) with a message, or by you with a message one
+// of them left (to carry on, to put something right), they've more to do,
+// so what they'd said of themselves is taken back, except a question
+// they'd asked you when nothing's said to them. Resumed by you to talk to,
 // only a question they'd asked is: that they'd reported done stands, as
 // when you talk to crew still running (TalkedTo).
 func (s Store) ResumeCrew(slug, id, by string) (Crew, error) {
@@ -397,9 +398,14 @@ func (s Store) ResumeCrew(slug, id, by string) (Crew, error) {
 				m.Crew[i].Conversing = false
 				m.Crew[i].PID = 0
 				m.Crew[i].Pending = nil // a new session waits on nothing yet
-				if by == "you" && (m.Crew[i].ResumeWith == "" || m.Crew[i].ResumeWithBy == "you") {
+				switch {
+				case by == "you" && (m.Crew[i].ResumeWith == "" || m.Crew[i].ResumeWithBy == "you"):
 					m.Crew[i].answered()
-				} else {
+				case m.Crew[i].ResumeWith == "" && m.Crew[i].Status == CrewAsking:
+					// Reopened by ws with nothing to tell them (after a
+					// restart, say): a question they'd asked you is still
+					// yours to answer.
+				default:
 					m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = "", "", nil
 				}
 				if m.Launching != nil {
@@ -458,6 +464,53 @@ func (m *Mission) LastResumableCrew(live func(id string) bool) (Crew, bool) {
 // crew once the mission is no longer being briefed.
 func (c Crew) Done(m *Mission) bool {
 	return c.Role == RoleBriefing && !m.ToBrief()
+}
+
+// LastSeen is when crew were last known to be at it: started, or last
+// heard from (a status, their hooks, a handoff). Their end isn't counted:
+// a restart ends every crew it holds at once, whoever was last at work.
+func (c Crew) LastSeen() time.Time {
+	t := c.Started
+	for _, at := range []*time.Time{c.StatusAt, c.ActivityAt, c.HandedOff} {
+		if at != nil && at.After(t) {
+			t = *at
+		}
+	}
+	return t
+}
+
+// TakenOver is the crew that took crew i's capsule over from it: work
+// crew recorded after it, in the same capsule, and seen there since it
+// was (or at the same moment: then the later holds it). Crew recorded
+// later but gone before i was last at work, resumed since, haven't.
+func (m *Mission) TakenOver(i int) (Crew, bool) {
+	c := m.Crew[i]
+	if c.Role != "" || c.Capsule == "" {
+		return Crew{}, false
+	}
+	seen := c.LastSeen()
+	for _, later := range m.Crew[i+1:] {
+		if later.Role == "" && later.Capsule == c.Capsule && !later.LastSeen().Before(seen) {
+			return later, true
+		}
+	}
+	return Crew{}, false
+}
+
+// endedAsking says whether crew i ended with a question of theirs (ws
+// mission ask) still to answer, that answering can still reach: they've
+// a session to resume, nobody's taken their capsule over, and ws isn't
+// to resume them with something else first.
+func (m *Mission) endedAsking(i int) bool {
+	c := m.Crew[i]
+	if c.Ended == nil || c.Status != CrewAsking || strings.TrimSpace(c.Note) == "" {
+		return false
+	}
+	if c.Conversation == "" || c.ResumeWith != "" || c.Done(m) {
+		return false
+	}
+	_, taken := m.TakenOver(i)
+	return !taken
 }
 
 // HandedBack reports whether crew has handed its work back: it reported
