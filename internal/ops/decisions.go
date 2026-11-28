@@ -27,9 +27,6 @@ type Deciding struct {
 type Decided struct {
 	Slug     string
 	Decision mission.Decision
-	// Checks are the checks of the step crew made it at, as written, for
-	// them to hold it against as they make it: none for anyone else's.
-	Checks []string
 }
 
 func (d Decided) String() string {
@@ -53,19 +50,7 @@ func (w *Workspace) RecordDecision(slug string, d Deciding, by Actor) (Decided, 
 		return Decided{}, notStanding(err)
 	}
 	w.youActed(slug, by)
-	out := Decided{Slug: slug, Decision: rec}
-	if by.Kind == Crew && rec.Step > 0 {
-		if m, err := w.Missions.Load(slug); err == nil {
-			brief, _ := w.Missions.ReadBrief(slug)
-			states, _ := m.StageProgress(brief)
-			if st, err := mission.PickStage(states, rec.Step); err == nil && st.Step != nil {
-				for _, c := range st.Step.Checks {
-					out.Checks = append(out.Checks, c.Text)
-				}
-			}
-		}
-	}
-	return out, nil
+	return Decided{Slug: slug, Decision: rec}, nil
 }
 
 // DecisionWithdrawn is a decision taken back.

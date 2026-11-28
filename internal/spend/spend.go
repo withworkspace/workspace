@@ -57,7 +57,6 @@ const (
 	Orchestrate = "orchestrate" // the orchestrator, on a mission
 	Crew        = "crew"        // a crew's session
 	Check       = "check"       // the judge, on a step's checks
-	Decisions   = "decisions"   // the decision look, on crew's decisions
 	PR          = "pr"          // the PR writer
 	Talk        = "conversation"
 	Team        = "team"       // a gist or an account on the Team page

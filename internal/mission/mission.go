@@ -329,10 +329,6 @@ type Mission struct {
 	// done (checking.go): set as each check begins, cleared when the
 	// round is recorded.
 	Checking *Checking `toml:"checking,omitempty" json:"checking,omitempty"`
-	// DecisionsLooked is the number of the last decision ws's decision
-	// look has looked at (decisions d1 to dN): crew's after it are still
-	// to be looked at (ops.LookAtDecisions).
-	DecisionsLooked int `toml:"decisions_looked,omitempty" json:"decisions_looked,omitempty"`
 	// WritingPRs are the pull requests the PR writer is writing, a capsule
 	// each: set once ws has found one can be opened, cleared once it's
 	// opened, or couldn't be.
