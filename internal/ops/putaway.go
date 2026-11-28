@@ -108,6 +108,7 @@ func (w *Workspace) sendPutAway(it outbox.Item) error {
 		}
 		return nil
 	}
+	w.closedFor(p.Mission)
 	m, err := w.load(p.Mission)
 	if err != nil {
 		return err
@@ -168,9 +169,9 @@ func (w *Workspace) putAwaySettled(_ string, _, failed []outbox.Item) {
 // burn (its capsules) and its conversations' lifted capsules put away
 // behind. It says what will be burned.
 func (w *Workspace) archiveBehind(q *outbox.Queue, m *mission.Mission, burn []CapsuleView, force bool, by Actor) (StateSet, error) {
-	// Before their capsules go: a session left open would sit in a folder
-	// that's gone.
-	w.closeEnded(m, "mission archived")
+	// Before their capsules go (sendPutAway waits for it): a session left
+	// open would sit in a folder that's gone.
+	w.closeEndedBehind(m, "mission archived")
 	lane := putAwayLane(m.Slug)
 	var burning []string
 	// Queued before it's archived: should archiving fail, those queued do

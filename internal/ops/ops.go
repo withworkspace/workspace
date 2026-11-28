@@ -53,6 +53,9 @@ type Workspace struct {
 	findOnce sync.Once
 	findIx   *find.Index
 
+	// closing is the missions whose crew are being closed behind an
+	// answer (closeEndedBehind), each done when it's closed.
+	closing closings
 	// git is what git said of each capsule, kept for the views pages read
 	// until the capsule moves.
 	git keptGit
