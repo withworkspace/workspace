@@ -469,7 +469,7 @@ pr_is() {
 
 # handoff <done> <learned> <left>: a handoff's four sections, short, for
 # done_with to read.
-handoff() { printf '## Done\n- %s\n\n## Learned\n- %s\n\n## Left\n- %s\n\n## Read first\n- Nothing.\n' "$1" "$2" "$3"; }
+handoff() { printf '## Done\n- %s\n\n## Learned\n- %s\n\n## Environment\n- Nothing.\n\n## Left\n- %s\n\n## Read first\n- Nothing.\n' "$1" "$2" "$3"; }
 
 # -- Up next: one to brief, one ready, one parked.
 
@@ -693,6 +693,9 @@ done_with "$slug" c1 api/tax-rounding "Reproduced: tax is rounded on each line, 
 - It isn't a float: every amount is `Money`, whole minor units.
 - Nothing a customer sees uses a line's own tax.
 
+## Environment
+- `just test` runs the PDF snapshot tests too, which need `wkhtmltopdf`: it isn't installed here, so they fail. `go test ./internal/...` runs the rest.
+
 ## Left
 - The fix: work the tax out for each rate on what its lines come to together, and round once.
 
@@ -712,6 +715,9 @@ done_with "$slug" c1 api/tax-rounding "Fixed: tax is worked out for each rate on
 
 ## Learned
 - Invoices already sent keep the total they were sent with (ADR 0003). The three support has are a penny over, and stay so.
+
+## Environment
+- Nothing.
 
 ## Left
 - Whether support writes to those three studios is theirs to say.

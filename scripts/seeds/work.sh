@@ -75,7 +75,7 @@ crew() {
 handoff() {
 	local f="$dir/.ws/missions/$slug/files/seed-$1.md"
 	mkdir -p "$(dirname "$f")"
-	printf '## Done\n- %s\n## Learned\n- %s\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' "$2" "$3" >"$f"
+	printf '## Done\n- %s\n## Learned\n- %s\n## Environment\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' "$2" "$3" >"$f"
 	echo "$f"
 }
 commit() {

@@ -119,7 +119,7 @@ EOF
 
 handoff="$dir/.ws/missions/$slug/files/seed-handoff.md"
 mkdir -p "$(dirname "$handoff")"
-printf '## Done\n- No VERSION file, as the user chose (option A): the version of a release is its tag.\n## Learned\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' >"$handoff"
+printf '## Done\n- No VERSION file, as the user chose (option A): the version of a release is its tag.\n## Learned\n- Nothing.\n## Environment\n- Nothing.\n## Left\n- Nothing.\n## Read first\n- Nothing.\n' >"$handoff"
 as mission done "No VERSION file, as the user chose: the release's version is its tag" --handoff "$handoff" >/dev/null
 
 # The checks, the judge and the orchestrator are quick, with no model.

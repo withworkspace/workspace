@@ -72,12 +72,16 @@ func newMissionDoneCmd() *cobra.Command {
 		Long: `For crew: report that your part of the mission is finished, with a
 one-line summary and a handoff for whoever comes next (the next crew, the
 orchestrator and the user), in markdown on stdin (--handoff -) or from a
-file, with these four sections:
+file, with these five sections:
 
 ` + mission.HandoffTemplate + `
 
 Learned matters most: where things live, what you tried that didn't work,
-surprises. Keep it short. Each "Read first" entry is a file, a reference
+surprises. Keep it short. Environment is what anyone would need there
+whatever the work (a test that has to be run a certain way, a step a
+fresh capsule needs, a tool on this machine that got in the way), kept
+apart from Learned: ws reads it for what crew keep running into
+(ws lessons). Each "Read first" entry is a file, a reference
 (records:adr/0042.md, api#88) or a URL, and ws checks it can find each.
 
 ws keeps the handoff with the mission (mission:handoffs/<crew>.md) and
@@ -111,8 +115,11 @@ a link) with ws mission artifact add <file|url> --kind <kind> "label".
 				if err != nil {
 					return fmt.Errorf("reading the handoff: %w", err)
 				}
-				if h, err = mission.ParseHandoff(text); err != nil {
-					return fmt.Errorf("the handoff: %w\n\nIt takes these four sections:\n\n%s", err, indentLines(mission.HandoffTemplate, "  "))
+				if h, err = mission.ParseHandoff(text); err == nil {
+					err = h.Complete()
+				}
+				if err != nil {
+					return fmt.Errorf("the handoff: %w\n\nIt takes these five sections:\n\n%s", err, indentLines(mission.HandoffTemplate, "  "))
 				}
 				if err := ctx.CanonicalReadFirst(m, h, userDirOr()); err != nil {
 					return fmt.Errorf("the handoff: %w\n\nName each as a file, a reference (records:adr/0042.md, api#88) or a URL, or drop it", err)
