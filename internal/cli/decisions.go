@@ -78,14 +78,8 @@ or it can be withdrawn (--withdraw d1 "why").
 				return err
 			}
 			fmt.Fprintf(ui.Stderr, "  %s %s recorded on %s\n", ui.Green.Render("✓"), d.Decision.ID, m.Slug)
-			if len(d.Checks) > 0 {
-				// Held against what the step is held to, as it's made: one
-				// that goes against a check is put right now, or asked
-				// about, not found a round of checks later.
-				fmt.Fprintf(ui.Stderr, "\n  Your step's checks. If %s goes against one, put it right, or ask the user (ws mission ask):\n", d.Decision.ID)
-				for i, c := range d.Checks {
-					fmt.Fprintf(ui.Stderr, "    %d. %s\n", i+1, c)
-				}
+			if h := d.HeldTo; h.Any() {
+				printHeldTo(d.Decision.ID, h)
 			}
 			return nil
 		},
@@ -152,4 +146,31 @@ func (g *graph) decisionLinks(v *view, ref string) {
 			v.add(d.ID, "decided: "+clipLine(d.What, 100))
 		}
 	}
+}
+
+// printHeldTo is what crew's decision id is held against, and what to do
+// if it goes against any of it: said as it's recorded, while it's theirs
+// to put right, not found when the check is judged a round of work later.
+func printHeldTo(id string, h ops.HeldTo) {
+	w := ui.Stderr
+	fmt.Fprintf(w, "\n  What your work is held to:\n")
+	if len(h.Checks) > 0 {
+		fmt.Fprintf(w, "\n  Step %d's checks (yours):\n", h.Step)
+		for i, c := range h.Checks {
+			fmt.Fprintf(w, "    %d. %s\n", i+1, c)
+		}
+	}
+	for _, l := range h.Later {
+		fmt.Fprintf(w, "\n  Step %d's checks (later, which this decision mustn't rule out):\n", l.Step)
+		for i, c := range l.Checks {
+			fmt.Fprintf(w, "    %d. %s\n", i+1, c)
+		}
+	}
+	if len(h.Yours) > 0 {
+		fmt.Fprintf(w, "\n  The user's decisions (they stand over yours):\n")
+		for _, d := range h.Yours {
+			fmt.Fprintf(w, "    %s\n", d)
+		}
+	}
+	fmt.Fprintf(w, "\n  Please check that %s doesn't conflict with any of the above, thinking of where the code it leads to runs. If it does, withdraw it (ws mission decide --withdraw %s \"why\"), replace it (ws mission decide \"<what instead>\" --supersedes %s), or ask the user (ws mission ask) if it's what it's held to that's wrong.\n", id, id, id)
 }
