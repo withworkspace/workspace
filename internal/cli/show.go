@@ -635,7 +635,7 @@ func (g *graph) stageView(n int) (*view, error) {
 			v.body = append(v.body, "In each "+s.InEach+": the orchestrator names the repos when it starts, and it runs once in each, done when every one is.")
 		}
 		if s.CarryOn > 0 {
-			v.body = append(v.body, fmt.Sprintf("Carrying on from step %d: the crew who did it carry on, resumed where they can be.", s.CarryOn))
+			v.body = append(v.body, fmt.Sprintf("Carrying on from step %d: fresh crew, in the capsule it was done in, given its crew's handoff.", s.CarryOn))
 		}
 		if s.LimitText != "" {
 			v.body = append(v.body, "Its limit: "+s.LimitText+". ws holds the clock from when crew start on it.")

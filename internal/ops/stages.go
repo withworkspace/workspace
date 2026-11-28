@@ -388,9 +388,14 @@ func (w *Workspace) startFresh(m *mission.Mission, st mission.StageState, capsul
 	return fmt.Sprintf("started %s %d: %s in %s%s", noun, st.N, l.ID, l.Capsule, own)
 }
 
-// carryOnAt starts a Work step that carries on from an earlier one: the
-// crew who did that step carry on (carryOn). It reports false when that
-// step had no crew to carry on, and fresh crew start.
+// carryOnAt starts a Work step that carries on from an earlier one: fresh
+// crew, in the capsule that step's crew worked in, given their handoff
+// (LeftOff), rather than that crew resumed. A session carried from step to
+// step re-reads all of every step before on every call, and only grows;
+// what the next step needs of it is what the handoff says. (Rework within
+// a step, sent back by its checks or its verifier, still resumes its
+// crew.) It reports false when that step had no crew, and crew start as
+// any step's do.
 func (w *Workspace) carryOnAt(m *mission.Mission, st mission.StageState) (string, bool) {
 	brief, _ := w.Missions.ReadBrief(m.Slug)
 	states, _ := m.StageProgress(brief)
@@ -412,10 +417,11 @@ func (w *Workspace) carryOnAt(m *mission.Mission, st mission.StageState) (string
 	if id == "" {
 		return "", false
 	}
-	text := fmt.Sprintf("Step %d is done, and you carry on with step %d of the plan: %s\n\nCommit as you go, and report done with a handoff when it's finished (ws mission done).", from.N, st.N, st.Whole())
-	said, err := w.carryOn(m, st, id, text, AsWS)
+	c, _ := m.CrewByID(id)
+	why := fmt.Sprintf("Step %d is done, and you carry on from %s, who did it", from.N, c.ID)
+	said, err := w.carryOnFresh(m, st, c, why, "Commit as you go, and report done with a handoff when it's finished (ws mission done).", AsWS)
 	if err != nil {
-		return fmt.Sprintf("could not have %s carry on at step %d: %v", id, st.N, err), true
+		return fmt.Sprintf("could not start step %d to carry on from %s: %v", st.N, c.ID, err), true
 	}
 	return said, true
 }

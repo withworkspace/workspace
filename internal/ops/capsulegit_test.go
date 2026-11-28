@@ -389,3 +389,36 @@ func TestChangesStamp_MovesWithWhatACapsulesChangesAreReadFrom(t *testing.T) {
 	run("repo/.bare", "fetch", "-q", "origin")
 	moved("a fetch that moved the base", true)
 }
+
+// A page's view of a capsule waits on no git for its head, even where
+// git's files don't say it (HEAD pointing at something that isn't a
+// branch): unknown at first, and asked behind the read.
+func TestSoonGit_HeadWaitsOnNoGit(t *testing.T) {
+	dir, run := capsuleFixture(t)
+	want := run("repo/work", "rev-parse", "HEAD")
+	run("repo/work", "update-ref", "refs/notes/here", want)
+	run("repo/work", "symbolic-ref", "HEAD", "refs/notes/here")
+	if _, _, ok := headOf(dir); ok {
+		t.Fatal("the files say HEAD here: the test needs a capsule they don't")
+	}
+	g := &keptGit{}
+	told := make(chan struct{}, 8)
+	g.found = func() { told <- struct{}{} }
+	s := soonGit{g}
+	if head, _ := s.headBranch(dir); head != "" {
+		t.Fatalf("a cold read said %q: it asked git there and then", head)
+	}
+	select {
+	case <-told:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the look behind the read found nothing")
+	}
+	if head, _ := s.headBranch(dir); head != want {
+		t.Errorf("after the look: %q, want %q", head, want)
+	}
+	// Where the files do say, they're read at once.
+	other, run2 := capsuleFixture(t)
+	if head, branch := (soonGit{&keptGit{}}).headBranch(other); head != run2("repo/work", "rev-parse", "HEAD") || branch != "work" {
+		t.Errorf("from the files: %q on %q", head, branch)
+	}
+}

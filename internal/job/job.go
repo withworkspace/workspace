@@ -19,6 +19,7 @@ const (
 	Draft       = "draft"       // a resolved thread's agent, drafting what was decided
 	Check       = "check"       // a Work step's checks, run and judged once its crew reported done
 	PR          = "pr"          // a pull request the PR writer writes, then ws opens
+	Verify      = "verify"      // a Verify step's verifier started again once the crew it sent back report done
 )
 
 // Job is one piece of work.
@@ -46,13 +47,13 @@ func (j Job) Subject() string {
 }
 
 // Lane is what the job acts on: one job runs in a lane at a time. A
-// mission's orchestrator and its checks both move its plan on and launch
-// its crew, so they take turns on the mission; a conversation's answer,
+// mission's orchestrator, its checks and its verifier's start again all
+// move its plan on and launch its crew, so they take turns on the mission; a conversation's answer,
 // its thread's and its draft each hold the conversation's answering mark,
 // so they take turns on the conversation.
 func (j Job) Lane() string {
 	switch j.Kind {
-	case Orchestrate, Check:
+	case Orchestrate, Check, Verify:
 		return "mission " + j.Mission
 	case Answer, Thread, Draft:
 		return "conversation " + j.Mission + "/" + j.ID

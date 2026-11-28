@@ -395,6 +395,13 @@ func (w *Workspace) prepare(m *mission.Mission, h harness.Harness, d Dispatch, p
 	}
 	cb := crewBrief(b)
 	cb.Recipes = capsuleRecipes(place.Dir)
+	if st.Step != nil && st.Step.Type == mission.StepWork {
+		for _, c := range st.Step.Checks {
+			if c.Run() {
+				cb.RunChecks = append(cb.RunChecks, c.Command)
+			}
+		}
+	}
 	b.Prompt = prompt.Crew(cb)
 	if st.Step != nil && st.Step.Type == mission.StepVerify {
 		// Crew at a Verify step are its verifier: told their step and
@@ -447,9 +454,17 @@ func elsewhere(ws *workspace.Workspace) map[string]string {
 // a capsule new crew are starting in, so two agents never work in one: the
 // orchestrator can't be asked, so it isn't. Each is logged, whether it
 // was reached or not; they can be resumed.
+//
+// Never the session this runs in: crew whose own command starts new crew
+// (ws mission done, moving the plan on) would be ended under it, and the
+// launch with them. Theirs is left for ws to close once their turn ends,
+// as it closes done crew's sessions.
 func (w *Workspace) endHandedBack(m *mission.Mission, capsule string) (ended, missed []string) {
 	ids := crew.HandedBackIn(m)[capsule]
 	for _, id := range ids {
+		if os.Getenv(mission.EnvMission) == m.Slug && os.Getenv(mission.EnvCrew) == id {
+			continue
+		}
 		if err := w.opts.Host.Stop(m.Slug + "/" + id); err != nil {
 			missed = append(missed, id)
 		} else {

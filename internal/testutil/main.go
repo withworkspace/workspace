@@ -37,6 +37,7 @@ func Main(m *testing.M) {
 		}
 		os.Exit(0)
 	}
+	mission.ClearCrewEnv()
 	ui.Profile = colorprofile.NoTTY
 	cli.NoDaemon()
 	// Tests make commits: never ask the machine's signing agent for them.

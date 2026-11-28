@@ -824,7 +824,19 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 		}
 		logFailed(w.Missions.SetResumeWith(m.Slug, c.ID, ""))
 	}
-	// Fresh crew, with what the crew before them handed off.
+	why := fmt.Sprintf("%s couldn't be resumed, so you carry on from them", c.ID)
+	said, err := w.carryOnFresh(m, st, c, why, text, by)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s could not be resumed: %s", c.ID, said), nil
+}
+
+// carryOnFresh starts fresh crew at step st in the capsule crew c worked
+// in, to carry on from them (why says how), told to read their handoff
+// first, then text; queued for you where ws doesn't launch. It says what
+// it did.
+func (w *Workspace) carryOnFresh(m *mission.Mission, st mission.StageState, c mission.Crew, why, text string, by Actor) (string, error) {
 	capsule := c.Capsule
 	if capsule == "" || capsule == RootPlace {
 		if cap, ok := w.stepCapsule(m, st); ok {
@@ -832,19 +844,19 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 		}
 	}
 	whole := strings.Join(strings.Fields(st.Whole()), " ")
-	text = fmt.Sprintf("%s\n\n%s couldn't be resumed, so you carry on from them: read their handoff first (ws show -f llm %s).\n\n%s", whole, c.ID, mission.HandoffRef(c.ID), text)
+	text = strings.TrimSpace(fmt.Sprintf("%s\n\n%s: read their handoff first (ws show -f llm %s).\n\n%s", whole, why, mission.HandoffRef(c.ID), text))
 	pick, _ := w.stepPick(st, "")
 	if w.opts.Host == nil || !w.Config().OrchestratorAutoDispatch() {
 		if err := w.Missions.QueueDispatch(m.Slug, &mission.Dispatch{Text: text, Capsule: capsule, By: by.By(), Stage: st.N, Harness: pick.Harness, Model: pick.Model}); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s could not be resumed: new crew for step %d queued in %s, ready to launch", c.ID, st.N, capsule), nil
+		return fmt.Sprintf("new crew for step %d queued in %s, ready to launch", st.N, capsule), nil
 	}
 	l, err := w.Launch(m.Slug, Dispatch{Capsule: capsule, Text: text, Stage: st.N, Harness: pick.Harness, Model: pick.Model}, by)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s could not be resumed: started %s in %s to carry on at step %d, with handoff", c.ID, l.ID, l.Capsule, st.N), nil
+	return fmt.Sprintf("started %s in %s to carry on at step %d, with handoff", l.ID, l.Capsule, st.N), nil
 }
 
 // checkList is checks in a phrase: "the cause is named" and "…".

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keptBefore, setPref, usePrefs } from "./prefs";
+import { keptBefore, migratePrefs, setPref, usePrefs } from "./prefs";
 
 const storage = (kept: Record<string, string>) => ({ getItem: (k: string) => kept[k] ?? null });
 
@@ -59,5 +59,14 @@ describe("a pref", () => {
     setPref("passHide", (was) => ({ ...was, style: true }));
     expect(usePrefs.getState().passHide).toEqual({ style: true });
     setPref("passHide", {});
+  });
+});
+
+describe("prefs kept by an earlier ws", () => {
+  it("have desktop notifications on: they were off by default, and nothing said so", () => {
+    const kept = { ...usePrefs.getState(), notify: false };
+    expect(migratePrefs(kept, 1).notify).toBe(true);
+    expect(migratePrefs(kept, 2).notify).toBe(false); // turned off since: left off
+    expect(usePrefs.getState().notify).toBe(true); // and on for a browser that kept nothing
   });
 });

@@ -905,7 +905,16 @@ func (s Store) claim(repo, worktree, want, recipe string, task bool) (name, dir 
 		}
 		old, lerr := load(dir, procs)
 		if lerr != nil {
-			if _, serr := os.Stat(filepath.Join(dir, recordFile)); errors.Is(serr, os.ErrNotExist) {
+			claimReadFailed(dir)
+			_, serr := os.Stat(filepath.Join(dir, recordFile))
+			if serr == nil {
+				// Recorded between the read and this look: the ws claiming it
+				// has started it. Read it again, rather than take an unread
+				// record for someone else's and go on to another name (two
+				// runs of one recipe, the second as test-2).
+				old, lerr = load(dir, s.snapshot())
+			}
+			if errors.Is(serr, os.ErrNotExist) {
 				// A folder with no record long after it was made is a start
 				// that was killed before it recorded anything: the name's free.
 				if fi, ferr := os.Stat(dir); ferr == nil && time.Since(fi.ModTime()) > 2*claimWait {
@@ -985,6 +994,10 @@ func claimLock(parent string) (func(), error) {
 		f.Close()
 	}, nil
 }
+
+// claimReadFailed is told of a claimed name whose record couldn't be read,
+// before claim looks whether it's there: a test holds the moment open.
+var claimReadFailed = func(dir string) {}
 
 // claimWait is how long a recipe's start waits for another ws, claiming
 // the recipe's name at the same moment, to record what it started.

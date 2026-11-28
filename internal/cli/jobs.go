@@ -47,6 +47,19 @@ func spawnChecks(root, slug, crewID string) {
 // checkSpawner starts a step's checks; tests replace it.
 var checkSpawner = spawnChecks
 
+// spawnVerify has the server start a Verify step's verifier again, for
+// crew who reported done at it. Not from here: the command reporting done
+// runs in that crew's session, which ends as the verifier starts beside
+// them, and would take the launch with it.
+func spawnVerify(root, slug, crewID string) {
+	if err := startJob(root, job.Job{Kind: job.Verify, Mission: slug, ID: crewID}); err != nil {
+		execlog.Note(root, "verify "+slug, "couldn't start again for %s's done: %v", crewID, err)
+	}
+}
+
+// verifySpawner starts a Verify step's verifier again; tests replace it.
+var verifySpawner = spawnVerify
+
 // spawnPRWriter has the server write and open the pull request the PR
 // writer's marked writing for a mission's capsule. Where it can't be
 // asked, the mark comes off: nothing would ever open it.

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/crew"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
 )
@@ -247,18 +248,65 @@ func (w *Workspace) sendBackVerify(m *mission.Mission, st mission.StageState, ro
 // Verify step verifies report done at it: the work came back to them, and
 // they've put it right. It says what it did, or "" when that's not what
 // their done is.
+//
+// The verifier starts in the daemon, as a job (job.Verify), where there is
+// one: done is reported from the crew's own session, and starting new crew
+// in their capsule ends that session (endHandedBack), which would take
+// with it the command doing the starting, leaving the verifier recorded
+// and never launched.
 func (w *Workspace) verifyAgain(m *mission.Mission, crewID string) string {
+	cur, ok := w.verifiesAgain(m, crewID)
+	if !ok {
+		return ""
+	}
+	if w.start(job.Job{Kind: job.Verify, Mission: m.Slug, ID: crewID}) {
+		return fmt.Sprintf("step %d verifies it again: ws starts its verifier", cur.N)
+	}
+	return w.startVerifyingAgain(m, cur)
+}
+
+// VerifyAgain starts a Verify step's verifier again for crew who reported
+// done at it (verifyAgain), as the daemon's job: it looks again, as the
+// mission may have moved on since. It says what it did, or "" when
+// there's nothing to start.
+func (w *Workspace) VerifyAgain(slug, crewID string) string {
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return ""
+	}
+	cur, ok := w.verifiesAgain(m, crewID)
+	if !ok {
+		return ""
+	}
+	return w.startVerifyingAgain(m, cur)
+}
+
+// verifiesAgain is the Verify step crewID's done has verified again: the
+// current step's a Verify step, not held, with no verifier at work on it,
+// and they're crew who made the work it verifies (not its verifier), in
+// its capsule.
+func (w *Workspace) verifiesAgain(m *mission.Mission, crewID string) (mission.StageState, bool) {
 	cur, ok := currentStep(w.Missions, m)
 	if !ok || cur.Step.Type != mission.StepVerify || cur.Held() {
-		return ""
+		return cur, false
+	}
+	if cur.Record != nil && slices.ContainsFunc(cur.Record.Crew, func(id string) bool {
+		v, ok := m.CrewByID(id)
+		return ok && v.Ended == nil && v.Status != mission.CrewDone
+	}) {
+		return cur, false
 	}
 	c, ok := m.CrewByID(crewID)
 	if !ok || c.Role != "" || cur.Record != nil && slices.Contains(cur.Record.Crew, crewID) {
-		return ""
+		return cur, false
 	}
 	if capsule, ok := w.stepCapsule(m, cur); !ok || capsule != c.Capsule {
-		return ""
+		return cur, false
 	}
+	return cur, true
+}
+
+func (w *Workspace) startVerifyingAgain(m *mission.Mission, cur mission.StageState) string {
 	// What ws asked the user of the last round is moot: it's verified again.
 	w.closeStepTasks(m.Slug, cur.N)
 	return fmt.Sprintf("step %d verifies it again: %s", cur.N, w.startVerifier(m, cur))
