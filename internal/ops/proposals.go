@@ -13,6 +13,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/execlog"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -410,48 +411,15 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 			said = append(said, "Slug is "+slug+" now.")
 		}
 	}
-	var made, failed []string
-	for _, cap := range w.proposedCapsules(p) {
-		repo, branch, _ := strings.Cut(cap, "/")
-		if m.HasCapsule(repo, workspace.CapsuleName(branch)) {
-			continue
-		}
-		joined, err := w.liftOrJoin(slug, repo, branch)
-		if err != nil {
-			failed = append(failed, cap+" ("+err.Error()+")")
-			continue
-		}
-		if joined {
-			made = append(made, "joined "+cap)
-		} else {
-			made = append(made, "lifted "+cap)
+	if w.opts.Outbox != nil && w.takes(job.SetUp) {
+		// In the daemon, the rest is behind the answer (SetUpBehind): a
+		// lift is a fetch, a worktree and its setup hook, each.
+		if err := ms.StartSettingUp(slug, mission.SettingUp{Capsules: w.proposedCapsules(p), Docks: p.Docks, Start: true}); err == nil && w.start(job.Job{Kind: job.SetUp, Mission: slug}) {
+			said = append(said, "Setting up its capsules, then starting it.")
+			return strings.Join(said, " "), slug, nil
 		}
 	}
-	// A Work step in a repo the mission has no capsule in gets one.
-	if plan, err := mission.ParsePlan(p.Plan, nil); err == nil && p.Plan != "" {
-		for _, said := range w.liftForPlan(slug, plan, 0) {
-			if strings.HasPrefix(said, "lifted ") || strings.HasPrefix(said, "joined ") {
-				made = append(made, said)
-			} else {
-				failed = append(failed, said)
-			}
-		}
-	}
-	for _, d := range p.Docks {
-		repo, ref, ok := strings.Cut(d, "#")
-		if !ok {
-			repo, ref, ok = strings.Cut(d, "/")
-		}
-		if !ok || repo == "" || ref == "" {
-			failed = append(failed, d+" (say repo/branch or repo#PR)")
-			continue
-		}
-		if err := DockForMission(w, slug, repo, ref); err != nil {
-			failed = append(failed, d+" ("+err.Error()+")")
-			continue
-		}
-		made = append(made, "docked "+d)
-	}
+	made, failed := w.setUpBriefed(slug, w.proposedCapsules(p), p.Docks, p.Plan)
 	if len(made) > 0 {
 		said = append(said, strings.ToUpper(made[0][:1])+strings.Join(made, ", ")[1:]+".")
 	}
@@ -472,6 +440,99 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	}
 	said = append(said, upperFirst(sentence(started)))
 	return strings.Join(said, " "), slug, nil
+}
+
+// setUpBriefed lifts (or joins) a briefed mission's capsules, and docks
+// what it names, as its brief was accepted: and for a Work step of its
+// plan in a repo it has none in, lifts one. It says what it made, and
+// what it couldn't, with why.
+func (w *Workspace) setUpBriefed(slug string, capsules, docks []string, planText string) (made, failed []string) {
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return nil, []string{"the mission (" + err.Error() + ")"}
+	}
+	for _, cap := range capsules {
+		repo, branch, _ := strings.Cut(cap, "/")
+		if m.HasCapsule(repo, workspace.CapsuleName(branch)) {
+			continue
+		}
+		joined, err := w.liftOrJoin(slug, repo, branch)
+		if err != nil {
+			failed = append(failed, cap+" ("+err.Error()+")")
+			continue
+		}
+		if joined {
+			made = append(made, "joined "+cap)
+		} else {
+			made = append(made, "lifted "+cap)
+		}
+	}
+	// A Work step in a repo the mission has no capsule in gets one.
+	if plan, err := mission.ParsePlan(planText, nil); err == nil && planText != "" {
+		for _, said := range w.liftForPlan(slug, plan, 0) {
+			if strings.HasPrefix(said, "lifted ") || strings.HasPrefix(said, "joined ") {
+				made = append(made, said)
+			} else {
+				failed = append(failed, said)
+			}
+		}
+	}
+	for _, d := range docks {
+		repo, ref, ok := strings.Cut(d, "#")
+		if !ok {
+			repo, ref, ok = strings.Cut(d, "/")
+		}
+		if !ok || repo == "" || ref == "" {
+			failed = append(failed, d+" (say repo/branch or repo#PR)")
+			continue
+		}
+		if err := DockForMission(w, slug, repo, ref); err != nil {
+			failed = append(failed, d+" ("+err.Error()+")")
+			continue
+		}
+		made = append(made, "docked "+d)
+	}
+	return made, failed
+}
+
+// SetUpBehind is the daemon's job for a mission whose brief you accepted
+// (job.SetUp): its capsules set up, as Mission.SettingUp says, and it
+// started. What couldn't be set up is on its log, for you to lift or dock
+// yourself; one that couldn't be started is put to you. It says what it
+// did.
+func (w *Workspace) SetUpBehind(slug string) string {
+	m, err := w.Missions.Load(slug)
+	if err != nil || m.SettingUp == nil {
+		return ""
+	}
+	defer func() { logFailed(w.Missions.EndSettingUp(slug)) }()
+	planText, _ := w.Missions.ReadPlan(slug)
+	made, failed := w.setUpBriefed(slug, m.SettingUp.Capsules, m.SettingUp.Docks, planText)
+	var said []string
+	if len(made) > 0 {
+		said = append(said, upperFirst(strings.Join(made, ", "))+".")
+	}
+	if len(failed) > 0 {
+		said = append(said, "Not set up: "+strings.Join(failed, "; ")+". Lift or dock yourself (WS_MISSION="+slug+").")
+	}
+	if m, err := w.Missions.Load(slug); err == nil && m.Plan != nil {
+		if warnings := w.PlanWarnings(m, m.Plan); len(warnings) > 0 {
+			said = append(said, strings.Join(warnings, "; ")+".")
+		}
+	}
+	if len(said) > 0 {
+		w.Missions.AppendLogAfter(slug, mission.Event{Kind: mission.EventNote, Text: strings.Join(said, " ")})
+	}
+	if !m.SettingUp.Start {
+		return strings.Join(said, " ")
+	}
+	started, err := w.ConfirmBrief(slug, AsYou)
+	if err != nil {
+		text := fmt.Sprintf("Its brief is accepted, but it couldn't be started: %s. Start it from its page once that's fixed.", strings.TrimSuffix(oneLine(err.Error()), "."))
+		logFailed(w.Missions.Ask(slug, text, "ws"))
+		return "couldn't start it: " + err.Error()
+	}
+	return strings.Join(append(said, upperFirst(sentence(started))), " ")
 }
 
 // acceptDispatch starts the crew proposed, as you, in the workspace's
@@ -601,7 +662,15 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 		}
 		said = append(said, fmt.Sprintf("Created mission %s with brief: planning (%s). Confirm the plan to start.", m.Slug, planning))
 		var lifted, joined, failed []string
-		for _, cap := range w.proposedCapsules(p) {
+		caps := w.proposedCapsules(p)
+		if len(caps) > 0 && w.opts.Outbox != nil && w.takes(job.SetUp) {
+			// In the daemon, lifted behind the answer (SetUpBehind).
+			if err := ms.StartSettingUp(m.Slug, mission.SettingUp{Capsules: caps}); err == nil && w.start(job.Job{Kind: job.SetUp, Mission: m.Slug}) {
+				said = append(said, "Setting up "+strings.Join(caps, ", ")+".")
+				caps = nil
+			}
+		}
+		for _, cap := range caps {
 			repo, branch, _ := strings.Cut(cap, "/")
 			there, err := w.liftOrJoin(m.Slug, repo, branch)
 			switch {

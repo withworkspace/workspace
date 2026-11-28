@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
@@ -74,6 +75,17 @@ func (d *daemon) runJob(j job.Job) error {
 			execlog.Note(root, "decisions "+j.Mission, "%s", said)
 		}
 		return err
+	case job.SetUp:
+		if said := ctx.SetUpBehind(j.Mission); said != "" {
+			execlog.Note(root, "set-up "+j.Mission, "%s", said)
+		}
+		return nil
+	case job.Reach:
+		n, _ := strconv.Atoi(j.ID)
+		if said := ctx.ReachBehind(j.Mission, n); said != "" {
+			execlog.Note(root, "reach "+j.Mission, "%s", said)
+		}
+		return nil
 	case job.PR:
 		if said := ctx.OpenWrittenPR(j.Mission, j.ID); said != "" {
 			execlog.Note(root, "pr-writer "+j.Mission, "%s", said)
@@ -117,7 +129,14 @@ func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 				logf("%s: couldn't clear it: %v", m.Slug, err)
 			}
 		}
-		if m.Moving != nil {
+		if m.SettingUp != nil {
+			logf("%s's capsules were being set up when the server before this one went: setting them up", m.Slug)
+			q.Start(job.Job{Kind: job.SetUp, Mission: m.Slug})
+		}
+		if m.Moving != nil && m.Moving.Behind {
+			logf("ws was reaching what's after step %d of %s when the server before this one went: reaching it", m.Moving.Step, m.Slug)
+			q.Start(job.Job{Kind: job.Reach, Mission: m.Slug, ID: strconv.Itoa(m.Moving.Step)})
+		} else if m.Moving != nil {
 			logf("ws was moving %s on from step %d when the server before this one went: it's where it got to", m.Slug, m.Moving.Step)
 			if err := (mission.Store{Root: root}).EndMoving(m.Slug, *m.Moving); err != nil {
 				logf("%s: couldn't clear it: %v", m.Slug, err)

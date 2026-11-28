@@ -4310,9 +4310,11 @@ export interface PullsDetail {
     reviewed?: PullsReviewed;
     since?: string;
     /**
-     * Docked is the capsule it's checked out in here.
+     * Docked is the capsule it's checked out in here; Docking, it being
+     * checked out behind your asking, or why it couldn't be.
      */
     docked?: PullsDocked;
+    docking?: PullsDocking;
 }
 
 // From pulls/store.go
@@ -4326,6 +4328,17 @@ export interface PullsDocked {
     branch: string;
     by: string;
     at: string;
+}
+
+// From pulls/service.go
+/**
+ * Docking is a PR being checked out here behind your asking (a fetch, a
+ * worktree and the repo's setup hook, which can take minutes), or, with
+ * Error, why it couldn't be. Kept while this process runs.
+ */
+export interface PullsDocking {
+    at: string;
+    error?: string;
 }
 
 // From pulls/list.go

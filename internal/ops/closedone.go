@@ -3,6 +3,7 @@ package ops
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/execlog"
@@ -63,6 +64,54 @@ func closable(m *mission.Mission, c mission.Crew, now time.Time) bool {
 		return false
 	}
 	return m.Orchestrating == nil && m.Checking == nil && m.Launching == nil
+}
+
+// closings is the missions whose crew are being closed behind an answer.
+type closings struct {
+	mu sync.Mutex
+	of map[string]chan struct{}
+}
+
+// closeEndedBehind is closeEnded behind the answer, where there's a daemon
+// to do it in (an ACP crew's stop waits for it, seconds each): what needs
+// them closed first (a capsule burned) waits for it (closedFor). A command
+// closes them there and then.
+func (w *Workspace) closeEndedBehind(m *mission.Mission, why string) {
+	if w.opts.Outbox == nil {
+		w.closeEnded(m, why)
+		return
+	}
+	done := make(chan struct{})
+	w.closing.mu.Lock()
+	if w.closing.of == nil {
+		w.closing.of = map[string]chan struct{}{}
+	}
+	was := w.closing.of[m.Slug]
+	w.closing.of[m.Slug] = done
+	w.closing.mu.Unlock()
+	go func() {
+		defer close(done)
+		if was != nil {
+			<-was
+		}
+		w.closeEnded(m, why)
+		w.closing.mu.Lock()
+		if w.closing.of[m.Slug] == done {
+			delete(w.closing.of, m.Slug)
+		}
+		w.closing.mu.Unlock()
+	}()
+}
+
+// closedFor waits until a mission's crew being closed behind an answer
+// are.
+func (w *Workspace) closedFor(slug string) {
+	w.closing.mu.Lock()
+	done := w.closing.of[slug]
+	w.closing.mu.Unlock()
+	if done != nil {
+		<-done
+	}
 }
 
 // closeEnded closes every crew session still open on mission m, which has

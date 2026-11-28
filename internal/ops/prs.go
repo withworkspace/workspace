@@ -9,7 +9,10 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/events"
+	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/job"
+	"github.com/withworkspace/workspace/internal/notification"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
@@ -180,6 +183,13 @@ func (w *Workspace) dockForAnswer(c *conversation.Conversation) error {
 	if err != nil {
 		return err
 	}
+	return w.dockPRQuietly(repo, number)
+}
+
+// dockPRQuietly docks a pull request for an agent to read (dockQuietly),
+// a stack at its top layer, unless it's checked out already or no longer
+// open.
+func (w *Workspace) dockPRQuietly(repo string, number int) error {
 	svc, err := w.reviews()
 	if err != nil {
 		return err
@@ -214,7 +224,10 @@ var DockForReview = func(w *Workspace, repo, branch string) error {
 
 // openHere checks a PR out here as ws dock does, boarded, and then it's
 // yours. A capsule ws docked for a question becomes yours: boarded, and
-// the repo's after_create hook run in it, as docking it would have.
+// the repo's after_create hook run in it, as docking it would have. In
+// the daemon that's done behind the answer (a fetch, a worktree and the
+// hook can take minutes): its page shows it docking, and what stops it,
+// which you're told of too.
 func (w *Workspace) openHere(svc *pulls.Service, repo string, number int) (string, error) {
 	pr, _, err := svc.Open(repo, number)
 	if err != nil {
@@ -223,6 +236,32 @@ func (w *Workspace) openHere(svc *pulls.Service, repo string, number int) (strin
 	if pr.Fork {
 		return "", fmt.Errorf("could not open %s here: pull requests from forks are not supported", pr.Ref())
 	}
+	if w.opts.Outbox == nil {
+		return w.dockHere(svc, pr)
+	}
+	if !svc.StartDocking(repo, number) {
+		return "Already docking " + pr.Ref() + ".", nil
+	}
+	go func() {
+		said, err := w.dockHere(svc, pr)
+		svc.DockDone(repo, number, err)
+		if err != nil {
+			w.notify(notification.Notification{Source: notification.SourcePulls, Kind: DockFailed, Refs: []string{pr.Ref()}, By: events.ByWS, Attention: true,
+				Text: fmt.Sprintf("Couldn't dock %s: %s", pr.Ref(), err)})
+			return
+		}
+		execlog.Note(w.Root(), "dock "+pr.Ref(), "%s", said)
+	}()
+	return "Docking " + pr.Ref() + ".", nil
+}
+
+// DockFailed is the kind of notification a PR that couldn't be docked
+// behind your asking is.
+const DockFailed = "pr.dock-failed"
+
+// dockHere is openHere's checking out, there and then.
+func (w *Workspace) dockHere(svc *pulls.Service, pr *pulls.PR) (string, error) {
+	repo, number := pr.Repo, pr.Number
 	rec, err := pulls.Load(w.WS().Root, repo, number)
 	if err != nil {
 		return "", err

@@ -90,7 +90,11 @@ func (w *Workspace) acceptStage(slug string, by Actor, why string) (Accepted, er
 	// The step's done: what ws asked you about it is answered.
 	w.closeStepTasks(m.Slug, acc.N)
 	out := Accepted{Slug: m.Slug, Stage: acc, Of: len(states), Implicit: acc.Implicit}
-	if !acc.Implicit {
+	switch {
+	case acc.Implicit:
+	case w.reachLater(m.Slug, acc.N, by):
+		out.Next = movingOn
+	default:
 		out.Next = w.afterAccept(m.Slug, acc, states)
 	}
 	return out, nil

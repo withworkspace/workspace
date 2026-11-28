@@ -35,5 +35,8 @@ func (w *Workspace) ConfirmBrief(slug string, by Actor) (string, error) {
 	if !ok {
 		return "ready for crew", nil
 	}
+	if w.reachLater(m.Slug, 0, by) {
+		return "under way: " + movingOn, nil
+	}
 	return fmt.Sprintf("under way: %s", w.reachStep(m, mission.StageState{}, cur)), nil
 }

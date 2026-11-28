@@ -14,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/testutil"
@@ -243,6 +244,39 @@ func TestOpenHere(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(w.Root, "repos", "backend", "existing")); err != nil {
 		t.Error("tidied up a capsule that's yours")
 	}
+}
+
+// In the daemon, Open here answers at once and docks behind: the PR's
+// page says it's docking, then where it's docked.
+func TestOpenHereBehind(t *testing.T) {
+	w, gh := reviewsFixture(t)
+	useFakeConverser(t, w)
+	ctx, err := cli.LoadOps(w.Root, func(o *ops.Options) { o.GitHub = gh; o.Outbox = &outbox.Queue{Root: w.Root} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	said, err := testutil.OpenHere(ctx, "backend", 7)
+	if err != nil || said != "Docking backend#7." {
+		t.Fatalf("open here: %q, %v", said, err)
+	}
+	svc := testutil.ReviewsService(ctx)
+	for range 500 {
+		d, err := svc.Detail("backend", 7)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d.Docking == nil && d.Docked != nil {
+			if d.Docked.By != pulls.ByYou {
+				t.Errorf("docked: %+v", d.Docked)
+			}
+			return
+		}
+		if d.Docking != nil && d.Docking.Error != "" {
+			t.Fatalf("couldn't dock: %s", d.Docking.Error)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("never docked")
 }
 
 // A conversation's agent proposes a review comment with ws pr comment

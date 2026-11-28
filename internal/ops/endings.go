@@ -283,7 +283,7 @@ func (w *Workspace) End(slug string, as *EndAs, by Actor) (Concluded, error) {
 	if err := w.Missions.End(m.Slug, c); err != nil {
 		return Concluded{}, wrap(err)
 	}
-	w.closeEnded(m, "mission ended")
+	w.closeEndedBehind(m, "mission ended")
 	w.youActed(m.Slug, by)
 	return Concluded{Slug: m.Slug, Conclusion: c, Ended: true}, nil
 }
@@ -376,9 +376,18 @@ func (w *Workspace) conclusion(m *mission.Mission, as EndAs, by Actor) (mission.
 }
 
 // notLanded says what of the mission's work hasn't merged or landed, as
-// far as GitHub says; "" when it all has.
+// far as GitHub says; "" when it all has. What's kept says first (a merged
+// pull request stays merged): GitHub and git are asked only where it says
+// something hasn't, as a pull request kept as open may have merged since.
 func (w *Workspace) notLanded(m *mission.Mission) string {
-	v := BuildMissionViews(w.WS(), w.GitHub(), []*mission.Mission{m})[0]
+	if notLandedIn(w.missionPRView(m), m) == "" {
+		return ""
+	}
+	return notLandedIn(BuildMissionViews(w.WS(), w.GitHub(), []*mission.Mission{m})[0], m)
+}
+
+// notLandedIn is notLanded, of a view of the mission.
+func notLandedIn(v MissionView, m *mission.Mission) string {
 	facts := map[mission.Capsule]mission.CapsuleFacts{}
 	var open []string
 	for _, c := range v.Capsules {

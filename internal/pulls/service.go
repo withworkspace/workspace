@@ -90,6 +90,60 @@ type Service struct {
 	// saying: what's been said on a page is being read behind its first
 	// showing, and is in when this closes.
 	saying map[string]chan struct{}
+	// docking: PRs being docked here behind your asking, or that
+	// couldn't be (Docking), by Key.
+	docking map[string]*Docking
+}
+
+// Docking is a PR being checked out here behind your asking (a fetch, a
+// worktree and the repo's setup hook, which can take minutes), or, with
+// Error, why it couldn't be. Kept while this process runs.
+type Docking struct {
+	At    time.Time `json:"at"`
+	Error string    `json:"error,omitempty"`
+}
+
+// StartDocking marks a PR being docked, unless it is already: it says
+// whether it marked it.
+func (s *Service) StartDocking(repo string, number int) bool {
+	s.mu.Lock()
+	key := Key(repo, number)
+	if d := s.docking[key]; d != nil && d.Error == "" {
+		s.mu.Unlock()
+		return false
+	}
+	if s.docking == nil {
+		s.docking = map[string]*Docking{}
+	}
+	s.docking[key] = &Docking{At: time.Now()}
+	s.mu.Unlock()
+	s.bump(repo, number)
+	return true
+}
+
+// DockDone ends a PR's docking: forgotten once it's docked, kept with why
+// when it couldn't be, until it's asked for again.
+func (s *Service) DockDone(repo string, number int, err error) {
+	s.mu.Lock()
+	key := Key(repo, number)
+	if err == nil {
+		delete(s.docking, key)
+	} else if d := s.docking[key]; d != nil {
+		d.Error = err.Error()
+	}
+	s.mu.Unlock()
+	s.Stale() // it's docked now: the list says where
+	s.bump(repo, number)
+}
+
+func (s *Service) dockingOf(repo string, number int) *Docking {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if d := s.docking[Key(repo, number)]; d != nil {
+		x := *d
+		return &x
+	}
+	return nil
 }
 
 type loadCall struct {
@@ -510,8 +564,10 @@ type Detail struct {
 	// (nothing has changed, or you haven't reviewed it).
 	Reviewed *Reviewed `json:"reviewed,omitempty"`
 	Since    string    `json:"since,omitempty"`
-	// Docked is the capsule it's checked out in here.
-	Docked *Docked `json:"docked,omitempty"`
+	// Docked is the capsule it's checked out in here; Docking, it being
+	// checked out behind your asking, or why it couldn't be.
+	Docked  *Docked  `json:"docked,omitempty"`
+	Docking *Docking `json:"docking,omitempty"`
 }
 
 // Since modes.
@@ -583,6 +639,7 @@ func withReview(d *Detail, rv *Reviewed, since string) {
 
 // withDocked says where a PR is docked in its detail.
 func (s *Service) withDocked(d *Detail, pr *PR, st *Stack, rec *Record) {
+	d.Docking = s.dockingOf(pr.Repo, pr.Number)
 	d.Docked = s.docked(pr, rec)
 	if d.Docked == nil && st != nil {
 		// A stack is docked at its top layer: one capsule holds every

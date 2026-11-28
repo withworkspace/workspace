@@ -3,10 +3,12 @@ package ops
 import (
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/outbox"
 )
 
 // stopHost holds every crew it's asked about, and remembers whom it was
@@ -106,6 +108,59 @@ func TestArchiveClosesCrew(t *testing.T) {
 	if _, err := w.Archive("cache", false, AsYou); err != nil {
 		t.Fatal(err)
 	}
+	if !slices.Equal(h.stopped, []string{"cache/c1"}) {
+		t.Errorf("stopped %v, want cache/c1", h.stopped)
+	}
+}
+
+// slowHost takes its time stopping crew, as an ACP crew's stop does.
+type slowHost struct {
+	fakeHost
+	gate    chan struct{}
+	mu      sync.Mutex
+	stopped []string
+}
+
+func (h *slowHost) Stop(key string) error {
+	<-h.gate
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.stopped = append(h.stopped, key)
+	return nil
+}
+
+// In the daemon, ending a mission answers before its crew are closed,
+// which goes on behind; what needs them closed waits for it.
+func TestEndClosesCrewBehind(t *testing.T) {
+	w, _ := fixture(t, "## Goal\nx\n")
+	h := &slowHost{gate: make(chan struct{})}
+	w.opts.Host = h
+	w.opts.Outbox = &outbox.Queue{Root: w.Root()}
+	crewAt(t, w, time.Now(), mission.Crew{ID: "c1", Status: mission.CrewDone, Activity: mission.ActivityWaiting})
+	ended := make(chan error, 1)
+	go func() {
+		_, err := w.End("cache", &EndAs{Ending: "dropped", Text: "x"}, AsYou)
+		ended <- err
+	}()
+	select {
+	case err := <-ended:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("ending waited on its crew closing")
+	}
+	waited := make(chan struct{})
+	go func() { w.closedFor("cache"); close(waited) }()
+	select {
+	case <-waited:
+		t.Fatal("closedFor didn't wait for the close")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(h.gate)
+	<-waited
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	if !slices.Equal(h.stopped, []string{"cache/c1"}) {
 		t.Errorf("stopped %v, want cache/c1", h.stopped)
 	}
