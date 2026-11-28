@@ -141,6 +141,10 @@ func parseReadFirst(text string) ([]ReadItem, error) {
 			}
 			return nil, fmt.Errorf(`"Read first" lists what to read as "- <file, reference or URL> — <what for>", or says "Nothing." (not: %q)`, strings.TrimSpace(line))
 		}
+		if named := namedInLine(g[1]); len(named) > 1 {
+			items = append(items, named...)
+			continue
+		}
 		item := ReadItem{Ref: g[1]}
 		for _, sep := range []string{" — ", " – ", " - "} {
 			if ref, note, ok := strings.Cut(item.Ref, sep); ok {
@@ -157,6 +161,29 @@ func parseReadFirst(text string) ([]ReadItem, error) {
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+// namedInLine is each name in backticks on a "Read first" line that names
+// more than one ("`ref.go` Find, and `refs.ts` findRefs"), with the words
+// after each as what it's for. One in backticks, or none, is the line's
+// one item, read as it always was.
+func namedInLine(line string) []ReadItem {
+	parts := strings.Split(line, "`")
+	if len(parts) < 5 || strings.TrimSpace(parts[0]) != "" { // two names at least, and one first
+		return nil
+	}
+	var out []ReadItem
+	for i := 1; i+1 < len(parts); i += 2 {
+		ref := strings.TrimSpace(parts[i])
+		if ref == "" {
+			continue
+		}
+		note := strings.TrimSpace(parts[i+1])
+		note = strings.TrimSpace(strings.TrimLeft(note, "—–-:,;. "))
+		note = strings.TrimRight(strings.TrimSuffix(note, " and"), ",;. ")
+		out = append(out, ReadItem{Ref: ref, Note: note})
+	}
+	return out
 }
 
 // HandoffRef is where crew's handoff is kept, as an artifact reference.
