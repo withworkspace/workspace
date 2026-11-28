@@ -226,10 +226,14 @@ func (w *Workspace) RunReviewPass(of ReviewOf, name string) (page.PassDef, *conv
 			if pr.Fork {
 				return def, nil, fmt.Errorf("%s is from a fork and cannot be docked: only a cold pass can run on it", pr.Ref())
 			}
-			if _, err := w.dockQuietly(DockedTop(pr, st)); err != nil {
-				return def, nil, err
+			// In the daemon, docked by its answer (reviewPassReady): a
+			// fetch and a worktree, which the page needn't wait on.
+			if w.opts.Outbox == nil {
+				if _, err := w.dockQuietly(DockedTop(pr, st)); err != nil {
+					return def, nil, err
+				}
+				svc.Stale() // it's docked now: the list says where
 			}
-			svc.Stale() // it's docked now: the list says where
 		}
 	} else if _, err := w.changeOf(of); err != nil {
 		return def, nil, err
@@ -455,6 +459,13 @@ func reviewPassReady(a *answering) (bool, error) {
 	def, ok := a.w.reviewPassNamed(of, a.c.Goal)
 	if !ok {
 		return gone("No pass named " + a.c.Goal + " here any more.")
+	}
+	if of.PR != 0 && needsDocking(def) {
+		// Checked out for its agent to read, if it isn't yet: asking for
+		// the pass didn't wait on it.
+		if err := a.w.dockPRQuietly(of.Repo, of.PR); err != nil {
+			return gone(fmt.Sprintf("Could not check out %s#%d here: %v", of.Repo, of.PR, err))
+		}
 	}
 	ch, err := a.w.changeOf(of)
 	if err != nil {

@@ -183,6 +183,13 @@ func (w *Workspace) dockForAnswer(c *conversation.Conversation) error {
 	if err != nil {
 		return err
 	}
+	return w.dockPRQuietly(repo, number)
+}
+
+// dockPRQuietly docks a pull request for an agent to read (dockQuietly),
+// a stack at its top layer, unless it's checked out already or no longer
+// open.
+func (w *Workspace) dockPRQuietly(repo string, number int) error {
 	svc, err := w.reviews()
 	if err != nil {
 		return err
