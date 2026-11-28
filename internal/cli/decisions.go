@@ -78,6 +78,15 @@ or it can be withdrawn (--withdraw d1 "why").
 				return err
 			}
 			fmt.Fprintf(ui.Stderr, "  %s %s recorded on %s\n", ui.Green.Render("✓"), d.Decision.ID, m.Slug)
+			if len(d.Checks) > 0 {
+				// Held against what the step is held to, as it's made: one
+				// that goes against a check is put right now, or asked
+				// about, not found a round of checks later.
+				fmt.Fprintf(ui.Stderr, "\n  Your step's checks. If %s goes against one, put it right, or ask the user (ws mission ask):\n", d.Decision.ID)
+				for i, c := range d.Checks {
+					fmt.Fprintf(ui.Stderr, "    %d. %s\n", i+1, c)
+				}
+			}
 			return nil
 		},
 	}

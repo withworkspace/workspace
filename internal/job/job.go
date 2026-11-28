@@ -19,6 +19,7 @@ const (
 	Draft       = "draft"       // a resolved thread's agent, drafting what was decided
 	Check       = "check"       // a Work step's checks, run and judged once its crew reported done
 	PR          = "pr"          // a pull request the PR writer writes, then ws opens
+	Decisions   = "decisions"   // the decision look, on crew's decisions on a mission
 	Verify      = "verify"      // a Verify step's verifier started again once the crew it sent back report done
 )
 

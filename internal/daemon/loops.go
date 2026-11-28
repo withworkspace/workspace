@@ -14,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/execlog"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
@@ -36,6 +37,7 @@ func (d *daemon) loops(w *web.Server, stop <-chan struct{}) {
 	}
 	go d.watchPRsLoop(stop)
 	go d.watchHeldLoop(stop)                                                // turns held on crew's own work
+	go d.lookAtDecisionsLoop(stop)                                          // crew's decisions, once they're quiet
 	go d.closeDoneLoop(logf, stop)                                          // crew that reported done, their turn over
 	go sweepAsksLoop(d.cfg.Root, logf, stop)                                // asks nobody kept
 	go d.watchLimitsLoop(logf, stop)                                        // steps out of time
@@ -707,6 +709,28 @@ func (d *daemon) automationsLoop(logf func(string, ...any), stop <-chan struct{}
 			return
 		case <-t.C:
 		case <-told:
+		}
+	}
+}
+
+// lookAtDecisionsEvery is how often the daemon looks for crew's decisions
+// due a look (ops.DecisionsDue): it waits DecisionQuiet after the last.
+const lookAtDecisionsEvery = 15 * time.Second
+
+// lookAtDecisionsLoop starts the decision look on each mission whose crew
+// have decisions due one, until stop closes. One waiting for a mission
+// already is the one look (job.Queue keeps one a subject).
+func (d *daemon) lookAtDecisionsLoop(stop <-chan struct{}) {
+	t := time.NewTicker(lookAtDecisionsEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+		}
+		for _, slug := range d.w.DecisionsDue(time.Now()) {
+			d.jobs.Start(job.Job{Kind: job.Decisions, Mission: slug})
 		}
 	}
 }
