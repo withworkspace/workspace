@@ -369,12 +369,15 @@ type Moving struct {
 }
 
 // SettingUp is what's to be set up for a mission whose brief you
-// accepted: capsules (repo/branch) lifted, or joined where they're there,
-// and branches or pull requests (repo/branch, repo#N) docked. Its plan's
-// Work steps get theirs too.
+// accepted, or that a conversation raised: capsules (repo/branch) lifted,
+// or joined where they're there, and branches or pull requests
+// (repo/branch, repo#N) docked. Its plan's Work steps get theirs too.
+// Start: it's started once they are (its brief's accepted; one raised is
+// planned first).
 type SettingUp struct {
 	Capsules []string  `toml:"capsules,omitempty" json:"capsules,omitempty"`
 	Docks    []string  `toml:"docks,omitempty" json:"docks,omitempty"`
+	Start    bool      `toml:"start,omitempty" json:"start,omitempty"`
 	Since    time.Time `toml:"since" json:"since"`
 }
 

@@ -1,6 +1,8 @@
 package ops
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -251,5 +253,40 @@ func TestBriefAccepted_SetUpBehind(t *testing.T) {
 	}
 	if said := w.SetUpBehind(slug); said != "" {
 		t.Errorf("again: %q", said)
+	}
+}
+
+// A mission a conversation raises, with its capsules named, is made at
+// once and they're set up behind, in the daemon; it isn't started.
+func TestRaisedMission_SetUpBehind(t *testing.T) {
+	w, _, _ := reposFixture(t, "")
+	os.MkdirAll(filepath.Join(w.WS().RepoDir("frontend"), "spare"), 0o755)
+	w.opts.Outbox = &outbox.Queue{Root: w.Root()}
+	var jobs []string
+	w.opts.Jobs = JobsOf(func(j job.Job) { jobs = append(jobs, j.Kind+" "+j.Mission) }, job.SetUp)
+	talks := conversation.ForWorkspace(w.Root())
+	c, err := talks.OpenTalk(conversation.You, "The refresh is flaky", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := talks.Propose(c.ID, conversation.Proposal{Kind: conversation.ProposeMission, By: conversation.Agent, Title: "Fix the refresh", Brief: "## Goal\nFix it.\n", Capsules: []string{"frontend/spare"}}); err != nil {
+		t.Fatal(err)
+	}
+	said, _, err := w.SettleProposal("", c.ID, 1, true, ProposalEdits{})
+	if err != nil || !strings.Contains(said, "Setting up frontend/spare.") {
+		t.Fatalf("accepted: %q, %v", said, err)
+	}
+	if !slices.Equal(jobs, []string{"set-up fix-the-refresh"}) {
+		t.Errorf("jobs: %v", jobs)
+	}
+	m, _ := w.Missions.Load("fix-the-refresh")
+	if m.SettingUp == nil || m.SettingUp.Start || len(m.Capsules) != 0 {
+		t.Fatalf("before the job: %+v, capsules %+v", m.SettingUp, m.Capsules)
+	}
+	if said := w.SetUpBehind("fix-the-refresh"); strings.Contains(said, "Not set up") {
+		t.Errorf("the job said %q", said)
+	}
+	if m, _ = w.Missions.Load("fix-the-refresh"); m.SettingUp != nil || !m.HasCapsule("frontend", "spare") || !m.ToBrief() {
+		t.Errorf("after the job: %+v, capsules %+v, to brief %v", m.SettingUp, m.Capsules, m.ToBrief())
 	}
 }

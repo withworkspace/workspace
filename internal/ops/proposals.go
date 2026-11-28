@@ -414,7 +414,7 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	if w.opts.Outbox != nil && w.takes(job.SetUp) {
 		// In the daemon, the rest is behind the answer (SetUpBehind): a
 		// lift is a fetch, a worktree and its setup hook, each.
-		if err := ms.StartSettingUp(slug, mission.SettingUp{Capsules: w.proposedCapsules(p), Docks: p.Docks}); err == nil && w.start(job.Job{Kind: job.SetUp, Mission: slug}) {
+		if err := ms.StartSettingUp(slug, mission.SettingUp{Capsules: w.proposedCapsules(p), Docks: p.Docks, Start: true}); err == nil && w.start(job.Job{Kind: job.SetUp, Mission: slug}) {
 			said = append(said, "Setting up its capsules, then starting it.")
 			return strings.Join(said, " "), slug, nil
 		}
@@ -522,6 +522,9 @@ func (w *Workspace) SetUpBehind(slug string) string {
 	}
 	if len(said) > 0 {
 		w.Missions.AppendLogAfter(slug, mission.Event{Kind: mission.EventNote, Text: strings.Join(said, " ")})
+	}
+	if !m.SettingUp.Start {
+		return strings.Join(said, " ")
 	}
 	started, err := w.ConfirmBrief(slug, AsYou)
 	if err != nil {
@@ -659,7 +662,15 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 		}
 		said = append(said, fmt.Sprintf("Created mission %s with brief: planning (%s). Confirm the plan to start.", m.Slug, planning))
 		var lifted, joined, failed []string
-		for _, cap := range w.proposedCapsules(p) {
+		caps := w.proposedCapsules(p)
+		if len(caps) > 0 && w.opts.Outbox != nil && w.takes(job.SetUp) {
+			// In the daemon, lifted behind the answer (SetUpBehind).
+			if err := ms.StartSettingUp(m.Slug, mission.SettingUp{Capsules: caps}); err == nil && w.start(job.Job{Kind: job.SetUp, Mission: m.Slug}) {
+				said = append(said, "Setting up "+strings.Join(caps, ", ")+".")
+				caps = nil
+			}
+		}
+		for _, cap := range caps {
 			repo, branch, _ := strings.Cut(cap, "/")
 			there, err := w.liftOrJoin(m.Slug, repo, branch)
 			switch {
