@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -246,6 +247,16 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "crew asks", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c2", Status: CrewAsking, Note: "Per-org or global?", StatusAt: ago(time.Minute)}}
 		}, court: CourtYou, kind: KindCrewAsks, group: GroupNeedsYou, verb: VerbReply, text: "c2 asks: Per-org or global?", target: "c2"},
+		{name: "crew asked, then a restart ended them: still asking, a reply resumes them", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Conversation: "x", Capsule: "api/fix", Status: CrewAsking, Note: "Re-run it or fix the race?",
+				StatusAt: ago(5 * time.Hour), Ended: ago(time.Minute), Stopped: true, Interrupted: true}}
+		}, court: CourtYou, kind: KindCrewAsks, group: GroupNeedsYou, verb: VerbReply, text: "Re-run it or fix the race?", target: "c1"},
+		{name: "crew asked and ended, later crew took the capsule: theirs now", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{
+				{ID: "c1", Conversation: "x", Capsule: "api/fix", Status: CrewAsking, Note: "Which?", Started: *ago(3 * time.Hour), StatusAt: ago(2 * time.Hour), Ended: ago(2 * time.Hour)},
+				{ID: "c2", Capsule: "api/fix", Started: *ago(time.Hour), Activity: ActivityWorking, ActivityAt: ago(time.Minute)},
+			}
+		}, court: CourtAgent, kind: KindWorking, group: GroupInProgress},
 		{name: "crew asks, another works: you first", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Activity: ActivityWorking}, {ID: "c2", Status: CrewAsking, Note: "Which?"}}
 		}, court: CourtYou, kind: KindCrewAsks, group: GroupNeedsYou, target: "c2"},
@@ -497,6 +508,36 @@ func TestResolve_HeadlinesComeMostPressingFirst(t *testing.T) {
 	if strings.Join(kindStrings(kinds), ",") != strings.Join(kindStrings(want), ",") {
 		t.Errorf("order %v, want %v", kinds, want)
 	}
+}
+
+// Crew that asked how to go on with a red pull request, and whose session
+// a restart ended, are asked first: the red checks are what they asked
+// about, and a link to them alone says nothing of it.
+func TestResolve_AnEndedQuestionComesBeforeItsRedPR(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	ago := func(d time.Duration) *time.Time { t := now.Add(-d); return &t }
+	s := Snapshot{State: Review, Now: now, M: &Mission{Slug: "s", Crew: []Crew{
+		{ID: "c1", Conversation: "x", Capsule: "api/fix", Status: CrewAsking, Note: "The flake isn't ours: re-run, or fix it here?",
+			Started: *ago(6 * time.Hour), StatusAt: ago(5 * time.Hour), Ended: ago(time.Minute), Stopped: true},
+		// Gone before c1 was last at work there: not taken over.
+		{ID: "c2", Capsule: "api/fix", Started: *ago(5*time.Hour + 20*time.Minute), Ended: ago(5*time.Hour + 10*time.Minute)},
+	}}}
+	s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Checks: "failure"}}
+	hs := Resolve(s)
+	if hs[0].Kind != KindCrewAsks || hs[0].By != "c1" || hs[0].Action.Verb != VerbReply {
+		t.Fatalf("first headline %s by %s (%s), want c1's question to reply to", hs[0].Kind, hs[0].By, hs[0].Action.Verb)
+	}
+	if !slices.ContainsFunc(hs, func(h Headline) bool { return h.Kind == KindChecksFailing }) {
+		t.Errorf("the red checks went: %v", kindStrings(kindsOf(hs)))
+	}
+}
+
+func kindsOf(hs []Headline) []Kind {
+	var out []Kind
+	for _, h := range hs {
+		out = append(out, h.Kind)
+	}
+	return out
 }
 
 func kindStrings(ks []Kind) []string {

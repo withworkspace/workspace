@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
@@ -166,5 +167,52 @@ func TestResume_ByHandMidTurnCarriesOn(t *testing.T) {
 	}
 	if len(host.specs) != 4 {
 		t.Errorf("launched %d, want 4", len(host.specs))
+	}
+}
+
+// Crew who were resumed in their capsule after later crew had come and
+// gone there, and who then asked you something, are resumed after a
+// restart, still asking: the later crew were in the capsule before them,
+// not since.
+func TestResumeInterrupted_AfterLaterCrewLeftStillAsking(t *testing.T) {
+	w, _ := fixture(t, "## Goal\nCache it.\n", "one")
+	host := &fakeHost{}
+	w.opts.Host = host
+	harness.Register(resumableHarness{})
+
+	asking := interruptedCrew(t, w, "one", mission.ActivityWaiting)
+	later, err := w.Missions.StartCrewOn("cache", "fake-resumable", "", "session-later", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Missions.SetCrewProcess("cache", later.ID, 2, "frontend/one")
+	w.Missions.EndCrew("cache", later.ID, "exit 0")
+	// Then the first was resumed there, and asked: told apart by time,
+	// not by which was recorded first.
+	gone := time.Now().Add(-time.Hour)
+	asked := time.Now().Add(-time.Minute)
+	w.Missions.Update("cache", func(m *mission.Mission) error {
+		for i := range m.Crew {
+			switch m.Crew[i].ID {
+			case later.ID:
+				m.Crew[i].Started, m.Crew[i].Ended = gone.Add(-time.Minute), &gone
+			case asking:
+				m.Crew[i].Started = gone.Add(-time.Hour)
+				m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = mission.CrewAsking, "re-run it, or fix the flake here?", &asked
+				m.Crew[i].ActivityAt = &asked
+			}
+		}
+		return nil
+	})
+
+	got := w.ResumeInterrupted()
+	if len(got) != 1 || got[0].ID != asking || !got[0].Resumed {
+		t.Fatalf("got %v, want %s resumed", got, asking)
+	}
+	m, _ := w.Missions.Load("cache")
+	for _, c := range m.Crew {
+		if c.ID == asking && (c.Status != mission.CrewAsking || c.Note != "re-run it, or fix the flake here?") {
+			t.Errorf("resumed %s says %q %q, want its question kept", c.ID, c.Status, c.Note)
+		}
 	}
 }
