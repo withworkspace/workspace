@@ -1,46 +1,55 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router";
-import { AppPage } from "../apps/AppPage";
-import { ArtifactPage as ArtifactView } from "../artifacts/ArtifactPage";
-import { ArtifactsPage } from "../artifacts/ArtifactsPage";
-import { ComparePage } from "../artifacts/ComparePage";
-import { FoundArtifactPage } from "../artifacts/FoundArtifactPage";
-import { NotFound } from "../chrome/NotFound";
-import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "../documents/DocumentAt";
-import { DocumentsPage } from "../documents/Documents";
-import { SpacePage } from "../documents/SpacePage";
-import { Explorer } from "../files/Explorer";
-import { FilesPage } from "../files/Files";
-import { ArtifactPage } from "../mission/Artifact/ArtifactPage";
-import { CrewPage } from "../mission/Crew/CrewPage";
-import { Missions } from "../mission/List/Missions";
-import { MissionPage } from "../mission/Mission";
-import { NotificationsPage } from "../notifications/NotificationsPage";
-import { OrchestratorPage } from "../orchestrator/OrchestratorPage";
-import { OrchestratorRunPage } from "../orchestrator/OrchestratorRunPage";
-import { PluginPage } from "../plugins/PluginPage";
-import { Review } from "../review/Review";
-import { PRReviewPage } from "../reviews/PRReview";
-import { ReviewsPage } from "../reviews/Reviews";
-import { LessonsPage } from "../lessons/LessonsPage";
-import { RunsPage } from "../runs/Runs";
-import { AutomationOutputPage } from "../automations/AutomationOutputPage";
-import { AutomationPage } from "../automations/AutomationPage";
-import { AutomationsPage } from "../automations/AutomationsPage";
-import { SettingsPage } from "../settings/Settings";
-import { SiloPoint } from "../silo/SiloPoint";
-import { TalkPage } from "../talk/TalkPage";
-import { TalksPage } from "../talk/TalksPage";
-import { TeamPage } from "../team/Team";
 import { useWorkspace } from "../workspace/store";
 import type { useNotifications } from "./notify";
 import { ToBrief } from "./ToBrief";
+import { lazyPage, loadPages } from "./lazyPage";
+
+// Each page is a chunk of its own (lazyPage).
+const AppPage = lazyPage(() => import("../apps/AppPage").then((m) => m.AppPage));
+const ArtifactView = lazyPage(() => import("../artifacts/ArtifactPage").then((m) => m.ArtifactPage));
+const ArtifactsPage = lazyPage(() => import("../artifacts/ArtifactsPage").then((m) => m.ArtifactsPage));
+const ComparePage = lazyPage(() => import("../artifacts/ComparePage").then((m) => m.ComparePage));
+const FoundArtifactPage = lazyPage(() => import("../artifacts/FoundArtifactPage").then((m) => m.FoundArtifactPage));
+const NotFound = lazyPage(() => import("../chrome/NotFound").then((m) => m.NotFound));
+const DocsAddress = lazyPage(() => import("../documents/DocumentAt").then((m) => m.DocsAddress));
+const DocumentAt = lazyPage(() => import("../documents/DocumentAt").then((m) => m.DocumentAt));
+const LocalPageAt = lazyPage(() => import("../documents/DocumentAt").then((m) => m.LocalPageAt));
+const OpenAddress = lazyPage(() => import("../documents/DocumentAt").then((m) => m.OpenAddress));
+const PageAddress = lazyPage(() => import("../documents/DocumentAt").then((m) => m.PageAddress));
+const DocumentsPage = lazyPage(() => import("../documents/Documents").then((m) => m.DocumentsPage));
+const SpacePage = lazyPage(() => import("../documents/SpacePage").then((m) => m.SpacePage));
+const Explorer = lazyPage(() => import("../files/Explorer").then((m) => m.Explorer));
+const FilesPage = lazyPage(() => import("../files/Files").then((m) => m.FilesPage));
+const ArtifactPage = lazyPage(() => import("../mission/Artifact/ArtifactPage").then((m) => m.ArtifactPage));
+const CrewPage = lazyPage(() => import("../mission/Crew/CrewPage").then((m) => m.CrewPage));
+const Missions = lazyPage(() => import("../mission/List/Missions").then((m) => m.Missions));
+const MissionPage = lazyPage(() => import("../mission/Mission").then((m) => m.MissionPage));
+const NotificationsPage = lazyPage(() => import("../notifications/NotificationsPage").then((m) => m.NotificationsPage));
+const OrchestratorPage = lazyPage(() => import("../orchestrator/OrchestratorPage").then((m) => m.OrchestratorPage));
+const OrchestratorRunPage = lazyPage(() => import("../orchestrator/OrchestratorRunPage").then((m) => m.OrchestratorRunPage));
+const PluginPage = lazyPage(() => import("../plugins/PluginPage").then((m) => m.PluginPage));
+const Review = lazyPage(() => import("../review/Review").then((m) => m.Review));
+const PRReviewPage = lazyPage(() => import("../reviews/PRReview").then((m) => m.PRReviewPage));
+const ReviewsPage = lazyPage(() => import("../reviews/Reviews").then((m) => m.ReviewsPage));
+const LessonsPage = lazyPage(() => import("../lessons/LessonsPage").then((m) => m.LessonsPage));
+const RunsPage = lazyPage(() => import("../runs/Runs").then((m) => m.RunsPage));
+const AutomationOutputPage = lazyPage(() => import("../automations/AutomationOutputPage").then((m) => m.AutomationOutputPage));
+const AutomationPage = lazyPage(() => import("../automations/AutomationPage").then((m) => m.AutomationPage));
+const AutomationsPage = lazyPage(() => import("../automations/AutomationsPage").then((m) => m.AutomationsPage));
+const SettingsPage = lazyPage(() => import("../settings/Settings").then((m) => m.SettingsPage));
+const SiloPoint = lazyPage(() => import("../silo/SiloPoint").then((m) => m.SiloPoint));
+const TalkPage = lazyPage(() => import("../talk/TalkPage").then((m) => m.TalkPage));
+const TalksPage = lazyPage(() => import("../talk/TalksPage").then((m) => m.TalksPage));
+const TeamPage = lazyPage(() => import("../team/Team").then((m) => m.TeamPage));
 
 // Pages is the page at the address. It's given nothing of the workspace
 // (each page reads what it needs from the store), so it's drawn again on
 // going somewhere, and not each time the shell round it is.
 export const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof useNotifications> }) {
   const missions = useWorkspace((w) => w.missions);
+  // Shown, with the page at the address, the rest can load.
+  useEffect(loadPages, []);
   return (
     <Routes>
       <Route path="/" element={<Missions missions={missions} />} />

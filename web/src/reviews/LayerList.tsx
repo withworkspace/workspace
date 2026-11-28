@@ -1,6 +1,6 @@
 import type { PRDetail } from "../api";
 import { PullRequestLayers } from "./PullRequestLayers";
-import { prHref, prStatus } from "./Reviews";
+import { prHref, prStatus } from "./prs";
 
 // LayerList is a stack's layers down the side of a pull request's review,
 // as PullRequestLayers. going is the layer (or the whole stack) asked for

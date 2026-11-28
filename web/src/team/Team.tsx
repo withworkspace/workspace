@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { getTeam, narrateTeam, seenTeam, summariseTeam, type TeamItem, type TeamTopic, useEvents, useVisible } from "../api";
 import { useCommands } from "../keymap/useCommands";
 import { teamKeys } from "./keys";
-import { prHref } from "../reviews/Reviews";
+import { prHref } from "../reviews/prs";
 import { Icon } from "../ui/Icon";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";

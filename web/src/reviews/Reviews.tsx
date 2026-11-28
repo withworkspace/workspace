@@ -1,55 +1,32 @@
 import { Keys } from "../ui/Keys";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { getReviews, type PR, type PRState, type ReviewRow, useEvents } from "../api";
+import { getReviews, type PR, type ReviewRow, useEvents } from "../api";
 import { useCommands } from "../keymap/useCommands";
 import { reviewsKeys } from "./keys";
 import { useReviewsMemory } from "./memory";
-import { Icon, type IconName } from "../ui/Icon";
+import { Icon } from "../ui/Icon";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
-import type { StatusInfo } from "../ui/Status";
-import type { Tone } from "../ui/tone";
 import { Time } from "../ui/Time";
 import { PullRow } from "./PullRow";
 import { ReviewsAsOf } from "./ReviewsAsOf";
 import { ReviewsFilter } from "./ReviewsFilter";
 import { ReviewsSection } from "./ReviewsSection";
 import { useLatest } from "../load";
-import { rowAfter } from "./after";
+import { rowTarget } from "./prs";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
-import { capital, humanError } from "../ui/strings";
+import { humanError } from "../ui/strings";
 import { Text } from "../ui/Text";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
 // below, by where each stands. A stack of pull requests is one row, with
 // its layers inside.
-
-const stateInfo: Record<PRState, { icon: IconName; tone: Tone }> = {
-  "needs-review": { icon: "circle-dot", tone: "attention" },
-  "back-with-you": { icon: "reply", tone: "attention" },
-  "waiting-on-them": { icon: "clock", tone: "waiting" },
-  approved: { icon: "check-circle", tone: "done" },
-  others: { icon: "circle", tone: "quiet" },
-  drafts: { icon: "circle-dashed", tone: "quiet" },
-  automated: { icon: "sparkle", tone: "quiet" },
-  returned: { icon: "alert", tone: "attention" },
-  ready: { icon: "check-circle", tone: "attention" },
-  "waiting-review": { icon: "clock", tone: "waiting" },
-};
-
-// prStatus is where a pull request stands with you.
-export function prStatus(p: { state: PRState; words: string }): StatusInfo {
-  return { ...(stateInfo[p.state] ?? { icon: "circle", tone: "quiet" }), words: capital(p.words) };
-}
-
-// prHref is a pull request's review here.
-export const prHref = (repo: string, number: number) => `/reviews/${encodeURIComponent(repo)}/${number}`;
 
 // useReviewsEvents calls changed when the list has: it holds the Reviews
 // topic on its socket while the page shows, which is also what has the server
@@ -61,15 +38,6 @@ export function useReviewsEvents(changed: () => void) {
 // How the page was left (memory.ts): the list as last read, what was
 // selected and folded.
 const remember = useReviewsMemory.setState;
-
-// reviewed moves the list's selection on from a pull request whose review
-// has just been posted, so coming back to the list is at the next one.
-export function reviewed(repo: string, number: number) {
-  const { list, openSections } = useReviewsMemory.getState();
-  const rows = (list?.sections ?? []).filter((s) => !s.folded || openSections[s.key]).flatMap((s) => s.rows);
-  const next = rowAfter(rows, repo, number);
-  if (next) remember({ selected: next });
-}
 
 export function ReviewsPage() {
   useTitle("Reviews");
@@ -246,16 +214,4 @@ export function ReviewsPage() {
       })}
     </div>
   );
-}
-
-// rowTarget is where a row opens: a teammate's, its review here (a stack
-// at the lowest layer that needs you); yours, its mission, which already
-// says what moves it on, or with none, GitHub, where it's merged.
-export function rowTarget(r: ReviewRow): { to?: string; href?: string } {
-  const pr = r.pr ?? r.stack!.layers.find((l) => l.number === r.stack!.open) ?? r.stack!.layers[0];
-  if (pr.mine) {
-    const mission = r.pr ? r.pr.mission : r.stack!.layers.find((l) => l.mission)?.mission;
-    return mission ? { to: `/missions/${mission.slug}` } : { href: pr.url };
-  }
-  return { to: prHref(pr.repo, pr.number) };
 }

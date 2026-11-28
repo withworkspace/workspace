@@ -4,7 +4,7 @@ import { NotSignedIn, setSettings } from "./api";
 import { useCommands } from "./keymap/useCommands";
 import { everywhereKeys } from "./shell/keys";
 import { RefsProvider } from "./refs/known";
-import { prHref } from "./reviews/Reviews";
+import { prHref } from "./reviews/prs";
 import { repoOfPage } from "./shell/find";
 import { Palette } from "./shell/Palette/Palette";
 import { useFaviconBadge, useFeedNotifications, useNotifications } from "./shell/notify";

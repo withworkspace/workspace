@@ -5,7 +5,7 @@ import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import { RowPasses } from "./RowPasses";
 import { useReviewsMemory } from "./memory";
-import { prHref, prStatus, rowTarget } from "./Reviews";
+import { prHref, prStatus, rowTarget } from "./prs";
 import { ReviewsLayers } from "./ReviewsLayers";
 import { ReviewsRow } from "./ReviewsRow";
 import { merge } from "./merge";

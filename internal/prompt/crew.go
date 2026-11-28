@@ -91,7 +91,7 @@ func Crew(b CrewBrief) string {
 	if b.Guide != "" {
 		s.WriteString(b.Guide + " ")
 	}
-	s.WriteString("Record progress with `ws mission note \"...\"`, and decisions you make within your part (an approach taken, an option ruled out) with `ws mission decide \"<what>\" --why \"<why>\"`, so whoever comes next knows them. Hold each against your step's checks and the user's decisions as you make it (decide prints the checks): ws looks at them too, a moment after, and tells you if one seems to go against either. `ws show -f llm` lists the decisions already made: don't go against one without asking the user. Don't edit the brief.\n\n")
+	s.WriteString("Record progress with `ws mission note \"...\"`, and decisions you make within your part (an approach taken, an option ruled out) with `ws mission decide \"<what>\" --why \"<why>\"`, so whoever comes next knows them. `ws show -f llm` lists the decisions already made: don't go against one without asking the user. Don't edit the brief.\n\n")
 	if st := strings.TrimSpace(b.Stage); st != "" && b.Steps {
 		fmt.Fprintf(&s, "The mission's plan (`ws show -f llm` has it) has %d steps, each done in turn by whoever's on it: crew, the user, CI or someone outside. You're on step %d:\n\n%s\n\n", b.StageOf, b.StageN, st)
 	} else if st != "" {
