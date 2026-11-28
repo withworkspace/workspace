@@ -2028,6 +2028,7 @@ export interface PRDetail {
   // rebased, each file's change against what you reviewed ("changes").
   since?: "commits" | "changes";
   docked?: { capsule: string; branch: string; by: "ws" | "you"; at: string };
+  docking?: { at: string; error?: string }; // being checked out here, or why it couldn't be
   talks: Talk[];
   noAsk?: string; // why an agent can't be asked about it
   // What was said from here that GitHub didn't take, to send again or let

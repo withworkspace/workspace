@@ -453,7 +453,7 @@ export function PRReviewPage() {
               <Spinner size={12} /> Reading them from GitHub…
             </ReviewFact>
           )}
-          {(pr.mission || d.docked || talks.length > 0) && (
+          {(pr.mission || d.docked || d.docking || talks.length > 0) && (
             <ReviewFact term="Also">
               {pr.mission && (
                 <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet")}>
@@ -464,6 +464,16 @@ export function PRReviewPage() {
                 <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={chipClass("quiet")} title={d.docked.by === "ws" ? "Checked out for a question. Removed when this merges or closes, unless you edit it." : "Browse files"}>
                   <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
                 </Link>
+              )}
+              {d.docking && !d.docking.error && (
+                <span className={chipClass("quiet")} title="Checking it out here: fetching, then the repo's setup">
+                  <Spinner size={11} /> Docking…
+                </span>
+              )}
+              {d.docking?.error && (
+                <button type="button" className={chipClass("danger")} title={`${d.docking.error}. Press to try again.`} onClick={dock}>
+                  <Icon name="alert" size={11} /> Couldn't dock: try again
+                </button>
               )}
               {talks.map((t) => (
                 <Link key={t.id} to={`/conversations/${t.id}`} className={chipClass(t.waiting && t.status === "open" ? "attention" : "quiet")} title={t.title || t.opening}>
@@ -508,7 +518,7 @@ export function PRReviewPage() {
         ) : (
           <MenuItem id="dock" textValue="Dock in workspace" keys={prReviewKeys.dock} onAction={dock}>
             <Icon name="box" size={13} />
-            <MenuText>{docking ? "Docking…" : pr.fork ? "Dock in workspace (not a fork)" : "Dock in workspace"}</MenuText>
+            <MenuText>{docking || (d.docking && !d.docking.error) ? "Docking…" : pr.fork ? "Dock in workspace (not a fork)" : "Dock in workspace"}</MenuText>
           </MenuItem>
         )}
       </>
