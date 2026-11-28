@@ -1,13 +1,10 @@
 import type { Headline, MissionDetail } from "../api";
+import { prHref } from "../reviews/prs";
 import { crewStatus, headlineStatus } from "../ui/statusOf";
 import { briefGoal } from "./brief";
 import { cardTone } from "./cardTone";
 import { checkingTitle } from "./Checking/words";
 import type { MissionPeekProps } from "./MissionPeek";
-
-// A pull request's review here (reviews/Reviews.tsx's prHref, which this
-// can't import without the whole Reviews page).
-const reviewAt = (repo: string, number: number) => `/reviews/${encodeURIComponent(repo)}/${number}`;
 
 // peekOf is what a mission's peek is given (MissionPeek), worked out of
 // the mission as ws gave it: its goal from its brief (or what was asked,
@@ -42,7 +39,7 @@ export function peekOf(d: MissionDetail): MissionPeekProps {
       gone: !c.exists,
       pr: c.pr && {
         name: `${c.repo}#${c.pr.number}`,
-        to: reviewAt(c.repo, c.pr.number),
+        to: prHref(c.repo, c.pr.number),
         status: c.pr.merged
           ? { icon: "check-circle", tone: "done", words: "Merged" }
           : c.pr.checks === "failure"
