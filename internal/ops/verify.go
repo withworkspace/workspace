@@ -240,7 +240,7 @@ func (w *Workspace) sendBackVerify(m *mission.Mission, st mission.StageState, ro
 			break
 		}
 	}
-	t.WriteString("\n\nPut it right, commit, and report done again with a handoff (ws mission done): ws has it verified again, afresh.")
+	t.WriteString("\n\nPut it right, commit, and report done again with a handoff (ws mission done): ws has it verified again, afresh, by a verifier who looks at it as this one did (screenshots, light and dark), so don't take them yourself. Check your fix as you work, as you would any change.")
 	return w.carryOn(m, at, worker.ID, t.String(), by)
 }
 
