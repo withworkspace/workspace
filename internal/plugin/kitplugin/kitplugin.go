@@ -166,6 +166,16 @@ func run() {
 		}
 		return a.Say("pong, " + who)
 	}).Icon("box").Hint("It answers")
+	// One that goes somewhere in its app, beside the page, with a key it
+	// suggests, on a mission's page; and one told what was open.
+	p.Opening("note", "New kit note", "/notes/new").Beside().Keys("n").On("mission")
+	p.Action("about", "Note about this", func(a *plugin.Act) error {
+		if h := a.Here(); h != nil {
+			a.Open("/notes/new?about="+h.Ref, plugin.Beside)
+			return a.Say("About " + h.Title)
+		}
+		return a.Say("About nothing")
+	})
 	// Something a conversation's agent may propose: notes, each made with
 	// the next number, one under another (#N) saying so.
 	var notes atomic.Int32

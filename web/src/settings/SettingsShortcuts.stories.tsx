@@ -5,7 +5,8 @@ import { SettingsShortcuts, type SettingsShortcutsGroup } from "./SettingsShortc
 
 // Settings › Keyboard's shortcuts: each command's keys, one of yours
 // (marked, with Reset), one with no key, one being set, one that clashes
-// with another of yours.
+// with another of yours; and a plugin's, with the keys it suggests, one
+// that would clash.
 
 const meta: Meta = { title: "Settings/SettingsShortcuts" };
 export default meta;
@@ -31,6 +32,13 @@ const groups: SettingsShortcutsGroup[] = [
       { id: "refresh", title: "Refresh", keys: ["r"], yours: false, setting: ["g"], ...off },
     ],
   },
+  {
+    title: "Jira",
+    shortcuts: [
+      { id: "new", title: "New issue", keys: [], yours: false, suggested: ["n"], suggestedClashes: ["n also does New sketch (Sketch)"], suggestedNotes: ["On Review, Documents and Team, n is the page's own."], onUseSuggested: () => {}, ...off },
+      { id: "mine", title: "My issues", keys: [], yours: false, suggested: ["g j"], onUseSuggested: () => {}, ...off },
+    ],
+  },
 ];
 
 export const Shortcuts: StoryObj = {
@@ -52,3 +60,4 @@ export const Setting: StoryObj = {
     </div>
   ),
 };
+

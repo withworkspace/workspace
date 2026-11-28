@@ -43,16 +43,30 @@ import { useContextMenuAt } from "../ui/ContextMenu";
 // (conversation/PageConversation.tsx): the app says how it may be had
 // (ws:conversation), as ws's own pages do.
 
+type PluginFrameProps = {
+  name: string;
+  // Beside: the frame's in a pane beside the page (panes/PluginPane.tsx),
+  // not the page. Where it is is the pane's (at, a path in the app, and
+  // its query), and where it goes the pane's to say (go), not the
+  // address's. It names neither the browser's tab nor what the page is of,
+  // dims nothing, and holds no conversation: those are the page's. title
+  // hears what the app says it's showing.
+  beside?: { at: string; go: (path: string, replace: boolean) => void; title?: (t: string | undefined) => void };
+};
+
 // PluginFrame is what a plugin's page knows: the frame's connection, and
-// what's said over it. PluginView draws it.
-export function PluginFrame({ name }: { name: string }) {
+// what's said over it. PluginView draws it. Beside the page, it's the
+// same app, in a pane.
+export function PluginFrame({ name, beside }: PluginFrameProps) {
   const plugins = usePlugins();
   const location = useLocation();
   const navigate = useNavigate();
   const iframe = useRef<HTMLIFrameElement>(null);
   const plugin = plugins?.find((p) => p.name === name);
   const [title, setTitle] = useState<string>();
-  useTitle(title ?? plugin?.views[0]?.title ?? name);
+  useTitle(title ?? plugin?.views[0]?.title ?? name, !beside);
+  const besideTitle = beside?.title;
+  useEffect(() => besideTitle?.(title), [besideTitle, title]);
   // What ws said to an app it has no frame protocol version in common
   // with: shown above the frame, as whoever's looking at an empty frame
   // won't open the console.
@@ -61,7 +75,7 @@ export function PluginFrame({ name }: { name: string }) {
   // Where the address says the app should be, and where the app was last
   // told it is. Whatever moved the address (the app, a link in ws, the
   // sidebar, back and forward), the app is told.
-  const wanted = (location.pathname.slice(viewBase(name).length) || "/") + location.search;
+  const wanted = beside ? beside.at : (location.pathname.slice(viewBase(name).length) || "/") + location.search;
   const shown = useRef(wanted);
   // The frame starts where the address is. After that the app routes
   // itself: the frame's src doesn't say where it's gone to since.
@@ -85,8 +99,9 @@ export function PluginFrame({ name }: { name: string }) {
   // What the connection's given is read when it's asked for, so the
   // listening below is set up once, and never torn down for a new render.
   const openMenuAt = useContextMenuAt();
-  const now = useRef({ ws, navigate, refs, workspace, openMenuAt });
-  now.current = { ws, navigate, refs, workspace, openMenuAt };
+  const now = useRef({ ws, navigate, refs, workspace, openMenuAt, beside });
+  now.current = { ws, navigate, refs, workspace, openMenuAt, beside };
+  const isBeside = !!beside;
 
   // ws listens before the frame is made, so the app's first ws:connect
   // can't come before there's anyone to hear it.
@@ -107,6 +122,8 @@ export function PluginFrame({ name }: { name: string }) {
         // is adds no history, as a link to the page you're on doesn't.
         go(path, replace) {
           if (!path.startsWith("/") || path.startsWith("//")) return;
+          const pane = now.current.beside;
+          if (pane) return pane.go(path, replace);
           const here = window.location.pathname + window.location.search + window.location.hash;
           now.current.navigate(path, { replace: replace || path === here });
         },
@@ -125,14 +142,14 @@ export function PluginFrame({ name }: { name: string }) {
         },
         // The app has a backdrop up, as ws sees in its page: the shell
         // dims what's beside the frame (App.tsx) for as long as it has.
-        dim: (on) => useChromeStore.getState().setFrameDim(on),
+        dim: (on) => !isBeside && useChromeStore.getState().setFrameDim(on),
         // What the app asks ws to show of its own, over the frame.
         ui: uis,
         // What the app shows beyond its address: Find starts from it.
-        here: (n) => useChromeStore.getState().setFrameHere(name, n),
+        here: (n) => !isBeside && useChromeStore.getState().setFrameHere(name, n),
         // How the app wants the chrome: expanded, the shell folds its
         // sidebar (App.tsx).
-        chromeLayout: (mode) => useChromeStore.getState().setFrameLayout(name, mode),
+        chromeLayout: (mode) => !isBeside && useChromeStore.getState().setFrameLayout(name, mode),
         // A right click in the app: ws's menu, where it was, over the
         // frame's edge if it has to be. The app's item chosen, if one was,
         // is said as it's put away.
@@ -227,7 +244,7 @@ export function PluginFrame({ name }: { name: string }) {
   // else what its address is, as the thing's kind said its pages are.
   const frameHere = useFrameHere();
   const said = frameHere?.plugin === name && known ? refAt(frameHere.name, known) : undefined;
-  const open = said?.kind === "thing" ? said : known ? thingOpenAt(name, location.pathname.slice(viewBase(name).length) || "/", known) : undefined;
+  const open = said?.kind === "thing" ? said : known ? thingOpenAt(name, wanted.split("?")[0] || "/", known) : undefined;
   const about = open ? { thing: open.id, plugin: name, from: plugin?.views[0]?.title ?? name } : undefined;
 
   if (plugins && !plugin) {
@@ -237,11 +254,16 @@ export function PluginFrame({ name }: { name: string }) {
       </Empty>
     );
   }
+  const frameEl = <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />;
   return (
     <PluginView refused={refused} over={<FrameUiLayer uis={uis} frame={iframe} plugin={name} />}>
-      <PageConversation host={conversation} about={about}>
-        <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
-      </PageConversation>
+      {beside ? (
+        frameEl
+      ) : (
+        <PageConversation host={conversation} about={about}>
+          {frameEl}
+        </PageConversation>
+      )}
     </PluginView>
   );
 }

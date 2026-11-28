@@ -8,6 +8,9 @@ export interface BindOpts {
   modal?: boolean;
   // Read before what has the focus sees the key (everywhere's: ⌘K).
   first?: boolean;
+  // Read after every other's (a plugin's actions, which are bound
+  // everywhere they're for): the page's own keys are the page's.
+  late?: boolean;
 }
 
 // What a scope's commands are bound to: a handler for each that's bound
@@ -25,7 +28,8 @@ export function useCommands<D extends Record<string, CommandDef>>(commands: Comm
   const s = scopeOf(commands);
   const modal = !!opts.modal;
   const first = !!opts.first;
-  useEffect(() => bind({ scope: s, handlers: () => current.current as Record<string, Handler | false | undefined>, modal, first }), [s, modal, first]);
+  const late = !!opts.late;
+  useEffect(() => bind({ scope: s, handlers: () => current.current as Record<string, Handler | false | undefined>, modal, first, late }), [s, modal, first, late]);
 }
 
 // A Keyed function is one a key does too, and says which: what

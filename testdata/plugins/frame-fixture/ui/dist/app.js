@@ -1046,6 +1046,10 @@ async function main() {
   function screen() {
     const path = ws.path.split("?")[0];
     const one = /^\/things\/(?:THING-)?(\d+)$/.exec(path);
+    if (path === "/notes/new") {
+      const about = new URLSearchParams(ws.path.split("?")[1] ?? "").get("about");
+      return { title: "New note", body: [h("h1", {}, "New note"), h("p", { data: { fixture: "note-about" } }, about ? `About ${about}` : "About nothing in particular"), h("textarea", { rows: 4, placeholder: "What to note" })] };
+    }
     if (path === "/") {
       const list = things?.map(
         (t) => h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note), " ", h("button", { type: "button", data: { fixture: "peek-button" }, onclick: () => peek(t) }, "Peek"))

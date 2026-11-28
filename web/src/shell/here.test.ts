@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Workspace } from "../api";
 import type { Known } from "../refs/refs";
 import { build, type Item, localItems } from "./find";
-import { hereAt, hereItems, type Near, nearIds, nearItems } from "./here";
+import { hereAt, hereItems, hereKindOf, hereSaid, type Near, nearIds, nearItems } from "./here";
 
 const workspace = {
   name: "test",
@@ -161,5 +161,21 @@ describe("what's around here", () => {
     ];
     expect(titles(build({ q: "alpha", scope: "all", local: two, found: [] }).rows)).toEqual(["Alpha one", "Alpha two"]);
     expect(titles(build({ q: "alpha", scope: "all", local: two, found: [], near: new Set(["mission:b"]) }).rows)).toEqual(["Alpha two", "Alpha one"]);
+  });
+});
+
+describe("what kind Here is, as a plugin's action is told", () => {
+  it("is ws's word for its own, and the plugin's and its kind for a thing", () => {
+    expect(hereKindOf({ ref: "fix-it", id: "mission:fix-it" })).toBe("mission");
+    expect(hereKindOf({ ref: "t3", id: "talk:t3" })).toBe("conversation");
+    expect(hereKindOf({ ref: "api#4", id: "pr:api#4" })).toBe("pr");
+    expect(hereKindOf({ ref: "RAM-1", id: "thing:jira/RAM-1", thing: { kind: "thing", plugin: "jira", what: "issue", id: "RAM-1" } })).toBe("jira:issue");
+    expect(hereKindOf({ ref: "settings:repos", id: "settings:repos" })).toBeUndefined();
+  });
+
+  it("is told with its title and what's picked out, cut short", () => {
+    expect(hereSaid({ ref: "fix-it", id: "mission:fix-it", title: "Fix it" }, "  a line  ")).toEqual({ ref: "fix-it", kind: "mission", title: "Fix it", selection: "a line" });
+    expect(hereSaid({ ref: "fix-it", id: "mission:fix-it" }, "x".repeat(3000))?.selection).toHaveLength(2000);
+    expect(hereSaid(undefined)).toBeUndefined();
   });
 });

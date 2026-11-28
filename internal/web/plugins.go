@@ -565,20 +565,23 @@ func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 // PluginActRequest is POST /api/plugins/{name}/actions/{id}: an action
 // chosen in Find. Kind and Ref are for one of a kind's, on one of its
 // things; neither is for one of the plugin's own. Answers are what's been
-// answered so far to what the action asked.
+// answered so far to what the action asked. Here is what was open when it
+// was asked for (a key pressed on a mission's page), if anything was.
 type PluginActRequest struct {
-	Kind    string   `json:"kind,omitempty"`
-	Ref     string   `json:"ref,omitempty"`
-	Answers []string `json:"answers"`
+	Kind    string         `json:"kind,omitempty"`
+	Ref     string         `json:"ref,omitempty"`
+	Answers []string       `json:"answers"`
+	Here    *protocol.Here `json:"here,omitempty"`
 }
 
 // PluginActed is what came of an action: Ask, when it wants something
 // answered first and has done nothing yet; else a line to say, and where
-// in ws to go.
+// in ws to go: as the page, or beside it (Where).
 type PluginActed struct {
-	Ask  *protocol.Ask `json:"ask,omitempty"`
-	Say  string        `json:"say,omitempty"`
-	Open string        `json:"open,omitempty"`
+	Ask   *protocol.Ask `json:"ask,omitempty"`
+	Say   string        `json:"say,omitempty"`
+	Open  string        `json:"open,omitempty"`
+	Where string        `json:"where,omitempty"`
 }
 
 // pluginAct is POST /api/plugins/{name}/actions/{id}: run one of a
@@ -594,7 +597,7 @@ func (s *Server) pluginAct(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "could not read request: "+err.Error())
 		return
 	}
-	done, err := s.Plugins.Act(r.Context(), name, protocol.ActionRunParams{ID: id, Kind: req.Kind, Ref: req.Ref, Answers: req.Answers})
+	done, err := s.Plugins.Act(r.Context(), name, protocol.ActionRunParams{ID: id, Kind: req.Kind, Ref: req.Ref, Answers: req.Answers, Here: req.Here})
 	switch {
 	case errors.Is(err, plugin.ErrNoAction):
 		jsonError(w, http.StatusNotFound, err.Error())
@@ -607,6 +610,9 @@ func (s *Server) pluginAct(w http.ResponseWriter, r *http.Request) {
 	// Where it opens is a path in the plugin's app: its page in ws.
 	if done.Open != "" && plugin.ValidUIPath(done.Open) {
 		out.Open = "/x/" + name + done.Open
+		if done.Where == protocol.WhereBeside {
+			out.Where = protocol.WhereBeside
+		}
 	}
 	writeJSON(w, http.StatusOK, out)
 }

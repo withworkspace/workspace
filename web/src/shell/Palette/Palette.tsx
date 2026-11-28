@@ -1,3 +1,5 @@
+import { landed, opensAt, takeAskInFind } from "../../plugins/doAction";
+import { hereKindOf, hereSaid, type HereSaid } from "../here";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { type ActionAsk, newPage, runPluginAction, startMissionAbout } from "../../api";
@@ -156,7 +158,11 @@ export function Palette({
   // An action that's asked something before it goes on: of a thing, or a
   // plugin's own. What it's been answered so far is sent again with each
   // answer, until it asks nothing more.
-  const [asking, setAsking] = useState<{ plugin: string; action: ThingAction; thing?: Thing; answers: string[]; ask: ActionAsk; typed: string }>();
+  // One asked from outside Find (an action's key) is where Find starts.
+  const [asking, setAsking] = useState<{ plugin: string; action: ThingAction; thing?: Thing; here?: HereSaid; answers: string[]; ask: ActionAsk; typed: string } | undefined>(() => {
+    const was = takeAskInFind();
+    return was && { ...was, typed: "" };
+  });
   const [working, setWorking] = useState(false);
   const [raw, setRaw] = useState(start ?? "");
   const [only, setOnly] = useState<GroupKey>(); // narrowed with ⇥ to a kind the page holds
@@ -181,7 +187,11 @@ export function Palette({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // Your automations' actions on nothing in particular are Do's too.
   const globalActs = useActions("");
-  const local = useMemo(() => [...localItems(workspace, plugins), ...automationActionItems(globalActs)], [workspace, does, globalActs]);
+  const hereKindNow = useMemo(() => {
+    const h = hereAt(path, search, workspace, known, frameHere);
+    return h && hereKindOf(h);
+  }, [path, search, workspace, known, frameHere]);
+  const local = useMemo(() => [...localItems(workspace, plugins, hereKindNow), ...automationActionItems(globalActs)], [workspace, does, globalActs, hereKindNow]);
   const memory = useMemo(() => loadMemory(workspace.root), [workspace.root]);
 
   // Opening Find has the server read what's due, before the first letter.
@@ -361,22 +371,29 @@ export function Palette({
   // to it. What it asks first, Find asks, and runs it again with the
   // answer. Done, it says what the plugin said, goes where it said, and
   // closes; what went wrong is said, and Find stays where it was.
-  const run = (plugin: string, action: ThingAction, thing: Thing | undefined, answers: string[]) => {
+  // One of a plugin's own is told what was open (here); one that only
+  // opens goes there without asking the plugin.
+  const run = (plugin: string, action: ThingAction, thing: Thing | undefined, answers: string[], here?: HereSaid) => {
     if (working) return;
+    const at = thing ? undefined : opensAt(plugin, action);
+    if (at) {
+      onClose();
+      landed({ open: at, where: action.where }, navigate);
+      return;
+    }
     setWorking(true);
-    runPluginAction(plugin, action.id, { kind: thing?.what, ref: thing?.id, answers })
+    runPluginAction(plugin, action.id, { kind: thing?.what, ref: thing?.id, answers, ...(thing ? {} : { here }) })
       .then(
         (res) => {
           if (res.ask) {
-            setAsking({ plugin, action, thing, answers, ask: res.ask, typed: "" });
+            setAsking({ plugin, action, thing, here, answers, ask: res.ask, typed: "" });
             setCursor(undefined);
             return;
           }
           // What's kept of the thing is as it was before: it's read again.
           if (thing) forgetThing(thing.plugin, thing.what, thing.id);
-          if (res.say) toast(res.say, { tone: "done" });
           onClose();
-          if (res.open) navigate(res.open);
+          landed(res, navigate);
         },
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
       )
@@ -413,7 +430,7 @@ export function Palette({
   const back = () => {
     setCursor(undefined);
     if (asking) {
-      if (asking.answers.length > 0) run(asking.plugin, asking.action, asking.thing, asking.answers.slice(0, -1));
+      if (asking.answers.length > 0) run(asking.plugin, asking.action, asking.thing, asking.answers.slice(0, -1), asking.here);
       else setAsking(undefined);
       return;
     }
@@ -426,7 +443,7 @@ export function Palette({
     if (asking) {
       const answer = asking.ask.type === "pick" ? it?.option : asking.typed;
       if (answer === undefined) return;
-      run(asking.plugin, asking.action, asking.thing, [...asking.answers, answer]);
+      run(asking.plugin, asking.action, asking.thing, [...asking.answers, answer], asking.here);
       return;
     }
     if (it?.doing && "automation" in it.doing) perform(it, false);
@@ -463,7 +480,7 @@ export function Palette({
     }
     if (it.doing && "plugin" in it.doing) {
       // A plugin's own: Find stays, for what it may ask first.
-      run(it.doing.plugin, it.doing.action, undefined, []);
+      run(it.doing.plugin, it.doing.action, undefined, [], hereSaid(here, window.getSelection()?.toString()));
       return;
     }
     if (it.doing) {

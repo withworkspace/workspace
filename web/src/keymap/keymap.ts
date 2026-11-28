@@ -43,6 +43,12 @@ export function setKeys(c: Command, keys: readonly string[]) {
   });
 }
 
+// takeSuggested gives c the keys it was suggested, beside any it has.
+export function takeSuggested(c: Command) {
+  const had = keysOf(c);
+  setKeys(c, [...had, ...c.suggested.filter((k) => !had.includes(k))]);
+}
+
 // resetKeys takes c, or every command, back to its own keys.
 export function resetKeys(c?: Command) {
   setPref("keymap", (was) => {
@@ -69,12 +75,14 @@ export interface Clash {
 }
 
 // clashesOf is c's clashes: with its scope's commands, and with
-// everywhere's (global).
-export function clashesOf(c: Command, global: Scope | undefined, map: Map = mine()): Clash[] {
+// everywhere's (global), and with also's: for a plugin's action, which is
+// bound on every page it's for, every other scope's.
+export function clashesOf(c: Command, global: Scope | undefined, map: Map = mine(), also: readonly Scope[] = []): Clash[] {
   if (c.fixed) return [];
   const out: Clash[] = [];
   const mineKeys = keysOf(c, map);
-  const others = [...c.scope.commands, ...(global && global !== c.scope ? global.commands : [])];
+  const scopes = [c.scope, ...(global && global !== c.scope ? [global] : []), ...also.filter((s) => s !== c.scope && s !== global)];
+  const others = scopes.flatMap((s) => s.commands);
   for (const o of others) {
     if (o === c || o.fixed) continue;
     if (isOwn(c, map) && isOwn(o, map)) continue;
