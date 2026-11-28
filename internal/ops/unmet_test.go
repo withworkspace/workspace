@@ -335,3 +335,32 @@ func TestPlanRevision_AcceptedRunsTheOrchestratorAgain(t *testing.T) {
 		t.Errorf("accepted: %q, runs %v", said, *runs)
 	}
 }
+
+// Approving a step's bundle while its crew's newer done is being checked
+// doesn't pass the step on the round before: ws passes it if the round
+// running is met, and if not it goes as unmet checks do. (You approved b6 while
+// step 3's second round was running, and it passed on the first.)
+func TestUnmetChecks_ApprovingWhileCheckedAgainWaitsForTheRound(t *testing.T) {
+	w, _, dir := workFixture(t, "1. unmet: nothing keeps a lookup")
+	os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "shot.png"), []byte("\x89PNG\r\n"), 0o644)
+	if _, err := w.HandOverBundle("cache", "c1", bundleOf("shot.png"), dir); err != nil {
+		t.Fatal(err)
+	}
+	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
+	w.CrewDone("cache", "c1")
+	now := time.Now()
+	if err := w.Missions.SetChecking("cache", mission.Checking{Step: 1, Crew: "c1", Of: 2, N: 1, Command: "test -f cache.go", Since: now, Until: now.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	done, err := w.ApproveBundle("cache", "b1", AsYou)
+	if err != nil || !strings.Contains(done.Next, "step 1 isn't passed yet: ws is checking it again, for c1") {
+		t.Fatalf("approving b1: %+v, %v", done, err)
+	}
+	if st := stepRecord(t, w, 1); st.Accepted() {
+		t.Errorf("step 1 passed on the round before: %+v", st.Record)
+	}
+	if m, _ := w.Missions.Load("cache"); m.Bundles[0].Verdict != mission.BundleApproved {
+		t.Errorf("b1's approval isn't kept: %+v", m.Bundles[0])
+	}
+}
