@@ -422,6 +422,22 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 		out.Next = fmt.Sprintf("step %d also needs %s approved", cur.N, strings.Join(waits, ", "))
 		return out, nil
 	}
+	if cur.Step.Type != mission.StepReview {
+		// Approved on a round that's since been overtaken: its crew have
+		// reported done again, and ws is checking what they did. Passing
+		// it now passes what that round hasn't looked at: it passes if
+		// that round's met, and goes as unmet checks do if it isn't, your
+		// approval kept.
+		brief, _ := w.Missions.ReadBrief(m.Slug)
+		if st, crew, unchecked := m.UncheckedDone(brief); unchecked && st.N == cur.N {
+			out.Next = fmt.Sprintf("step %d isn't passed yet: %s reported done again since, and ws is checking it. It passes if its checks are met; if they aren't, it goes as unmet checks do, and your approval of %s stands", cur.N, crew, b.ID)
+			return out, nil
+		}
+		if m.Checking != nil && m.Checking.Step == cur.N {
+			out.Next = fmt.Sprintf("step %d isn't passed yet: ws is checking it again, for %s. It passes if its checks are met; if they aren't, it goes as unmet checks do, and your approval of %s stands", cur.N, m.Checking.Crew, b.ID)
+			return out, nil
+		}
+	}
 	why := "you approved " + b.ID
 	if cur.Step.Type != mission.StepReview {
 		why += ", checks as they were"
