@@ -809,3 +809,26 @@ func TestUpAsksTheReadyPathOnTheOtherLoopback(t *testing.T) {
 		t.Error("a run answering 503 on ::1 is up")
 	}
 }
+
+// A recipe asked for while another ws is starting it, whose record lands
+// between this one's read and its look, is that run: not a second one of
+// the recipe under another name (web-2), which CI saw as a flaky
+// TestATaskAskedForAtOnceIsOneRun.
+func TestARecordWrittenMidClaimIsTheOneRun(t *testing.T) {
+	s, dir := setup(t)
+	first, started := ensure(t, s, dir, recipe("web", Owner{Kind: ByNone}, time.Hour), time.Now())
+	if !started {
+		t.Fatal("not started")
+	}
+	record := filepath.Join(first.Path, recordFile)
+	hidden := record + ".mid-start"
+	if err := os.Rename(record, hidden); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { claimReadFailed = func(string) {} })
+	claimReadFailed = func(string) { os.Rename(hidden, record) } // it lands now
+	again, started := ensure(t, s, dir, recipe("web", Owner{Kind: ByNone}, time.Hour), time.Now())
+	if started || again.Name != "web" || again.PID != first.PID {
+		t.Errorf("started %v: %s (pid %d), want web's run (pid %d) joined", started, again.Name, again.PID, first.PID)
+	}
+}
