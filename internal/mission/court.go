@@ -708,12 +708,16 @@ func Resolve(s Snapshot) []Headline {
 	}
 
 	// The PR writer, writing a pull request ws opens once it's written.
+	// Or ws opening one you wrote, behind your asking.
 	for _, p := range m.WritingPRs {
-		text := "The PR writer is writing " + p.Capsule + "'s pull request"
+		text, label, by := "The PR writer is writing "+p.Capsule+"'s pull request", "… writing", "the PR writer"
+		if p.Title != "" {
+			text, label, by = "Opening "+p.Capsule+"'s pull request", "… opening", "ws"
+		}
 		if p.Step > 0 {
 			text += fmt.Sprintf(", for step %d", p.Step)
 		}
-		add(Headline{Court: CourtAgent, Kind: KindWritingPR, Label: "… writing", By: "the PR writer", Since: p.Since, Text: text,
+		add(Headline{Court: CourtAgent, Kind: KindWritingPR, Label: label, By: by, Since: p.Since, Text: text,
 			Action: Action{Label: "nothing to do"}})
 	}
 

@@ -305,7 +305,7 @@ func (w *Workspace) OpenWrittenPR(slug, capsule string) string {
 		}
 		return said
 	}
-	opened, err := w.openPR(slug, capsule, NewPullRequest{Draft: p.Draft, Quiet: true, inJob: true}, by)
+	opened, err := w.openPR(slug, capsule, NewPullRequest{Title: p.Title, Body: p.Body, Draft: p.Draft, Quiet: true, inJob: true}, by)
 	if err != nil {
 		text := fmt.Sprintf("Could not open %s's pull request, asked for by %s: %s. Fix and open again (Open pull request on the capsule, or ws mission open-pr).", capsule, by.By(), strings.TrimSuffix(oneLine(err.Error()), "."))
 		logFailed(w.Missions.Ask(slug, text, "ws"))

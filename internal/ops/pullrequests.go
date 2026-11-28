@@ -42,8 +42,10 @@ type PROpened struct {
 	PR      *github.PR
 	Step    int // the step of the plan it was opened at, if any
 	// Writing is a pull request the PR writer is writing, which ws opens
-	// once it's written: PR is nil.
+	// once it's written; Opening, one ws is opening behind the answer, as
+	// you wrote it. PR is nil.
 	Writing bool
+	Opening bool
 }
 
 func (p PROpened) String() string {
@@ -53,6 +55,9 @@ func (p PROpened) String() string {
 	}
 	if p.Writing {
 		return fmt.Sprintf("The PR writer is writing %s's pull request%s: opens when done", p.Capsule, at)
+	}
+	if p.Opening {
+		return fmt.Sprintf("Opening %s's pull request%s.", p.Capsule, at)
 	}
 	return fmt.Sprintf("Opened %s#%d from %s%s: %s", p.Repo, p.PR.Number, p.Capsule, at, p.PR.URL)
 }
@@ -120,21 +125,51 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 		return PROpened{}, refused("no-github", "could not open a pull request: no GitHub access")
 	}
 	branch := workspace.GitCurrentBranch(dir)
-	if open, err := gh.PRsForRepo(ws.RemoteOf(c.Repo).Owner, ws.RemoteOf(c.Repo).Name); err == nil {
-		for _, pr := range open {
-			if pr.HeadRefName == branch && branch != "" {
-				return PROpened{}, refused("pr-open", "%s#%d is already open from %s (%s): push to the branch to update it", c.Repo, pr.Number, out.Capsule, pr.URL)
+	// Behind the answer, in the daemon's job, where there's one: the PR
+	// writer's turn, or for one you wrote, the fetch, push and GitHub's
+	// seconds. What's asked here is only what's at hand; the job asks the
+	// rest (inJob) and puts what stops it to you.
+	behind := !o.inJob && w.takes(job.PR) && (by.IsYou() || o.Title == "" && w.Config().PRWriterEnabled())
+	if behind {
+		if pr := w.keptOpenPR(c.Repo, branch, c.Name); pr != nil {
+			return PROpened{}, refused("pr-open", "%s#%d is already open from %s (%s): push to the branch to update it", c.Repo, pr.Number, out.Capsule, pr.URL)
+		}
+	} else {
+		if open, err := gh.PRsForRepo(ws.RemoteOf(c.Repo).Owner, ws.RemoteOf(c.Repo).Name); err == nil {
+			for _, pr := range open {
+				if pr.HeadRefName == branch && branch != "" {
+					return PROpened{}, refused("pr-open", "%s#%d is already open from %s (%s): push to the branch to update it", c.Repo, pr.Number, out.Capsule, pr.URL)
+				}
 			}
 		}
-	}
-	// One that conflicts from the start is no use to anyone: its base is
-	// merged in first.
-	if files, err := ws.CapsuleConflicts(c.Repo, c.Name); err == nil && len(files) > 0 {
-		return PROpened{}, refused("conflicts", "%s does not merge cleanly onto %s: conflicts in %s. Merge origin/%s into it (do not rebase or force-push), resolve, commit, and open again",
-			out.Capsule, ws.DefaultBranch, strings.Join(files, ", "), ws.DefaultBranch)
+		// One that conflicts from the start is no use to anyone: its base
+		// is merged in first.
+		if files, err := ws.CapsuleConflicts(c.Repo, c.Name); err == nil && len(files) > 0 {
+			return PROpened{}, refused("conflicts", "%s does not merge cleanly onto %s: conflicts in %s. Merge origin/%s into it (do not rebase or force-push), resolve, commit, and open again",
+				out.Capsule, ws.DefaultBranch, strings.Join(files, ", "), ws.DefaultBranch)
+		}
 	}
 	if err := w.holdReview(GuaranteeReviewBeforePR, m.Slug, c.Repo, c.Name, "opening a pull request", reviewThen(by, "open it")); err != nil {
 		return PROpened{}, err
+	}
+	if behind {
+		if o.Title == "" && !w.Config().PRWriterEnabled() {
+			title, body := w.prDraft(m, out.Capsule, out.Step) // ws's own words, as below
+			o.Title = title
+			if strings.TrimSpace(o.Body) == "" {
+				o.Body = body
+			}
+		}
+		_, started, err := w.Missions.StartWritingPR(m.Slug, mission.WritingPR{Capsule: out.Capsule, Step: out.Step, Draft: o.Draft, By: by.By(), Title: o.Title, Body: o.Body})
+		if err != nil {
+			return PROpened{}, err
+		}
+		if started {
+			w.start(job.Job{Kind: job.PR, Mission: m.Slug, ID: out.Capsule})
+		}
+		out.Writing, out.Opening = o.Title == "", o.Title != ""
+		w.youActed(m.Slug, by)
+		return out, nil
 	}
 	if o.Title == "" && !w.Config().PRWriterEnabled() {
 		// No PR writer ([pr_writer] enabled = false): ws's own words, at once.
@@ -145,19 +180,8 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 		}
 	}
 	if o.Title == "" {
-		// It can be opened: the PR writer writes it first. That takes a
-		// while, so it's the daemon's, where there's one to hand it to.
-		if w.takes(job.PR) && !o.inJob {
-			_, started, err := w.Missions.StartWritingPR(m.Slug, mission.WritingPR{Capsule: out.Capsule, Step: out.Step, Draft: o.Draft, By: by.By()})
-			if err != nil {
-				return PROpened{}, err
-			}
-			if started {
-				w.start(job.Job{Kind: job.PR, Mission: m.Slug, ID: out.Capsule})
-			}
-			out.Writing = true
-			return out, nil
-		}
+		// The PR writer writes it first: here, with no daemon to hand it
+		// to, or in the daemon's job (behind, above).
 		o = w.writtenPR(m, c, out.Step, o)
 	}
 	branch, said, err := ws.PushBranch(c.Repo, c.Name, o.Quiet)
@@ -183,6 +207,16 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	w.opts.PRs.Forget(c.Repo)
 	w.youActed(m.Slug, by)
 	return out, nil
+}
+
+// keptOpenPR is the pull request open from a capsule's branch, as the
+// daemon last heard from GitHub: nil for none, or none heard of yet.
+func (w *Workspace) keptOpenPR(repo, branch, name string) *github.PR {
+	gh := w.GitHub()
+	if w.opts.PRs == nil || gh == nil {
+		return nil
+	}
+	return LookupPR(w.opts.PRs.Peek(w.WS(), gh, []string{repo})[repo].open, branch, name)
 }
 
 // missionCapsule is one of a mission's capsules, named repo/name (the

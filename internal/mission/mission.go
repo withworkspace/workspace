@@ -369,6 +369,11 @@ type WritingPR struct {
 	Draft   bool      `toml:"draft,omitempty" json:"draft,omitempty"`
 	By      string    `toml:"by" json:"by"` // who asked: you, ws, or crew's id
 	Since   time.Time `toml:"since" json:"since"`
+	// Title and Body are what you wrote for it, when you did: there's
+	// nothing for the PR writer to write, and ws is only opening it,
+	// behind the answer (pushing, and asking GitHub, take seconds).
+	Title string `toml:"title,omitempty" json:"title,omitempty"`
+	Body  string `toml:"body,omitempty" json:"body,omitempty"`
 }
 
 // WritingPR is the PR writer's mark on capsule's pull request, if it's
