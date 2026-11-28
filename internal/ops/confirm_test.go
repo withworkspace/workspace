@@ -1,12 +1,15 @@
 package ops
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/outbox"
 )
 
 // An idea is to brief until its brief and plan are confirmed; confirming
@@ -197,5 +200,56 @@ func TestBriefWithPlan_ConfirmedAsYouEditedThem(t *testing.T) {
 	}
 	if got, _ := w.Missions.ReadPlan(m.Slug); !strings.Contains(got, "Find the flake, and why.") {
 		t.Errorf("plan = %q", got)
+	}
+}
+
+// In the daemon, a brief you accept is written and answered at once: its
+// capsules are set up, and it's started, by the daemon's job, the mission
+// showing it's setting up until then.
+func TestBriefAccepted_SetUpBehind(t *testing.T) {
+	plan := "## Z\n- Fixed.\n## Stops early\n- None.\n## Steps\n1. Work: **Find it.** Find the flake.\n   - in: `frontend`\n2. Review: **Check.** What's found.\n"
+	w, _, _ := reposFixture(t, plan)
+	w.opts.Outbox = &outbox.Queue{Root: w.Root()}
+	var jobs []string
+	w.opts.Jobs = JobsOf(func(j job.Job) { jobs = append(jobs, j.Kind+" "+j.Mission) }, job.SetUp)
+	m, err := w.Missions.CreateBriefing("the flaky test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	talks := conversation.For(w.Root(), m.Slug)
+	c, err := talks.OpenBriefing("the flaky test", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	was, _ := w.Missions.ReadBrief(m.Slug)
+	p := conversation.Proposal{Kind: conversation.ProposeBrief, By: conversation.Agent, Title: "Flaky test", Brief: "## Goal\nThe flaky test passes.\n", Was: was, Plan: plan}
+	if c, err = talks.Propose(c.ID, p); err != nil {
+		t.Fatal(err)
+	}
+	said, slug, err := w.SettleProposal(m.Slug, c.ID, len(c.Proposals), true, ProposalEdits{})
+	if err != nil || !strings.HasSuffix(said, "Setting up its capsules, then starting it.") {
+		t.Fatalf("accepted: %q, %v", said, err)
+	}
+	if !slices.Equal(jobs, []string{"set-up " + slug}) {
+		t.Errorf("jobs: %v", jobs)
+	}
+	m, _ = w.Missions.Load(slug)
+	if m.SettingUp == nil || !m.ToBrief() {
+		t.Fatalf("before the job: setting up %+v, to brief %v", m.SettingUp, m.ToBrief())
+	}
+	if hs := mission.Resolve(mission.Snapshot{M: m, State: m.State}); !slices.ContainsFunc(hs, func(h mission.Headline) bool {
+		return h.Label == "… setting up" && h.Court == mission.CourtAgent
+	}) {
+		t.Errorf("headlines: %+v", hs)
+	}
+
+	if said := w.SetUpBehind(slug); !strings.Contains(said, "Under way") {
+		t.Errorf("the job said %q", said)
+	}
+	if m, _ = w.Missions.Load(slug); m.SettingUp != nil || m.ToBrief() {
+		t.Errorf("after the job: setting up %+v, to brief %v", m.SettingUp, m.ToBrief())
+	}
+	if said := w.SetUpBehind(slug); said != "" {
+		t.Errorf("again: %q", said)
 	}
 }

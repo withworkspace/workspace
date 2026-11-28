@@ -321,6 +321,10 @@ type Mission struct {
 	// you). Between those the mission would otherwise be at a step with
 	// nobody on it.
 	Moving *Moving `toml:"moving,omitempty" json:"moving,omitempty"`
+	// SettingUp is its capsules being lifted and docked, and it started,
+	// behind your accepting its brief (the daemon's job.SetUp): cleared
+	// once it's done, or taken up again by the daemon after one that went.
+	SettingUp *SettingUp `toml:"setting_up,omitempty" json:"settingUp,omitempty"`
 	// Planning is the planner's turn in its conversation (briefing the
 	// mission, or coming back to its plan): set as ws asks for the turn,
 	// cleared once its reply is recorded and the run that had it is over.
@@ -362,6 +366,16 @@ type Moving struct {
 	// the answer to whoever passed it, and ends the mark: Step 0 is
 	// reaching the first, as a brief's confirmed or a held step started.
 	Behind bool `toml:"behind,omitempty" json:"behind,omitempty"`
+}
+
+// SettingUp is what's to be set up for a mission whose brief you
+// accepted: capsules (repo/branch) lifted, or joined where they're there,
+// and branches or pull requests (repo/branch, repo#N) docked. Its plan's
+// Work steps get theirs too.
+type SettingUp struct {
+	Capsules []string  `toml:"capsules,omitempty" json:"capsules,omitempty"`
+	Docks    []string  `toml:"docks,omitempty" json:"docks,omitempty"`
+	Since    time.Time `toml:"since" json:"since"`
 }
 
 // WritingPR is the PR writer writing the pull request of one of a

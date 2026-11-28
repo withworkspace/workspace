@@ -1133,6 +1133,27 @@ func (s Store) StartMoving(slug string, n int) (Moving, error) {
 	return mv, err
 }
 
+// StartSettingUp marks a mission's setting up (Mission.SettingUp);
+// EndSettingUp clears it.
+func (s Store) StartSettingUp(slug string, su SettingUp) error {
+	if su.Since.IsZero() {
+		su.Since = now()
+	}
+	_, err := s.Update(slug, func(m *Mission) error {
+		m.SettingUp = &su
+		return nil
+	})
+	return err
+}
+
+func (s Store) EndSettingUp(slug string) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		m.SettingUp = nil
+		return nil
+	})
+	return err
+}
+
 // MoveBehind marks ws moving the plan on from step n behind the answer
 // (Moving.Behind): the mark standing, made so, or a new one.
 func (s Store) MoveBehind(slug string, n int) (Moving, error) {

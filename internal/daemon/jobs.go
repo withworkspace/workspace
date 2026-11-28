@@ -75,6 +75,11 @@ func (d *daemon) runJob(j job.Job) error {
 			execlog.Note(root, "decisions "+j.Mission, "%s", said)
 		}
 		return err
+	case job.SetUp:
+		if said := ctx.SetUpBehind(j.Mission); said != "" {
+			execlog.Note(root, "set-up "+j.Mission, "%s", said)
+		}
+		return nil
 	case job.Reach:
 		n, _ := strconv.Atoi(j.ID)
 		if said := ctx.ReachBehind(j.Mission, n); said != "" {
@@ -123,6 +128,10 @@ func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 			if err := (mission.Store{Root: root}).EndPlanning(m.Slug, m.Planning.In); err != nil {
 				logf("%s: couldn't clear it: %v", m.Slug, err)
 			}
+		}
+		if m.SettingUp != nil {
+			logf("%s's capsules were being set up when the server before this one went: setting them up", m.Slug)
+			q.Start(job.Job{Kind: job.SetUp, Mission: m.Slug})
 		}
 		if m.Moving != nil && m.Moving.Behind {
 			logf("ws was reaching what's after step %d of %s when the server before this one went: reaching it", m.Moving.Step, m.Slug)

@@ -723,6 +723,10 @@ func Resolve(s Snapshot) []Headline {
 
 	// ws moving the plan on from a step it's passing, until what the next
 	// begins with says so itself (Mission.Moving).
+	if su := m.SettingUp; su != nil {
+		add(Headline{Court: CourtAgent, Kind: KindMovingOn, Label: "… setting up", By: "ws", Since: su.Since,
+			Text: "Setting up its capsules, then starting it", Action: Action{Label: "nothing to do"}})
+	}
 	if mv := m.Moving; mv != nil {
 		text := fmt.Sprintf("Moving on from step %d", mv.Step)
 		if mv.Step == 0 {
