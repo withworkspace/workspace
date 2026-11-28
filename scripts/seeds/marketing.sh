@@ -257,6 +257,11 @@ model = "haiku"
 [pr_writer]
 enabled = false
 
+# No agent reads crew's handoffs for lessons: the stand-in can't, and the
+# seed puts Sorrel's lessons as they'd be (lessons.json).
+[lessons]
+enabled = false
+
 [github]
 fixture = ".remotes/github.json"
 EOF
@@ -926,6 +931,17 @@ talk w2 "Where do we round money, and is it the same everywhere?" "half away fro
 "$ws" artifact add "$from/artifacts/export-v2.html" --to a1 \
 	--note "Export under the list, beside the count it exports, so the button says how many." >/dev/null
 
+# -- Lessons: what Sorrel's crew keep running into where they work, as the
+# daemon would have read them from their handoffs (lessons.json, its times
+# hours ago, made now).
+
+hours() { date -u -v-"$1"H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "$1 hours ago" +%Y-%m-%dT%H:%M:%SZ; }
+lessons="$(cat "$from/lessons.json")"
+for h in $(grep -o '"@[0-9]*"' "$from/lessons.json" | tr -d '"@' | sort -un); do
+	lessons="${lessons//\"@$h\"/\"$(hours "$h")\"}"
+done
+printf '%s' "$lessons" | "$ws" lessons put
+
 cat <<EOF
 marketing: Sorrel's workspace, with eleven missions.
 
@@ -937,6 +953,7 @@ marketing: Sorrel's workspace, with eleven missions.
   /documents                                   records: ADRs, proposals and notes
   /conversations/w1                            a conversation, whose agent proposed a mission
   /artifacts/a1                                a prototype, in two versions
+  /lessons                                     what crew keep running into where they work
 
 Needs you: a review, a bundle to verify, a question from crew, a pull
 request to merge. In progress: crew at work on two. Waiting: a pull

@@ -1,0 +1,60 @@
+[
+  {
+    "title": "Web dependencies missing in a fresh capsule",
+    "repo": "web",
+    "fix": "setup",
+    "change": "Set `after_create = \"pnpm install --frozen-lockfile\"` under `[repos.web]` in ws.toml.",
+    "why": "The web repo has no capsule setup, so a new capsule has no node_modules.",
+    "seen": [
+      { "mission": "dark-mode-for-the-dashboard", "crew": "c1", "repo": "web", "said": "`pnpm test` failed with `vitest: command not found` until `pnpm install`.", "at": "@5" },
+      { "mission": "export-invoices-as-csv", "crew": "c1", "repo": "web", "said": "A fresh capsule has no node_modules: `tsc` isn't found.", "at": "@30" },
+      { "mission": "export-invoices-as-csv", "crew": "c2", "repo": "web", "said": "Ran `pnpm install --frozen-lockfile` before the type-check could run.", "at": "@52" }
+    ]
+  },
+  {
+    "title": "PDF snapshot tests need wkhtmltopdf",
+    "repo": "api",
+    "fix": "you",
+    "change": "Install wkhtmltopdf on this machine (`brew install wkhtmltopdf`): without it the PDF snapshot tests fail in every capsule.",
+    "why": "`just test` runs the PDF snapshot tests, which call wkhtmltopdf.",
+    "seen": [
+      { "mission": "invoice-totals-off-by-a-penny", "crew": "c1", "repo": "api", "said": "`just test` fails on the PDF snapshots: wkhtmltopdf isn't installed. `go test ./internal/...` runs the rest.", "at": "@26" },
+      { "mission": "reminders-for-overdue-invoices", "crew": "c1", "repo": "api", "said": "PDF snapshot tests fail: no wkhtmltopdf.", "at": "@97" }
+    ]
+  },
+  {
+    "title": "Date tests fail outside UTC",
+    "repo": "api",
+    "fix": "repo",
+    "change": "Set `TZ=UTC` in the justfile's `test` recipe, or have `TestDueDates` set the zone itself.",
+    "why": "TestDueDates reads the machine's zone.",
+    "again": "@8",
+    "stateAt": "@8",
+    "seen": [
+      { "mission": "reminders-for-overdue-invoices", "crew": "c2", "repo": "api", "said": "TestDueDates failed until `TZ=UTC just test`.", "at": "@8" },
+      { "mission": "paginate-the-invoices-endpoint", "crew": "c1", "repo": "api", "said": "Due dates come out a day early unless TZ=UTC.", "at": "@120" }
+    ]
+  },
+  {
+    "title": "Seed data needs the local database up",
+    "repo": "api",
+    "fix": "docs",
+    "change": "Say in AGENTS.md that `just db-up` comes before `just seed`.",
+    "why": "`just seed` waits for Postgres without saying so.",
+    "seen": [
+      { "mission": "retry-failed-webhooks-with-backoff", "crew": "c1", "repo": "api", "said": "`just seed` hung until `just db-up` had started Postgres.", "at": "@50" }
+    ]
+  },
+  {
+    "title": "Lint fails on generated files",
+    "repo": "web",
+    "fix": "repo",
+    "change": "Leave `src/generated` out in `eslint.config.js`.",
+    "state": "fixed",
+    "stateAt": "@100",
+    "seen": [
+      { "mission": "export-invoices-as-csv", "crew": "c1", "repo": "web", "said": "`pnpm lint` fails on `src/generated/api.ts`, which is made by `just codegen`.", "at": "@170" },
+      { "mission": "dark-mode-for-the-dashboard", "crew": "c1", "repo": "web", "said": "Lint errors in generated files; ignored them.", "at": "@150" }
+    ]
+  }
+]

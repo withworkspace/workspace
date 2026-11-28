@@ -1,0 +1,24 @@
+/* The Lessons page's frame (LessonsFrame.tsx): a page's, which is still
+   styles.css's, as every page shares it; a lede; a section; a foot. */
+
+.page {
+  composes: page from global;
+}
+
+.lede {
+  margin: 0 0 16px;
+  max-width: 60ch;
+  color: var(--dim);
+}
+
+.section {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.foot {
+  margin: 24px 0 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

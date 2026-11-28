@@ -24,7 +24,7 @@ var anything = []string{"*"}
 
 // domain is the packages that each keep one store, for the rows that may
 // read any of them.
-var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls", "team", "find", "space", "process", "artifact", "notification", "spend"}
+var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls", "team", "find", "space", "process", "artifact", "notification", "spend", "lessons"}
 
 // leaves may be imported by any package: they import nothing of ws's (but
 // store, which ranks what's said by words, and keys what's named as ref
