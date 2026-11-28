@@ -55,6 +55,9 @@ const (
 	// topicAutomations is the Automations page's: each automation, and its
 	// runs.
 	topicAutomations = "automations"
+	// topicLessons is the Lessons page's: each lesson, and the handoffs
+	// read for them.
+	topicLessons = "lessons"
 )
 
 func newHub(name string, poll time.Duration, fingerprint func() string) *hub {

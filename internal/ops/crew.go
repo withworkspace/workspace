@@ -33,6 +33,7 @@ func Roles(cfg *config.Config) harness.Roles {
 		Judge:        harness.Pick{Harness: cfg.Judge.Harness, Model: cfg.Judge.Model},
 		PRWriter:     harness.Pick{Harness: cfg.PRWriter.Harness, Model: cfg.PRWriter.Model},
 		Automation:   harness.Pick{Harness: cfg.Automations.Harness, Model: cfg.Automations.Model},
+		Lessons:      harness.Pick{Harness: cfg.Lessons.Harness, Model: cfg.Lessons.Model},
 	}
 	for _, a := range cfg.Crew.Allowed {
 		if h, m, err := config.ParsePick(a); err == nil { // Load refuses the rest

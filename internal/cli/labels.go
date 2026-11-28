@@ -65,6 +65,13 @@ var labels = map[string]string{
 	"automation rm":    "Taking {1} away",
 	"automation grant": "Letting {1} do {2}",
 	"automation run":   "Running {1} now",
+	"lessons":          "Reading lessons",
+	"lessons show":     "Reading lesson {1}",
+	"lessons mission":  "Making a mission of lesson {1}",
+	"lessons fixed":    "Marking lesson {1} fixed",
+	"lessons dismiss":  "Dismissing lesson {1}",
+	"lessons reopen":   "Opening lesson {1} again",
+	"lessons read":     "Reading handoffs for lessons",
 
 	"notifications":         "Reading notifications",
 	"notifications dismiss": "Dismissing notifications",

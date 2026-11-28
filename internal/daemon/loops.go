@@ -48,6 +48,7 @@ func (d *daemon) loops(w *web.Server, stop <-chan struct{}) {
 	go d.followGroundsLoop(logf, stop)                                      // each repo's ground kept up with its remote
 	go followReviewsLoop(reviews, logf, stop)                               // who's asking for your review by name
 	go d.readCrewSpendLoop(logf, stop)                                      // what crew have spent, from their session files
+	go d.readLessonsLoop(logf, stop)                                        // crew's handoffs, for what crew keep running into
 	go d.w.NoteRunning(func() string { return previousVersion(d.cfg.Exe) }) // which ws this is, for what's new
 	go d.w.NoteStarted()                                                    // and for the feed: an upgrade it restarted onto
 }
@@ -192,6 +193,46 @@ func (d *daemon) readCrewSpendLoop(logf func(string, ...any), stop <-chan struct
 		read()
 	}
 	t := time.NewTicker(readCrewSpendEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+			read()
+		}
+	}
+}
+
+// readLessonsEvery is how often the daemon reads crew's handoffs for
+// lessons (ops.ReadLessons), ops.LessonsEach at a time: a handoff's
+// lessons aren't wanted at once, and a workspace's handoffs from before
+// come in over a while rather than all at once.
+const readLessonsEvery = 5 * time.Minute
+
+// readLessonsLoop reads crew's handoffs for lessons, two minutes after the
+// daemon starts and then every readLessonsEvery, until stop closes.
+func (d *daemon) readLessonsLoop(logf func(string, ...any), stop <-chan struct{}) {
+	read := func() {
+		got, err := d.w.ReadLessons(ops.LessonsEach)
+		if err != nil {
+			logf("lessons: couldn't read handoffs: %v", err)
+			return
+		}
+		for _, f := range got.Failed {
+			logf("lessons: couldn't read %s", f)
+		}
+		if got.Read > 0 {
+			logf("lessons: read %d handoffs (%d to go), %d lessons seen", got.Read, got.Left, len(got.Changed))
+		}
+	}
+	select {
+	case <-stop:
+		return
+	case <-time.After(2 * time.Minute):
+		read()
+	}
+	t := time.NewTicker(readLessonsEvery)
 	defer t.Stop()
 	for {
 		select {

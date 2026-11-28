@@ -295,6 +295,12 @@ func (s *Server) Start() error {
 	autoHub := newHub(topicAutomations, s.Poll, s.automationsFingerprint)
 	autoHub.stamp, autoHub.floor = s.App.AutomationsStamp, 30*time.Second
 	s.topics[topicAutomations] = autoHub
+	// The Lessons page: told when a write to the lessons moves (their
+	// stamp); looked at every minute regardless, for a handoff handed off
+	// and waiting to be read.
+	lessonsHub := newHub(topicLessons, s.Poll, s.lessonsFingerprint)
+	lessonsHub.stamp, lessonsHub.floor = s.App.LessonsStamp, time.Minute
+	s.topics[topicLessons] = lessonsHub
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
@@ -562,6 +568,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
 	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)
 	mux.HandleFunc("GET /api/automations", s.automations)
+	mux.HandleFunc("GET /api/lessons", s.lessons)
+	mux.HandleFunc("POST /api/lessons/{id}/state", s.lessonState)
+	mux.HandleFunc("POST /api/lessons/{id}/mission", s.lessonMission)
 	mux.HandleFunc("GET /api/actions", s.actions)
 	mux.HandleFunc("POST /api/actions/run", s.actionRun)
 	mux.HandleFunc("GET /api/automations/{name}", s.automationDetail)
