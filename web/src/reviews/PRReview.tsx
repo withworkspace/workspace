@@ -66,7 +66,7 @@ import { MenuItem, MenuText } from "../ui/Menu";
 import { PullRequestName } from "./PullRequestName";
 import { PullRequestReviewer } from "./PullRequestReviewer";
 import css from "./PRReview.module.css";
-import { prHref, prStatus, reviewed } from "./Reviews";
+import { prHref, prStatus, reviewed } from "./prs";
 import { useLatest } from "../load";
 import { Button, buttonClass } from "../ui/Button";
 import { clip, humanError } from "../ui/strings";

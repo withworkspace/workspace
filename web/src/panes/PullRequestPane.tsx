@@ -6,7 +6,7 @@ import { useTabNames } from "../chrome/tabNames";
 import { useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { PullRequestPeek } from "../reviews/PullRequestPeek";
-import { prHref, prStatus } from "../reviews/Reviews";
+import { prHref, prStatus } from "../reviews/prs";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Loading } from "../ui/Loading";
 import { humanError } from "../ui/strings";

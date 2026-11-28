@@ -1,6 +1,6 @@
 import { teamKeys } from "./keys";
 import type { TeamEvent, TeamItem } from "../api";
-import { prHref } from "../reviews/Reviews";
+import { prHref } from "../reviews/prs";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
