@@ -114,9 +114,11 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
   }, []);
 
   // Wanted, and the browser never asked: offer to ask it, once a load. Its
-  // question needs a press (browsers refuse one asked unprompted).
+  // question needs a press (browsers refuse one asked unprompted). Not
+  // in a browser something's driving (shotta's pictures, a test's): it
+  // would be in every picture.
   useEffect(() => {
-    if (!supported || !wanted || asked || Notification.permission !== "default") return;
+    if (!supported || !wanted || asked || navigator.webdriver || Notification.permission !== "default") return;
     asked = true;
     toast("ws can tell you on the desktop when something needs you, while you're elsewhere.", {
       ms: 60_000,
