@@ -358,6 +358,10 @@ type Launching struct {
 type Moving struct {
 	Step  int       `toml:"step" json:"step"`
 	Since time.Time `toml:"since" json:"since"`
+	// Behind: the daemon's job (job.Reach) reaches what's next, behind
+	// the answer to whoever passed it, and ends the mark: Step 0 is
+	// reaching the first, as a brief's confirmed or a held step started.
+	Behind bool `toml:"behind,omitempty" json:"behind,omitempty"`
 }
 
 // WritingPR is the PR writer writing the pull request of one of a

@@ -469,6 +469,9 @@ func (w *Workspace) tryPassStep(slug string, n int, by, why string, types ...str
 	}
 	// What ws asked the user about the step is done.
 	w.closeStepTasks(slug, n)
+	if w.reachLater(slug, n, actorBy(by)) {
+		return fmt.Sprintf("passed step %d, and %s", n, movingOn), nil
+	}
 	return fmt.Sprintf("passed step %d, and %s", n, w.afterAccept(slug, acc, states)), nil
 }
 

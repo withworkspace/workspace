@@ -21,6 +21,7 @@ const (
 	PR          = "pr"          // a pull request the PR writer writes, then ws opens
 	Decisions   = "decisions"   // the decision look, on crew's decisions on a mission
 	Verify      = "verify"      // a Verify step's verifier started again once the crew it sent back report done
+	Reach       = "reach"       // the step after one you passed reached (crew lifted and started, you asked, a pull request opened), behind your answer
 )
 
 // Job is one piece of work.

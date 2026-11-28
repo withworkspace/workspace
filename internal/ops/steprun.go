@@ -93,6 +93,9 @@ func (w *Workspace) StartStep(slug string, repos []string, by Actor) (string, er
 	if m, err = w.Missions.Load(m.Slug); err != nil {
 		return "", err
 	}
+	if w.reachLater(m.Slug, 0, by) {
+		return fmt.Sprintf("started step %d: %s", cur.N, movingOn), nil
+	}
 	cur, _ = currentStep(w.Missions, m)
 	return w.reachStep(m, mission.StageState{}, cur), nil
 }
@@ -134,6 +137,9 @@ func (w *Workspace) Skip(slug, why string, by Actor) (string, error) {
 	m, err = w.Missions.Load(m.Slug)
 	if err != nil {
 		return "", err
+	}
+	if w.reachLater(m.Slug, cur.N, by) {
+		return fmt.Sprintf("skipped step %d, and %s", cur.N, movingOn), nil
 	}
 	brief, _ := w.Missions.ReadBrief(m.Slug)
 	states, _ := m.StageProgress(brief)

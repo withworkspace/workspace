@@ -724,9 +724,12 @@ func Resolve(s Snapshot) []Headline {
 	// ws moving the plan on from a step it's passing, until what the next
 	// begins with says so itself (Mission.Moving).
 	if mv := m.Moving; mv != nil {
+		text := fmt.Sprintf("Moving on from step %d", mv.Step)
+		if mv.Step == 0 {
+			text = "Starting the step it's at"
+		}
 		add(Headline{Court: CourtAgent, Kind: KindMovingOn, Label: "… moving on", By: "ws", Since: mv.Since,
-			Text:   fmt.Sprintf("Moving on from step %d", mv.Step),
-			Action: Action{Label: "nothing to do"}})
+			Text: text, Action: Action{Label: "nothing to do"}})
 	}
 
 	// The orchestrator.
