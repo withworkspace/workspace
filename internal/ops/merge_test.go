@@ -1,7 +1,10 @@
 package ops
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -292,5 +295,59 @@ func TestMergePR_PendingFollowed(t *testing.T) {
 	}
 	if out.Status != github.MergeMerged || !slices.Equal(gh.deleted, []string{"fix"}) {
 		t.Fatalf("status %q, deleted %v", out.Status, gh.deleted)
+	}
+}
+
+// missionMergeFixture is mergeFixture with a mission ("cache") whose
+// capsule frontend/fix has the open pull request #5, and #6 open on
+// another branch, which isn't the mission's. The PR cache has had
+// GitHub's answer, as the daemon's has once a page has read.
+func missionMergeFixture(t *testing.T) (*Workspace, *mergeGitHub) {
+	t.Helper()
+	w, gh := mergeFixture(t, readyPR(5, "fix", "main"), readyPR(6, "other", "main"))
+	if err := os.MkdirAll(filepath.Join(w.WS().RepoDir("frontend"), "fix"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Attach("cache", "frontend", "fix", false, AsYou); err != nil {
+		t.Fatal(err)
+	}
+	gh.PRsForRepoFn = func(org, repo string) ([]github.PR, error) { return gh.OpenPRsFn(org, repo) }
+	w.opts.PRs = NewPRCache()
+	w.opts.PRs.Get(w.WS(), gh, []string{"frontend"})
+	return w, gh
+}
+
+// The mission's own pull request merges from its page, at the commit
+// the page showed.
+func TestMergeMissionPR_Own(t *testing.T) {
+	w, gh := missionMergeFixture(t)
+	d, err := w.Mission("cache")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pr := d.Capsules[0].PR; pr == nil || pr.Number != 5 {
+		t.Fatalf("the mission's page shows %+v, not frontend#5", pr)
+	}
+	out, err := w.MergeMissionPR("cache", "frontend#5", MergeNow, AsYou)
+	if r := (*Refused)(nil); errors.As(err, &r) {
+		t.Fatalf("refused %s: %v", r.Code, err)
+	} else if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(gh.merged, []string{"#5 h5 squash"}) {
+		t.Fatalf("merged %v", gh.merged)
+	}
+	if out.String() != "Merged frontend#5, squashed." {
+		t.Errorf("said %q", out)
+	}
+}
+
+// A pull request that isn't the mission's isn't merged from its page.
+func TestMergeMissionPR_NotAttached(t *testing.T) {
+	w, gh := missionMergeFixture(t)
+	_, err := w.MergeMissionPR("cache", "frontend#6", MergeNow, AsYou)
+	refusedWith(t, err, "not-attached")
+	if len(gh.merged) > 0 {
+		t.Fatalf("merged %v", gh.merged)
 	}
 }

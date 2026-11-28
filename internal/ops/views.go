@@ -124,6 +124,27 @@ func (w *Workspace) missionView(m *mission.Mission) MissionView {
 	return buildMissionViews(&w.git, w.WS(), nil, []*mission.Mission{m})[0]
 }
 
+// keptPRs is the pull requests of the mission's repos as the daemon keeps
+// them (PRCache.Peek), never waiting on GitHub, and whether GitHub has
+// answered for every one of its repos.
+func (w *Workspace) keptPRs(m *mission.Mission) (PRIndex, bool) {
+	gh := w.GitHub()
+	if w.opts.PRs == nil || gh == nil {
+		return nil, true
+	}
+	repos := MissionRepos([]*mission.Mission{m})
+	idx := w.opts.PRs.Peek(w.WS(), gh, repos)
+	return idx, len(idx) == len(repos) // Peek has only those GitHub's answered for
+}
+
+// missionPRView is the mission's view as its page shows it: its pull
+// requests as kept (keptPRs), and what's kept of each capsule, with
+// nothing waited on.
+func (w *Workspace) missionPRView(m *mission.Mission) MissionView {
+	idx, _ := w.keptPRs(m)
+	return buildMissionViews(soonGit{&w.git}, w.WS(), idx, []*mission.Mission{m})[0]
+}
+
 // buildMissionViews is BuildMissionViewsFrom, with what git says of each
 // capsule from g: as kept, for a page's view (capsuleGit).
 func buildMissionViews(g capsuleGit, ws *workspace.Workspace, prs PRIndex, missions []*mission.Mission) []MissionView {

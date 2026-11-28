@@ -248,7 +248,8 @@ func (w *Workspace) MergePR(repo string, number int, ask MergeAsk, by Actor) (Me
 }
 
 // MergeMissionPR merges one of a mission's pull requests (repo#N), as
-// MergePR does, at the commit its page last showed.
+// MergePR does, at the commit its page last showed: the PR is found as the
+// page finds it, from what the daemon keeps (missionPRView).
 func (w *Workspace) MergeMissionPR(slug, target, when string, by Actor) (Merged, error) {
 	m, err := w.load(slug)
 	if err != nil {
@@ -260,7 +261,7 @@ func (w *Workspace) MergeMissionPR(slug, target, when string, by Actor) (Merged,
 	}
 	head := ""
 	found := false
-	for _, c := range w.missionView(m).Capsules {
+	for _, c := range w.missionPRView(m).Capsules {
 		if c.Repo == repo && c.PR != nil && c.PR.Number == number {
 			head, found = c.PR.HeadRefOid, true
 		}
