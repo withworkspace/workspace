@@ -8,6 +8,7 @@ import { pageSocket } from "./socket";
 // (scripts/wiretypes, `just wire`). The types below are the ones not yet
 // moved there: move one by making the Go say what this file does.
 import type {
+  OpsPutAwayItem,
   PullsUnsent,
   RunLog,
   HarnessTranscriptEntry as TranscriptEntry,
@@ -881,7 +882,13 @@ export type ActVerb =
   | "bundle-looked"
   | "merge"
   | "merge-ready"
-  | "merge-off";
+  | "merge-off"
+  | "put-away-retry"
+  | "put-away-drop";
+
+// PutAwayItem is something archiving a mission left to do behind: a
+// capsule to burn, waiting, being burned, or failed with why.
+export type PutAwayItem = OpsPutAwayItem;
 
 // MissionTask is something a mission waits on you for: a question, or a
 // step of its route that's yours (to review, answer, land, or go on from).
@@ -913,6 +920,7 @@ export interface ActOpts {
   check?: string; // for bundle-looked: the check, by its key in the bundle's list
   looked?: boolean;
   pr?: string; // for merge, merge-ready and merge-off: the mission's pull request (repo#N)
+  item?: number; // for put-away-retry and put-away-drop: what archiving left to do (puttingAway)
 }
 
 // act does it, and says what happened.

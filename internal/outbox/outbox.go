@@ -216,4 +216,12 @@ func remove(root, state string, ids ...int64) (int, error) {
 	return gone, err
 }
 
+// touch says what's kept has changed, for what's shown of it.
+func touch(root string) {
+	_ = write(root, func(tx *store.Tx) error {
+		tx.Changed(Topic)
+		return nil
+	})
+}
+
 func (it Item) String() string { return fmt.Sprintf("%s (%s)", it.Doing, it.Lane) }

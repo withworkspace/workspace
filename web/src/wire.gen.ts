@@ -67,6 +67,11 @@ export interface ActRequest {
      * as repo#N.
      */
     pr?: string;
+    /**
+     * Item is what archiving left to do that put-away-retry and
+     * put-away-drop are about (MissionDetail.PuttingAway).
+     */
+    item?: number;
 }
 
 // From web/api.go
@@ -2923,6 +2928,12 @@ export interface MissionDetail {
     dispatch?: Proposal; // crew waiting for you to launch
     conclude?: Conclusion; // how it ends, suggested
     /**
+     * PuttingAway is what archiving it left to do behind (burning its
+     * capsules): waiting, being done, or failed, with why, to try again
+     * or let go of (verbs put-away-retry, put-away-drop, with Item).
+     */
+    puttingAway?: OpsPutAwayItem[];
+    /**
      * Ending is how it ended, once you said; EndedCapsules are capsules
      * that ended alone, before it.
      */
@@ -3364,6 +3375,18 @@ export interface OpsPassMark {
      * Moved: the pull request's been pushed to since it ran.
      */
     moved?: boolean;
+}
+
+// From ops/putaway.go
+/**
+ * PutAwayItem is something archiving a mission left to do, as its page
+ * shows it: waiting, being done, or failed (with why).
+ */
+export interface OpsPutAwayItem {
+    id: number;
+    doing: string;
+    state: string;
+    error?: string;
 }
 
 // From ops/files.go

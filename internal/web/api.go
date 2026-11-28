@@ -354,6 +354,10 @@ type MissionDetail struct {
 	Tasks       []Task      `json:"tasks,omitempty"`    // what it waits on you for, oldest first
 	Dispatch    *Proposal   `json:"dispatch,omitempty"` // crew waiting for you to launch
 	Conclude    *Conclusion `json:"conclude,omitempty"` // how it ends, suggested
+	// PuttingAway is what archiving it left to do behind (burning its
+	// capsules): waiting, being done, or failed, with why, to try again
+	// or let go of (verbs put-away-retry, put-away-drop, with Item).
+	PuttingAway []ops.PutAwayItem `json:"puttingAway,omitempty"`
 	// Ending is how it ended, once you said; EndedCapsules are capsules
 	// that ended alone, before it.
 	Ending        *Conclusion    `json:"ending,omitempty"`
@@ -1389,6 +1393,9 @@ type ActRequest struct {
 	// PR is the pull request merge, merge-ready and merge-off are about,
 	// as repo#N.
 	PR string `json:"pr,omitempty"`
+	// Item is what archiving left to do that put-away-retry and
+	// put-away-drop are about (MissionDetail.PuttingAway).
+	Item int64 `json:"item,omitempty"`
 }
 
 // MergeRequest asks for a pull request to merge (POST
