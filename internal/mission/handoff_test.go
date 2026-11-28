@@ -140,3 +140,22 @@ func TestParseReadFirst_TrailingPunctuation(t *testing.T) {
 		t.Errorf("refs = %q", refs)
 	}
 }
+
+// A line naming two files in backticks, each with what it's for, is two
+// items: crew wrote "- `find.go` Find, and `refs.ts` findRefs", and ws
+// read the whole line as one file it couldn't find.
+func TestParseReadFirst_TwoNamesOnALine(t *testing.T) {
+	items, err := parseReadFirst("- `internal/ref/find.go` Find, and `web/src/refs/refs.ts` findRefs and nameOf\n- `main.go` — the entry")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []ReadItem{{"internal/ref/find.go", "Find"}, {"web/src/refs/refs.ts", "findRefs and nameOf"}, {"main.go", "the entry"}}
+	if len(items) != len(want) {
+		t.Fatalf("items = %+v", items)
+	}
+	for i := range want {
+		if items[i] != want[i] {
+			t.Errorf("item %d = %+v, want %+v", i, items[i], want[i])
+		}
+	}
+}
