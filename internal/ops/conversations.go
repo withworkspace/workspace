@@ -277,7 +277,9 @@ func (w *Workspace) SayInTalkGiven(sc doc.Scope, id, body string, given *convers
 // SetTalkStatus is you putting a conversation away, or taking it up again.
 // The capsules its agent lifted are put away first (putAwayCapsules); if
 // one can't be, the conversation isn't put away either, and why is said,
-// so a capsule is never left with nothing saying whose it was.
+// so a capsule is never left with nothing saying whose it was. In the
+// daemon they're put away behind (resolveBehind): one that can't be stays
+// the conversation's.
 func (w *Workspace) SetTalkStatus(sc doc.Scope, id, status string, by Actor) (*conversation.Conversation, error) {
 	store, err := w.Conversations(sc)
 	if err != nil {
@@ -285,6 +287,10 @@ func (w *Workspace) SetTalkStatus(sc doc.Scope, id, status string, by Actor) (*c
 	}
 	if status == conversation.Resolved && by.By() == conversation.You {
 		if c, err := store.Load(id); err == nil && len(c.Lifted()) > 0 {
+			if q := w.opts.Outbox; q != nil {
+				// In the daemon: resolved now, put away behind (putaway.go).
+				return w.resolveBehind(q, sc, store, id, by)
+			}
 			if left := w.putAwayCapsules(store, c); len(left) > 0 {
 				return nil, refused("capsules-left", "%s not resolved: could not put away %s. Fix that or burn the capsule (ws burn <repo> <name>), then resolve again",
 					id, strings.Join(left, "; "))

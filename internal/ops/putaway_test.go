@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/outbox"
 )
@@ -136,5 +137,66 @@ func TestBurnFinishesAnUnfinishedRemoval(t *testing.T) {
 	}
 	if !exists(filepath.Join(stray, "notes.txt")) {
 		t.Error("a folder git never made lost what was in it")
+	}
+}
+
+// In the daemon, resolving a conversation whose agent lifted a capsule
+// answers before the capsule's put away; reopened in the moment after,
+// it's kept, and resolved, put away behind.
+func TestResolveBehind(t *testing.T) {
+	was := putAwayHold
+	putAwayHold = 100 * time.Millisecond
+	t.Cleanup(func() { putAwayHold = was })
+	w := liftWorld(t)
+	q := &outbox.Queue{Root: w.Root()}
+	w.opts.Outbox = q
+	w.PutAwayBehind(q)
+	q.Resume()
+	t.Cleanup(func() { q.Stop(time.Second) })
+	m, err := w.Missions.Create("Cache")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := conversation.For(w.Root(), m.Slug)
+	c, err := store.OpenTalk(conversation.You, "Is this change slower?", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.LiftForConversation(m.Slug, c.ID, "api", "bench", "", CapsuleOptions{Mission: m.Slug}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(w.WS().RepoDir("api"), "bench")
+	sc := doc.OfMission(m.Slug)
+
+	// Resolved and taken up again in the moment after: kept.
+	if c, err = w.SetTalkStatus(sc, c.ID, conversation.Resolved, AsYou); err != nil || c.Status != conversation.Resolved {
+		t.Fatalf("resolved: %+v %v", c, err)
+	}
+	if !exists(path) {
+		t.Error("put away before the answer")
+	}
+	if _, err := w.SetTalkStatus(sc, c.ID, conversation.Open, AsYou); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(3 * putAwayHold)
+	q.Wait()
+	if !exists(path) {
+		t.Error("put away, though taken up again in time")
+	}
+
+	if _, err := w.SetTalkStatus(sc, c.ID, conversation.Resolved, AsYou); err != nil {
+		t.Fatal(err)
+	}
+	for range 400 {
+		if !exists(path) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if exists(path) {
+		t.Fatal("never put away")
+	}
+	if c, _ = store.Load(c.ID); len(c.Lifted()) != 0 || len(c.PutAway()) != 1 {
+		t.Errorf("the conversation's after: %+v", c.Capsules)
 	}
 }

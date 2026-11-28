@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/mission"
@@ -25,7 +26,12 @@ import (
 // keep them (Reopen, takeBackPutAway). One that fails is kept, with why, on the mission's
 // page to try again or let go of, and you're told.
 //
-// Without an outbox (a command's), archiving burns them there and then.
+// Resolving a conversation whose agent lifted capsules goes the same way:
+// resolved at once, its capsules put away behind. One that can't be is
+// left to the conversation, which still holds it, and you're told:
+// resolving it again tries again.
+//
+// Without an outbox (a command's), they're burned there and then.
 
 // putAwayKind is the outbox's kind for it.
 const putAwayKind = "put-away"
@@ -37,10 +43,12 @@ var putAwayHold = 5 * time.Second
 // PutAwayFailed is the kind of notification one that failed is.
 const PutAwayFailed = "mission.put-away-failed"
 
-// putAway is one thing to put away, as the outbox keeps it: a mission's
-// capsule, or the capsules one of its conversations lifted.
+// putAway is one thing to put away, as the outbox keeps it: an archived
+// mission's capsule, or the capsules one of its conversations lifted; or
+// those a conversation (of a mission's, or the workspace's) lifted, as
+// it's resolved.
 type putAway struct {
-	Mission string `json:"mission"`
+	Mission string `json:"mission,omitempty"`
 	Repo    string `json:"repo,omitempty"`
 	Name    string `json:"name,omitempty"`
 	// Force burns it whatever's in it: you agreed to (Archive's burnAll).
@@ -48,12 +56,18 @@ type putAway struct {
 	// Conversation is the conversation whose lifted capsules are put away
 	// (putAwayCapsules), in place of Repo and Name.
 	Conversation string `json:"conversation,omitempty"`
+	// Resolved: it's the conversation being resolved, not its mission
+	// archived.
+	Resolved bool `json:"resolved,omitempty"`
 }
 
 func putAwayOf(it outbox.Item) (putAway, bool) {
 	var p putAway
-	return p, json.Unmarshal(it.Op, &p) == nil && p.Mission != ""
+	return p, json.Unmarshal(it.Op, &p) == nil && (p.Mission != "" || p.Resolved && p.Conversation != "")
 }
+
+// resolvedLane is what a conversation's take turns on: the conversation.
+func resolvedLane(sc doc.Scope, id string) string { return "conversation " + sc.Mission + "/" + id }
 
 // putAwayLane is what a mission's take turns on: the mission.
 func putAwayLane(slug string) string { return "mission " + slug }
@@ -70,11 +84,29 @@ func (w *Workspace) PutAwayBehind(q *outbox.Queue) {
 }
 
 // sendPutAway puts one away: nothing, if the mission's no longer archived
-// (it was reopened, or never got there).
+// (it was reopened, or never got there), or the conversation no longer
+// resolved.
 func (w *Workspace) sendPutAway(it outbox.Item) error {
 	p, ok := putAwayOf(it)
 	if !ok {
 		return errors.New("could not read what was to be put away")
+	}
+	if p.Resolved {
+		store, err := w.Conversations(doc.Scope{Mission: p.Mission})
+		if err != nil {
+			return err
+		}
+		c, err := store.Load(p.Conversation)
+		if err != nil {
+			return err
+		}
+		if c.Status != conversation.Resolved {
+			return nil
+		}
+		if left := w.putAwayCapsules(store, c); len(left) > 0 {
+			return errors.New(strings.Join(left, "; "))
+		}
+		return nil
 	}
 	m, err := w.load(p.Mission)
 	if err != nil {
@@ -107,6 +139,20 @@ func (w *Workspace) putAwaySettled(_ string, _, failed []outbox.Item) {
 	for _, it := range failed {
 		p, ok := putAwayOf(it)
 		if !ok {
+			continue
+		}
+		if p.Resolved {
+			// The conversation still holds what it couldn't put away, and
+			// resolving it again tries again: nothing's kept here.
+			var refs []string
+			if p.Mission != "" {
+				refs = []string{p.Mission}
+			}
+			w.notify(notification.Notification{Source: notification.SourceMissions, Kind: PutAwayFailed, Refs: refs, By: events.ByWS, Attention: true,
+				Text: fmt.Sprintf("%s resolved, but its capsules weren't put away: %s. Resolve it again to try again", p.Conversation, it.Error)})
+			if err := w.opts.Outbox.Drop(it.ID); err != nil {
+				execlog.Note(w.Root(), "put away "+p.Conversation, "couldn't let go of what failed: %v", err)
+			}
 			continue
 		}
 		text := fmt.Sprintf("Archived, but %s failed: %s", it.Doing, it.Error)
@@ -151,6 +197,16 @@ func (w *Workspace) archiveBehind(q *outbox.Queue, m *mission.Mission, burn []Ca
 	out, err := w.putIn(m.Slug, mission.Archived, by)
 	out.Burning = burning
 	return out, err
+}
+
+// resolveBehind is resolving a conversation with an outbox: resolved now,
+// the capsules its agent lifted put away behind.
+func (w *Workspace) resolveBehind(q *outbox.Queue, sc doc.Scope, store conversation.Store, id string, by Actor) (*conversation.Conversation, error) {
+	if _, err := q.Add(resolvedLane(sc, id), putAwayKind, "putting away the capsules "+id+" lifted",
+		putAway{Mission: sc.Mission, Conversation: id, Resolved: true}); err != nil {
+		return nil, fmt.Errorf("%s not resolved: could not queue putting away its capsules: %w", id, err)
+	}
+	return store.SetStatus(id, by.By(), conversation.Resolved, w.now())
 }
 
 // takeBackPutAway takes back what archiving a mission had still to put away,
