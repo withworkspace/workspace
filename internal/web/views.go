@@ -479,6 +479,7 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 		}
 		d.Decisions = append(d.Decisions, out)
 	}
+	d.PuttingAway = ops.PuttingAway(root, m.Slug)
 	talks := conversation.For(root, slug)
 	d.Talks = TalksIn(talks)
 	if c := talks.Planner(); c != nil {

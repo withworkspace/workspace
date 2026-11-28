@@ -21,6 +21,7 @@ import { MissionSummaryWork } from "./MissionSummaryWork";
 import { stepLine } from "./stepLine";
 import { SummaryLead } from "./SummaryLead";
 import { SummaryNotices } from "./SummaryNotices";
+import { SummaryPuttingAway } from "./SummaryPuttingAway";
 import { isNotice, saidLately, summaryRecent, summaryRecentWithSide } from "./words";
 import { Text } from "../../ui/Text";
 
@@ -60,6 +61,7 @@ export function Summary({
   return (
     <>
       <SummaryLead d={d} reload={reload} />
+      <SummaryPuttingAway d={d} reload={reload} />
       <SummaryNotices d={d} />
       <SummaryList>
         {goal && (

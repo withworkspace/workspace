@@ -26,6 +26,13 @@ type Kind struct {
 	// asked as the lane's sent, not as the daemon starts. nil: it can't be
 	// said of any.
 	Made func(Item) (bool, error)
+	// Hold is how long one of this kind waits after it's made before it's
+	// sent, so it can still be taken back (Cancel): an undo pressed in
+	// the moment after. Those behind it in its lane wait with it, as a
+	// lane's go in the order they were made. A daemon that stops in the
+	// meantime leaves it waiting for the next, which holds it what's
+	// left of the time.
+	Hold time.Duration
 	// Halts: one of this kind failing holds those of it waiting behind it
 	// in its lane, which fail too, unsent, as they were to be made in
 	// order (a stack's reviews, bottom first).
@@ -61,7 +68,9 @@ type Queue struct {
 	check   map[int64]bool
 	slots   chan struct{}
 	stopped bool
-	wg      sync.WaitGroup
+	// stop is closed by Stop: a lane held (Kind.Hold) stops waiting.
+	stop chan struct{}
+	wg   sync.WaitGroup
 }
 
 func (q *Queue) logf(format string, args ...any) {
@@ -84,11 +93,7 @@ func (q *Queue) Handle(kind string, k Kind) {
 // sent already. op is the write as its kind reads it back (JSON); doing
 // is the write in words.
 func (q *Queue) Add(lane, kind, doing string, op any) (Item, error) {
-	now := time.Now()
-	if q.Now != nil {
-		now = q.Now()
-	}
-	it, err := add(q.Root, lane, kind, doing, op, now)
+	it, err := add(q.Root, lane, kind, doing, op, q.now())
 	if err != nil {
 		return Item{}, err
 	}
@@ -111,6 +116,33 @@ func (q *Queue) Retry(id int64) error {
 	}
 	q.kick(it.Lane)
 	return nil
+}
+
+// Cancel takes back a lane's writes of a kind that are still waiting: not
+// sent, and not kept. One being sent goes on. It says which it took back.
+func (q *Queue) Cancel(lane, kind string) ([]Item, error) {
+	items, err := In(q.Root, lane)
+	if err != nil {
+		return nil, err
+	}
+	var out []Item
+	for _, it := range items {
+		if it.Kind != kind || it.State != Waiting {
+			continue
+		}
+		// Only from waiting: a drain that's begun sending it has moved it on.
+		n, err := remove(q.Root, Waiting, it.ID)
+		if err != nil {
+			return out, err
+		}
+		if n > 0 {
+			out = append(out, it)
+		}
+	}
+	if len(out) > 0 {
+		touch(q.Root)
+	}
+	return out, nil
 }
 
 // Drop lets go of a write that failed: it's not made, and not kept.
@@ -194,12 +226,28 @@ func (q *Queue) drain(lane string) {
 		// this finds none starts a drain of its own.
 		q.mu.Lock()
 		items, err := In(q.Root, lane)
+		now := q.now()
 		var todo []Item
+		var due time.Time // when the first held is to be sent
 		for _, it := range items {
 			// (One of a kind nobody here sends waits for a ws that does.)
-			if (it.State == Waiting || it.State == Sent || it.State == Sending && q.check[it.ID]) && q.kinds[it.Kind].Send != nil {
-				todo = append(todo, it)
+			if !(it.State == Waiting || it.State == Sent || it.State == Sending && q.check[it.ID]) || q.kinds[it.Kind].Send == nil {
+				continue
 			}
+			if h := q.kinds[it.Kind].Hold; h > 0 && it.State == Waiting && now.Before(it.Queued.Add(h)) {
+				due = it.Queued.Add(h) // and those after it wait with it
+				break
+			}
+			todo = append(todo, it)
+		}
+		if err == nil && len(todo) == 0 && !due.IsZero() && !q.stopped {
+			stop := q.stopping()
+			q.mu.Unlock()
+			select {
+			case <-time.After(due.Sub(now)):
+			case <-stop:
+			}
+			continue
 		}
 		if err != nil || len(todo) == 0 || q.stopped {
 			if err != nil {
@@ -375,6 +423,21 @@ func (q *Queue) settled(k Kind, lane string, sent, failed []Item) {
 	k.Settled(lane, sent, failed)
 }
 
+// stopping is what Stop closes. q.mu is held.
+func (q *Queue) stopping() chan struct{} {
+	if q.stop == nil {
+		q.stop = make(chan struct{})
+	}
+	return q.stop
+}
+
+func (q *Queue) now() time.Time {
+	if q.Now != nil {
+		return q.Now()
+	}
+	return time.Now()
+}
+
 // Wait waits until nothing's being sent.
 func (q *Queue) Wait() { q.wg.Wait() }
 
@@ -383,7 +446,10 @@ func (q *Queue) Wait() { q.wg.Wait() }
 // was being sent finished.
 func (q *Queue) Stop(grace time.Duration) bool {
 	q.mu.Lock()
-	q.stopped = true
+	if !q.stopped {
+		q.stopped = true
+		close(q.stopping())
+	}
 	q.mu.Unlock()
 	done := make(chan struct{})
 	go func() {

@@ -21,6 +21,8 @@ type Acting interface {
 	SetState(slug string, state mission.State, by ops.Actor) (ops.StateSet, error)
 	Archive(slug string, burnAll bool, by ops.Actor) (ops.StateSet, error)
 	Reopen(slug string, from mission.State, by ops.Actor) (ops.StateSet, error)
+	RetryPutAway(slug string, id int64, by ops.Actor) (string, error)
+	DropPutAway(slug string, id int64, by ops.Actor) (string, error)
 	SetBrief(slug, text string, by ops.Actor) (ops.BriefSet, error)
 	SetPlan(slug, text string, by ops.Actor) (ops.PlanSet, error)
 	SetStepLevel(slug string, n int, level string, by ops.Actor) (ops.LevelSet, error)
@@ -63,6 +65,12 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 		// Refused while a capsule's work hasn't merged, unless you've
 		// agreed to burn it anyway (BurnAll).
 		return said(a.Archive(slug, req.BurnAll, you))
+	case "put-away-retry":
+		// What archiving it left to do, and couldn't: tried again, or
+		// let go of, the capsule left as it is.
+		return a.RetryPutAway(slug, req.Item, you)
+	case "put-away-drop":
+		return a.DropPutAway(slug, req.Item, you)
 	case "park":
 		return said(a.SetState(slug, mission.Parked, you))
 	case "unarchive":

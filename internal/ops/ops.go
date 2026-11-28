@@ -207,6 +207,9 @@ func Open(root string, o Options) *Workspace {
 	w := New(&config.Config{}, &workspace.Workspace{Root: root}, nil, o)
 	w.reload = true
 	w.loaded()
+	if o.Outbox != nil {
+		w.PutAwayBehind(o.Outbox)
+	}
 	// Held for the process's life (the daemon's), its way of finding names
 	// stands: a workspace loaded for a moment after it, with its index cold,
 	// doesn't take its place.

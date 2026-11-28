@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/withworkspace/workspace/internal/git"
@@ -154,6 +155,17 @@ func (w *Workspace) RemoveWorktree(repo, branch string, force bool) error {
 	repoDir := w.RepoDir(repo)
 
 	wtPath := filepath.Join(repoDir, branch)
+	if unfinishedRemoval(w.BareDir(repo), wtPath) {
+		// A removal before this one got as far as its .git, then stopped
+		// (a folder it couldn't delete, a daemon gone mid-burn): what's
+		// left is finished off, and git told it's gone, as git itself
+		// says "not a working tree" of it.
+		if err := os.RemoveAll(wtPath); err != nil {
+			return fmt.Errorf("could not remove what's left of capsule: %w", err)
+		}
+		_ = git.Run(w.BareDir(repo), "worktree", "prune")
+		return nil
+	}
 	remove := GitWorktreeRemove
 	if force {
 		remove = GitWorktreeRemoveForce
@@ -162,6 +174,38 @@ func (w *Workspace) RemoveWorktree(repo, branch string, force bool) error {
 		return fmt.Errorf("could not remove capsule: %w", err)
 	}
 	return nil
+}
+
+// unfinishedRemoval says a capsule's folder is what a removal left: its
+// .git gone, and either nothing left in it or git still listing it as a
+// worktree. A folder git never made isn't one.
+func unfinishedRemoval(bare, path string) bool {
+	if _, err := os.Lstat(filepath.Join(path, ".git")); !os.IsNotExist(err) {
+		return false
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false
+	}
+	if len(entries) == 0 {
+		return true
+	}
+	out, err := git.Combined(bare, "worktree", "list", "--porcelain")
+	if err != nil {
+		return false
+	}
+	real := func(p string) string {
+		if r, err := filepath.EvalSymlinks(p); err == nil {
+			return r
+		}
+		return filepath.Clean(p)
+	}
+	for line := range strings.Lines(out) {
+		if p, ok := strings.CutPrefix(strings.TrimSpace(line), "worktree "); ok && real(p) == real(path) {
+			return true
+		}
+	}
+	return false
 }
 
 // Board adds a capsule to the boarded set for a repo.

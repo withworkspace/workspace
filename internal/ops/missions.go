@@ -18,8 +18,12 @@ import (
 type StateSet struct {
 	Slug  string
 	State mission.State // "" reopened
-	// Burned are the capsules (repo/name) archiving burned.
-	Burned []string
+	// Burned are the capsules (repo/name) archiving burned; Burning
+	// those it's burning behind, in a moment (archiveBehind); Kept those
+	// reopening it took back from burning (takeBackPutAway).
+	Burned  []string
+	Burning []string
+	Kept    []string
 }
 
 // Label is the state in a word: parked, archived, reopened.
@@ -38,7 +42,13 @@ func (s StateSet) String() string {
 		if len(s.Burned) > 0 {
 			return "Archived; burned " + strings.Join(s.Burned, ", ") + "."
 		}
+		if len(s.Burning) > 0 {
+			return "Archived; burning " + strings.Join(s.Burning, ", ") + " in a moment."
+		}
 		return "Archived."
+	}
+	if len(s.Kept) > 0 {
+		return "Reopened; kept " + strings.Join(s.Kept, ", ") + "."
 	}
 	return "Reopened."
 }
@@ -93,6 +103,7 @@ func (w *Workspace) putIn(slug string, state mission.State, by Actor) (StateSet,
 // hasn't, archiving is refused, saying which and why, unless burnAll: it
 // burns them anyway, their branches kept and what's not committed lost.
 // It's refused while crew are at work on the mission, as ending it is.
+// In the daemon, the burning's done behind the answer (archiveBehind).
 // A burned capsule's branch is kept by the mission (Burn), so its pull
 // request can still be found; reopening the mission doesn't bring the
 // capsule back.
@@ -106,17 +117,13 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 			return StateSet{}, refused("crew-working", "%s is still working: stop them or wait for done before archiving", c.ID)
 		}
 	}
-	v := BuildMissionViews(w.WS(), w.GitHub(), []*mission.Mission{m})[0]
-	var burn []CapsuleView
-	var unmerged []string
-	for _, c := range v.Capsules {
-		if !c.Exists {
-			continue
-		}
-		burn = append(burn, c)
-		if why := whyUnmerged(c); why != "" {
-			unmerged = append(unmerged, fmt.Sprintf("%s/%s (%s)", c.Repo, c.Name, why))
-		}
+	// What's kept says first: only where it says a capsule's work hasn't
+	// all left are GitHub and git asked (a pull request kept as open may
+	// have merged since), so a mission whose work has merged archives
+	// without waiting on either.
+	burn, unmerged := toBurn(w.missionPRView(m))
+	if len(unmerged) > 0 {
+		burn, unmerged = toBurn(BuildMissionViews(w.WS(), w.GitHub(), []*mission.Mission{m})[0])
 	}
 	if len(unmerged) > 0 && !burnAll {
 		which := "1 has unmerged work"
@@ -125,6 +132,9 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 		}
 		return StateSet{}, refused("unmerged-capsules", "Archiving burns the mission's capsules, and %s: %s. Archive anyway to burn them: branches are kept, uncommitted changes are lost",
 			which, strings.Join(unmerged, ", "))
+	}
+	if q := w.opts.Outbox; q != nil {
+		return w.archiveBehind(q, m, burn, burnAll, by)
 	}
 	// Before their capsules go: a session left open would sit in a folder
 	// that's gone.
@@ -157,6 +167,21 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 	out, err := w.putIn(m.Slug, mission.Archived, by)
 	out.Burned = burned
 	return out, err
+}
+
+// toBurn is the capsules of a mission's view that are there to burn, and
+// those of them whose work hasn't all left, with why.
+func toBurn(v MissionView) (burn []CapsuleView, unmerged []string) {
+	for _, c := range v.Capsules {
+		if !c.Exists {
+			continue
+		}
+		burn = append(burn, c)
+		if why := whyUnmerged(c); why != "" {
+			unmerged = append(unmerged, fmt.Sprintf("%s/%s (%s)", c.Repo, c.Name, why))
+		}
+	}
+	return burn, unmerged
 }
 
 // whyUnmerged says why a capsule's work hasn't all left: "" when its pull
@@ -198,7 +223,11 @@ func (w *Workspace) Reopen(slug string, from mission.State, by Actor) (StateSet,
 	if m.State != from {
 		return StateSet{}, refused("not-"+string(from), "mission is not %s", from)
 	}
-	return w.SetState(m.Slug, "", by)
+	out, err := w.SetState(m.Slug, "", by)
+	if err == nil && from == mission.Archived {
+		out.Kept = w.takeBackPutAway(m.Slug)
+	}
+	return out, err
 }
 
 // BriefSet is a brief written, with what its stages name that the mission

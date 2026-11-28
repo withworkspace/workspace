@@ -315,3 +315,67 @@ func TestResumeAsks(t *testing.T) {
 		t.Errorf("kept: %q", got)
 	}
 }
+
+// One of a kind that's held waits before it's sent, with those behind it
+// in its lane, so it can be taken back while it does; taken back, it's
+// neither sent nor kept. Once its time's up it goes as any does, and a
+// queue that stops while one's held waits no longer.
+func TestHold(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	var mu sync.Mutex
+	var sent []string
+	q := &Queue{Root: root}
+	send := func(it Item) error {
+		mu.Lock()
+		defer mu.Unlock()
+		sent = append(sent, it.Doing)
+		return nil
+	}
+	q.Handle("burn", Kind{Send: send, Again: func(Item) bool { return true }, Hold: 150 * time.Millisecond})
+	q.Handle("say", Kind{Send: send})
+	said := func() string {
+		mu.Lock()
+		defer mu.Unlock()
+		return strings.Join(sent, ", ")
+	}
+
+	q.Add("m", "burn", "one", op{})
+	q.Add("m", "say", "after", op{})
+	q.Add("m", "burn", "two", op{})
+	if got := said(); got != "" {
+		t.Fatalf("sent before its hold was up: %q", got)
+	}
+	gone, err := q.Cancel("m", "burn")
+	if err != nil || len(gone) != 2 {
+		t.Fatalf("taken back: %+v %v", gone, err)
+	}
+	q.laneIdle(t, "m")
+	if got := said(); got != "after" {
+		t.Errorf("sent, with the held taken back: %q", got)
+	}
+	if got := states(t, root, "m"); got != "" {
+		t.Errorf("kept: %q", got)
+	}
+
+	start := time.Now()
+	q.Add("n", "burn", "three", op{})
+	q.Add("n", "say", "behind", op{})
+	q.laneIdle(t, "n")
+	if got := said(); got != "after, three, behind" {
+		t.Errorf("sent once its hold was up: %q", got)
+	}
+	if took := time.Since(start); took < 150*time.Millisecond {
+		t.Errorf("sent after %s, held for less than it's to be", took)
+	}
+
+	// Stopped while one's held: it waits for the next daemon.
+	q.Handle("burn", Kind{Send: send, Hold: time.Hour})
+	q.Add("o", "burn", "four", op{})
+	if !q.Stop(time.Second) {
+		t.Fatal("a held lane kept the queue from stopping")
+	}
+	if got := states(t, root, "o"); got != "four waiting" {
+		t.Errorf("kept for the next: %q", got)
+	}
+}
