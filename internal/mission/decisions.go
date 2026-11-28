@@ -271,3 +271,27 @@ func (d Decision) IsAbout(ref string) bool {
 	}
 	return slices.Contains(d.About, ref)
 }
+
+// DecisionNumber is a decision's number: 3 for d3, 0 for what isn't one.
+func DecisionNumber(id string) int {
+	n := 0
+	if rest, ok := strings.CutPrefix(id, "d"); ok {
+		for _, c := range rest {
+			if c < '0' || c > '9' {
+				return 0
+			}
+			n = n*10 + int(c-'0')
+		}
+	}
+	return n
+}
+
+// SetDecisionsLooked records that the decision look has looked at the
+// mission's decisions up to dN. It never goes back.
+func (s Store) SetDecisionsLooked(slug string, n int) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		m.DecisionsLooked = max(m.DecisionsLooked, n)
+		return nil
+	})
+	return err
+}
